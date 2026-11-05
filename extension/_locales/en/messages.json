@@ -1,0 +1,56 @@
+{
+ "extDesc": {
+  "message": "Sends Chrome downloads, detected videos and magnet links to DrYAE."
+ },
+ "connected": {
+  "message": "connected"
+ },
+ "offline": {
+  "message": "offline"
+ },
+ "offHint": {
+  "message": "DrYAE is not running. Open the app on your PC: downloads will stay in Chrome in the meantime."
+ },
+ "pageBtn": {
+  "message": "Download this page's video"
+ },
+ "intercept": {
+  "message": "Send Chrome downloads to DrYAE"
+ },
+ "detected": {
+  "message": "Media detected in this tab"
+ },
+ "playHint": {
+  "message": "Play a video: it will appear here."
+ },
+ "dlWith": {
+  "message": "Download with DrYAE"
+ },
+ "kVideo": {
+  "message": "video"
+ },
+ "kAudio": {
+  "message": "audio"
+ },
+ "kHls": {
+  "message": "stream"
+ },
+ "kSub": {
+  "message": "subtitles"
+ },
+ "media": {
+  "message": "media"
+ },
+ "mLink": {
+  "message": "Download link with DrYAE"
+ },
+ "mPage": {
+  "message": "Download this page's video with DrYAE"
+ },
+ "mSel": {
+  "message": "Download selected link with DrYAE"
+ },
+ "units": {
+  "message": "B KB MB GB"
+ }
+}

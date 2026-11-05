@@ -1,0 +1,60 @@
+# fr	en	es	pt	ru	ar
+({0} de taille inconnue)	({0} of unknown size)	({0} de tamaño desconocido)	({0} de tamanho desconhecido)	({0} неизвестного размера)	({0} بحجم غير معروف)
+Ajoute un lien, un torrent, ou ouvre le navigateur pour trouver des vidéos.	Add a link or a torrent, or open the browser to find videos.	Añade un enlace o un torrent, o abre el navegador para encontrar vídeos.	Adiciona uma ligação ou um torrent, ou abre o navegador para encontrar vídeos.	Добавьте ссылку или торрент либо откройте браузер, чтобы найти видео.	أضف رابطًا أو تورنت، أو افتح المتصفح للعثور على فيديوهات.
+Aucun téléchargement	No downloads	No hay descargas	Nenhuma transferência	Нет загрузок	لا توجد تنزيلات
+Aucun élément ici	Nothing here	No hay nada aquí	Nada aqui	Здесь ничего нет	لا شيء هنا
+Change de filtre ou de recherche.	Try another filter or search.	Cambia de filtro o de búsqueda.	Muda de filtro ou de pesquisa.	Измените фильтр или запрос.	غيّر الفلتر أو البحث.
+Convertir en MP3	Convert to MP3	Convertir a MP3	Converter para MP3	Конвертировать в MP3	تحويل إلى MP3
+Flux DASH : non pris en charge pour le moment	DASH stream: not supported yet	Flujo DASH: aún no compatible	Fluxo DASH: ainda não suportado	Поток DASH: пока не поддерживается	تدفق DASH: غير مدعوم حاليًا
+Gestionnaire de téléchargements	Download manager	Gestor de descargas	Gestor de transferências	Менеджер загрузок	مدير التنزيلات
+Impossible d'ouvrir la page	Unable to open the page	No se puede abrir la página	Não é possível abrir a página	Не удаётся открыть страницу	تعذّر فتح الصفحة
+Infos	Info	Información	Informações	Сведения	معلومات
+Jamais enregistrés	Never saved	Nunca guardadas	Nunca guardadas	Никогда не сохранять	لا تُحفظ أبدًا
+Ko/s pour ce téléchargement (0 = illimitée)	KB/s for this download (0 = unlimited)	KB/s para esta descarga (0 = ilimitada)	KB/s para esta transferência (0 = ilimitada)	КБ/с для этой загрузки (0 = без ограничений)	ك.ب/ث لهذا التنزيل (0 = غير محدود)
+Les éléments seront retirés de la liste.	The items will be removed from the list.	Los elementos se quitarán de la lista.	Os itens serão removidos da lista.	Элементы будут убраны из списка.	ستتم إزالة العناصر من القائمة.
+Limite de vitesse (Ko/s, 0 = illimitée)	Speed limit (KB/s, 0 = unlimited)	Límite de velocidad (KB/s, 0 = ilimitada)	Limite de velocidade (KB/s, 0 = ilimitada)	Ограничение скорости (КБ/с, 0 = без ограничений)	حد السرعة (ك.ب/ث، 0 = غير محدود)
+Pairs	Peers	Pares	Pares	Пиры	النظراء
+Port (0 = auto)	Port (0 = auto)	Puerto (0 = auto)	Porta (0 = auto)	Порт (0 = авто)	المنفذ (0 = تلقائي)
+Ratio de partage (0 = illimité)	Share ratio (0 = unlimited)	Ratio de compartición (0 = ilimitado)	Rácio de partilha (0 = ilimitado)	Рейтинг раздачи (0 = без ограничений)	نسبة المشاركة (0 = غير محدود)
+Téléchargements simultanés max. par site (0 = illimité)	Max. simultaneous downloads per site (0 = unlimited)	Descargas simultáneas máx. por sitio (0 = ilimitado)	Transferências simultâneas máx. por site (0 = ilimitado)	Макс. одновременных загрузок на сайт (0 = без ограничений)	الحد الأقصى للتنزيلات المتزامنة لكل موقع (0 = غير محدود)
+Variante	Variant	Variante	Variante	Вариант	الإصدار
+Vidéo de cette page	This page's video	Vídeo de esta página	Vídeo desta página	Видео с этой страницы	فيديو هذه الصفحة
+et choisis le dossier	and choose the folder	y elige la carpeta	e escolhe a pasta	и выберите папку	واختر المجلد
+ffmpeg introuvable	ffmpeg not found	ffmpeg no encontrado	ffmpeg não encontrado	ffmpeg не найден	ffmpeg غير موجود
+hors ligne	offline	sin conexión	offline	не в сети	غير متصل
+intégré ✔	built in ✔	integrado ✔	integrado ✔	встроено ✔	مدمج ✔
+meilleure qualité	best quality	mejor calidad	melhor qualidade	лучшее качество	أفضل جودة
+mot de passe	password	contraseña	palavra-passe	пароль	كلمة المرور
+média	media	multimedia	multimédia	медиа	وسائط
+non prise en charge par le serveur	not supported by the server	no admitida por el servidor	não suportada pelo servidor	не поддерживается сервером	غير مدعومة من الخادم
+page web	web page	página web	página web	веб-страница	صفحة ويب
+par une suite	with a sequence	por una secuencia	por uma sequência	последовательностью	بتسلسل
+reprise non prise en charge	resume not supported	reanudación no admitida	retoma não suportada	докачка не поддерживается	الاستئناف غير مدعوم
+reprise possible	can resume	reanudación posible	retoma possível	докачка возможна	الاستئناف ممكن
+{0} {1} % de {2}	{0} {1} % of {2}	{0} {1} % de {2}	{0} {1} % de {2}	{0} {1} % из {2}	{0} {1} % من {2}
+· taille inconnue	· unknown size	· tamaño desconocido	· tamanho desconhecido	· размер неизвестен	· الحجم غير معروف
+✔ Identique	✔ Identical	✔ Idéntica	✔ Idêntica	✔ Совпадает	✔ مطابق
+✘ Différente	✘ Different	✘ Diferente	✘ Diferente	✘ Не совпадает	✘ مختلف
+Ajouter un lien	Add a link	Añadir un enlace	Adicionar uma ligação	Добавить ссылку	إضافة رابط
+Ajouter un torrent	Add a torrent	Añadir un torrent	Adicionar um torrent	Добавить торрент	إضافة تورنت
+Ouvrir le navigateur	Open the browser	Abrir el navegador	Abrir o navegador	Открыть браузер	فتح المتصفح
+Wikipédia	Wikipedia	Wikipedia	Wikipédia	Википедия	ويكيبيديا
+Audio	Audio	Audio	Áudio	Аудио	صوت
+Format	Format	Formato	Formato	Формат	الصيغة
+Notifications	Notifications	Notificaciones	Notificações	Уведомления	الإشعارات
+Playlist	Playlist	Lista	Lista	Плейлист	قائمة التشغيل
+Segments	Segments	Segmentos	Segmentos	Сегменты	المقاطع
+Trackers	Trackers	Trackers	Trackers	Трекеры	المتتبعات
+Torrents	Torrents	Torrents	Torrents	Торренты	التورنتات
+Torrent	Torrent	Torrent	Torrent	Торрент	تورنت
+Ratio	Ratio	Ratio	Rácio	Рейтинг	النسبة
+Menu	Menu	Menú	Menu	Меню	القائمة
+Mobile	Mobile	Móvil	Telemóvel	Мобильный	الهاتف
+Hash	Hash	Hash	Hash	Хеш	البصمة
+automatique	automatic	automático	automático	автоматически	تلقائي
+nom=valeur; nom2=valeur2	name=value; name2=value2	nombre=valor; nombre2=valor2	nome=valor; nome2=valor2	имя=значение; имя2=значение2	اسم=قيمة; اسم2=قيمة2
+ci-dessous.	below.	abajo.	abaixo.	ниже.	أدناه.
+identifiant	username	usuario	utilizador	логин	اسم المستخدم
+Fermer (Ctrl+W)	Close (Ctrl+W)	Cerrar (Ctrl+W)	Fechar (Ctrl+W)	Закрыть (Ctrl+W)	إغلاق (Ctrl+W)
+Fermer	Close	Cerrar	Fechar	Закрыть	إغلاق
+Proxy	Proxy	Proxy	Proxy	Прокси	الوكيل

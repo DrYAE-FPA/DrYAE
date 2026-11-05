@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>DrYAE — Navigateur</title>
+<link rel="stylesheet" href="../ui/style.css">
+<style>
+body{display:flex;flex-direction:column;height:100vh}
+.tabstrip{display:flex;align-items:flex-end;gap:2px;padding:6px 8px 0;background:var(--panel);overflow-x:auto;flex:none}
+.tab{display:flex;align-items:center;gap:8px;min-width:120px;max-width:220px;flex:1 1 180px;padding:7px 8px 7px 10px;border-radius:9px 9px 0 0;background:var(--panel2);color:var(--muted);cursor:default;border:1px solid var(--line);border-bottom:0;font-size:12px}
+.tab.on{background:var(--bg);color:var(--text)}
+.tab.dragging{opacity:.45}
+.tab.drop-l{box-shadow:inset 3px 0 0 var(--accent)}
+.tab.drop-r{box-shadow:inset -3px 0 0 var(--accent)}
+.tab.priv{background:#2a1846}.tab.priv.on{background:#3b2163}
+.tab img,.tab .fav{width:14px;height:14px;flex:none;border-radius:3px}
+.tab .fav{display:grid;place-items:center;font-size:9px;background:var(--line);color:var(--muted)}
+.tab .t{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tab .x{padding:2px;border-radius:4px;display:inline-flex;opacity:.6}.tab .x:hover{background:var(--line2);opacity:1}
+.tab .x svg{width:12px;height:12px}
+.tab.loading .fav{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.newtab{padding:6px 8px;border-radius:8px;color:var(--muted);margin-bottom:3px}.newtab:hover{background:var(--panel2)}
+.toolbar{display:flex;align-items:center;gap:4px;padding:6px 8px;background:var(--bg);border-bottom:1px solid var(--line);flex:none}
+.addr{flex:1;display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--line);border-radius:99px;padding:0 12px;height:34px}
+.addr:focus-within{border-color:var(--accent)}
+.addr input{flex:1;background:none;border:0;outline:0;padding:0;height:100%}
+.addr .lock{color:var(--ok)}.addr .lock.no{color:var(--muted)}
+.tb{position:relative;padding:7px;border-radius:8px;color:var(--muted);display:inline-flex}
+.tb:hover{background:var(--panel2);color:var(--text)}
+.tb.on{color:var(--accent)}
+.tb .n{position:absolute;top:0;right:-2px;min-width:16px;height:16px;padding:0 4px;border-radius:99px;background:var(--accent);color:#fff;font-size:10px;font-weight:700;display:none;align-items:center;justify-content:center}
+.tb .n.on{display:flex}
+.tb.shield .n{background:var(--ok)}
+.mediabtn{display:none;align-items:center;gap:6px;padding:6px 12px;border-radius:99px;background:var(--accent);color:#fff;font-weight:600;font-size:12px}
+.mediabtn.on{display:inline-flex;animation:pop .3s}
+@keyframes pop{from{transform:scale(.8)}to{transform:scale(1)}}
+.loadbar{height:2px;background:transparent;flex:none;position:relative;overflow:hidden}
+.loadbar i{position:absolute;left:0;top:0;bottom:0;background:var(--accent);width:0;transition:width .3s}
+.stage{flex:1;position:relative;display:flex;min-height:0}
+.views{flex:1;position:relative}
+webview{position:absolute;inset:0;width:100%;height:100%;display:none;background:#fff}
+webview.on{display:flex}
+.start{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;padding-top:12vh;overflow:auto;background:var(--bg)}
+.start.on{display:flex}
+.start img{width:72px;height:72px;border-radius:18px;box-shadow:0 0 40px var(--accent-line)}
+.start h1{margin:14px 0 22px;font-size:26px;letter-spacing:.5px}
+.start .sbox{width:min(620px,90%);display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line2);border-radius:99px;padding:0 18px;height:48px}
+.start .sbox input{flex:1;background:none;border:0;outline:0;font-size:15px}
+.start .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:12px;width:min(760px,92%);margin-top:34px}
+.start .tile{display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 8px;border-radius:12px;background:var(--panel);border:1px solid var(--line);cursor:pointer;text-align:center;font-size:12px}
+.start .tile:hover{border-color:var(--accent)}
+.start .tile .ic{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:15px}
+.start .tile span{width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.start .priv{margin-top:10px;color:#c4b5fd}
+.panel{width:380px;border-left:1px solid var(--line);background:var(--panel);display:none;flex-direction:column;min-height:0}
+.panel.on{display:flex}
+.panel header{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.panel header b{flex:1}
+.panel .pbody{flex:1;overflow:auto;padding:10px}
+.mitem{padding:10px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;background:var(--panel2)}
+.mitem .k{display:inline-block;font-size:10px;font-weight:700;padding:1px 6px;border-radius:5px;background:var(--accent-soft);color:var(--accent);margin-right:6px;text-transform:uppercase}
+.mitem .k.hls{background:#38bdf822;color:#38bdf8}.mitem .k.audio{background:#34d39922;color:#34d399}.mitem .k.subtitle{background:#e879f922;color:#e879f9}
+.mitem .nm{font-weight:600;word-break:break-all;font-size:12px}
+.mitem .u{color:var(--muted);font-size:11px;word-break:break-all;margin-top:4px;max-height:32px;overflow:hidden}
+.mitem .row{margin-top:8px}
+.hrow{display:flex;gap:8px;align-items:center;padding:7px 8px;border-radius:8px;cursor:pointer;font-size:12px}
+.hrow:hover{background:var(--panel2)}
+.hrow .t{flex:1;min-width:0}
+.hrow .t b{display:block;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hrow .t span{color:var(--muted);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.findbar{position:absolute;top:8px;right:16px;z-index:5;display:none;gap:6px;align-items:center;background:var(--panel);border:1px solid var(--line2);border-radius:10px;padding:6px;box-shadow:var(--shadow)}
+.findbar.on{display:flex}
+.findbar input{width:220px}
+.panel{transition:transform .22s ease,opacity .22s ease}
+.panel.slide{display:flex;transform:translateX(100%);opacity:0}
+.tb.dl .n{background:var(--accent)}
+.tb.dl.has{color:var(--accent)}
+.pwbar{display:none;align-items:center;gap:10px;padding:8px 14px;background:var(--accent-soft);border-bottom:1px solid var(--accent-line);flex:none}
+.pwbar.on{display:flex}
+.pwbar span{flex:1}
+.pwbar svg{color:var(--accent)}
+browser-action-list{display:flex;align-items:center;gap:2px;max-width:40vw;overflow:hidden}
+browser-action-list::part(action){width:30px;height:30px;border-radius:8px}
+browser-action-list::part(action):hover{background:var(--panel2)}
+.zoom{font-size:11px;color:var(--muted);padding:0 4px}
+.qsec{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--dim);margin:16px 0 6px;font-weight:600;display:flex;align-items:center;gap:6px}
+.qgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.qopt{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);text-align:left;cursor:pointer}
+.qopt:hover{border-color:var(--accent);background:var(--accent-soft)}
+.qopt b{font-size:13px}.qopt span{color:var(--muted);font-size:11px}
+.qopt.best{border-color:var(--accent-line)}
+.spin{width:22px;height:22px;border:3px solid var(--line2);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;margin:18px auto}
+</style>
+</head>
+<body>
+<svg style="display:none">
+  <symbol id="i-back" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 18l-6-6 6-6"/></symbol>
+  <symbol id="i-fwd" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="i-reload" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 11a8 8 0 10-2.3 5.7M20 4v7h-7"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-7 9 7v9a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1z"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3 6.4 20.2l1.1-6.2L3 9.6l6.2-.9z"/></symbol>
+  <symbol id="i-star-f" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3 6.4 20.2l1.1-6.2L3 9.6l6.2-.9z"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></symbol>
+  <symbol id="i-dl" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 20h14"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-mask" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10c3-2 15-2 18 0l-1 4a4 4 0 01-7 1h-2a4 4 0 01-7-1z"/></symbol>
+  <symbol id="i-video" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 14a4 4 0 006 0l3-3a4 4 0 00-6-6l-1 1M14 10a4 4 0 00-6 0l-3 3a4 4 0 006 6l1-1"/></symbol>
+  <symbol id="i-app" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="7" rx="1"/><rect x="4" y="13" width="7" height="7" rx="1"/><rect x="13" y="13" width="7" height="7" rx="1"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></symbol>
+  <symbol id="i-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3m-4 4l3 3m-5-1l2 2"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0116 0"/></symbol>
+  <symbol id="i-puzzle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 3a2 2 0 014 0v2h4a1 1 0 011 1v4h-2a2 2 0 000 4h2v4a1 1 0 01-1 1h-4v-2a2 2 0 00-4 0v2H6a1 1 0 01-1-1v-4h2a2 2 0 000-4H5V6a1 1 0 011-1h4z"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></symbol>
+</svg>
+
+<div class="tabstrip" id="tabs"><button class="newtab" id="newTab" title="Nouvel onglet (Ctrl+T)"><svg><use href="#i-plus"/></svg></button></div>
+<div class="toolbar">
+  <button class="tb" id="bBack" title="Précédent (Alt+←)"><svg><use href="#i-back"/></svg></button>
+  <button class="tb" id="bFwd" title="Suivant (Alt+→)"><svg><use href="#i-fwd"/></svg></button>
+  <button class="tb" id="bReload" title="Actualiser (F5)"><svg><use href="#i-reload" id="reloadIc"/></svg></button>
+  <button class="tb" id="bHome" title="Accueil"><svg><use href="#i-home"/></svg></button>
+  <div class="addr"><svg class="lock no" id="lock"><use href="#i-lock"/></svg><input id="url" placeholder="Rechercher ou saisir une adresse" spellcheck="false"><span class="zoom" id="zoom"></span><button class="tb" id="bStar" title="Ajouter aux favoris"><svg><use href="#i-star" id="starIc"/></svg></button></div>
+ <browser-action-list id="extBar" partition="persist:dryae-web" alignment="bottom right"></browser-action-list>
+  <button class="tb shield" id="bShield" title="Bloqueur de publicités"><svg><use href="#i-shield"/></svg><span class="n" id="shieldN"></span></button>
+  <button class="tb dl" id="bDrYAE" title="Téléchargements de cette page"><svg><use href="#i-dl"/></svg><span class="n" id="dlN"></span></button>
+  <button class="tb" id="bMenu" title="Menu"><svg><use href="#i-menu"/></svg></button>
+</div>
+<div class="loadbar"><i id="loadbar"></i></div>
+<div class="pwbar" id="pwBar"><svg><use href="#i-key"/></svg><span></span><button class="btn sm primary" id="pwSave">Enregistrer</button><button class="btn sm" id="pwNever">Jamais pour ce site</button><button class="icon-btn" id="pwLater" title="Plus tard"><svg><use href="#i-x"/></svg></button></div>
+<div class="stage">
+  <div class="views" id="views">
+    <div class="start" id="start">
+      <img src="../../assets/logo.png" alt="">
+      <h1>DrYAE</h1>
+      <div class="sbox"><svg><use href="#i-search"/></svg><input id="startQ" placeholder="Rechercher sur le web ou saisir une adresse"></div>
+      <div class="priv" id="privNote" style="display:none">Onglet privé : l'historique et les cookies ne sont pas conservés.</div>
+      <div class="tiles" id="tiles"></div>
+    </div>
+    <div class="findbar" id="findbar"><input id="findQ" placeholder="Rechercher dans la page"><span class="hint" id="findN"></span><button class="icon-btn" id="findPrev"><svg><use href="#i-back"/></svg></button><button class="icon-btn" id="findNext"><svg><use href="#i-fwd"/></svg></button><button class="icon-btn" id="findX"><svg><use href="#i-x"/></svg></button></div>
+  </div>
+  <div class="panel" id="panel"><header><b id="pTitle"></b><button class="icon-btn" id="pClose"><svg><use href="#i-x"/></svg></button></header><div class="pbody" id="pBody"></div></div>
+</div>
+
+<div class="menu" id="menu"></div>
+<div class="overlay" id="loginModal"><div class="modal" style="width:420px">
+  <h3>Identification requise</h3>
+  <p class="hint" id="loginHost"></p>
+  <label>Identifiant</label><input type="text" id="lgU">
+  <label>Mot de passe</label><input type="password" id="lgP">
+  <label class="check"><input type="checkbox" id="lgS" checked> Enregistrer pour ce site</label>
+  <div class="modal-foot"><button class="btn" id="lgCancel">Annuler</button><button class="btn primary" id="lgOk">Se connecter</button></div>
+</div></div>
+<div class="overlay" id="qs"><div class="modal" style="width:min(520px,100%)">
+  <h3><span id="qsTitleH">Choisir un format</span><button class="icon-btn x" id="qsX"><svg><use href="#i-x"/></svg></button></h3>
+  <div class="row" style="align-items:flex-start;gap:12px"><img id="qsThumb" alt="" style="width:140px;height:79px;object-fit:cover;border-radius:8px;background:var(--panel2);display:none"><div style="flex:1;min-width:0"><b id="qsTitle" style="display:block;word-break:break-word"></b><div class="hint" id="qsMeta"></div></div></div>
+  <div id="qsBody"></div>
+  <div id="qsAdv" style="display:none;margin-top:12px;border-top:1px solid var(--line);padding-top:4px">
+    <label>Nom du fichier</label><input type="text" id="qaName">
+    <label>Enregistrer dans</label><div class="row"><input type="text" id="qaDir"><button class="btn" id="qaPick">Parcourir</button></div>
+    <div class="row" style="gap:16px;flex-wrap:wrap;margin-top:4px"><label class="check"><input type="checkbox" id="qaPaused"> Ajouter en pause</label><label class="check"><input type="checkbox" id="qaSched"> Planifier</label><label class="check" style="gap:6px">Limite <input type="number" id="qaSpeed" min="0" value="0" style="width:80px"> Ko/s</label></div>
+  </div>
+  <div class="modal-foot"><span class="l hint">Ne télécharge que ce que tu as le droit de copier.</span><button class="btn" id="qsMore">Plus d'options…</button></div>
+</div></div>
+<div class="toast" id="toast"></div>
+<script src="../shared/locales.js"></script>
+<script src="../shared/i18n.js"></script>
+<script src="browser.js"></script>
+</body>
+</html>

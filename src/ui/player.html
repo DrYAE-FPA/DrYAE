@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><title>Lecteur DrYAE</title>
+<style>
+html,body{margin:0;height:100%;background:#000;color:#ddd;font:13px "Segoe UI",sans-serif;overflow:hidden}
+video{width:100%;height:100%;background:#000;outline:0}
+#msg{position:fixed;top:12px;left:12px;background:#000a;padding:6px 10px;border-radius:6px;pointer-events:none;transition:opacity .4s}
+</style></head><body>
+<video id="v" controls autoplay></video><div id="msg"></div>
+<script>
+const q = new URLSearchParams(location.search), v = document.getElementById('v'), m = document.getElementById('msg');
+document.title = (q.get('title') || q.get('lp') || 'DrYAE') + ' — DrYAE';
+m.textContent = q.get('title') || '';
+v.src = q.get('src');
+setTimeout(() => (m.style.opacity = 0), 3500);
+v.addEventListener('error', () => { m.style.opacity = 1; m.textContent = q.get('err') || 'Lecture impossible'; });
+v.addEventListener('waiting', () => { m.style.opacity = 1; m.textContent = q.get('buf') || '…'; });
+v.addEventListener('playing', () => (m.style.opacity = 0));
+document.addEventListener('keydown', e => {
+  if (e.key === ' ') { e.preventDefault(); v.paused ? v.play() : v.pause(); }
+  if (e.key === 'ArrowRight') v.currentTime += 10;
+  if (e.key === 'ArrowLeft') v.currentTime -= 10;
+  if (e.key.toLowerCase() === 'f') document.fullscreenElement ? document.exitFullscreen() : v.requestFullscreen();
+});
+</script></body></html>

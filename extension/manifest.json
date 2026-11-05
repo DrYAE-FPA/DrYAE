@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "DrYAE",
+  "version": "1.6.0",
+  "description": "__MSG_extDesc__",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvjK5D9sxxYr03DOy/JkjNqEG5X37OSUxtB2p3LQ8/3UAT1xVHCMXNzKkUUldoYDowpsig+5beMx/aVocsFRvSe0dMEBSqh/PS51J5+G0XyYjLHDZ0SFe/opYJHF19zyCiQ+wmo7dxt49Nb6KYhqcr3CNiBgkIGigul3JdD+i+KOs8zjhez1k7MBBWOOwiuHAGHZupLcFZpfisr2VUKZfuAjKGPRFP5JwSGkltOHfK00lAgCaNO5mc4rdDcDJgd0DtsAuNu2+3A3UoiEKXyJdp1epFSYD4IjqqKOOxLSvRl2DtDGZ8yF0nsOOPrcSrLZCk66GIwkLfELRP8GCIK6pAQIDAQAB",
+  "permissions": [
+    "downloads",
+    "contextMenus",
+    "cookies",
+    "webRequest",
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "DrYAE",
+    "default_icon": {
+      "16": "icons/16.png",
+      "32": "icons/32.png"
+    }
+  },
+  "icons": {
+    "16": "icons/16.png",
+    "32": "icons/32.png",
+    "48": "icons/48.png",
+    "128": "icons/128.png"
+  },
+  "default_locale": "en"
+}

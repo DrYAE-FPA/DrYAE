@@ -1,0 +1,5 @@
+node_modules/
+dist/
+bin/linux/
+*.log
+bin/win/*.exe

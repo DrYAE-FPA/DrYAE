@@ -1,0 +1,13 @@
+name: Problème / Bug
+description: Signaler un problème — Report a problem
+labels: [bug]
+body:
+  - type: textarea
+    attributes: { label: "Que s'est-il passé ? / What happened?" }
+    validations: { required: true }
+  - type: textarea
+    attributes: { label: "Étapes pour reproduire / Steps to reproduce" }
+  - type: input
+    attributes: { label: "Version de DrYAE (Paramètres → À propos) / DrYAE version" }
+  - type: input
+    attributes: { label: "Version de Windows / Windows version" }

@@ -1,0 +1,32 @@
+appId: com.dryae.app
+productName: DrYAE
+copyright: DrYAE contributors — GPL-3.0
+directories:
+  output: dist/installer
+  buildResources: build
+win:
+  target: [{ target: nsis, arch: [x64] }]
+  icon: assets/icon.ico
+  signAndEditExecutable: false
+nsis:
+  oneClick: false
+  perMachine: false
+  allowElevation: true
+  allowToChangeInstallationDirectory: true
+  multiLanguageInstaller: true
+  displayLanguageSelector: true
+  installerLanguages: [en_US, es_ES, fr_FR, ar_SA, pt_PT, ru_RU]
+  language: "1033"
+  include: build/installer.nsh
+  license: LICENSE
+  installerIcon: assets/icon.ico
+  uninstallerIcon: assets/icon.ico
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: DrYAE
+  artifactName: DrYAE-Setup-${version}.exe
+  deleteAppDataOnUninstall: false
+publish:
+  provider: github
+  owner: OWNER
+  repo: REPO

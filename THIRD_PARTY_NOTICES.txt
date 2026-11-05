@@ -1,0 +1,96 @@
+DrYAE 1.6 — Third-party components / Composants tiers
+======================================================
+
+DrYAE is free software released under the GNU General Public License v3.0
+or later (see LICENSE). It is distributed free of charge. It bundles the
+following components, each under its own license. Each one remains the
+property of its authors.
+
+DrYAE est un logiciel libre distribué gratuitement sous licence GNU GPL v3.0
+ou ultérieure (voir LICENSE). Il inclut les composants suivants, chacun sous
+sa propre licence et restant la propriété de ses auteurs.
+
+------------------------------------------------------------------------
+Bundled programs (folder resources/bin) / Programmes inclus
+------------------------------------------------------------------------
+
+FFmpeg 6.0 (Windows "essentials" build by gyan.dev)
+  License: GNU GPL v3 (built with --enable-gpl --enable-version3)
+  Website: https://ffmpeg.org — build: https://www.gyan.dev/ffmpeg/builds/
+  Source code: https://ffmpeg.org/releases/ffmpeg-6.0.tar.xz
+  WRITTEN OFFER: for at least three years from the date you received this
+  copy of DrYAE, the corresponding source code of this FFmpeg binary is
+  available, free of charge (no cost beyond the medium), on request through
+  the "Issues" page of the DrYAE GitHub repository, and is also published
+  with the DrYAE releases on GitHub.
+  Full license text: resources/bin/ffmpeg.LICENSE
+
+yt-dlp 2026.10.26
+  License: The Unlicense (public domain)
+  Source: https://github.com/yt-dlp/yt-dlp
+
+QuickJS-ng 0.18.0
+  License: MIT — Copyright (c) Fabrice Bellard, Charlie Gordon and the
+  QuickJS-ng contributors
+  Source: https://github.com/quickjs-ng/quickjs
+
+7-Zip 21.07 command-line version (7za.exe), by Igor Pavlov
+  License: GNU LGPL v2.1 (+ BSD 3-clause for some parts)
+  Source: https://www.7-zip.org
+  (7za.exe also comes through the npm package 7zip-bin, MIT.)
+
+------------------------------------------------------------------------
+Application framework / Cadre de l'application
+------------------------------------------------------------------------
+
+Electron 44 (includes Chromium and Node.js)
+  License: MIT — Copyright (c) Electron contributors / GitHub Inc.
+  Chromium and Node.js licenses: see LICENSE.electron.txt and
+  LICENSES.chromium.html next to DrYAE.exe.
+  Source: https://github.com/electron/electron
+
+------------------------------------------------------------------------
+JavaScript libraries (folder resources/app/node_modules)
+------------------------------------------------------------------------
+
+@ghostery/adblocker-electron and related @ghostery/* and @remusao/* packages
+  License: Mozilla Public License 2.0 — Source: https://github.com/ghostery/adblocker
+  (unmodified; MPL-2.0 source available at that address)
+node-datachannel 0.32 — License: MPL-2.0 — https://github.com/murat-dogan/node-datachannel
+WebTorrent 2.8 — MIT — https://github.com/webtorrent/webtorrent
+create-torrent — MIT — https://github.com/webtorrent/create-torrent
+undici — MIT — https://github.com/nodejs/undici
+electron-chrome-extensions 4.10 — MIT — https://github.com/samuelmaddock/electron-browser-shell
+electron-chrome-web-store 0.13 — MIT — https://github.com/samuelmaddock/electron-browser-shell
+electron-updater 6.8 — MIT — https://github.com/electron-userland/electron-builder
+7zip-bin — MIT — https://github.com/develar/7zip-bin
+argparse — Python-2.0 license
+Other dependencies — MIT, ISC, BSD-2-Clause, BSD-3-Clause, Apache-2.0,
+  BlueOak-1.0.0, WTFPL/MIT. Each package keeps its own LICENSE file in
+  resources/app/node_modules/<package>/.
+
+------------------------------------------------------------------------
+Ad-blocking filter lists (assets/adblock/engine.bin, compiled data)
+------------------------------------------------------------------------
+
+EasyList and EasyPrivacy — https://easylist.to — GPL v3 / CC BY-SA 3.0
+  (dual license), by The EasyList authors.
+uBlock Origin filters (ads, privacy, badware, quick fixes, unbreak)
+  — https://github.com/uBlockOrigin/uAssets — GPL v3, by Raymond Hill and
+  contributors.
+When the filters are updated, DrYAE downloads these lists from the copies
+published by the Ghostery adblocker project
+(https://github.com/ghostery/adblocker). DrYAE does not modify them.
+
+------------------------------------------------------------------------
+Trademarks / Marques
+------------------------------------------------------------------------
+
+YouTube, Google, Chrome, Chrome Web Store, Windows, GitHub, Vimeo, TikTok
+and other names cited in the app are trademarks of their respective
+owners. They are used only to describe compatibility. DrYAE is not
+affiliated with, endorsed by or sponsored by any of them.
+
+Les noms cités ci-dessus sont des marques de leurs propriétaires respectifs.
+Ils servent uniquement à décrire la compatibilité. DrYAE n'est affilié à
+aucun d'eux.

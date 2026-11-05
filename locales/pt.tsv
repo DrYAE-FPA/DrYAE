@@ -1,0 +1,636 @@
+0	(botão abaixo, ou cola o endereço) e ativa o
+1	(sem utilizador)
+2	({0} %)
+3	128 kb/s {0}
+4	192 kb/s {0}
+5	2160p (4K)
+6	320 kb/s {0}
+7	Início
+8	Acesso negado à pasta de destino
+9	Acesso negado pelo site (403). Experimenta «Atualizar o yt-dlp» nas definições
+10	Ativar / desativar o limite de velocidade
+11	Ativar o bloqueador
+12	Ativar o agendador
+13	Ativar os torrents
+14	Recarregar
+15	Recarregar (F5)
+16	AdGuard (bloqueia anúncios)
+17	Endereço
+18	Endereço copiado: cola-o na barra de endereço do Chrome
+19	Endereço da página copiado
+20	Endereço do proxy
+21	Endereço do site inválido
+22	Endereço não encontrado. Verifica a ortografia ou a tua ligação.
+23	Mostrar
+24	Mostrar na pasta
+25	Mostrar tamanhos
+26	Adicionar
+27	Adicionar ao agendador
+28	Adicionar aos favoritos
+29	Adicionar a partir da área de transferência
+30	Adicionar trackers (um por linha)
+31	Adicionar em pausa
+32	Adicionar os trackers predefinidos a cada torrent
+33	Adicionar sem ler as informações
+34	Adicionar um torrent
+35	Adicionado
+36	Adicionado aos favoritos
+37	Adicionado ao DrYAE
+38	Adicionado ao DrYAE{0}
+39	Algoritmo
+40	A analisar o vídeo…
+41	A analisar o ficheiro de vídeo da página…
+42	Cancelar
+43	Cancelar o encerramento
+44	Pré-visualização
+45	Aparência
+46	Arquivo extraído
+47	Arquivo protegido
+48	Arquivos
+49	Encerramento cancelado
+50	Encerramento do computador
+51	A encerrar o computador dentro de {0} s (todas as transferências terminaram)
+52	Parar a partilha
+53	Parar às (opcional)
+54	A juntar
+55	Dica: clique direito numa ligação → «Transferir a ligação com o DrYAE».
+56	Nenhum
+57	Nenhum favorito. Clica na estrela da barra de endereço.
+58	Nenhuma ligação válida (http://, https:// ou magnet:)
+59	Nenhuma palavra-passe guardada.
+60	Nenhuma palavra-passe. Inicia sessão num site: o DrYAE vai propor guardá-la.
+61	Ainda não há pares ligados.
+62	Nenhum site. Adiciona-os a partir do navegador (escudo).
+63	Nenhum tracker (só DHT).
+64	Nenhuma extensão. Abre a Chrome Web Store, escolhe uma extensão e clica em «Adicionar ao Chrome».
+65	Nenhuma variante de vídeo na lista
+66	Nenhum vídeo encontrado nesta página
+67	Áudio M4A
+68	Áudio M4A (sem recodificar)
+69	Áudio MP3
+70	Só áudio: ~{0}
+71	Autenticação necessária para
+72	Outro
+73	Bloquear janelas pop-up
+74	Bloquear anúncios e rastreadores
+75	Bloqueador de anúncios
+76	Bloqueado pelo bloqueador de anúncios.
+77	Cache limpa
+78	A calcular o tamanho…
+79	A calcular…
+80	Calcular
+81	Categorias
+82	Esta pasta não contém manifest.json
+83	Esta ligação não é uma lista m3u8 válida
+84	Este site não é suportado para vídeos online
+85	Este torrent já está na lista
+86	Certificado do site expirado
+87	Certificado do site inválido.
+88	Esta qualidade não está disponível para este vídeo
+89	Carregar descompactada
+90	Carregar uma pasta…
+91	Caminho copiado
+92	Escolher um formato
+93	Escolhe MP4 (com a qualidade) ou MP3, com o tamanho de cada ficheiro.
+94	Chrome no Windows (predefinido)
+95	Claro
+96	Organizar automaticamente por categoria (Vídeos, Música, Documentos, Torrents…)
+97	Clica em
+98	Chave de desencriptação indisponível ({0})
+99	Marca pelo menos uma ligação
+100	Marca pelo menos um vídeo
+101	Código postal
+102	Colar
+103	Comunidade
+104	Início de sessão automático (preencher credenciais)
+105	Ligação fechada antes do tempo
+106	Ligação recusada pelo servidor
+107	Ligação recusada.
+108	Ligação reposta
+109	Ligações
+110	Ligações (1–32)
+111	Ligações máx.
+112	Ligações por ficheiro
+113	Ligações por fluxo de vídeo (HLS)
+114	Usado hoje
+115	A converter…
+116	Conversão concluída
+117	Converter (TS → MP4, vídeo → MP3)…
+118	Converter os fluxos .ts para .mp4 (vídeo) no fim
+119	Cookies limpos
+120	Copiar
+121	Copiar o endereço
+122	Copiar o endereço chrome://extensions
+123	Copiar o endereço da página
+124	Copiar o endereço de {0}
+125	Copiar o caminho
+126	Copiar a ligação
+127	Copiar o nome do ficheiro
+128	Copiar as ligações
+129	Cor de destaque
+130	Cor personalizada
+131	Cortar
+132	Criar um ficheiro .torrent…
+133	DHT (encontrar pares sem tracker)
+134	DNS seguro (DNS-over-HTTPS, aplicado após reiniciar)
+135	No Chrome, abre
+136	Dom
+137	Documentos
+138	Dar a minha opinião
+139	Dar a minha opinião / comunicar um problema
+140	Pasta
+141	Pasta da extensão (que contém manifest.json)
+142	Pasta de transferências
+143	DrYAE: todas as transferências terminaram. Encerramento dentro de 60 segundos (shutdown /a para cancelar).
+144	O DrYAE está atualizado
+145	O DrYAE não está aberto. Abre a aplicação no teu PC: entretanto, as transferências ficam no Chrome.
+146	O DrYAE já abre as ligações magnet ✔
+147	O DrYAE agora abre as ligações magnet ✔
+148	O DrYAE {0} está disponível.
+149	O DrYAE ouve a extensão na porta {0}. ID da extensão: {1}
+150	DrYAE — Navegador
+151	DrYAE — {0} ativas · {1} MB/s
+152	Descoberta local (LSD)
+153	Tempo de ligação esgotado
+154	Começar às
+155	Mover…
+156	Larga aqui ligações, ficheiros .torrent ou uma lista de ligações
+157	Desativar o bloqueador em todo o lado
+158	Desativar o bloqueador em {0}
+159	Desativado (DNS do sistema)
+160	Desmarcar
+161	Detetar as ligações copiadas para a área de transferência
+162	Detetar legendas
+163	Limpar
+164	Limpar o histórico
+165	Limpar o histórico e os cookies ao fechar o navegador
+166	Limpar os cookies
+167	Em espera
+168	À espera dos metadados…
+169	A transferir
+170	Em pausa
+171	Cabeçalhos avançados (referer, cookies, user-agent)
+172	Guardar
+173	Guardar em
+174	Guardar e retomar
+175	Guardar a página com o DrYAE
+176	Guardar para este site
+177	Enviar as novas ligações para o agendador (exceto «Transferir»)
+178	Enviar as transferências do Chrome para o DrYAE
+179	Enviado
+180	Erro
+181	Erro do servidor {0}
+182	Espaço em disco insuficiente
+183	Exportar as ligações não concluídas…
+184	Extensão do Chrome
+185	Extensão DrYAE para o Chrome
+186	Extensão adicionada
+187	Extensões
+188	Extrair o arquivo
+189	Extrair as ligações da página
+190	Extrair um arquivo…
+191	Fazer um donativo
+192	Favoritos
+193	Janela pop-up bloqueada
+194	Ficheiro
+195	Ficheiro .torrent
+196	Ficheiro guardado
+197	Ficheiro junto
+198	Ficheiro não encontrado
+199	Ficheiro torrent indisponível ({0})
+200	Ficheiro torrent inválido
+201	Ficheiros
+202	Ficheiros detetados na página
+203	Filtros personalizados (sintaxe Adblock)
+204	Filtros atualizados ✔
+205	Fluxos de vídeo
+206	Fluxo de vídeo (.m3u8)
+207	Fluxo de vídeo HLS · {0} segmentos · {1}
+208	Fluxo de vídeo HLS — escolhe a qualidade:
+209	Fluxo de vídeo m3u8 detetado
+210	Formato de arquivo não suportado (zip, 7z, tar, gz, iso… são suportados)
+211	Formato predefinido
+212	A juntar…
+213	Juntar um vídeo e um áudio…
+214	Mantém pelo menos um ficheiro
+215	Manter o DrYAE na área de notificação ao fechar a janela
+216	Gestor de transferências
+217	Gestor de transferências (Ctrl+J)
+218	GB
+219	Geral
+220	Hash copiado
+221	Histórico
+222	Histórico (Ctrl+H)
+223	Histórico limpo
+224	O histórico está vazio.
+225	Utilizador
+226	Início de sessão
+227	Início de sessão para
+228	Início de sessão necessário
+229	Imagens
+230	Importar uma lista de ligações…
+231	Não é possível analisar este vídeo
+232	Não é possível aceder ao site (ligação à internet?)
+233	Não é possível atualizar (ligação?)
+234	Não é possível obter as informações do magnet (nenhum par encontrado em 90 s)
+235	Não é possível procurar atualizações
+236	Inspecionar
+237	Interrompido
+238	Não encontrado
+239	Nunca para este site
+240	Qui
+241	Dias
+242	KB
+243	A extensão envia para o DrYAE as transferências do Chrome, os vídeos detetados nos teus separadores e as ligações magnet. Ajuda com os sites que bloqueiam o navegador integrado (início de sessão da Google, verificações «és humano?»).
+244	A atualização {0} está pronta.
+245	A mais leve
+246	O tamanho do ficheiro remoto mudou ({0} em vez de {1}). Usa «Renovar a ligação» ou recomeça.
+247	A verificação antirrobô não passa aqui?
+248	Reproduz um vídeo: vai aparecer aqui.
+249	Reproduz um vídeo ou um áudio na página: o DrYAE vai detetá-lo aqui.
+250	Reproduz o vídeo e tenta de novo: o DrYAE deteta os ficheiros durante a reprodução.{0}
+251	Iniciar o DrYAE com o Windows
+252	Idioma / Language
+253	O repositório GitHub ainda não está configurado nesta versão.
+254	A ligação leva a uma página web, não a um ficheiro. Abre-a no navegador do DrYAE para encontrar o vídeo ou a ligação real.
+255	É possível mudar o nome antes de a transferência começar ou quando o ficheiro estiver concluído
+256	O servidor respondeu {0} {1}
+257	O servidor responde {0}
+258	O serviço da extensão não conseguiu iniciar.
+259	O site está a demorar demasiado a responder.
+260	Leitor
+261	Leitor DrYAE
+262	A ler a lista…
+263	A ler o ficheiro…
+264	Reprodução impossível
+265	Reprodução impossível aqui (formato não suportado). Abre o ficheiro com o teu leitor habitual depois de transferido.
+266	As palavras-passe são encriptadas pelo Windows neste PC.
+267	O limite de {0} MB de hoje esgotou-se. Transferências em pausa.
+268	Licenças dos componentes
+269	Ligação
+270	Ligação copiada
+271	Ligação copiada detetada
+272	Ligação magnet: será adicionada como torrent.
+273	Ligação magnet copiada
+274	Ligação magnet inválida
+275	Ligação magnet, ligação para um .torrent ou ficheiro .torrent
+276	Ligação(ões) de transferência
+277	Ligação(ões) — uma por linha. As ligações magnet abrem a janela de torrent.
+278	Ligações copiadas
+279	Ligações da página ({0})
+280	Limite
+281	Limite de envio (KB/s)
+282	Limite de dados
+283	Limite de dados atingido
+284	Limite de transferência (KB/s)
+285	Limite de velocidade
+286	Limite de velocidade…
+287	Limite diário (MB)
+288	Limite por site
+289	Limitar a velocidade
+290	Limitar a velocidade de transferência
+291	Reproduzir
+292	Reproduzir no DrYAE
+293	Reproduzir em streaming
+294	Ler as informações
+295	Ler as informações do magnet antes de o adicionar (escolher ficheiros)
+296	Reproduzir durante a transferência
+297	Lista de trackers (um por linha)
+298	Lista exportada
+299	Listas de filtros adicionais (um endereço por linha)
+300	Lote: substituir
+301	Lote de ligações (padrão [1-100])
+302	Seg
+303	Ter
+304	Ocultar
+305	Melhor
+306	Melhor qualidade
+307	Melhor{0}
+308	Qua
+309	Pausar ao atingir o limite diário
+310	Atualizar
+311	Atualizar automaticamente a partir deste endereço (texto simples)
+312	Atualizar os filtros agora
+313	Atualizar agora
+314	Atualizar o yt-dlp
+315	A carregar a memória intermédia…
+316	Atualização disponível
+317	A atualizar…
+318	Atualização pronta: reinicia para a instalar
+319	A atualizar…
+320	Atualizações
+321	MB
+322	Modo de visualização
+323	Modo de programador
+324	Menos opções
+325	Palavra-passe
+326	Palavra-passe copiada
+327	Palavra-passe guardada
+328	Palavra-passe errada ou em falta
+329	Motor de pesquisa
+330	Palavras-passe
+331	Palavras-passe guardadas
+332	Música
+333	Multimédia detetada neste separador
+334	Navegador
+335	Navegador DrYAE
+336	Navegador privado
+337	Transfere apenas o que tens o direito de copiar.
+338	Transfere apenas os vídeos que tens o direito de copiar (os teus próprios vídeos, conteúdo livre ou autorizado).
+339	Preto (AMOLED)
+340	Apelido
+341	Nome copiado
+342	Nome do ficheiro
+343	Nome do ficheiro (opcional)
+344	Nova ligação
+345	Novo nome
+346	Nova transferência
+347	Novo separador
+348	Novo separador (Ctrl+T)
+349	Novo separador privado (Ctrl+Shift+N)
+350	Nova versão disponível: {0}
+351	Separador privado: o histórico e os cookies não são guardados.
+352	Computador
+353	Ferramenta de extração não encontrada
+354	Ferramentas
+355	Abre primeiro uma página
+356	Abrir
+357	Abrir o DrYAE
+358	Abrir com…
+359	Abrir esta página no Chrome
+360	Abrir no Chrome
+361	Abrir no navegador as ligações que levam a uma página web
+362	Abrir num novo separador
+363	Abrir num separador privado
+364	Abrir a página no navegador
+365	Abrir a pasta da extensão
+366	Abrir a pasta de transferências
+367	Abrir as ligações magnet com o DrYAE
+368	Página
+369	Página GitHub
+370	Definições
+371	Definições guardadas
+372	Definições repostas
+373	Procurar
+374	A partilhar
+375	Partilhar os torrents concluídos
+376	Partilhar quando concluído
+377	Partilhar quando concluído
+378	Voltar a partilhar
+379	Sem ligação à internet.
+380	Mudar para o tema claro
+381	Mudar para o tema escuro
+382	Mudar para o modo móvel
+383	Mudar para o modo computador
+384	Pausar
+385	País
+386	Partes
+387	Período horário terminado: transferências paradas
+388	Agendador
+389	Agendar
+390	Agendado
+391	Agendadas
+392	Lista indisponível ({0})
+393	Lista vazia
+394	Lista · {0} vídeo(s)
+395	Mais opções…
+396	Mais tarde
+397	Para agendar uma transferência: marca «Adicionar ao agendador» ao adicioná-la, ou seleciona itens e clica em «Agendar».
+398	Programas
+399	Propor guardar as palavras-passe
+400	Propor preencher os formulários com estas informações
+401	Anterior
+402	Anterior (Alt+←)
+403	Nome próprio
+404	Qualidade
+405	Qualidade MP3 predefinida
+406	Qualidade de áudio
+407	Qualidade de vídeo
+408	Qualidade de vídeo predefinida
+409	Quando clicas num campo «nome», «email», «morada»… de um formulário, o DrYAE propõe «Preencher com o meu perfil».
+410	Sair
+411	Renovar a ligação
+412	A procurar pares e a ler as informações… (até 90 s)
+413	A procurar…
+414	Procurar na página
+415	Procurar na página (Ctrl+F)
+416	Procurar atualizações
+417	Pesquisa ou escreve um endereço
+418	Pesquisa na web ou escreve um endereço
+419	Pesquisar «{0}{1}»
+420	Procurar…  (Ctrl+F)
+421	Reiniciar
+422	Reiniciar a transferência desde o início?
+423	Reiniciar e instalar
+424	Referer / página de origem
+425	Preencher com o meu perfil
+426	Mudar o nome
+427	Mudar o nome (ficheiro (1).ext)
+428	Retomar
+429	Retoma suportada
+430	Retoma recusada pelo servidor ({0})
+431	Remover
+432	Remover da lista
+433	Remover do agendador
+434	Remover os concluídos da lista
+435	Remover {0} itens
+436	Removido dos favoritos
+437	Voltar
+438	Reabrir as janelas e separadores abertos no próximo arranque
+439	Reativar o bloqueador em {0}
+440	Repor as definições
+441	Repor todas as definições?
+442	Preenchimento automático
+443	Preenchimento automático guardado
+444	Introduz as credenciais
+445	Sáb
+446	Iniciar sessão
+447	Segmento {0}: erro {1}
+448	Servidor não encontrado (verifica a tua ligação à internet)
+449	Só é possível mover ficheiros concluídos
+450	Se o ficheiro já existir
+451	Se a ligação expirou, cola uma nova ligação para o mesmo ficheiro: a transferência continua onde parou.
+452	Se um vídeo do YouTube deixar de ser transferido, atualiza o yt-dlp: os sites mudam com frequência. Para vídeos reservados a contas com sessão iniciada, inicia sessão no site no navegador do DrYAE.
+453	Sites permitidos (bloqueador desativado)
+454	Empresa
+455	Escuro
+456	Soma MD5
+457	Soma SHA-256
+458	Soma esperada (opcional)
+459	Soma copiada
+460	Soma de verificação
+461	Soma {0}
+462	Som no fim de uma transferência
+463	Fontes de ficheiros hosts (um endereço por linha)
+464	Estatísticas
+465	Seguinte (Alt+→)
+466	Seguir o Windows
+467	Eliminar
+468	Eliminar também os ficheiros do disco
+469	Eliminar esta palavra-passe?
+470	Eliminar a extensão «{0}»?
+471	Seleciona pelo menos um ficheiro
+472	Selecionar vários itens
+473	Sequencial
+474	Tamanho
+475	Tamanho desconhecido
+476	Tempo restante
+477	Tentativas em caso de erro
+478	Concluído
+479	Concluídos
+480	Texto
+481	Tema
+482	Tema claro / escuro
+483	TB
+484	Torrent / ligação magnet
+485	Torrent:
+486	Torrent adicionado
+487	Torrent criado:
+488	Torrent concluído
+489	Tudo
+490	Todas as transferências terminaram. Encerramento dentro de 60 segundos.
+491	Todos
+492	Marcar tudo
+493	Pausar tudo
+494	Pausar tudo
+495	Retomar tudo
+496	Selecionar tudo
+497	Passar os cookies do navegador para as transferências
+498	Tipo
+499	Tipos
+500	Tipos de ficheiro adicionais a detetar
+501	Transferir
+502	Transferência adicionada
+503	A transferir a atualização: {0} %
+504	Transferência incompleta
+505	Transferência sequencial (reproduzir durante a transferência)
+506	Transferência sequencial por predefinição
+507	Transferência concluída
+508	Transferências
+509	Transferências desta página
+510	Transferências simultâneas
+511	Transferir
+512	Transferir ({0}{1})
+513	Transferir com o DrYAE
+514	Transferir esta ligação com o DrYAE
+515	Transferir este vídeo
+516	Transferir a seleção
+517	Transferir o vídeo desta página
+518	Transferir o vídeo desta página com o DrYAE
+519	Transferir a ligação com o DrYAE
+520	Transferir a ligação selecionada com o DrYAE
+521	Transferir o torrent com o DrYAE
+522	Transferir um ficheiro
+523	Transferir {0} com o DrYAE
+524	Transferido
+525	Telefone
+526	Já existe um ficheiro com este nome
+527	User-Agent das transferências
+528	Usar um proxy HTTP para as transferências
+529	Usadas automaticamente nos sites que exigem início de sessão (transferências e navegador). São encriptadas pelo Windows.
+530	Sex
+531	Versão
+532	Versão do yt-dlp:
+533	Limpar a cache
+534	Vídeo
+535	Vídeo MP4
+536	Vídeo adicionado
+537	Vídeo de um site (YouTube, Vimeo, TikTok…)
+538	Vídeo privado
+539	Vídeo protegido (DRM): transferência impossível
+540	Vídeo com restrição de idade: inicia sessão no navegador do DrYAE e tenta de novo
+541	Vídeo · MP4
+542	Vídeos
+543	Vídeos online
+544	Vídeos online (YouTube e outros sites)
+545	Só vídeos
+546	Cidade
+547	Velocidade
+548	Velocidade e rede
+549	Velocidade máx. (KB/s)
+550	Ver
+551	Volume concluído
+552	Verificar a soma de um ficheiro…
+553	O YouTube pede para iniciar sessão: inicia sessão no YouTube no navegador do DrYAE e tenta de novo
+554	Aumentar (Ctrl +)
+555	Diminuir (Ctrl −)
+556	a analisar o vídeo…
+557	no total{0}
+558	automático (
+559	automático (organizado por categoria)
+560	automático (pasta Torrents)
+561	organizado por categoria
+562	ligados
+563	no canto superior direito.
+564	enviado {0}
+565	o ffmpeg falhou (
+566	fluxo DASH
+567	fluxo HLS
+568	imagem + som
+569	o vídeo
+570	o meu perfil
+571	a música, em todo o lado
+572	separador não criado
+573	predefinido
+574	rácio {0}
+575	a procurar metadados…
+576	faltam {0}
+577	sem perdas, rápido
+578	sem recodificar {0}
+579	site (exemplo.com)
+580	vídeo
+581	vídeo online
+582	o yt-dlp falhou ({0})
+583	yt-dlp não encontrado
+584	{0} KB
+585	{0} ativas / {1} máx.
+586	{0} ficheiro(s)
+587	{0} h {1} min
+588	{0} d {1} h
+589	{0} kb/s{1}
+590	{0} a palavra-passe{1} para
+591	{0} ligações ·
+592	{0} ligações · a calcular o tamanho…
+593	{0} min {1} s
+594	{0} s
+595	{0} selecionado(s)
+596	{0} tracker(s) adicionado(s)
+597	{0} transferência(s) iniciada(s)
+598	{0} transferências adicionadas
+599	{0} vídeos adicionados
+600	{0} · rácio {1}{2}
+601	{0} elemento(s) bloqueado(s) nesta página
+602	{0} — a partilhar
+603	{0} — {1} simultâneas
+604	{0}/{1} ficheiro(s) · {2}
+605	{0}Chrome Web Store
+606	{0}Copiar o hash
+607	{0}Copiar a ligação
+608	{0}Copiar o magnet
+609	{0}Abrir a página no navegador
+610	{0}Transferir
+611	{0}Transferir a seleção
+612	{0}Vídeo desta página
+613	· Software livre e gratuito (licença GPL-3.0)
+614	· {0} lig.
+615	· {0} pares
+616	Acerca de
+617	Falhou
+618	Falhas:
+619	Falha na transferência
+620	Falhados
+621	Substituir
+622	Itens
+623	Afixa o ícone do DrYAE na barra de ferramentas do Chrome. O DrYAE tem de estar aberto para receber as transferências.
+624	Passo
+625	Encerrar o computador quando as transferências agendadas terminarem
+626	Encerrar o computador quando todas as transferências terminarem
+627	— DrYAE
+628	— a ligação será transferida como um ficheiro normal.
+629	— palavra-passe guardada
+630	— versão:
+631	… em segundo plano (minimizado)
+632	↑ {0}/s
+633	⏱ {0} KB/s
+634	✔ Corresponde à soma da área de transferência
+635	✘ Diferente da soma da área de transferência

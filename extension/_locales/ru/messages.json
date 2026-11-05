@@ -1,0 +1,56 @@
+{
+ "extDesc": {
+  "message": "Передаёт в DrYAE загрузки Chrome, найденные видео и magnet-ссылки."
+ },
+ "connected": {
+  "message": "подключено"
+ },
+ "offline": {
+  "message": "не в сети"
+ },
+ "offHint": {
+  "message": "DrYAE не запущен. Откройте приложение на ПК: пока загрузки останутся в Chrome."
+ },
+ "pageBtn": {
+  "message": "Скачать видео с этой страницы"
+ },
+ "intercept": {
+  "message": "Отправлять загрузки Chrome в DrYAE"
+ },
+ "detected": {
+  "message": "Медиа, найденные в этой вкладке"
+ },
+ "playHint": {
+  "message": "Запустите видео: оно появится здесь."
+ },
+ "dlWith": {
+  "message": "Скачать с помощью DrYAE"
+ },
+ "kVideo": {
+  "message": "видео"
+ },
+ "kAudio": {
+  "message": "аудио"
+ },
+ "kHls": {
+  "message": "поток"
+ },
+ "kSub": {
+  "message": "субтитры"
+ },
+ "media": {
+  "message": "медиа"
+ },
+ "mLink": {
+  "message": "Скачать ссылку с помощью DrYAE"
+ },
+ "mPage": {
+  "message": "Скачать видео с этой страницы с помощью DrYAE"
+ },
+ "mSel": {
+  "message": "Скачать выбранную ссылку с помощью DrYAE"
+ },
+ "units": {
+  "message": "Б КБ МБ ГБ"
+ }
+}

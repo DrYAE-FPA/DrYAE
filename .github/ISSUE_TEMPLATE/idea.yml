@@ -1,0 +1,7 @@
+name: Avis, idée ou critique / Feedback or idea
+description: Donner mon avis — Give feedback
+labels: [feedback]
+body:
+  - type: textarea
+    attributes: { label: "Votre avis / Your feedback" }
+    validations: { required: true }

@@ -1,0 +1,56 @@
+{
+ "extDesc": {
+  "message": "Envia para o DrYAE as transferências do Chrome, os vídeos detetados e as ligações magnet."
+ },
+ "connected": {
+  "message": "ligado"
+ },
+ "offline": {
+  "message": "offline"
+ },
+ "offHint": {
+  "message": "O DrYAE não está aberto. Abre a aplicação no teu PC: entretanto, as transferências ficam no Chrome."
+ },
+ "pageBtn": {
+  "message": "Transferir o vídeo desta página"
+ },
+ "intercept": {
+  "message": "Enviar as transferências do Chrome para o DrYAE"
+ },
+ "detected": {
+  "message": "Multimédia detetada neste separador"
+ },
+ "playHint": {
+  "message": "Reproduz um vídeo: vai aparecer aqui."
+ },
+ "dlWith": {
+  "message": "Transferir com o DrYAE"
+ },
+ "kVideo": {
+  "message": "vídeo"
+ },
+ "kAudio": {
+  "message": "áudio"
+ },
+ "kHls": {
+  "message": "fluxo"
+ },
+ "kSub": {
+  "message": "legendas"
+ },
+ "media": {
+  "message": "multimédia"
+ },
+ "mLink": {
+  "message": "Transferir a ligação com o DrYAE"
+ },
+ "mPage": {
+  "message": "Transferir o vídeo desta página com o DrYAE"
+ },
+ "mSel": {
+  "message": "Transferir a ligação selecionada com o DrYAE"
+ },
+ "units": {
+  "message": "B KB MB GB"
+ }
+}

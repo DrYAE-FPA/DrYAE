@@ -1,0 +1,56 @@
+{
+ "extDesc": {
+  "message": "يرسل إلى DrYAE تنزيلات Chrome ومقاطع الفيديو المكتشفة وروابط magnet."
+ },
+ "connected": {
+  "message": "متصل"
+ },
+ "offline": {
+  "message": "غير متصل"
+ },
+ "offHint": {
+  "message": "DrYAE غير مفتوح. افتح التطبيق على حاسوبك: ستبقى التنزيلات في Chrome في هذه الأثناء."
+ },
+ "pageBtn": {
+  "message": "تنزيل فيديو هذه الصفحة"
+ },
+ "intercept": {
+  "message": "إرسال تنزيلات Chrome إلى DrYAE"
+ },
+ "detected": {
+  "message": "الوسائط المكتشفة في هذه العلامة"
+ },
+ "playHint": {
+  "message": "شغّل فيديو: سيظهر هنا."
+ },
+ "dlWith": {
+  "message": "تنزيل باستخدام DrYAE"
+ },
+ "kVideo": {
+  "message": "فيديو"
+ },
+ "kAudio": {
+  "message": "صوت"
+ },
+ "kHls": {
+  "message": "تدفق"
+ },
+ "kSub": {
+  "message": "ترجمة"
+ },
+ "media": {
+  "message": "وسائط"
+ },
+ "mLink": {
+  "message": "تنزيل الرابط باستخدام DrYAE"
+ },
+ "mPage": {
+  "message": "تنزيل فيديو هذه الصفحة باستخدام DrYAE"
+ },
+ "mSel": {
+  "message": "تنزيل الرابط المحدد باستخدام DrYAE"
+ },
+ "units": {
+  "message": "بايت ك.ب م.ب ج.ب"
+ }
+}

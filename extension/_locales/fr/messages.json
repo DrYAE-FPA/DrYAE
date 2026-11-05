@@ -1,0 +1,56 @@
+{
+ "extDesc": {
+  "message": "Envoie les téléchargements, les vidéos détectées et les liens magnet de Chrome vers DrYAE."
+ },
+ "connected": {
+  "message": "connecté"
+ },
+ "offline": {
+  "message": "hors ligne"
+ },
+ "offHint": {
+  "message": "DrYAE n'est pas lancé. Ouvre l'application sur ton PC : les téléchargements resteront dans Chrome en attendant."
+ },
+ "pageBtn": {
+  "message": "Télécharger la vidéo de cette page"
+ },
+ "intercept": {
+  "message": "Envoyer les téléchargements de Chrome à DrYAE"
+ },
+ "detected": {
+  "message": "Médias détectés sur cet onglet"
+ },
+ "playHint": {
+  "message": "Lance la lecture d'une vidéo : elle apparaîtra ici."
+ },
+ "dlWith": {
+  "message": "Télécharger avec DrYAE"
+ },
+ "kVideo": {
+  "message": "vidéo"
+ },
+ "kAudio": {
+  "message": "audio"
+ },
+ "kHls": {
+  "message": "flux"
+ },
+ "kSub": {
+  "message": "sous-titres"
+ },
+ "media": {
+  "message": "média"
+ },
+ "mLink": {
+  "message": "Télécharger le lien avec DrYAE"
+ },
+ "mPage": {
+  "message": "Télécharger la vidéo de cette page avec DrYAE"
+ },
+ "mSel": {
+  "message": "Télécharger le lien sélectionné avec DrYAE"
+ },
+ "units": {
+  "message": "o Ko Mo Go"
+ }
+}
