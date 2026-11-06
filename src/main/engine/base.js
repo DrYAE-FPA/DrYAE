@@ -20,6 +20,7 @@ class Item extends EventEmitter {
     this.errorCode = data.errorCode || null;
     this.added = data.added || Date.now();
     this.finished = data.finished || null;
+    this.activeMs = data.activeMs || 0; // temps réellement passé à télécharger
     this.speedLimit = data.speedLimit || 0; // Ko/s
     this.headers = data.headers || {};
     this.pageUrl = data.pageUrl || '';
@@ -37,6 +38,7 @@ class Item extends EventEmitter {
   tick() {
     const now = Date.now(), b = this.downloaded(), dt = (now - this._lastTime) / 1000;
     if (dt > 0) {
+      if (this.status === 'running' && dt < 30) this.activeMs += dt * 1000;
       const inst = Math.max(0, (b - this._lastBytes) / dt);
       this.speed = this.speed ? this.speed * 0.6 + inst * 0.4 : inst;
       this.ctx.countData?.(Math.max(0, b - this._lastBytes));
@@ -55,8 +57,8 @@ class Item extends EventEmitter {
     this.changed(); this.emit('finished');
   }
   toJSON() {
-    const { id, type, url, dir, autoDir, file, name, size, status, error, errorCode, added, finished, speedLimit, headers, pageUrl, md5 } = this;
-    return { id, type, url, dir, autoDir, file, name, size, status, error, errorCode, added, finished, speedLimit, headers, pageUrl, md5 };
+    const { id, type, url, dir, autoDir, file, name, size, status, error, errorCode, added, finished, speedLimit, headers, pageUrl, md5, activeMs } = this;
+    return { id, type, url, dir, autoDir, file, name, size, status, error, errorCode, added, finished, speedLimit, headers, pageUrl, md5, activeMs: Math.round(activeMs) };
   }
   view() {
     const d = this.downloaded();

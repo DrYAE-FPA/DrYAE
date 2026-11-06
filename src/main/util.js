@@ -81,4 +81,17 @@ function expandBatch(pattern) {
   return out;
 }
 
-module.exports = { CATS, extOf, catOf, catFolder, sanitize, uniquePath, nameFromHeaders, nameFromUrl, EXT_BY_MIME, sleep, uid, hostOf, expandBatch };
+// nom de fichier « générique » (master.m3u8, index.m3u8, videoplayback…) : on préfère alors le titre de la page
+function isGenericName(n) {
+  n = String(n || '').toLowerCase().replace(/\.[a-z0-9]{2,4}$/, '');
+  return !n || /^(master|index|playlist|manifest|video|videoplayback|stream|chunklist|media|file|download|hls|output|seg(ment)?[-_]?\d*|[0-9a-f-]{16,}|[a-z0-9_-]{20,})$/.test(n);
+}
+// titre de page nettoyé : « Fallout S2 E6 - MonSite streaming » -> « Fallout S2 E6 »
+function cleanTitle(t) {
+  t = String(t || '').replace(/\s+/g, ' ').trim();
+  t = t.split(/\s[|•»]\s/)[0];
+  const parts = t.split(/\s[-–—]\s/);
+  while (parts.length > 1 && /\.(com|net|org|info|tv|io|online|fr|co|me|to|cc|site|xyz)\b|stream|regarder|watch|youtube|vimeo|en ligne|online|gratuit|free|hd\b|vf\b.*vostfr/i.test(parts[parts.length - 1])) parts.pop();
+  return parts.join(' - ').trim().slice(0, 150);
+}
+module.exports = { isGenericName, cleanTitle, CATS, extOf, catOf, catFolder, sanitize, uniquePath, nameFromHeaders, nameFromUrl, EXT_BY_MIME, sleep, uid, hostOf, expandBatch };

@@ -48,7 +48,8 @@ chrome.runtime.onInstalled.addListener(() => {
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   const ref = info.pageUrl || tab?.url || '';
   if (info.menuItemId === 'link') send({ url: info.linkUrl, referer: ref });
-  if (info.menuItemId === 'media') send({ url: info.srcUrl, referer: ref });
+  const title = tab?.title || '';
+  if (info.menuItemId === 'media') send({ url: info.srcUrl, referer: ref, title });
   if (info.menuItemId === 'page') send({ url: info.frameUrl || ref, referer: ref, kind: 'page' });
   if (info.menuItemId === 'sel') { const t = (info.selectionText || '').trim(); if (/^(https?:\/\/|magnet:)\S+$/i.test(t)) send({ url: t, referer: ref }); }
 });

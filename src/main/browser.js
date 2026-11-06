@@ -128,7 +128,13 @@ class WebBrowser {
       icon: (() => { const ic = x.manifest?.icons || {}; const k = Object.keys(ic).sort((a, b) => b - a)[0]; return k ? `crx://extension-icon/${x.id}/${k}/2?partition=${encodeURIComponent(PART)}` : ''; })() }));
   }
   // ajout direct depuis le navigateur (sans ouvrir la fenêtre principale)
+  // titre de l'onglet qui affiche cette page
+  pageTitle(page) {
+    if (!page) return '';
+    try { const { webContents } = require('electron'); const w = webContents.getAllWebContents().find(x => !x.isDestroyed() && x.getURL() === page); return w ? w.getTitle() : ''; } catch { return ''; }
+  }
   quickFile(o) {
+    if (!o.pageTitle) o.pageTitle = this.pageTitle(o.page);
     if (this.wc) { this.showView(); this.wc.send('quick-file', o); }
     else this.onDownload(o);
   }
@@ -469,7 +475,7 @@ class WebBrowser {
       for (const url of urls) {
         if (/^magnet:/i.test(url)) { this.onTorrent(url, {}); continue; }
         if (!/^https?:/i.test(url)) continue;
-        out.push(M.add({ type: /\.m3u8(\?|$)/i.test(url) ? 'hls' : 'http', url, pageUrl: page, headers: { Cookie: cookie, 'User-Agent': this.ua(), Referer: page } }));
+        out.push(M.add({ type: /\.m3u8(\?|$)/i.test(url) ? 'hls' : 'http', url, pageUrl: page, pageTitle: this.pageTitle(page), headers: { Cookie: cookie, 'User-Agent': this.ua(), Referer: page } }));
       }
       return out.length;
     });
@@ -479,7 +485,7 @@ class WebBrowser {
       const headers = { 'User-Agent': this.ua(), ...(o.headers || {}) };
       if (o.page && !headers.Referer) headers.Referer = o.page;
       if (!headers.Cookie && /^https?:/.test(o.url)) headers.Cookie = await this.cookieHeader(ses, o.url);
-      const common = { url: o.url, dir: o.dir || '', pageUrl: o.page || '', headers, startNow: o.startNow !== false, schedule: !!o.schedule, speedLimit: o.speedLimit || 0 };
+      const common = { url: o.url, dir: o.dir || '', pageUrl: o.page || '', pageTitle: o.pageTitle || o.tabTitle || this.pageTitle(o.page), headers, startNow: o.startNow !== false, schedule: !!o.schedule, speedLimit: o.speedLimit || 0 };
       if (o.kind === 'torrent' || /^magnet:/i.test(o.url)) { this.onTorrent(o.url, { cookie: headers.Cookie, page: o.page }); return null; }
       if (o.kind === 'ytdl') return M.add({ ...common, type: 'ytdl', title: o.name || o.title || null, thumbnail: o.thumbnail || '', duration: o.duration || 0, mode: o.mode || 'video', quality: o.quality || 'best', audioFormat: o.audioFormat || 'mp3', audioBitrate: o.audioBitrate || '320' });
       const hls = o.kind === 'hls' || /\.m3u8(\?|$)/i.test(o.url);

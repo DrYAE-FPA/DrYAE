@@ -234,7 +234,7 @@ H('add', async (o) => {
     const isHls = o.kind === 'hls' || /\.m3u8(\?|$)/i.test(url);
     const v = manager.add({
       type: isHls ? 'hls' : 'http', url, dir: o.dir, connections: o.connections, startNow: o.startNow !== false, schedule: !!o.schedule,
-      name: urls.length === 1 ? o.name : null, headers: o.headers || {}, pageUrl: o.page || '', speedLimit: o.speedLimit || 0, quality: o.quality || null, allowPage: !!o.allowPage,
+      name: urls.length === 1 ? o.name : null, headers: o.headers || {}, pageUrl: o.page || '', pageTitle: o.pageTitle || (browser && browser.pageTitle ? browser.pageTitle(o.page) : ''), speedLimit: o.speedLimit || 0, quality: o.quality || null, allowPage: !!o.allowPage,
     });
     out.push(v);
   }
@@ -440,7 +440,7 @@ function startExtensionServer() {
         if (/^magnet:/i.test(url) || o.kind === 'torrent') send('prompt-torrent', { src: url, cookie: headers.Cookie, page: o.referer || '' });
         else if (Array.isArray(o.urls)) send('prompt-add', { urls: o.urls.map(String), page: o.referer || '', headers });
         else if (o.kind === 'page' || o.kind === 'ytdl' || isOnlineVideo(url)) send('prompt-add', { url, kind: 'ytdl', page: o.referer || url, headers });
-        else send('prompt-add', { url, name: o.name || '', page: o.referer || '', headers, kind: o.kind === 'hls' ? 'hls' : undefined });
+        else send('prompt-add', { url, name: o.name || '', page: o.referer || '', pageTitle: String(o.title || ''), headers, kind: o.kind === 'hls' ? 'hls' : undefined });
         json(200, { ok: true });
       });
       return;

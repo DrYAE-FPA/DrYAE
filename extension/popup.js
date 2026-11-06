@@ -24,7 +24,7 @@ $('#intercept').onchange = e => chrome.runtime.sendMessage({ type: 'intercept', 
 $('#list').onclick = async e => {
   const b = e.target.closest('[data-i]'); if (!b) return;
   const m = items[+b.dataset.i];
-  const r = await chrome.runtime.sendMessage({ type: 'send', payload: { url: m.url, referer: tab.url, name: m.name, kind: m.kind === 'hls' ? 'hls' : undefined } });
+  const r = await chrome.runtime.sendMessage({ type: 'send', payload: { url: m.url, referer: tab.url, title: tab.title, name: m.name, kind: m.kind === 'hls' ? 'hls' : undefined } });
   if (r.ok) window.close();
 };
 refresh();

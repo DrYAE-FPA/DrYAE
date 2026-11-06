@@ -229,7 +229,7 @@ async function itemAction(act, d) {
 }
 
 function itemMenu(d) {
-  const M = [];
+  const M = [['details', 'list', 'Informations'], '-'];
   const isArc = /\.(zip|7z|rar|tar|gz|tgz|bz2|xz|iso)$/i.test(d.name || '');
   const isMedia = /\.(mp4|webm|mkv|mp3|m4a|ogg|wav|flac|mov)$/i.test(d.name || '') || d.type === 'torrent';
   if (d.status === 'done') { M.push(['open', 'open', 'Ouvrir'], ['openWith', 'open', 'Ouvrir avec…']); if (isMedia) M.push(['play', 'play', 'Lire dans DrYAE']); }
@@ -367,6 +367,7 @@ async function drawDrawer() {
   const T = d.torrent;
   if (dTab === 'info' || !T) {
     const kv = [];
+    kv.push(['Nom', `<b>${esc(d.name || d.displayName || d.title || prettyUrl(d.url))}</b>`]);
     if (d.type !== 'torrent') kv.push(['Lien', `<a data-dact="copy">${esc(d.url)}</a>`]);
     if (d.type === 'ytdl' && d.thumbnail) kv.unshift(['Aperçu', `<img src="${esc(d.thumbnail)}" style="width:100%;max-width:240px;border-radius:8px" alt="">`]);
     if (d.pageUrl) kv.push(['Page', `<a data-dact="browser">${esc(d.pageUrl)}</a>`]);
@@ -380,7 +381,14 @@ async function drawDrawer() {
     if (T) { kv.push(['Hash', `<span class="mono">${esc(T.infoHash || '')}</span>`]); kv.push(['Envoyé', `${fmt(d.uploaded)} · ratio ${(d.ratioNow || 0).toFixed(2)}${d.ratio ? ' / ' + d.ratio : ''}`]); kv.push(['Pièces', T.pieces ? `${T.pieces} × ${fmt(T.pieceLength)}` : '—']); }
     kv.push(['Vitesse', d.status === 'running' ? fmt(d.speed) + '/s' : '—'], ['Temps restant', fmtT(d.eta)], ['Limite', d.speedLimit ? d.speedLimit + ' Ko/s' : 'aucune']);
     kv.push(['Ajouté', new Date(d.added).toLocaleString((window.I18N && I18N.locale || 'fr-FR'))]);
-    if (d.finished) kv.push(['Terminé', new Date(d.finished).toLocaleString((window.I18N && I18N.locale || 'fr-FR'))]);
+    if (d.finished) {
+      kv.push(['Terminé', new Date(d.finished).toLocaleString((window.I18N && I18N.locale || 'fr-FR'))]);
+      const secs = Math.max(1, (d.activeMs ? d.activeMs : d.finished - d.added) / 1000);
+      kv.push(["Temps d'activité", fmtT(secs)]);
+      if (d.size > 0) kv.push(['Vitesse moyenne', fmt(d.size / secs) + '/s']);
+    }
+    if (d.duration) kv.push(['Durée', fmtT(d.duration)]);
+    if (d.status === 'done' && d.type !== 'torrent' && !d.md5) kv.push(['Sommes de contrôle', `<button class="btn sm" data-dact="md5">MD5</button> <button class="btn sm" data-dact="sha256">SHA-256</button>`]);
     if (d.md5) kv.push(['MD5', `<span class="mono">${d.md5}</span>`]);
     if (d.error) kv.push(['Erreur', `<span style="color:var(--err)">${esc(d.error)}</span>`]);
     h += `<dl class="kv">${kv.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`;
@@ -415,6 +423,7 @@ $('#dBody').addEventListener('click', async e => {
   const a = e.target.closest('[data-dact]'); if (!a) return;
   const act = a.dataset.dact;
   if (act === 'menu') { const r = a.getBoundingClientRect(); return showMenu(r.left, r.bottom + 4, itemMenu(d)); }
+  if (act === 'md5' || act === 'sha256') return itemAction(act, d);
   if (act === 'magnet') { await call('copy', d.torrent.magnet); return toast('Lien magnet copié'); }
   if (act === 'hash') { await call('copy', d.torrent.infoHash); return toast('Hash copié'); }
   if (act === 'addTr') { const l = $('#dTr').value.split(/\s+/).filter(Boolean); await call('torrent:trackers', d.id, l); $('#dTr').value = ''; return toast(`${l.length} tracker(s) ajouté(s)`); }
@@ -576,7 +585,7 @@ async function submitAdd(startNow) {
     let entries = null;
     if (ytInfo?.playlist) { entries = $$('#aYtList [data-yt]').filter(x => x.checked).map(x => ytInfo.entries[+x.dataset.yt]); if (!entries.length) return toast('Coche au moins une vidéo'); }
     const r = await safe(() => call('add', { kind: 'ytdl', urls, entries, dir: $('#aDir').value.trim(), startNow, schedule: $('#aSchedule').checked,
-      name: $('#aName').value.trim() || null, title: $('#aName').value.trim() || (ytInfo && !ytInfo.playlist ? ytInfo.title : null), thumbnail: ytInfo?.thumbnail || '', headers: headersFromForm(), page: $('#aRef').value.trim() || addCtx.page || '',
+      name: $('#aName').value.trim() || null, title: $('#aName').value.trim() || (ytInfo && !ytInfo.playlist ? ytInfo.title : null), thumbnail: ytInfo?.thumbnail || '', headers: headersFromForm(), page: $('#aRef').value.trim() || addCtx.page || '', pageTitle: addCtx.pageTitle || '',
       speedLimit: +$('#aSpeed').value || 0, ytdl: { mode: m === 'video' ? 'video' : 'audio', audioFormat: m === 'm4a' ? 'm4a' : 'mp3', audioBitrate: $('#aYtB').value, quality: $('#aYtQ').value || 'best' } }));
     if (!r) return;
     r.forEach(d => items.set(d.id, d)); closeM(); render();

@@ -120,6 +120,16 @@ class Manager extends EventEmitter {
     const S = this.settings.get();
     this._lastAdded = Math.max(Date.now(), (this._lastAdded || 0) + 1);
     const data = { ...opts, added: this._lastAdded, dir: opts.dir || '', autoDir: !opts.dir };
+    // titre lisible plutôt qu'un lien : nom générique (master.m3u8…) -> titre de la page
+    const { isGenericName, cleanTitle, nameFromUrl, extOf, sanitize } = require('./util');
+    const pt = cleanTitle(opts.pageTitle || '');
+    if (pt && !opts.title && (opts.type === 'hls' || opts.type === 'http')) {
+      const cur = opts.name || (opts.url ? nameFromUrl(opts.url) : '');
+      if (!cur || isGenericName(cur)) {
+        const ext = opts.type === 'http' ? (extOf(cur) || extOf(opts.url || '')) : '';
+        data.name = sanitize(pt) + (ext && /^(mp4|webm|mkv|mov|m4a|mp3|ts|flv|avi)$/i.test(ext) ? '.' + ext : '');
+      }
+    }
     data.status = opts.schedule ? 'scheduled' : opts.startNow === false ? 'paused' : 'queued';
     if (S.scheduler.enabled && S.scheduler.addNew && !opts.startNow && !opts.schedule) data.status = 'scheduled';
     const d = this.create(data);

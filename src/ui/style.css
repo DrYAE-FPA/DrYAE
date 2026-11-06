@@ -11,8 +11,11 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
 button:disabled{opacity:.4;cursor:default}
 svg{width:16px;height:16px;flex:none}
 input,select,textarea{font:inherit;color:var(--text)}
-.app{display:grid;grid-template-columns:224px 1fr;height:100vh}
-aside{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:14px 10px;overflow:auto}
+.app{display:grid;grid-template-columns:224px 1fr;grid-template-rows:minmax(0,1fr);height:100vh;overflow:hidden}
+.app>*{min-height:0;min-width:0}
+aside{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:14px 10px;overflow:hidden}
+aside>.nav{flex:1 1 auto;min-height:0;overflow:auto}
+aside>.side-foot{flex-shrink:0}
 .brand{display:flex;align-items:center;gap:10px;padding:2px 8px 14px}
 .brand img{width:40px;height:40px;border-radius:10px;object-fit:cover;box-shadow:0 0 0 1px var(--line),0 0 18px var(--accent-line)}
 .brand b{font-size:18px;letter-spacing:.5px}
