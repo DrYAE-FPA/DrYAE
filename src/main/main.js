@@ -82,7 +82,8 @@ function createWindow() {
   });
   win.setMenu(null);
   win.loadFile(path.join(UI, 'index.html'));
-  win.once('ready-to-show', () => { if (!(process.argv.includes('--hidden') && settings.get().startMinimized)) win.show(); flushArgs(); });
+  // lancé avec Windows (--hidden) : DrYAE reste caché dans les icônes de la barre des tâches, sans ouvrir de fenêtre
+  win.once('ready-to-show', () => { if (!process.argv.includes('--hidden')) win.show(); flushArgs(); });
   win.on('focus', () => send('focus'));
   win.on('show', () => send('reload', manager.views()));
   win.on('restore', () => send('reload', manager.views()));
@@ -110,7 +111,8 @@ function createTray() {
   ]));
   tray.setContextMenu(menu());
   settings.on('change', () => tray && tray.setContextMenu(menu()));
-  tray.on('click', () => api.showMain());
+  // clic sur l'icône (zone de notification) : ouvre directement le navigateur
+  tray.on('click', () => browser.open());
 }
 
 // --- arguments : magnet:, fichiers .torrent, liens http ---
@@ -231,6 +233,25 @@ app.on('window-all-closed', () => { if (!settings.get().tray) app.quit(); });
 const H = (ch, fn) => ipcMain.handle(ch, async (_e, ...a) => { try { return { ok: true, v: await fn(...a) }; } catch (e) { return { ok: false, error: e.message || String(e) }; } });
 
 H('list', () => manager.views());
+H('undoRemove', () => manager.undoRemove());
+// Ctrl+C : copie les fichiers terminés dans le presse-papiers (on peut ensuite les coller dans un dossier Windows)
+H('copyFiles', async ids => {
+  const files = [].concat(ids).map(id => manager.get(id)).filter(d => d && d.status === 'done').map(d => d.fileForOpen || d.file).filter(f => f && fs.existsSync(f));
+  if (!files.length) return 0;
+  if (process.platform === 'win32') {
+    const lit = files.map(f => "'" + f.replace(/'/g, "''") + "'").join(',');
+    await new Promise(res => require('child_process').execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', `Set-Clipboard -LiteralPath ${lit}`], { windowsHide: true }, () => res()));
+  } else clipboard.writeText(files.join('\n'));
+  return files.length;
+});
+// glisser un fichier terminé hors de DrYAE (vers le Bureau, un dossier, une autre appli)
+ipcMain.on('drag-out', (e, ids) => {
+  const files = [].concat(ids).map(id => manager.get(id)).filter(d => d && d.status === 'done').map(d => d.fileForOpen || d.file).filter(f => f && fs.existsSync(f));
+  if (!files.length) return;
+  const icon = nativeImage.createFromPath(path.join(ASSETS, 'logo.png')).resize({ width: 48, height: 48 });
+  try { e.sender.startDrag({ file: files[0], files, icon }); } catch {}
+});
+H('accentColor', () => { try { const { systemPreferences } = require('electron'); const c = systemPreferences.getAccentColor?.(); return c ? '#' + c.slice(0, 6) : null; } catch { return null; } });
 H('add', async (o) => {
   // o : { urls[], dir, connections, startNow, schedule, name, headers, page, speedLimit, kind, quality }
   const out = [];

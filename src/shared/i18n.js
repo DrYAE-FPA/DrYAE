@@ -22,11 +22,11 @@
   };
   // noms des touches dans les raccourcis clavier (« Ctrl + Maj + Suppr »)
   const KEYS = {
-    en: { Maj: 'Shift', Suppr: 'Del', 'Échap': 'Esc', 'Entrée': 'Enter', Espace: 'Space', 'Début': 'Home', Fin: 'End', ou: 'or', clic: 'click' },
-    es: { Maj: 'Mayús', Suppr: 'Supr', 'Échap': 'Esc', 'Entrée': 'Intro', Espace: 'Espacio', 'Début': 'Inicio', Fin: 'Fin', ou: 'o', clic: 'clic' },
-    pt: { Maj: 'Shift', Suppr: 'Del', 'Échap': 'Esc', 'Entrée': 'Enter', Espace: 'Espaço', 'Début': 'Home', Fin: 'End', ou: 'ou', clic: 'clique' },
-    ru: { Maj: 'Shift', Suppr: 'Del', 'Échap': 'Esc', 'Entrée': 'Enter', Espace: 'Пробел', 'Début': 'Home', Fin: 'End', ou: 'или', clic: 'щелчок' },
-    ar: { Maj: 'Shift', Suppr: 'Del', 'Échap': 'Esc', 'Entrée': 'Enter', Espace: 'Space', 'Début': 'Home', Fin: 'End', ou: 'أو', clic: 'نقرة' },
+    en: { Maj: 'Shift', Suppr: 'Del', 'Échap': 'Esc', 'Entrée': 'Enter', Espace: 'Space', 'Début': 'Home', Fin: 'End', ou: 'or', clic: 'click', molette: 'wheel', 'flèches': 'arrows', 'double-clic': 'double-click' },
+    es: { Maj: 'Mayús', Suppr: 'Supr', 'Échap': 'Esc', 'Entrée': 'Intro', Espace: 'Espacio', 'Début': 'Inicio', Fin: 'Fin', ou: 'o', clic: 'clic', molette: 'rueda', 'flèches': 'flechas', 'double-clic': 'doble clic' },
+    pt: { Maj: 'Shift', Suppr: 'Del', 'Échap': 'Esc', 'Entrée': 'Enter', Espace: 'Espaço', 'Début': 'Home', Fin: 'End', ou: 'ou', clic: 'clique', molette: 'roda', 'flèches': 'setas', 'double-clic': 'duplo clique' },
+    ru: { Maj: 'Shift', Suppr: 'Del', 'Échap': 'Esc', 'Entrée': 'Enter', Espace: 'Пробел', 'Début': 'Home', Fin: 'End', ou: 'или', clic: 'щелчок', molette: 'колесо', 'flèches': 'стрелки', 'double-clic': 'двойной щелчок' },
+    ar: { Maj: 'Shift', Suppr: 'Del', 'Échap': 'Esc', 'Entrée': 'Enter', Espace: 'Space', 'Début': 'Home', Fin: 'End', ou: 'أو', clic: 'نقرة', molette: 'العجلة', 'flèches': 'الأسهم', 'double-clic': 'نقرة مزدوجة' },
   };
   // code de langue Windows (installateur) -> langue DrYAE
   const LCID = { 1033: 'en', 2057: 'en', 3082: 'es', 1034: 'es', 2058: 'es', 1036: 'fr', 3084: 'fr', 2060: 'fr', 1025: 'ar', 2049: 'ar', 3073: 'ar', 2070: 'pt', 1046: 'pt', 1049: 'ru' };
@@ -55,7 +55,7 @@
         if (m) return p.val.replace(/\{(\d+)\}/g, (_x, n) => { const i = p.order.indexOf(+n); return i >= 0 ? T(m[i + 1]) : ''; });
       }
       if (KW && s.length < 90 && /^(?:Ctrl|Alt|Maj|Suppr|Échap|Entrée|Espace|Début|Fin|F\d|[↑↓←→])/.test(s) && /^[\w\sÀ-ÿ+\-−/,.…↑↓←→:]+$/.test(s))
-        return s.replace(/(Maj|Suppr|Échap|Entrée|Espace|Début|Fin|ou|clic)(?![\wÀ-ÿ])/g, w => KW[w] || w);
+        return s.replace(/(double-clic|Maj|Suppr|Échap|Entrée|Espace|Début|Fin|ou|clic|molette|flèches)(?![\wÀ-ÿ])/g, w => KW[w] || w);
       return units(s);
     }
     function T(s) {

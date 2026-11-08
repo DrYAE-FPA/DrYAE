@@ -12,10 +12,25 @@ Windows may show "Windows protected your PC" because the app isn't signed by a p
 **Portable version:** unzip it and run `DrYAE.exe`. Nothing needs to be installed, but one-click updates aren't available.
 
 ## 2. The download manager
-The main window has:
+The download manager works like a Windows folder:
 - **on the left**, filters: All, Downloading, Finished, Paused, Scheduled and Failed, plus types (Torrents, Online videos…) and categories (Videos, Music, Documents…);
-- **at the top**, **Add**, **Resume all**, **Pause all** and search (Ctrl+F);
-- **in the middle**, the list. Each row shows the title, size, speed and time left. Right-click a row to open, pause, resume, rename, refresh the link, copy the link or delete it.
+- **at the top**, **Add**, **Resume all**, **Pause all** and search (Ctrl+F or F3);
+- **the command bar**: New, Copy, Copy path, Rename, Delete, Open, Pause, Resume, Properties, **Sort**, **View**, ⋯ (more commands) and **Details** (details pane);
+- **in the middle**, the list, and **at the bottom** the status bar (item count, selection and size).
+
+### Views
+**View** offers Large icons, Medium icons, Small icons, List, Details and Content. You can also use **Ctrl+wheel** or **Ctrl+Shift+2…8**. In Details view, click a column header to sort, and drag its edge to resize it.
+
+### Mouse
+- **Click** selects. **Ctrl+click** and **Shift+click** select several items.
+- **Double-click** opens a finished file (or the properties of a download in progress).
+- **Drag on empty space** to draw a selection rectangle.
+- **Right-click** an item for open, folder, pause, rename, copy, remove… **Right-click empty space** for view, sort, paste a link, select all and refresh.
+- **Drag a finished file** to a folder, the desktop or another app to copy it.
+
+### Deleting
+- **Del** removes the item from the list (the file stays on disk). An **Undo** button shows for a few seconds; **Ctrl+Z** does the same.
+- **Shift+Del** also deletes the file, after you confirm.
 
 ### Add a download
 - **Add → Link:** paste one or more addresses, one per line. You can choose the folder, the file name, the number of connections and a speed limit.
@@ -56,12 +71,20 @@ DRM-protected videos (Netflix, Disney+…) cannot be downloaded.
 
 ## 5. The built-in browser
 - **Tabs:** Ctrl+T for a new tab, Ctrl+Shift+N for a private tab, Ctrl+W to close. Drag tabs to reorder them. A tab only loads when you open it.
+- **Mouse:**
+  - side buttons go to the previous / next page;
+  - middle-click or Ctrl+click a link to open it in a background tab;
+  - middle-click a tab to close it;
+  - double-click the tab bar to open a new tab;
+  - Ctrl+wheel zooms.
 - **⋮ menu:** new tab, history, bookmarks, Downloads (the download manager), passwords, extensions, print, save as, translate page, find, zoom, **Browser settings** (search engine, privacy, ad blocker…, kept separate from the download manager's settings), more tools, help.
 - **Detected file(s):** the download button lists everything the page plays, with the size (estimated "~" for streams), the number of pieces, the resolution and the duration. **Clear all** empties the list, **Reset** shows it again, **Sort** changes the order, and "Select the files" lets you download several at once.
 - **Ad blocker:** click the shield to turn it off for a site.
-- **Passwords:** after you sign in, DrYAE offers to save the password. Passwords are encrypted by Windows on your PC.
+- **Passwords:** after you sign in, DrYAE offers to save the password. Passwords are encrypted by Windows on your PC. In the Passwords panel:
+  - **Import a .csv file…** brings in passwords exported from another browser or a password manager (url, username, password columns);
+  - **Export to .csv…** makes a copy. The file isn't encrypted, so keep it somewhere safe.
 - **Autofill:** fill in your profile (name, email, address…). DrYAE then offers "Fill in with my profile" in forms.
-- **Chrome extensions:** open the Chrome Web Store from the Extensions panel, then click "Add to Chrome".
+- **Chrome extensions:** open the Chrome Web Store from the Extensions panel, then click "Add to Chrome". If the store doesn't load, paste the extension's page link (or its ID) into **Install from a link**.
 - If a "Are you human?" check doesn't pass, use **⋮ → Open this page in Chrome** with the DrYAE extension (see section 7).
 
 ## 6. Scheduler and limits
@@ -77,9 +100,9 @@ It sends Google Chrome downloads, videos and magnet links to DrYAE.
 4. Pin the DrYAE icon. DrYAE must be open to receive downloads.
 
 ## 8. Useful settings
-- **General:** language, download folder, start with Windows, keep DrYAE in the system tray.
+- **General:** language, download folder, start with Windows, keep DrYAE in the system tray. When DrYAE starts with Windows, it stays hidden in the taskbar icons; click its icon to open the browser.
 - **Downloads:** connections per file (up to 32), simultaneous downloads, what to do if the file already exists, default MP4/MP3 quality.
-- **Appearance:** light, dark or black (AMOLED) theme, and accent color.
+- **Appearance:** light, dark or black (AMOLED) theme, and accent color (Windows' own color by default).
 - **About:** version, **Check for updates**, **Give feedback**, licenses.
 
 ## 9. Updates and feedback
@@ -89,7 +112,7 @@ It sends Google Chrome downloads, videos and magnet links to DrYAE.
 ## 10. Keyboard shortcuts
 Press **F1** in the download manager or in the browser to see the full list.
 
-**Download manager:** Ctrl+A (select all) · Shift+click / Ctrl+click · ↑/↓ and Shift+↑/↓ · Enter (open) · Space (pause/resume) · Del (remove) · Shift+Del (remove and delete files) · F2 (rename) · Ctrl+I (information) · Ctrl+C (copy link) · Ctrl+E (folder) · Ctrl+N (add link) · Ctrl+T (torrent) · Ctrl+O (.torrent file) · Ctrl+V (paste a link) · Ctrl+B (browser) · Esc.
+**Download manager (Windows shortcuts):** Ctrl+A (select all) · Ctrl+click / Shift+click · arrows and Shift+arrows · Home / End · Enter (open) · Space (pause/resume) · F2 (rename) · Del (remove from list) · Shift+Del (delete permanently) · Ctrl+Z (undo remove) · Ctrl+C (copy the file) · Ctrl+Shift+C (copy path) · Ctrl+V (paste a link) · Alt+Enter (properties) · Alt+Shift+P (details pane) · Ctrl+Shift+2…8 (views) · F3 / Ctrl+F (search) · F5 (refresh) · Ctrl+E (folder) · Ctrl+N (add link) · Ctrl+T (torrent) · Ctrl+O (.torrent file) · Ctrl+B (browser) · Esc.
 
 **Browser (standard shortcuts):** Ctrl+T · Ctrl+Shift+P (private tab) · Ctrl+W · Ctrl+Shift+T (reopen closed tab) · Ctrl+Tab · Ctrl+1…9 · Ctrl+L / F6 · Ctrl+F / F3 · F5 / Ctrl+R · Alt+←/→ · Ctrl+D · Ctrl+H · Ctrl+J (download manager) · Ctrl+Shift+Y (detected files) · Ctrl+P · Ctrl+S · Ctrl+U · Ctrl+M (mute) · Ctrl+ +/−/0 · F11 · F12 · Ctrl+Shift+Del · Ctrl+Shift+Q.
 

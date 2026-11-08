@@ -59,7 +59,7 @@ function defaults(app) {
     },
     scheduler: { enabled: false, start: '02:00', stop: '', days: [0, 1, 2, 3, 4, 5, 6], addNew: false, shutdown: false },
     dataLimit: { enabled: false, mb: 0, used: 0, day: '' },
-    theme: { mode: 'dark', accent: '#8b5cf6' },
+    theme: { mode: 'dark', accent: 'system' }, // 'system' = couleur d'accent de Windows
     passwords: [],            // [{host, user, pass(enc)}]
     siteLimits: [],           // [{host, max}]
     lang: '',

@@ -89,9 +89,9 @@ function ensureWebview(tab) {
   wv.addEventListener('did-fail-load', e => {
     if (!e.isMainFrame || e.errorCode === -3) return;
     const msg = { '-105': "Adresse introuvable. Vérifie l'orthographe ou ta connexion.", '-106': 'Pas de connexion internet.', '-102': 'Connexion refusée.', '-118': 'Le site met trop de temps à répondre.', '-200': 'Certificat du site invalide.', '-20': 'Bloqué par le bloqueur de publicités.' }[e.errorCode] || e.errorDescription;
-    wv.executeJavaScript(`document.documentElement.innerHTML = ${JSON.stringify(`<body style="font:15px Segoe UI,sans-serif;background:#0d0f14;color:#e7e9ef;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="max-width:520px;text-align:center"><h2>Impossible d'ouvrir la page</h2><p style="color:#8a91a3">${esc(msg)}</p><p style="color:#5b6274;font-size:12px">${esc(e.validatedURL)}</p></div></body>`)}`).catch(() => {});
+    wv.executeJavaScript(`document.documentElement.innerHTML = ${JSON.stringify(`<body style="font:15px Segoe UI,sans-serif;background:#0d0f14;color:#e7e9ef;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="max-width:520px;text-align:center"><h2>${esc(T("Impossible d'ouvrir la page"))}</h2><p style="color:#8a91a3">${esc(T(msg))}</p><p style="color:#5b6274;font-size:12px;word-break:break-all">${esc(e.validatedURL)}</p><button onclick="location.href=${esc(JSON.stringify(e.validatedURL))}" style="font:600 14px Segoe UI,sans-serif;padding:9px 22px;border-radius:8px;border:0;background:#7c3aed;color:#fff;cursor:pointer">${esc(T('Réessayer'))}</button>${/chromewebstore\.google\.com/.test(e.validatedURL) ? `<p style="color:#8a91a3;font-size:13px;margin-top:18px">${esc(T("Vous pouvez aussi installer une extension avec son lien : menu ⋮ → Extensions → Installer avec un lien."))}</p>` : ''}</div></body>`)}`).catch(() => {});
   });
-  wv.addEventListener('ipc-message', e => { if (e.channel === 'dryae-video') openQuick(tab, e.args[0] || {}); });
+  wv.addEventListener('ipc-message', e => { if (e.channel === 'dryae-video') openQuick(tab, e.args[0] || {}); else if (e.channel === 'dryae-nav') navStep(e.args[0]); });
   wv.addEventListener('found-in-page', e => { $('#findN').textContent = e.result.matches ? `${e.result.activeMatchOrdinal}/${e.result.matches}` : '0'; });
   wv.addEventListener('enter-html-full-screen', () => document.body.classList.add('fs'));
   return wv;
@@ -198,6 +198,17 @@ $('#url').addEventListener('focus', () => { $('#url').select(); urlJustFocused =
 $('#url').addEventListener('mouseup', e => { if (urlJustFocused) { e.preventDefault(); urlJustFocused = false; } });
 $('#bBack').onclick = () => { if (cur.wv && cur.wv.canGoBack()) cur.wv.goBack(); else showStart(cur); };
 $('#bFwd').onclick = () => cur.wv?.goForward();
+// boutons latéraux de la souris (précédent / suivant) : la même pression peut arriver deux fois (page + fenêtre)
+let navAt = 0;
+function navStep(d) { const n = Date.now(); if (n - navAt < 350) return; navAt = n; if (d < 0) $('#bBack').click(); else $('#bFwd').click(); }
+B.on('app-cmd', c => { if (c === 'browser-backward') navStep(-1); else if (c === 'browser-forward') navStep(1); else if (c === 'browser-refresh') cur.wv?.reload(); else if (c === 'browser-home') navigate(cur, CFG.home || ''); });
+// Ctrl + molette dans la page : zoom de l'onglet
+B.on('wheel-zoom', ({ wcId, dir }) => { const t = tabByWc(wcId); if (t && t === cur) zoom(dir); });
+// double-clic dans l'espace vide de la barre d'onglets : nouvel onglet ; clic du milieu sur « + » : idem
+$('#tabs').addEventListener('dblclick', e => { if (e.target === e.currentTarget) { const t = newTab(''); select(t); $('#url')?.focus(); } });
+$('#tabs').addEventListener('auxclick', e => { if (e.button === 1 && e.target === e.currentTarget) { e.preventDefault(); const t = newTab(''); select(t); } });
+// Ctrl + molette sur la barre d'onglets : passer d'un onglet à l'autre ; molette seule : défilement horizontal
+$('#tabs').addEventListener('wheel', e => { const el = e.currentTarget; if (el.scrollWidth > el.clientWidth) { el.scrollLeft += e.deltaY || e.deltaX; e.preventDefault(); } }, { passive: false });
 $('#bReload').onclick = () => { if (!cur.wv) return; cur.loading ? cur.wv.stop() : cur.wv.reload(); };
 $('#bHome').onclick = () => showStart(cur);
 $('#newTab').onclick = () => newTab();
@@ -502,6 +513,8 @@ const BR_SHORTCUTS = [
   ['Ctrl + Maj + A', 'Extensions'], ['Ctrl + P', 'Imprimer'], ['Ctrl + S', 'Enregistrer sous'], ['Ctrl + U', 'Code source de la page'], ['Ctrl + M', "Couper / réactiver le son de l'onglet"],
   ['Ctrl + +  /  Ctrl + −  /  Ctrl + 0', 'Zoom avant / arrière / normal'], ['F11', 'Plein écran'], ['F12  /  Ctrl + Maj + I', 'Outils de développement'],
   ['Ctrl + Maj + Suppr', "Effacer l'historique récent"], ['Ctrl + Maj + Q', 'Quitter DrYAE'], ['F1', 'Afficher ces raccourcis'],
+  ['Boutons latéraux de la souris', 'Page précédente / suivante'], ['Clic du milieu ou Ctrl + clic sur un lien', 'Ouvrir dans un nouvel onglet en arrière-plan'],
+  ['Clic du milieu sur un onglet', "Fermer l'onglet"], ["Double-clic dans la barre d'onglets", 'Nouvel onglet'], ['Ctrl + molette', 'Zoom avant / arrière'],
 ];
 function showShortcuts() {
   $('#kbModal .kbd-list').innerHTML = BR_SHORTCUTS.map(([k, l]) => `<div><kbd>${esc(T(k))}</kbd><span>${esc(T(l))}</span></div>`).join('');
@@ -915,9 +928,20 @@ async function drawPasswords(q = '') {
     <div class="sect" style="margin-top:16px">Ajouter</div>
     <input type="text" id="pwNS" placeholder="site (exemple.com)" style="margin-bottom:6px"><input type="text" id="pwNU" placeholder="identifiant" style="margin-bottom:6px"><input type="password" id="pwNP" placeholder="mot de passe" style="margin-bottom:6px">
     <button class="btn sm" id="pwAdd">Enregistrer</button>
+    <div class="sect" style="margin-top:16px">Importer / exporter</div>
+    <div class="row" style="gap:6px;flex-wrap:wrap"><button class="btn sm" id="pwImp">${ic('dl')}Importer un fichier .csv…</button><button class="btn sm" id="pwExp">${ic('save')}Exporter en .csv…</button></div>
+    <p class="hint" style="margin-top:6px">Accepte les fichiers .csv exportés par les navigateurs et les gestionnaires de mots de passe (colonnes url, username, password).</p>
     ${d.never.length ? `<div class="sect" style="margin-top:16px">Jamais enregistrés</div>${d.never.map((o, i) => `<div class="hrow" style="cursor:default"><div class="t"><b>${esc(o.replace(/^https?:\/\//, ''))}</b></div><button class="icon-btn" data-unnever="${i}">${ic('x')}</button></div>`).join('')}` : ''}
     <p class="hint" style="margin-top:12px">Les mots de passe sont chiffrés par Windows sur ce PC.</p>`;
   const B2 = $('#pBody');
+  $('#pwImp').onclick = async () => {
+    try { const r = await B.call('br:pwImport'); if (!r) return; toast(T('{0} ajouté(s), {1} mis à jour, {2} ignoré(s)').replace('{0}', r.added).replace('{1}', r.updated).replace('{2}', r.skipped)); drawPasswords(); }
+    catch (e) { toast(String(e.message || e).replace(/^.*Error: /, '')); }
+  };
+  $('#pwExp').onclick = async () => {
+    if (!confirm(T("Le fichier exporté contiendra vos mots de passe en clair : toute personne qui l'ouvre pourra les lire. Continuer ?"))) return;
+    try { const r = await B.call('br:pwExport'); if (r) toast(T('{0} mot(s) de passe exporté(s)').replace('{0}', r.n)); } catch (e) { toast(String(e.message || e)); }
+  };
   $('#pwOfferOn').onchange = e => B.call('br:pwSettings', { offer: e.target.checked });
   $('#pwFillOn').onchange = e => B.call('br:pwSettings', { autofill: e.target.checked });
   const qi = $('#pwQ'); qi.oninput = () => { clearTimeout(qi.t); qi.t = setTimeout(() => { drawPasswords(qi.value).then(() => { const x = $('#pwQ'); x.focus(); x.setSelectionRange(x.value.length, x.value.length); }); }, 250); };
@@ -955,10 +979,19 @@ async function drawExtensions() {
   const list = await B.call('br:extList');
   $('#pTitle').textContent = 'Extensions';
   $('#pBody').innerHTML = `<div class="row" style="gap:6px;flex-wrap:wrap;margin-bottom:10px"><button class="btn sm primary" id="exStore">${ic('puzzle')}Chrome Web Store</button><button class="btn sm" id="exDir">Charger un dossier…</button></div>
+    <div class="row" style="gap:6px;margin-bottom:12px"><input type="text" id="exId" style="flex:1;min-width:0" placeholder="Lien de la boutique ou identifiant de l'extension" spellcheck="false"><button class="btn sm" id="exGo">Installer avec un lien</button></div>
     ${list.length ? list.map((x, i) => `<div class="hrow" style="cursor:default">${x.icon ? `<img src="${esc(x.icon)}" style="width:24px;height:24px;border-radius:5px" alt="">` : `<span class="fav" style="width:24px;height:24px">${esc((x.name || '?')[0])}</span>`}<div class="t"><b>${esc(x.name)}</b><span>${esc(x.version)} · ${esc((x.description || '').slice(0, 80))}</span></div><button class="icon-btn" title="Supprimer" data-rmx="${i}">${ic('trash')}</button></div>`).join('')
       : '<p class="hint">Aucune extension. Ouvre le Chrome Web Store, choisis une extension puis clique sur « Ajouter à Chrome ».</p>'}
     <p class="hint" style="margin-top:12px">Les icônes des extensions apparaissent à droite de la barre d'adresse. La plupart des extensions courantes fonctionnent (bloqueurs, mode sombre, traducteurs, gestionnaires de mots de passe…) ; certaines fonctions avancées de Chrome peuvent manquer.</p>`;
   $('#exStore').onclick = () => newTab('https://chromewebstore.google.com/');
+  $('#exGo').onclick = async () => {
+    const v = $('#exId').value.trim(); if (!v) return $('#exId').focus();
+    $('#exGo').disabled = true; toast('Installation de l\'extension…');
+    try { const r = await B.call('br:extInstall', v); toast(`Extension ajoutée : ${r.name}`); drawExtensions(); }
+    catch (e) { toast(String(e.message || e).replace(/^.*Error: /, '')); }
+    finally { const b = $('#exGo'); if (b) b.disabled = false; }
+  };
+  $('#exId').onkeydown = e => { if (e.key === 'Enter') $('#exGo').click(); };
   $('#exDir').onclick = async () => { try { const r = await B.call('br:extLoadDir'); if (r) { toast('Extension ajoutée'); drawExtensions(); } } catch (e) { toast(String(e.message || e).replace(/^.*Error: /, '')); } };
   $('#pBody').onclick = async e => { const b = e.target.closest('[data-rmx]'); if (!b) return; const x = list[+b.dataset.rmx]; if (!confirm(`Supprimer l'extension « ${x.name} » ?`)) return; await B.call('br:extRemove', x.id); drawExtensions(); };
 }

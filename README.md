@@ -4,13 +4,12 @@
 
 ---
 
-## ✨ Nouveautés de la version 1.6.1 / What's new
+## ✨ Nouveautés de la version 1.6.2 / What's new
 
-- ⚡ **Torrents beaucoup plus légers** (nouveau moteur natif aria2), et choix des fichiers directement sur la page.
-- ⌨️ **Raccourcis clavier** dans le gestionnaire et dans le navigateur. Appuyez sur **F1** pour les voir.
-- 🔁 **Doublons détectés** : Remplacer, Garder les deux ou Annuler.
-- 🧭 **Nouveau menu et paramètres du navigateur**.
-- 🎞️ Panneau **« Fichier(s) détecté(s) »** avec la taille, la résolution et la durée, et le bouton *Tout effacer*.
+- 🪟 **Le gestionnaire fonctionne comme un dossier Windows** : affichages (icônes, liste, détails, contenu), barre de commandes, sélection au rectangle, glisser-déposer, raccourcis de Windows (Ctrl+C, Ctrl+Z, F2, Alt+Entrée…).
+- 🚀 **Démarrage discret** : avec Windows, DrYAE reste caché dans les icônes de la barre des tâches. Un clic ouvre le navigateur.
+- 🖱️ **Navigateur** : boutons latéraux de la souris, clic du milieu, Ctrl+molette ; vérification « Je ne suis pas un robot » améliorée.
+- 🔑 **Mots de passe** : import et export en .csv. 🧩 **Extensions** : installation par lien.
 
 👉 Toutes les nouveautés : [CHANGELOG.md](CHANGELOG.md) · ⬇️ [Télécharger DrYAE](https://github.com/DrYAE-FPA/DrYAE/releases/latest)
 

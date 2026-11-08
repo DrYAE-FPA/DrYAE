@@ -1,26 +1,14 @@
 // Script chargé dans chaque page du navigateur DrYAE (toutes les frames).
-// 1) Rend le navigateur cohérent avec un Chrome normal (vérifications anti-robot de Cloudflare & co).
+// 1) Boutons latéraux de la souris (précédent / suivant).
 // 2) Affiche un bouton « Télécharger cette vidéo » sur les lecteurs vidéo.
 const { ipcRenderer, webFrame } = require('electron');
 let PT = {}; try { PT = ipcRenderer.sendSync('i18n:page') || {}; } catch {}
 const pt = s => PT[s] || s;
 
-// ---------- 1. cohérence avec Chrome (monde principal de la page) ----------
+// ---------- 1. souris : boutons latéraux précédent / suivant ----------
+// (rien n'est modifié dans la page : les vérifications anti-robot voient un Chromium normal)
 try {
-  webFrame.executeJavaScript(`(() => {
-    try {
-      const nav = Navigator.prototype;
-      const wd = Object.getOwnPropertyDescriptor(nav, 'webdriver');
-      if (!wd || navigator.webdriver) Object.defineProperty(nav, 'webdriver', { get: () => false, configurable: true });
-    } catch (e) {}
-    try {
-      const c = window.chrome || {};
-      if (!c.app) c.app = { isInstalled: false, InstallState: { DISABLED: 'disabled', INSTALLED: 'installed', NOT_INSTALLED: 'not_installed' }, RunningState: { CANNOT_RUN: 'cannot_run', READY_TO_RUN: 'ready_to_run', RUNNING: 'running' }, getDetails() { return null; }, getIsInstalled() { return false; }, runningState() { return 'cannot_run'; } };
-      if (!c.csi) { const t0 = Date.now(); c.csi = function csi() { return { startE: t0, onloadT: t0 + 50, pageT: Date.now() - t0, tran: 15 }; }; }
-      if (!c.loadTimes) { const t = performance.timeOrigin / 1000; c.loadTimes = function loadTimes() { return { requestTime: t, startLoadTime: t, commitLoadTime: t + 0.05, finishDocumentLoadTime: t + 0.2, finishLoadTime: t + 0.3, firstPaintTime: t + 0.1, firstPaintAfterLoadTime: 0, navigationType: 'Other', wasFetchedViaSpdy: true, wasNpnNegotiated: true, npnNegotiatedProtocol: 'h2', wasAlternateProtocolAvailable: false, connectionInfo: 'h2' }; }; }
-      if (!window.chrome) Object.defineProperty(window, 'chrome', { value: c, writable: true, configurable: true, enumerable: true });
-    } catch (e) {}
-  })();`);
+  addEventListener('mouseup', e => { if (e.button === 3 || e.button === 4) { e.preventDefault(); try { ipcRenderer.sendToHost('dryae-nav', e.button === 3 ? -1 : 1); } catch {} } }, true);
 } catch {}
 
 // ---------- 2. bouton sur les vidéos (page principale uniquement) ----------

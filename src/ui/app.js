@@ -22,7 +22,11 @@ const ic = (n, st = '') => `<svg style="${st}"><use href="#i-${n}"/></svg>`;
 const btn = (act, icon, title) => `<button class="icon-btn" data-act="${act}" title="${title}">${ic(icon)}</button>`;
 const progressOf = d => d.status === 'done' ? 1 : (d.type === 'hls' || d.type === 'ytdl') ? (d.progress || 0) : d.size > 0 ? Math.min(1, d.downloaded / d.size) : 0;
 
-function toast(t) { const el = $('#toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('on'), 2600); }
+function toast(t, act) {
+  const el = $('#toast'); el.textContent = T(t);
+  if (act) { const b = document.createElement('button'); b.className = 'tact'; b.textContent = T(act.label); b.onclick = () => { el.classList.remove('on'); act.fn(); }; el.appendChild(b); }
+  el.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('on'), act ? 6000 : 2600);
+}
 async function safe(fn) { try { return await fn(); } catch (e) { toast(e.message || String(e)); } }
 
 // ---------------- thème ----------------
@@ -37,7 +41,7 @@ function applyTheme() {
   let mode = t.mode || 'dark';
   if (mode === 'system') mode = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
   document.documentElement.dataset.mode = mode;
-  const a = t.accent || '#8b5cf6';
+  const a = t.accent === 'system' ? (window.SYS_ACCENT || '#8b5cf6') : (t.accent || '#8b5cf6');
   const r = document.documentElement.style;
   r.setProperty('--accent', a); r.setProperty('--accent-soft', a + '22'); r.setProperty('--accent-line', a + '55');
   themeIcon();
@@ -85,6 +89,45 @@ function metaHtml(d) {
   return m;
 }
 
+// ---------------- affichages façon dossier Windows ----------------
+const LS = { get: (k, d) => { try { const v = localStorage.getItem('dryae.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set: (k, v) => { try { localStorage.setItem('dryae.' + k, JSON.stringify(v)); } catch {} } };
+let VIEW = LS.get('view', 'content');          // details | list | content | icons-s | icons-m | icons-l
+let SORT = LS.get('sort', { k: 'date', dir: -1 });
+let PANE = LS.get('pane', false);              // volet des détails (à droite)
+let COLS = LS.get('cols', [320, 150, 120, 100, 170]);
+const VIEWS = [['icons-l', 'Grandes icônes', 'Ctrl+Maj+2'], ['icons-m', 'Icônes moyennes', 'Ctrl+Maj+3'], ['icons-s', 'Petites icônes', 'Ctrl+Maj+4'], ['list', 'Liste', 'Ctrl+Maj+5'], ['details', 'Détails', 'Ctrl+Maj+6'], ['content', 'Contenu', 'Ctrl+Maj+8']];
+const SORTS = [['name', 'Nom'], ['date', 'Date'], ['type', 'Type'], ['size', 'Taille'], ['status', 'État']];
+const typeLabel = d => d.type === 'torrent' ? 'Torrent' : d.type === 'hls' ? T('Flux vidéo') : d.type === 'ytdl' ? (d.mode === 'audio' ? 'Audio ' + (d.audioFormat || 'mp3').toUpperCase() : T('Vidéo') + ' MP4') : ((extOf(d.name) || '').toUpperCase() ? T('Fichier') + ' ' + extOf(d.name).toUpperCase() : T('Fichier'));
+const nameOf = d => d.name || d.displayName || d.title || prettyUrl(d.url);
+const extLabel = d => d.type === 'torrent' ? 'BT' : d.type === 'hls' ? 'HLS' : d.type === 'ytdl' ? (d.mode === 'audio' ? (d.audioFormat || 'mp3').toUpperCase() : 'MP4') : (extOf(d.name) || '?').slice(0, 4).toUpperCase();
+const dateOf = d => new Date(d.finished || d.added).toLocaleString((window.I18N && I18N.locale) || 'fr-FR', { dateStyle: 'short', timeStyle: 'short' });
+function setView(v) { if (!VIEWS.some(x => x[0] === v)) return; VIEW = v; LS.set('view', v); $('#list').querySelectorAll('.item').forEach(el => (el._h = '')); render(); }
+function setSort(k) { SORT = SORT.k === k ? { k, dir: -SORT.dir } : { k, dir: k === 'date' || k === 'size' ? -1 : 1 }; LS.set('sort', SORT); render(); }
+function togglePane(on = !PANE) { PANE = on; LS.set('pane', on); if (on) { const id = kCursor || [...selected][0]; if (id) openDrawer(id); } else closeDrawer(); $('#cbPane')?.classList.toggle('on', on); }
+document.addEventListener('error', e => { const t = e.target; if (t && t.tagName === 'IMG' && t.classList.contains('th')) { const f = document.createElement('div'); f.className = 'ftype c-img'; f.textContent = t.dataset.ext || ''; t.replaceWith(f); } }, true);
+function thumb(d, big) {
+  const cat = catOf(d);
+  if (big && d.status === 'done' && cat === 'img' && d.file) return `<img class="th" loading="lazy" src="${esc(encodeURI('file:///' + d.file.replace(/\\/g, '/').replace(/^\/+/, '')))}" alt="" data-ext="${esc(extLabel(d))}">`;
+  return `<div class="ftype c-${cat}">${esc(extLabel(d))}</div>`;
+}
+function stateText(d) {
+  const p = progressOf(d);
+  if (d.status === 'running') return `${(p * 100).toFixed(0)} % · ${fmt(d.speed)}/s`;
+  return ST[d.status] || d.status;
+}
+function rowHtmlView(d) {
+  if (VIEW === 'content') return rowHtml(d);
+  const p = progressOf(d), run = d.status !== 'done';
+  const bar = run ? `<div class="bar ${d.status}"><i style="width:${p * 100}%"></i></div>` : '';
+  const ck = `<input type="checkbox" class="rowchk" data-chk ${selected.has(d.id) ? 'checked' : ''}>`;
+  if (VIEW === 'details') return `${ck}<div class="c nm">${thumb(d)}<span class="name" title="${esc(d.file || d.url)}">${esc(nameOf(d))}</span></div><div class="c">${dateOf(d)}</div><div class="c">${esc(typeLabel(d))}</div><div class="c r">${d.size > 0 ? fmt(d.size) : ''}</div><div class="c st ${d.status}">${esc(stateText(d))}${bar}</div>`;
+  if (VIEW === 'list') return `${ck}${thumb(d)}<span class="name" title="${esc(d.file || d.url)}">${esc(nameOf(d))}</span>${run ? `<span class="st ${d.status}">${esc(stateText(d))}</span>` : ''}`;
+  return `${ck}<div class="tic">${thumb(d, true)}</div><span class="name" title="${esc(d.file || d.url)}">${esc(nameOf(d))}</span>${bar}`;
+}
+function detailsHead() {
+  const arrow = k => (SORT.k === k ? (SORT.dir > 0 ? ' ▲' : ' ▼') : '');
+  return `<span></span>${[['name', 'Nom'], ['date', 'Date'], ['type', 'Type'], ['size', 'Taille'], ['status', 'État']].map(([k, l], i) => `<button class="hc ${k === 'size' ? 'r' : ''}" data-sort="${k}">${esc(T(l))}${arrow(k)}<i class="rz" data-rz="${i}"></i></button>`).join('')}`;
+}
 function rowHtml(d) {
   const p = progressOf(d);
   const cat = catOf(d);
@@ -107,11 +150,22 @@ function rowHtml(d) {
     <div class="actions">${acts}</div>`;
 }
 
-function sorted() { return [...items.values()].sort((a, b) => b.added - a.added); }
+function sorted() {
+  const k = SORT.k, s = SORT.dir;
+  const STO = { running: 0, merging: 1, queued: 2, seeding: 3, scheduled: 4, paused: 5, error: 6, done: 7 };
+  const val = d => k === 'name' ? nameOf(d).toLowerCase() : k === 'type' ? typeLabel(d) : k === 'size' ? (d.size || 0) : k === 'status' ? (STO[d.status] ?? 9) : (d.finished || d.added);
+  return [...items.values()].sort((a, b) => { const x = val(a), y = val(b); return (x < y ? -1 : x > y ? 1 : b.added - a.added) * (x === y ? 1 : s); });
+}
 
 function render() {
   const list = $('#list');
   const arr = sorted().filter(match);
+  list.className = 'list v-' + VIEW;
+  list.style.setProperty('--cols', COLS.map((w, i) => (i === 0 ? `minmax(${w}px,1fr)` : w + 'px')).join(' '));
+  let head = list.querySelector('.dhead');
+  if (VIEW === 'details' && arr.length) { if (!head) { head = document.createElement('div'); head.className = 'dhead'; list.prepend(head); } const h = detailsHead(); if (head._h !== h) { head.innerHTML = h; head._h = h; } }
+  else if (head) { head.remove(); head = null; }
+  status();
   if (!arr.length) {
     list.innerHTML = `<div class="empty"><img src="../../assets/logo.png" alt=""><b>${items.size ? 'Aucun élément ici' : 'Aucun téléchargement'}</b>
       <div>${items.size ? 'Change de filtre ou de recherche.' : 'Ajoute un lien, un torrent, ou ouvre le navigateur pour trouver des vidéos.'}</div>
@@ -124,13 +178,14 @@ function render() {
     for (const d of arr) {
       let el = list.querySelector(`.item[data-id="${d.id}"]`);
       if (!el) { el = document.createElement('div'); el.className = 'item'; el.dataset.id = d.id; }
-      const html = rowHtml(d) + (selected.has(d.id) ? '' : '');
+      const html = rowHtmlView(d);
+      el.draggable = d.status === 'done';
       if (el._h !== html) { el.innerHTML = html; el._h = html; }
       el.classList.toggle('sel', selected.has(d.id));
       const ck = el.querySelector('[data-chk]'); if (ck) ck.checked = selected.has(d.id);
       el.classList.toggle('cur', current === d.id);
       el.classList.toggle('kfocus', kCursor === d.id);
-      const want = prev ? prev.nextSibling : list.firstChild;
+      const want = prev ? prev.nextSibling : (head ? head.nextSibling : list.firstChild);
       if (want !== el) list.insertBefore(el, want);
       prev = el;
     }
@@ -186,17 +241,18 @@ $('#list').addEventListener('click', async e => {
     const arr = sorted().filter(match).map(x => x.id);
     const a = arr.indexOf(lastClickId), z = arr.indexOf(id);
     arr.slice(Math.min(a, z), Math.max(a, z) + 1).forEach(x => selected.add(x));
-  } else { selected = new Set([id]); openDrawer(id); }
+  } else { selected = new Set([id]); if (PANE) openDrawer(id); }
   lastClickId = id; kCursor = id;
   render();
 });
 $('#list').addEventListener('dblclick', e => {
   const row = e.target.closest('.item'); if (!row || e.target.closest('[data-act]')) return;
   const d = items.get(row.dataset.id);
-  if (d.status === 'done') call('open', d.id); else if (['paused', 'error'].includes(d.status)) call('resume', d.id);
+  if (d.status === 'done') safe(() => call('open', d.id)); else openDrawer(d.id);
 });
 $('#list').addEventListener('contextmenu', e => {
-  const row = e.target.closest('.item'); if (!row) return;
+  const row = e.target.closest('.item');
+  if (!row) { e.preventDefault(); return showMenu(e.clientX, e.clientY, bgMenu()); }
   e.preventDefault();
   const d = items.get(row.dataset.id);
   if (!selected.has(d.id)) { selected = new Set([d.id]); render(); }
@@ -216,7 +272,8 @@ async function itemAction(act, d) {
     case 'copyPath': await call('copy', d.file || d.dir); return toast('Chemin copié');
     case 'copyName': await call('copy', d.name); return toast('Nom copié');
     case 'copyPage': await call('copy', d.pageUrl); return toast('Adresse de la page copiée');
-    case 'remove': return removeItems([d.id]);
+    case 'remove': return removeItems(selected.has(d.id) && selected.size > 1 ? [...selected] : [d.id]);
+    case 'removeDel': return removeItems(selected.has(d.id) && selected.size > 1 ? [...selected] : [d.id], true);
     case 'refresh': return refreshLink(d);
     case 'rename': return renameItem(d);
     case 'move': return safe(() => call('move', d.id));
@@ -248,13 +305,13 @@ function itemMenu(d) {
   if (!['done', 'seeding'].includes(d.status)) M.push(['schedule', 'clock', d.status === 'scheduled' ? 'Retirer du planificateur' : 'Ajouter au planificateur']);
   if (d.status === 'done' && d.type !== 'torrent') M.push('-', ['md5', 'ok', 'Somme MD5'], ['sha256', 'ok', 'Somme SHA-256']);
   if (d.status === 'done' && isArc) M.push(['extract', 'arc', "Extraire l'archive"]);
-  M.push('-', ['restart', 'redo', 'Recommencer'], ['remove', 'x', 'Retirer…']);
+  M.push('-', ['restart', 'redo', 'Recommencer'], ['remove', 'x', 'Retirer de la liste   Suppr'], ['removeDel', 'trash', 'Supprimer définitivement   Maj+Suppr']);
   return M.map(m => (m === '-' ? m : { label: m[2], icon: m[1], fn: () => itemAction(m[0], d) }));
 }
 
 function showMenu(x, y, entries) {
   const m = $('#menu');
-  m.innerHTML = entries.map((e, i) => (e === '-' ? '<hr>' : `<button data-i="${i}">${ic(e.icon || 'list')}${esc(e.label)}</button>`)).join('');
+  m.innerHTML = entries.map((e, i) => (e === '-' ? '<hr>' : `<button data-i="${i}">${ic(e.icon || 'list')}${((m) => m ? esc(m[1]) + `<span class="mk">${esc(m[2])}</span>` : esc(e.label))(String(e.label).match(/^([\s\S]*?\S)\s{3,}(\S[\s\S]*)$/))}</button>`)).join('');
   m.classList.add('on');
   const r = m.getBoundingClientRect();
   m.style.left = Math.min(x, innerWidth - r.width - 8) + 'px';
@@ -285,15 +342,17 @@ function prompt2(title, fields, okLabel = 'OK') {
 }
 function confirmAsk(text) { return window.confirm(text); }
 
-async function removeItems(ids) {
-  const anyDone = ids.some(id => ['done', 'seeding'].includes(items.get(id)?.status));
+// Suppr : retire de la liste sans question (comme la Corbeille de Windows), annulable avec Ctrl+Z.
+// Maj+Suppr : supprime aussi les fichiers du disque, après confirmation.
+async function removeItems(ids, withFiles) {
   let del = false;
-  if (anyDone || ids.length > 1) {
-    const r = await prompt2(ids.length > 1 ? `Retirer ${ids.length} éléments` : 'Retirer de la liste', [{ html: `<p>${ids.length > 1 ? 'Les éléments seront retirés de la liste.' : esc(items.get(ids[0]).name)}</p><label class="check"><input type="checkbox" id="pDel"> Supprimer aussi les fichiers du disque</label>` }], 'Retirer');
+  if (withFiles) {
+    const r = await askBox({ title: 'Supprimer définitivement', text: ids.length > 1 ? T('Supprimer définitivement ces {0} éléments et leurs fichiers ?').replace('{0}', ids.length) : T('Supprimer définitivement « {0} » et son fichier ?').replace('{0}', nameOf(items.get(ids[0]) || {})), ok: 'Supprimer', danger: true });
     if (!r) return;
-    del = $('#pDel').checked;
+    del = true;
   }
   await call('remove', ids, del);
+  if (!del) toast(T('{0} élément(s) retiré(s) de la liste').replace('{0}', ids.length), { label: 'Annuler', fn: undoRemove });
   ids.forEach(id => { items.delete(id); selected.delete(id); });
   if (ids.includes(current)) closeDrawer();
   render();
@@ -766,13 +825,14 @@ $('#q').addEventListener('input', render);
 // ---------------- raccourcis clavier du gestionnaire ----------------
 let kCursor = null; // élément « actif » au clavier (flèches)
 const SHORTCUTS = [
-  ['Ctrl + A', 'Tout sélectionner'], ['Maj + clic', 'Sélectionner une plage'], ['Ctrl + clic', 'Ajouter / retirer de la sélection'],
-  ['↑ / ↓', 'Se déplacer dans la liste'], ['Maj + ↑ / ↓', 'Étendre la sélection'], ['Début / Fin', 'Premier / dernier élément'],
-  ['Entrée', 'Ouvrir le fichier (ou reprendre)'], ['Espace', 'Pause / reprendre'], ['Suppr', 'Retirer de la liste'], ['Maj + Suppr', 'Retirer et supprimer les fichiers'],
-  ['F2', 'Renommer'], ['Ctrl + I', 'Informations'], ['Ctrl + C', 'Copier le lien'], ['Ctrl + E', 'Afficher dans le dossier'],
-  ['Ctrl + N', 'Ajouter un lien'], ['Ctrl + T', 'Ajouter un torrent'], ['Ctrl + O', 'Ouvrir un fichier .torrent'], ['Ctrl + V', 'Coller un lien et le télécharger'],
-  ['Ctrl + F', 'Rechercher'], ['Ctrl + B', 'Ouvrir le navigateur'], ['Ctrl + ,', 'Paramètres'], ['Ctrl + Maj + P', 'Tout mettre en pause'], ['Ctrl + Maj + R', 'Tout reprendre'],
-  ['Échap', 'Fermer / tout désélectionner'], ['F1  ou  Ctrl + /', 'Afficher ces raccourcis'],
+  ['Ctrl + A', 'Tout sélectionner'], ['Ctrl + clic', 'Ajouter / retirer de la sélection'], ['Maj + clic', 'Sélectionner une plage'], ['Glisser dans le vide', 'Sélection au rectangle'],
+  ['↑ ↓ ← →', 'Se déplacer'], ['Maj + flèches', 'Étendre la sélection'], ['Début / Fin', 'Premier / dernier élément'],
+  ['Entrée  /  double-clic', 'Ouvrir'], ['F2', 'Renommer'], ['Suppr', 'Retirer de la liste'], ['Maj + Suppr', 'Supprimer définitivement (fichier compris)'], ['Ctrl + Z', 'Annuler le retrait'],
+  ['Ctrl + C', 'Copier le fichier (à coller dans un dossier)'], ['Ctrl + Maj + C', 'Copier le chemin'], ['Ctrl + V', 'Coller un lien et le télécharger'],
+  ['Alt + Entrée', 'Propriétés (informations)'], ['Alt + Maj + P', 'Volet des détails'], ['F5', 'Actualiser'], ['Ctrl + F  /  F3', 'Rechercher'],
+  ['Ctrl + molette', "Changer l'affichage (icônes, liste, détails)"], ['Ctrl + Maj + 2 … 8', 'Grandes icônes … Contenu'], ['Espace', 'Pause / reprendre'],
+  ['Ctrl + N', 'Nouveau lien'], ['Ctrl + T', 'Nouveau torrent'], ['Ctrl + O', 'Ouvrir un fichier .torrent'], ['Ctrl + B', 'Ouvrir le navigateur'], ['Ctrl + ,', 'Paramètres'],
+  ['Échap', 'Fermer / tout désélectionner'], ['F1', 'Afficher ces raccourcis'],
 ];
 function showShortcuts() {
   prompt2('Raccourcis clavier', [{ html: `<div class="kbd-list">${SHORTCUTS.map(([k, l]) => `<div><kbd>${esc(T(k))}</kbd><span>${esc(T(l))}</span></div>`).join('')}</div>` }], 'OK');
@@ -812,22 +872,35 @@ document.addEventListener('keydown', async e => {
   if (ctrl && K === 'b') { e.preventDefault(); return call('openBrowser'); }
   if (ctrl && K === 'f') { e.preventDefault(); return $('#q').focus(); }
   if (ctrl && k === ',') { e.preventDefault(); return $('#setBtn').click(); }
-  if (ctrl && e.shiftKey && K === 'p') { e.preventDefault(); return $('#pauseAll').click(); }
-  if (ctrl && e.shiftKey && K === 'r') { e.preventDefault(); return $('#resumeAll').click(); }
+  if (ctrl && e.shiftKey && /^Digit[2-8]$/.test(e.code)) { const m = { 2: 'icons-l', 3: 'icons-m', 4: 'icons-s', 5: 'list', 6: 'details', 8: 'content' }[e.code.slice(5)]; if (m) { e.preventDefault(); return setView(m); } }
+  if (e.altKey && e.shiftKey && K === 'p') { e.preventDefault(); return togglePane(); }
+  if (k === 'F5') { e.preventDefault(); return refreshView(); }
+  if (k === 'F3') { e.preventDefault(); return $('#q').focus(); }
   if (typing || modal) return;
   if (ctrl && K === 'a') { e.preventDefault(); selected = new Set(sorted().filter(match).map(d => d.id)); return render(); }
-  if (ctrl && K === 'v') { e.preventDefault(); const t = (await navigator.clipboard.readText().catch(() => '')).trim(); if (/^magnet:/i.test(t)) return showTorrent({ src: t }); if (/^https?:\/\//i.test(t)) return showAdd({ url: t }); return toast('Aucun lien valide (http://, https:// ou magnet:)'); }
-  if (k === 'ArrowDown' || k === 'ArrowUp') { e.preventDefault(); return moveCursor(k === 'ArrowDown' ? 1 : -1, e.shiftKey); }
+  if (ctrl && K === 'v') { e.preventDefault(); return pasteLink(); }
+  if (ctrl && K === 'z') { e.preventDefault(); return undoRemove(); }
+  if (['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight'].includes(k)) {
+    e.preventDefault();
+    const grid = VIEW.startsWith('icons') || VIEW === 'list';
+    let cols = 1;
+    if (grid) { const els = [...$('#list').querySelectorAll('.item')]; const top0 = els[0]?.offsetTop; cols = Math.max(1, els.filter(x => x.offsetTop === top0).length); }
+    const step = k === 'ArrowDown' ? cols : k === 'ArrowUp' ? -cols : k === 'ArrowRight' ? (grid ? 1 : 0) : (grid ? -1 : 0);
+    if (step) return moveCursor(step, e.shiftKey);
+    return;
+  }
   if (k === 'Home' || k === 'End') { e.preventDefault(); return moveCursor(0, e.shiftKey, k === 'Home' ? 'start' : 'end'); }
   const T0 = targets(); if (!T0.length) return;
   const one = T0.length === 1 ? T0[0] : (kCursor && items.get(kCursor)) || T0[0];
-  if (k === 'Delete') { e.preventDefault(); if (e.shiftKey) { await call('remove', T0.map(d => d.id), true); T0.forEach(d => { items.delete(d.id); selected.delete(d.id); }); if (T0.some(d => d.id === current)) closeDrawer(); render(); toast(T('{0} éléments retirés').replace('{0}', T0.length)); } else removeItems(T0.map(d => d.id)); return; }
-  if (k === 'Enter') { e.preventDefault(); return one.status === 'done' ? call('open', one.id) : ['paused', 'error'].includes(one.status) ? call('resume', one.id) : openDrawer(one.id); }
+  if (k === 'Delete') { e.preventDefault(); return removeItems(T0.map(d => d.id), e.shiftKey); }
+  if (k === 'Enter' && e.altKey) { e.preventDefault(); return openDrawer(one.id); }
+  if (k === 'Enter') { e.preventDefault(); return one.status === 'done' ? safe(() => call('open', one.id)) : ['paused', 'error'].includes(one.status) ? call('resume', one.id) : openDrawer(one.id); }
   if (k === ' ') { e.preventDefault(); const anyRun = T0.some(d => ['running', 'queued', 'seeding'].includes(d.status)); T0.forEach(d => (anyRun ? ['running', 'queued', 'seeding', 'scheduled'].includes(d.status) && call('pause', d.id) : ['paused', 'error'].includes(d.status) && call('resume', d.id))); return; }
   if (k === 'F2') { e.preventDefault(); return itemAction('rename', one); }
   if (ctrl && K === 'i') { e.preventDefault(); return openDrawer(one.id); }
   if (ctrl && K === 'e') { e.preventDefault(); return itemAction('folder', one); }
-  if (ctrl && K === 'c' && !window.getSelection().toString()) { e.preventDefault(); call('copy', T0.map(d => d.url).join('\n')); return toast(T0.length > 1 ? 'Liens copiés' : 'Lien copié'); }
+  if (ctrl && e.shiftKey && K === 'c') { e.preventDefault(); return copyPaths(T0); }
+  if (ctrl && K === 'c' && !window.getSelection().toString()) { e.preventDefault(); return copyFiles(T0); }
 });
 
 // glisser-déposer : liens, .torrent, listes
@@ -875,7 +948,7 @@ async function showSettings(sec = 'gen') {
   S = await call('getSettings');
   sTmp = JSON.parse(JSON.stringify(S));
   const v = (id, x) => ($(id).value = x ?? ''), c = (id, x) => ($(id).checked = !!x);
-  v('#sDir', S.dir); c('#sCat', S.categorize); c('#sClip', S.clipboard); c('#sNotify', S.notify); c('#sSound', S.sound); c('#sTray', S.tray); c('#sConfirmClear', S.confirmClear !== false); c('#sAutoUpd', S.autoUpdateCheck !== false); c('#sBoot', S.startWithWindows); c('#sBootMin', S.startMinimized); c('#sShut', S.shutdownWhenDone); c('#sWeb', S.autoOpenWebpage);
+  v('#sDir', S.dir); c('#sCat', S.categorize); c('#sClip', S.clipboard); c('#sNotify', S.notify); c('#sSound', S.sound); c('#sTray', S.tray); c('#sConfirmClear', S.confirmClear !== false); c('#sAutoUpd', S.autoUpdateCheck !== false); c('#sBoot', S.startWithWindows); c('#sShut', S.shutdownWhenDone); c('#sWeb', S.autoOpenWebpage);
   v('#sConn', S.connections); bindRange('#sConn', '#sConnV'); v('#sPar', S.parallel); bindRange('#sPar', '#sParV'); v('#sRetry', S.maxRetries); v('#sDup', S.duplicate); v('#sHlsC', S.hls.connections); v('#sHlsQ', S.hls.quality); c('#sHlsConv', S.hls.convert); v('#sPerSite', S.perSite);
   const Y = S.ytdl || {}; v('#sYtMode', Y.mode === 'audio' ? (Y.audioFormat || 'mp3') : 'video'); v('#sYtQ', Y.quality || '1080'); v('#sYtB', Y.audioBitrate || '320');
   call('ytdl:version').then(x => ($('#sYtVer').textContent = 'Version de yt-dlp : ' + x)).catch(() => {});
@@ -887,8 +960,8 @@ async function showSettings(sec = 'gen') {
   const C = S.scheduler;
   c('#cOn', C.enabled); v('#cStart', C.start); v('#cStop', C.stop); c('#cAdd', C.addNew); c('#cShut', C.shutdown);
   $('#cDays').innerHTML = DAYS.map((d, i) => `<label><input type="checkbox" data-day="${i}" ${C.days.includes(i) ? 'checked' : ''}>${d}</label>`).join('');
-  v('#lMode', S.theme.mode); $('#lColor').value = S.theme.accent;
-  $('#lSw').innerHTML = ACCENTS.map(a => `<button data-acc="${a}" style="background:${a}" class="${a === S.theme.accent ? 'on' : ''}"></button>`).join('');
+  v('#lMode', S.theme.mode); $('#lColor').value = S.theme.accent === 'system' ? (window.SYS_ACCENT || '#8b5cf6') : S.theme.accent; $('#lColor').dataset.sys = S.theme.accent === 'system' ? '1' : '';
+  $('#lSw').innerHTML = (window.SYS_ACCENT ? `<button data-acc="system" title="${esc(T('Couleur de Windows'))}" style="background:${window.SYS_ACCENT};outline:2px dashed var(--muted);outline-offset:1px" class="${S.theme.accent === 'system' ? 'on' : ''}"></button>` : '') + ACCENTS.map(a => `<button data-acc="${a}" style="background:${a}" class="${a === S.theme.accent ? 'on' : ''}"></button>`).join('');
   $('#abVer').textContent = await call('version');
   const langs = await call('languages');
   $('#sLang').innerHTML = langs.map(l => `<option value="${l.code}" ${l.code === S.lang ? 'selected' : ''}>${l.name}</option>`).join('');
@@ -907,7 +980,7 @@ $('#sModal').addEventListener('click', async e => {
   const t = e.target.closest('button'); if (!t) return;
   if (t.dataset.rmsite) { sTmp.siteLimits.splice(+t.dataset.rmsite, 1); drawLists(); }
   if (t.dataset.rmpw) { await call('passwords:remove', t.dataset.rmpw); S = await call('getSettings'); drawLists(); }
-  if (t.dataset.acc) { $('#lColor').value = t.dataset.acc; $$('#lSw button').forEach(b => b.classList.toggle('on', b === t)); }
+  if (t.dataset.acc) { const sys = t.dataset.acc === 'system'; $('#lColor').value = sys ? window.SYS_ACCENT : t.dataset.acc; $('#lColor').dataset.sys = sys ? '1' : ''; $$('#lSw button').forEach(b => b.classList.toggle('on', b === t)); }
 });
 $('#sSiteAdd').onclick = () => { const h = $('#sSiteHost').value.trim().replace(/^https?:\/\//, '').split('/')[0]; const m = +$('#sSiteMax').value; if (h && m > 0) { sTmp.siteLimits.push({ host: h, max: m }); $('#sSiteHost').value = $('#sSiteMax').value = ''; drawLists(); } };
 $('#pwAdd').onclick = async () => { const h = $('#pwHost').value.trim().replace(/^https?:\/\//, '').split('/')[0]; if (!h || !$('#pwUser').value) return; await call('passwords:add', h, $('#pwUser').value, $('#pwPass').value); $('#pwHost').value = $('#pwUser').value = $('#pwPass').value = ''; S = await call('getSettings'); drawLists(); toast('Mot de passe enregistré'); };
@@ -959,14 +1032,14 @@ $('#sOk').onclick = async () => {
   const v = id => $(id).value, c = id => $(id).checked, n = id => +$(id).value || 0;
   const lines = id => v(id).split(/\r?\n/).map(s => s.trim()).filter(Boolean);
   const patch = {
-    dir: v('#sDir').trim() || S.dir, categorize: c('#sCat'), clipboard: c('#sClip'), notify: c('#sNotify'), sound: c('#sSound'), tray: c('#sTray'), confirmClear: c('#sConfirmClear'), autoUpdateCheck: c('#sAutoUpd'), startWithWindows: c('#sBoot'), startMinimized: c('#sBootMin'), shutdownWhenDone: c('#sShut'), autoOpenWebpage: c('#sWeb'),
+    dir: v('#sDir').trim() || S.dir, categorize: c('#sCat'), clipboard: c('#sClip'), notify: c('#sNotify'), sound: c('#sSound'), tray: c('#sTray'), confirmClear: c('#sConfirmClear'), autoUpdateCheck: c('#sAutoUpd'), startWithWindows: c('#sBoot'), shutdownWhenDone: c('#sShut'), autoOpenWebpage: c('#sWeb'),
     connections: n('#sConn'), parallel: n('#sPar'), maxRetries: n('#sRetry'), duplicate: v('#sDup'), perSite: n('#sPerSite'), siteLimits: sTmp.siteLimits,
     hls: { connections: Math.max(1, n('#sHlsC')), quality: v('#sHlsQ'), convert: c('#sHlsConv') },
     ytdl: { mode: v('#sYtMode') === 'video' ? 'video' : 'audio', audioFormat: v('#sYtMode') === 'm4a' ? 'm4a' : 'mp3', quality: v('#sYtQ'), audioBitrate: v('#sYtB') },
     speedLimitOn: c('#sLimOn'), speedLimit: n('#sLim'), dataLimit: { enabled: c('#sDataOn'), mb: n('#sDataMb') }, proxy: { enabled: c('#sProxyOn'), url: v('#sProxy').trim() }, userAgent: v('#sUA').trim(),
     torrent: { enabled: c('#tEn'), fetchMetadata: c('#tMeta'), sequential: c('#tSeqD'), seed: c('#tSeedD'), ratio: +v('#tRatio') || 0, uploadLimit: n('#tUp'), downloadLimit: n('#tDown'), maxConns: n('#tConns') || 55, port: n('#tPort'), dht: c('#tDht'), lsd: c('#tLsd'), useDefaultTrackers: c('#tDefTr'), trackers: v('#tTrackers'), trackersUrl: v('#tTrUrl').trim() },
     scheduler: { enabled: c('#cOn'), start: v('#cStart') || '02:00', stop: v('#cStop'), days: $$('#cDays [data-day]').filter(x => x.checked).map(x => +x.dataset.day), addNew: c('#cAdd'), shutdown: c('#cShut') },
-    theme: { mode: v('#lMode'), accent: $('#lColor').value },
+    theme: { mode: v('#lMode'), accent: $('#lColor').dataset.sys ? 'system' : $('#lColor').value },
   };
   S = await safe(() => call('setSettings', patch)) || S;
   applyTheme(); updLimit(); closeM(); toast('Paramètres enregistrés');
@@ -1020,3 +1093,130 @@ async function askDuplicate(d) {
   if (r.checked) S = await call('setSettings', { duplicate: r.value });
   return r.value;
 }
+
+// ---------------- comportement « dossier Windows » ----------------
+// clic dans le vide : désélectionne ; rectangle de sélection à la souris
+(() => {
+  const list = $('#list');
+  let lasso = null, sx = 0, sy = 0, base = null, moved = false;
+  list.addEventListener('mousedown', e => {
+    if (e.button !== 0 || e.target.closest('.dhead,.empty button,.rowchk,[data-act],.actions')) return;
+    const onItem = e.target.closest('.item');
+    if (onItem && (VIEW === 'content' || VIEW.startsWith('icons') || e.target.closest('.name,.ftype,.th,.tic'))) return;
+    const r = list.getBoundingClientRect();
+    sx = e.clientX - r.left + list.scrollLeft; sy = e.clientY - r.top + list.scrollTop; moved = false;
+    base = e.ctrlKey ? new Set(selected) : new Set();
+    lasso = document.createElement('div'); lasso.className = 'lasso'; list.appendChild(lasso);
+    e.preventDefault();
+  });
+  addEventListener('mousemove', e => {
+    if (!lasso) return;
+    const r = list.getBoundingClientRect();
+    const x = e.clientX - r.left + list.scrollLeft, y = e.clientY - r.top + list.scrollTop;
+    if (Math.abs(x - sx) + Math.abs(y - sy) > 4) moved = true;
+    const L = Math.min(x, sx), Tp = Math.min(y, sy), W = Math.abs(x - sx), H = Math.abs(y - sy);
+    Object.assign(lasso.style, { left: L + 'px', top: Tp + 'px', width: W + 'px', height: H + 'px' });
+    const box = { l: r.left + L - list.scrollLeft, t: r.top + Tp - list.scrollTop, r: r.left + L - list.scrollLeft + W, b: r.top + Tp - list.scrollTop + H };
+    const sel = new Set(base);
+    list.querySelectorAll('.item').forEach(el => { const b = el.getBoundingClientRect(); if (b.right > box.l && b.left < box.r && b.bottom > box.t && b.top < box.b) sel.add(el.dataset.id); });
+    selected = sel; render();
+    if (e.clientY > r.bottom - 20) list.scrollTop += 12; else if (e.clientY < r.top + 20) list.scrollTop -= 12;
+  });
+  addEventListener('mouseup', () => {
+    if (!lasso) return;
+    lasso.remove(); lasso = null;
+    if (!moved && !base.size) { selected.clear(); kCursor = null; render(); }
+  });
+  // en-têtes de colonnes : clic = trier, glisser le bord = largeur
+  list.addEventListener('click', e => { const h = e.target.closest('[data-sort]'); if (h && !e.target.closest('[data-rz]')) setSort(h.dataset.sort); });
+  list.addEventListener('mousedown', e => {
+    const rz = e.target.closest('[data-rz]'); if (!rz) return;
+    e.preventDefault(); e.stopPropagation();
+    const i = +rz.dataset.rz, x0 = e.clientX, w0 = COLS[i];
+    const mv = ev => { COLS[i] = Math.max(60, w0 + ev.clientX - x0); list.style.setProperty('--cols', COLS.map((w, j) => (j === 0 ? `minmax(${w}px,1fr)` : w + 'px')).join(' ')); };
+    const up = () => { removeEventListener('mousemove', mv); removeEventListener('mouseup', up); LS.set('cols', COLS); };
+    addEventListener('mousemove', mv); addEventListener('mouseup', up);
+  }, true);
+  // Ctrl + molette : taille des icônes (comme dans l'Explorateur)
+  const ORDER = ['details', 'list', 'icons-s', 'icons-m', 'icons-l'];
+  list.addEventListener('wheel', e => {
+    if (!e.ctrlKey) return;
+    e.preventDefault();
+    const i = Math.max(0, ORDER.indexOf(VIEW === 'content' ? 'details' : VIEW));
+    setView(ORDER[Math.max(0, Math.min(ORDER.length - 1, i + (e.deltaY < 0 ? 1 : -1)))]);
+  }, { passive: false });
+  // glisser un fichier terminé vers le Bureau ou un dossier
+  list.addEventListener('dragstart', e => {
+    const row = e.target.closest('.item'); if (!row) return;
+    e.preventDefault();
+    const ids = selected.has(row.dataset.id) ? [...selected] : [row.dataset.id];
+    window.dryae.drag(ids.filter(id => items.get(id)?.status === 'done'));
+  });
+})();
+// menu du clic droit dans le vide
+function bgMenu() {
+  return [
+    ...VIEWS.map(([v, l]) => ({ label: (VIEW === v ? '● ' : '    ') + T('Affichage') + ' : ' + T(l), icon: 'list', fn: () => setView(v) })),
+    '-',
+    ...SORTS.map(([k, l]) => ({ label: (SORT.k === k ? (SORT.dir > 0 ? '▲ ' : '▼ ') : '    ') + T('Trier par') + ' : ' + T(l), icon: 'sort', fn: () => setSort(k) })),
+    '-',
+    { label: 'Actualiser', icon: 'redo', fn: refreshView },
+    { label: 'Coller un lien', icon: 'link', fn: pasteLink },
+    { label: 'Tout sélectionner', icon: 'check', fn: () => { selected = new Set(sorted().filter(match).map(d => d.id)); render(); } },
+    { label: PANE ? 'Masquer le volet des détails' : 'Afficher le volet des détails', icon: 'info', fn: () => togglePane() },
+    '-',
+    { label: 'Nouveau lien', icon: 'plus', fn: () => showAdd() },
+    { label: 'Nouveau torrent', icon: 'magnet', fn: () => showTorrent() },
+  ];
+}
+async function refreshView() { const L = await call('list'); items.clear(); L.forEach(d => items.set(d.id, d)); $('#list').querySelectorAll('.item').forEach(el => (el._h = '')); render(); }
+async function pasteLink() { const t = (await navigator.clipboard.readText().catch(() => '')).trim(); if (/^magnet:/i.test(t)) return showTorrent({ src: t }); if (/^https?:\/\//i.test(t)) return showAdd({ url: t }); toast('Aucun lien valide (http://, https:// ou magnet:)'); }
+// barre de commandes (en haut de la liste) et barre d'état (en bas)
+function cmdState() {
+  const sel = [...selected].map(id => items.get(id)).filter(Boolean);
+  const one = sel.length === 1 ? sel[0] : null;
+  const dis = (id, v) => { const b = $(id); if (b) b.disabled = !v; };
+  dis('#cbOpen', one && one.status === 'done');
+  dis('#cbCopy', sel.length); dis('#cbPath', sel.some(d => d.file)); dis('#cbRename', one); dis('#cbDel', sel.length); dis('#cbInfo', one);
+  dis('#cbPause', sel.some(d => ['running', 'queued', 'seeding', 'scheduled', 'merging'].includes(d.status)));
+  dis('#cbResume', sel.some(d => ['paused', 'error'].includes(d.status)));
+  $('#cbPane')?.classList.toggle('on', PANE);
+  const vl = VIEWS.find(x => x[0] === VIEW); if ($('#cbViewL')) $('#cbViewL').textContent = T(vl ? vl[1] : 'Affichage');
+}
+function status() {
+  const vis = sorted().filter(match);
+  const sel = [...selected].map(id => items.get(id)).filter(Boolean);
+  const sz = sel.reduce((a, d) => a + (d.size > 0 ? d.size : 0), 0);
+  const run = vis.filter(d => d.status === 'running').length;
+  $('#sbar').innerHTML = `<span>${esc(T('{0} élément(s)').replace('{0}', vis.length))}</span>` +
+    (sel.length ? `<span>${esc(T('{0} élément(s) sélectionné(s)').replace('{0}', sel.length))}${sz ? ' · ' + fmt(sz) : ''}</span>` : '') +
+    (run ? `<span>${esc(T('{0} en cours').replace('{0}', run))}</span>` : '') +
+    `<span class="sp"></span><button class="sbv ${VIEW === 'details' ? 'on' : ''}" data-v="details" title="${esc(T('Détails'))}">${ic('list')}</button><button class="sbv ${VIEW.startsWith('icons') ? 'on' : ''}" data-v="icons-l" title="${esc(T('Grandes icônes'))}">${ic('grid')}</button>`;
+  cmdState();
+}
+$('#sbar').addEventListener('click', e => { const b = e.target.closest('[data-v]'); if (b) setView(b.dataset.v); });
+const selItems = () => [...selected].map(id => items.get(id)).filter(Boolean);
+async function copyFiles(list = selItems()) {
+  const done = list.filter(d => d.status === 'done');
+  if (done.length) { const n = await call('copyFiles', done.map(d => d.id)); if (n) return toast(T('{0} fichier(s) copié(s) : colle-les dans un dossier avec Ctrl+V').replace('{0}', n)); }
+  if (list.length) { await call('copy', list.map(d => d.url).join('\n')); toast(list.length > 1 ? 'Liens copiés' : 'Lien copié'); }
+}
+async function copyPaths(list = selItems()) { const p = list.map(d => d.file || d.dir).filter(Boolean); if (!p.length) return; await call('copy', p.map(x => `"${x}"`).join('\n')); toast('Chemin copié'); }
+async function undoRemove() { const n = await call('undoRemove'); if (n) { await refreshView(); toast(T('{0} élément(s) remis dans la liste').replace('{0}', n)); } }
+$('#cbNew').onclick = e => { const r = e.currentTarget.getBoundingClientRect(); showMenu(r.left, r.bottom + 4, [{ label: 'Lien de téléchargement', icon: 'link', fn: () => showAdd() }, { label: 'Torrent / lien magnet', icon: 'magnet', fn: () => showTorrent() }, { label: 'Fichier .torrent…', icon: 'doc', fn: () => { showTorrent(); setTimeout(() => $('#tPick').click(), 80); } }, { label: 'Importer une liste de liens…', icon: 'list', fn: () => $('#toolsBtn').click() }]); };
+$('#cbOpen').onclick = () => { const d = selItems()[0]; if (d) safe(() => call('open', d.id)); };
+$('#cbCopy').onclick = () => copyFiles();
+$('#cbPath').onclick = () => copyPaths();
+$('#cbRename').onclick = () => { const d = selItems()[0]; if (d) renameItem(d); };
+$('#cbDel').onclick = () => { const s = selItems(); if (s.length) removeItems(s.map(d => d.id)); };
+$('#cbInfo').onclick = () => { const d = selItems()[0]; if (d) openDrawer(d.id); };
+$('#cbPause').onclick = () => selItems().forEach(d => ['running', 'queued', 'seeding', 'scheduled', 'merging'].includes(d.status) && call('pause', d.id));
+$('#cbResume').onclick = () => selItems().forEach(d => ['paused', 'error'].includes(d.status) && call('resume', d.id));
+$('#cbSort').onclick = e => { const r = e.currentTarget.getBoundingClientRect(); showMenu(r.left, r.bottom + 4, SORTS.map(([k, l]) => ({ label: (SORT.k === k ? (SORT.dir > 0 ? '▲ ' : '▼ ') : '    ') + T(l), icon: 'sort', fn: () => setSort(k) }))); };
+$('#cbView').onclick = e => { const r = e.currentTarget.getBoundingClientRect(); showMenu(r.left, r.bottom + 4, [...VIEWS.map(([v, l, k]) => ({ label: (VIEW === v ? '● ' : '    ') + T(l) + '   ' + T(k), icon: 'list', fn: () => setView(v) })), '-', { label: (PANE ? '☑ ' : '☐ ') + T('Volet des détails') + '   Alt+Maj+P', icon: 'info', fn: () => togglePane() }, { label: (selMode ? '☑ ' : '☐ ') + T("Cases à cocher des éléments"), icon: 'check', fn: () => $('#selBtn').click() }]); };
+$('#cbMore').onclick = e => { const r = e.currentTarget.getBoundingClientRect(); showMenu(r.right - 240, r.bottom + 4, [{ label: 'Tout sélectionner', icon: 'check', fn: () => { selected = new Set(sorted().filter(match).map(d => d.id)); render(); } }, { label: 'Inverser la sélection', icon: 'check', fn: () => { selected = new Set(sorted().filter(match).map(d => d.id).filter(id => !selected.has(id))); render(); } }, { label: 'Aucun', icon: 'x', fn: () => { selected.clear(); render(); } }, '-', { label: 'Annuler (Ctrl+Z)', icon: 'redo', fn: undoRemove }, { label: 'Actualiser (F5)', icon: 'redo', fn: refreshView }, '-', { label: 'Raccourcis clavier (F1)', icon: 'kbd', fn: showShortcuts }]); };
+$('#cbPane').onclick = () => togglePane();
+// couleur d'accent de Windows
+call('accentColor').then(c => { window.SYS_ACCENT = c; if (S && S.theme && S.theme.accent === 'system') applyTheme(); }).catch(() => {});
+
+$('#lColor').addEventListener('input', e => { e.target.dataset.sys = ''; });

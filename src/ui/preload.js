@@ -7,5 +7,6 @@ contextBridge.exposeInMainWorld('dryae', {
     return r ? r.v : undefined;
   },
   on: (ch, fn) => ipcRenderer.on(ch, (_e, v) => fn(v)),
+  drag: ids => ipcRenderer.send('drag-out', ids),
   pathFor: f => { try { return webUtils.getPathForFile(f); } catch { return f.path || ''; } },
 });

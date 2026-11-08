@@ -194,3 +194,87 @@ Cookies et connexions aux sites	Cookies and site sign-ins	Cookies y sesiones de 
 Convertir les flux .ts en .mp4 (vidéo) à la fin	Convert .ts streams to .mp4 (video) when finished	Convertir los flujos .ts a .mp4 (vídeo) al terminar	Converter os fluxos .ts para .mp4 (vídeo) no fim	Конвертировать потоки .ts в .mp4 (видео) по завершении	تحويل تدفقات ‎.ts إلى ‎.mp4 (فيديو) عند الانتهاء
 Zoom avant / arrière / normal	Zoom in / out / reset	Ampliar / reducir / normal	Aumentar / diminuir / normal	Увеличить / уменьшить / сбросить	تكبير / تصغير / عادي
 Rechercher automatiquement les mises à jour (contacte GitHub)	Check for updates automatically (contacts GitHub)	Buscar actualizaciones automáticamente (contacta con GitHub)	Procurar atualizações automaticamente (contacta o GitHub)	Автоматически проверять обновления (обращение к GitHub)	التحقق من التحديثات تلقائيًا (يتصل بـ GitHub)
+Affichage	View	Vista	Exibir	Вид	عرض
+Afficher le volet des détails	Show details pane	Mostrar panel de detalles	Mostrar painel de detalhes	Показать область сведений	إظهار جزء التفاصيل
+Masquer le volet des détails	Hide details pane	Ocultar panel de detalles	Ocultar painel de detalhes	Скрыть область сведений	إخفاء جزء التفاصيل
+Annuler (Ctrl+Z)	Undo (Ctrl+Z)	Deshacer (Ctrl+Z)	Desfazer (Ctrl+Z)	Отменить (Ctrl+Z)	تراجع (Ctrl+Z)
+Annuler le retrait	Undo remove	Deshacer la eliminación	Desfazer a remoção	Отменить удаление	التراجع عن الإزالة
+Cases à cocher des éléments	Item check boxes	Casillas de los elementos	Caixas de seleção de itens	Флажки элементов	خانات اختيار العناصر
+Changer l'affichage (icônes, liste, détails)	Change the view (icons, list, details)	Cambiar la vista (iconos, lista, detalles)	Mudar o modo de exibição (ícones, lista, detalhes)	Сменить вид (значки, список, подробности)	تغيير طريقة العرض (أيقونات، قائمة، تفاصيل)
+Coller un lien	Paste a link	Pegar un enlace	Colar um link	Вставить ссылку	لصق رابط
+Contenu	Content	Contenido	Conteúdo	Содержимое	المحتوى
+Copier (Ctrl+C)	Copy (Ctrl+C)	Copiar (Ctrl+C)	Copiar (Ctrl+C)	Копировать (Ctrl+C)	نسخ (Ctrl+C)
+Copier le chemin (Ctrl+Maj+C)	Copy path (Ctrl+Shift+C)	Copiar ruta (Ctrl+Mayús+C)	Copiar caminho (Ctrl+Shift+C)	Копировать путь (Ctrl+Shift+C)	نسخ المسار (Ctrl+Shift+C)
+Copier le fichier (à coller dans un dossier)	Copy the file (to paste into a folder)	Copiar el archivo (para pegarlo en una carpeta)	Copiar o arquivo (para colar numa pasta)	Копировать файл (для вставки в папку)	نسخ الملف (للصقه في مجلد)
+Couleur de Windows	Windows color	Color de Windows	Cor do Windows	Цвет Windows	لون Windows
+Date	Date	Fecha	Data	Дата	التاريخ
+Détails	Details	Detalles	Detalhes	Подробности	التفاصيل
+Fichier .torrent…	.torrent file…	Archivo .torrent…	Arquivo .torrent…	Файл .torrent…	ملف ‎.torrent…
+Glisser dans le vide	Drag on empty space	Arrastrar en un espacio vacío	Arrastar num espaço vazio	Протянуть по пустому месту	السحب في مساحة فارغة
+Grandes icônes	Large icons	Iconos grandes	Ícones grandes	Крупные значки	أيقونات كبيرة
+Grandes icônes … Contenu	Large icons … Content	Iconos grandes … Contenido	Ícones grandes … Conteúdo	Крупные значки … Содержимое	أيقونات كبيرة … المحتوى
+Icônes moyennes	Medium icons	Iconos medianos	Ícones médios	Обычные значки	أيقونات متوسطة
+Petites icônes	Small icons	Iconos pequeños	Ícones pequenos	Мелкие значки	أيقونات صغيرة
+Inverser la sélection	Invert selection	Invertir selección	Inverter seleção	Обратить выделение	عكس التحديد
+Lancer DrYAE au démarrage de Windows (caché dans les icônes de la barre des tâches)	Start DrYAE with Windows (hidden in the taskbar icons)	Iniciar DrYAE con Windows (oculto en los iconos de la barra de tareas)	Iniciar o DrYAE com o Windows (oculto nos ícones da barra de tarefas)	Запускать DrYAE вместе с Windows (скрыто в значках панели задач)	تشغيل DrYAE مع Windows (مخفيًا في أيقونات شريط المهام)
+Lien de téléchargement	Download link	Enlace de descarga	Link de download	Ссылка для загрузки	رابط التنزيل
+Liste	List	Lista	Lista	Список	قائمة
+Nouveau	New	Nuevo	Novo	Создать	جديد
+Nouveau torrent	New torrent	Nuevo torrent	Novo torrent	Новый торрент	تورنت جديد
+Ouvrir (Entrée)	Open (Enter)	Abrir (Intro)	Abrir (Enter)	Открыть (Enter)	فتح (Enter)
+Pause (Espace)	Pause (Space)	Pausa (Espacio)	Pausar (Espaço)	Пауза (Пробел)	إيقاف مؤقت (Space)
+Reprendre (Espace)	Resume (Space)	Reanudar (Espacio)	Retomar (Espaço)	Продолжить (Пробел)	استئناف (Space)
+Propriétés (Alt+Entrée)	Properties (Alt+Enter)	Propiedades (Alt+Intro)	Propriedades (Alt+Enter)	Свойства (Alt+Enter)	الخصائص (Alt+Enter)
+Propriétés (informations)	Properties (information)	Propiedades (información)	Propriedades (informações)	Свойства (сведения)	الخصائص (معلومات)
+Renommer (F2)	Rename (F2)	Cambiar nombre (F2)	Renomear (F2)	Переименовать (F2)	إعادة تسمية (F2)
+Se déplacer	Move around	Desplazarse	Mover-se	Перемещение	التنقل
+Supprimer (Suppr)	Delete (Del)	Eliminar (Supr)	Excluir (Del)	Удалить (Del)	حذف (Del)
+Supprimer définitivement	Delete permanently	Eliminar definitivamente	Excluir permanentemente	Удалить безвозвратно	حذف نهائي
+Supprimer définitivement (fichier compris)	Delete permanently (including the file)	Eliminar definitivamente (incluido el archivo)	Excluir permanentemente (incluindo o arquivo)	Удалить безвозвратно (вместе с файлом)	حذف نهائي (مع الملف)
+Sélection au rectangle	Rectangle selection	Selección con rectángulo	Seleção por retângulo	Выделение рамкой	التحديد بمستطيل
+Trier	Sort	Ordenar	Classificar	Сортировка	فرز
+Trier par	Sort by	Ordenar por	Classificar por	Сортировать по	فرز حسب
+Voir plus	See more	Ver más	Ver mais	Ещё	المزيد
+Volet des détails	Details pane	Panel de detalles	Painel de detalhes	Область сведений	جزء التفاصيل
+Volet des détails (Alt+Maj+P)	Details pane (Alt+Shift+P)	Panel de detalles (Alt+Mayús+P)	Painel de detalhes (Alt+Shift+P)	Область сведений (Alt+Shift+P)	جزء التفاصيل (Alt+Shift+P)
+{0}Trier : {1}	{0}Sort: {1}	{0}Ordenar: {1}	{0}Classificar: {1}	{0}Сортировка: {1}	{0}فرز: {1}
+État	Status	Estado	Estado	Состояние	الحالة
+Sélectionner	Select	Seleccionar	Selecionar	Выбрать	تحديد
+Rechercher dans l'historique	Search history	Buscar en el historial	Pesquisar no histórico	Поиск в журнале	البحث في السجل
+Filtrer (texte ou extension)	Filter (text or extension)	Filtrar (texto o extensión)	Filtrar (texto ou extensão)	Фильтр (текст или расширение)	تصفية (نص أو امتداد)
+Rechercher un site ou un identifiant	Search for a site or username	Buscar un sitio o un usuario	Pesquisar um site ou um nome de utilizador	Поиск сайта или имени пользователя	البحث عن موقع أو اسم مستخدم
+Lien de la boutique ou identifiant de l'extension	Store link or extension ID	Enlace de la tienda o ID de la extensión	Link da loja ou ID da extensão	Ссылка из магазина или ID расширения	رابط المتجر أو معرّف الإضافة
+Les icônes des extensions apparaissent à droite de la barre d'adresse. La plupart des extensions courantes fonctionnent (bloqueurs, mode sombre, traducteurs, gestionnaires de mots de passe…) ; certaines fonctions avancées de Chrome peuvent manquer.	Extension icons appear to the right of the address bar. Most common extensions work (blockers, dark mode, translators, password managers…); some advanced Chrome features may be missing.	Los iconos de las extensiones aparecen a la derecha de la barra de direcciones. La mayoría de las extensiones habituales funcionan (bloqueadores, modo oscuro, traductores, gestores de contraseñas…); pueden faltar algunas funciones avanzadas de Chrome.	Os ícones das extensões aparecem à direita da barra de endereço. A maioria das extensões comuns funciona (bloqueadores, modo escuro, tradutores, gestores de senhas…); algumas funções avançadas do Chrome podem faltar.	Значки расширений появляются справа от адресной строки. Большинство популярных расширений работает (блокировщики, тёмный режим, переводчики, менеджеры паролей…); некоторых продвинутых функций Chrome может не быть.	تظهر أيقونات الإضافات على يمين شريط العنوان. تعمل معظم الإضافات الشائعة (مانعات الإعلانات، الوضع الداكن، المترجمات، مديرو كلمات المرور…)؛ قد تنقص بعض ميزات Chrome المتقدمة.
+Accepte les fichiers .csv exportés par les navigateurs et les gestionnaires de mots de passe (colonnes url, username, password).	Accepts .csv files exported by browsers and password managers (url, username, password columns).	Acepta archivos .csv exportados por navegadores y gestores de contraseñas (columnas url, username, password).	Aceita arquivos .csv exportados por navegadores e gestores de senhas (colunas url, username, password).	Принимает файлы .csv, экспортированные браузерами и менеджерами паролей (столбцы url, username, password).	يقبل ملفات ‎.csv المصدّرة من المتصفحات ومديري كلمات المرور (الأعمدة url وusername وpassword).
+Exporter les mots de passe	Export passwords	Exportar contraseñas	Exportar senhas	Экспорт паролей	تصدير كلمات المرور
+Importer des mots de passe	Import passwords	Importar contraseñas	Importar senhas	Импорт паролей	استيراد كلمات المرور
+Extension ajoutée : {0}	Extension added: {0}	Extensión añadida: {0}	Extensão adicionada: {0}	Расширение добавлено: {0}	تمت إضافة الإضافة: {0}
+Fichier non reconnu : il faut au moins les colonnes « url » et « password ».	File not recognized: it needs at least the "url" and "password" columns.	Archivo no reconocido: necesita al menos las columnas «url» y «password».	Arquivo não reconhecido: são necessárias pelo menos as colunas "url" e "password".	Файл не распознан: нужны как минимум столбцы «url» и «password».	لم يتم التعرف على الملف: يلزم وجود العمودين «url» و«password» على الأقل.
+Importer / exporter	Import / export	Importar / exportar	Importar / exportar	Импорт / экспорт	استيراد / تصدير
+Installation de l'extension…	Installing the extension…	Instalando la extensión…	A instalar a extensão…	Установка расширения…	جارٍ تثبيت الإضافة…
+Installer avec un lien	Install from a link	Instalar con un enlace	Instalar com um link	Установить по ссылке	التثبيت عبر رابط
+Le fichier exporté contiendra vos mots de passe en clair : toute personne qui l'ouvre pourra les lire. Continuer ?	The exported file will contain your passwords in plain text: anyone who opens it can read them. Continue?	El archivo exportado contendrá sus contraseñas sin cifrar: cualquiera que lo abra podrá leerlas. ¿Continuar?	O arquivo exportado conterá as suas senhas em texto simples: qualquer pessoa que o abra poderá lê-las. Continuar?	Экспортированный файл будет содержать пароли в открытом виде: любой, кто его откроет, сможет их прочитать. Продолжить?	سيحتوي الملف المصدَّر على كلمات المرور بنص واضح: يمكن لأي شخص يفتحه قراءتها. هل تريد المتابعة؟
+Lien ou identifiant non reconnu (32 lettres de a à p).	Link or ID not recognized (32 letters from a to p).	Enlace o ID no reconocido (32 letras de la a a la p).	Link ou ID não reconhecido (32 letras de a a p).	Ссылка или ID не распознаны (32 буквы от a до p).	لم يتم التعرف على الرابط أو المعرّف (32 حرفًا من a إلى p).
+Réessayer	Try again	Reintentar	Tentar novamente	Повторить	إعادة المحاولة
+Vous pouvez aussi installer une extension avec son lien : menu ⋮ → Extensions → Installer avec un lien.	You can also install an extension from its link: ⋮ menu → Extensions → Install from a link.	También puede instalar una extensión con su enlace: menú ⋮ → Extensiones → Instalar con un enlace.	Também pode instalar uma extensão com o link: menu ⋮ → Extensões → Instalar com um link.	Можно также установить расширение по ссылке: меню ⋮ → Расширения → Установить по ссылке.	يمكنك أيضًا تثبيت إضافة عبر رابطها: القائمة ⋮ ← الإضافات ← التثبيت عبر رابط.
+{0}Exporter en .csv…	{0}Export to .csv…	{0}Exportar a .csv…	{0}Exportar para .csv…	{0}Экспорт в .csv…	{0}تصدير إلى ‎.csv…
+{0}Importer un fichier .csv…	{0}Import a .csv file…	{0}Importar un archivo .csv…	{0}Importar um arquivo .csv…	{0}Импортировать файл .csv…	{0}استيراد ملف ‎.csv…
+Impossible d'installer l'extension : {0}	Couldn't install the extension: {0}	No se pudo instalar la extensión: {0}	Não foi possível instalar a extensão: {0}	Не удалось установить расширение: {0}	تعذّر تثبيت الإضافة: {0}
+{0} ajouté(s), {1} mis à jour, {2} ignoré(s)	{0} added, {1} updated, {2} skipped	{0} añadido(s), {1} actualizado(s), {2} omitido(s)	{0} adicionado(s), {1} atualizado(s), {2} ignorado(s)	Добавлено: {0}, обновлено: {1}, пропущено: {2}	تمت إضافة {0}، وتحديث {1}، وتجاهل {2}
+{0} mot(s) de passe exporté(s)	{0} password(s) exported	{0} contraseña(s) exportada(s)	{0} senha(s) exportada(s)	Экспортировано паролей: {0}	تم تصدير {0} كلمة مرور
+Boutons latéraux de la souris	Mouse side buttons	Botones laterales del ratón	Botões laterais do rato	Боковые кнопки мыши	أزرار الفأرة الجانبية
+Page précédente / suivante	Previous / next page	Página anterior / siguiente	Página anterior / seguinte	Предыдущая / следующая страница	الصفحة السابقة / التالية
+Clic du milieu ou Ctrl + clic sur un lien	Middle-click or Ctrl + click on a link	Clic central o Ctrl + clic en un enlace	Clique do meio ou Ctrl + clique num link	Средний щелчок или Ctrl + щелчок по ссылке	نقرة وسطى أو Ctrl + نقرة على رابط
+Ouvrir dans un nouvel onglet en arrière-plan	Open in a new background tab	Abrir en una pestaña nueva en segundo plano	Abrir num novo separador em segundo plano	Открыть в новой фоновой вкладке	فتح في علامة تبويب جديدة في الخلفية
+Clic du milieu sur un onglet	Middle-click on a tab	Clic central en una pestaña	Clique do meio num separador	Средний щелчок по вкладке	نقرة وسطى على علامة تبويب
+Double-clic dans la barre d'onglets	Double-click on the tab bar	Doble clic en la barra de pestañas	Duplo clique na barra de separadores	Двойной щелчок по панели вкладок	نقرة مزدوجة على شريط علامات التبويب
+Zoom avant / arrière	Zoom in / out	Ampliar / reducir	Aumentar / diminuir	Увеличить / уменьшить	تكبير / تصغير
+{0} élément(s)	{0} item(s)	{0} elemento(s)	{0} item(ns)	Элементов: {0}	{0} عنصر
+{0} élément(s) sélectionné(s)	{0} item(s) selected	{0} elemento(s) seleccionado(s)	{0} item(ns) selecionado(s)	Выбрано элементов: {0}	تم تحديد {0} عنصر
+{0} en cours	{0} in progress	{0} en curso	{0} em curso	Выполняется: {0}	{0} قيد التنفيذ
+{0} élément(s) retiré(s) de la liste	{0} item(s) removed from the list	{0} elemento(s) quitado(s) de la lista	{0} item(ns) removido(s) da lista	Убрано из списка: {0}	تمت إزالة {0} عنصر من القائمة
+{0} élément(s) remis dans la liste	{0} item(s) put back in the list	{0} elemento(s) devuelto(s) a la lista	{0} item(ns) reposto(s) na lista	Возвращено в список: {0}	تمت إعادة {0} عنصر إلى القائمة
+{0} fichier(s) copié(s) : colle-les dans un dossier avec Ctrl+V	{0} file(s) copied: paste them into a folder with Ctrl+V	{0} archivo(s) copiado(s): pégalos en una carpeta con Ctrl+V	{0} arquivo(s) copiado(s): cole-os numa pasta com Ctrl+V	Скопировано файлов: {0}. Вставьте их в папку с помощью Ctrl+V	تم نسخ {0} ملف: الصقها في مجلد باستخدام Ctrl+V
+Supprimer définitivement ces {0} éléments et leurs fichiers ?	Permanently delete these {0} items and their files?	¿Eliminar definitivamente estos {0} elementos y sus archivos?	Excluir permanentemente estes {0} itens e os seus arquivos?	Удалить безвозвратно эти элементы ({0}) вместе с файлами?	هل تريد حذف هذه العناصر ({0}) وملفاتها نهائيًا؟
+Supprimer définitivement « {0} » et son fichier ?	Permanently delete "{0}" and its file?	¿Eliminar definitivamente «{0}» y su archivo?	Excluir permanentemente "{0}" e o seu arquivo?	Удалить безвозвратно «{0}» вместе с файлом?	هل تريد حذف «{0}» وملفه نهائيًا؟
+{0} téléchargement(s) lancé(s)	{0} download(s) started	{0} descarga(s) iniciada(s)	{0} download(s) iniciado(s)	Запущено загрузок: {0}	تم بدء {0} تنزيل

@@ -270,6 +270,8 @@ class Manager extends EventEmitter {
     ids.forEach(id => { const d = this.get(id); if (!d) return; if (on && ['paused', 'queued', 'error'].includes(d.status)) { d.pause(); d.status = 'scheduled'; d.changed(); } else if (!on && d.status === 'scheduled') { d.status = 'paused'; d.changed(); } });
   }
   async remove(ids, deleteFiles) {
+    // mémorisé pour Ctrl+Z (seulement si les fichiers restent sur le disque)
+    this.lastRemoved = deleteFiles ? [] : [].concat(ids).map(id => this.get(id)).filter(Boolean).map(d => { const j = d.toJSON(); if (['running', 'queued', 'merging', 'seeding'].includes(j.status)) j.status = 'paused'; return j; });
     for (const id of [].concat(ids)) {
       const d = this.get(id);
       if (!d) continue;
@@ -280,6 +282,14 @@ class Manager extends EventEmitter {
       if (d.type === 'torrent' && d.torrentFile) fsp.rm(d.torrentFile, { force: true }).catch(() => {});
     }
     this.save(); this.emit('reload');
+  }
+  // Ctrl+Z : remet dans la liste les éléments retirés juste avant
+  undoRemove() {
+    const back = (this.lastRemoved || []).filter(j => !this.get(j.id));
+    this.lastRemoved = [];
+    for (const j of back) { const d = this.create(j); this.attach(d); this.list.push(d); }
+    if (back.length) { this.save(); this.emit('reload'); }
+    return back.length;
   }
   async restart(id) {
     const d = this.get(id);

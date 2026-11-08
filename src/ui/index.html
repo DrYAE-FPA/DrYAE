@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:; media-src 'self' file: http://127.0.0.1:*">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data: file:; media-src 'self' file: http://127.0.0.1:*">
 <title>DrYAE</title>
 <link rel="stylesheet" href="style.css">
 </head>
@@ -19,6 +19,12 @@
   <symbol id="i-folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></symbol>
   <symbol id="i-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 01-1 1H5a1 1 0 01-1-1V7a1 1 0 011-1h5"/></symbol>
   <symbol id="i-redo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12a8 8 0 0114-5l2 2M20 4v5h-5M20 12a8 8 0 01-14 5l-2-2M4 20v-5h5"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/></symbol>
+  <symbol id="i-sort" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4"/></symbol>
+  <symbol id="i-pane" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></symbol>
+  <symbol id="i-rename" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h10M4 12h7M4 17h5M16 4v16M13 4h6M13 20h6"/></symbol>
   <symbol id="i-kbd" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M6 9h.01M10 9h.01M14 9h.01M18 9h.01M6 13h.01M18 13h.01M8 16h8M10 13h4"/></symbol>
   <symbol id="i-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></symbol>
@@ -89,13 +95,32 @@
       <button class="btn" id="pauseAll"><svg><use href="#i-pause"/></svg>Tout en pause</button>
       <div class="search"><svg><use href="#i-search"/></svg><input id="q" placeholder="Rechercher…  (Ctrl+F)"></div>
       <button class="web-btn" id="openBrowser" title="Navigateur DrYAE (Ctrl+B)"><svg><use href="#i-globe"/></svg>Navigateur</button>
-      <button class="icon-btn" id="selBtn" title="Sélectionner plusieurs éléments"><svg><use href="#i-check"/></svg></button>
+      <button class="icon-btn" id="selBtn" title="Sélectionner plusieurs éléments" style="display:none"><svg><use href="#i-check"/></svg></button>
       <button class="icon-btn" id="themeBtn" title="Thème clair / sombre"><svg><use href="#i-sun" id="themeIc"/></svg></button>
       <button class="icon-btn" id="toolsBtn" title="Outils"><svg><use href="#i-tools"/></svg></button>
       <button class="icon-btn" id="openDir" title="Ouvrir le dossier de téléchargement"><svg><use href="#i-folder"/></svg></button>
       <button class="icon-btn" id="clearDone" title="Retirer les terminés de la liste"><svg><use href="#i-trash"/></svg></button>
       <button class="icon-btn" id="kbdBtn" title="Raccourcis clavier (F1)"><svg><use href="#i-kbd"/></svg></button>
       <button class="icon-btn" id="setBtn" title="Paramètres"><svg><use href="#i-gear"/></svg></button>
+    </div>
+    <div class="cmdbar" id="cmdbar">
+      <button class="cb txt" id="cbNew" title="Ctrl+N"><svg><use href="#i-plus"/></svg>Nouveau<svg class="dd"><use href="#i-down"/></svg></button>
+      <span class="sep"></span>
+      <button class="cb" id="cbCopy" title="Copier (Ctrl+C)"><svg><use href="#i-copy"/></svg></button>
+      <button class="cb" id="cbPath" title="Copier le chemin (Ctrl+Maj+C)"><svg><use href="#i-link"/></svg></button>
+      <button class="cb" id="cbRename" title="Renommer (F2)"><svg><use href="#i-rename"/></svg></button>
+      <button class="cb" id="cbDel" title="Supprimer (Suppr)"><svg><use href="#i-trash"/></svg></button>
+      <span class="sep"></span>
+      <button class="cb txt" id="cbOpen" title="Ouvrir (Entrée)"><svg><use href="#i-open"/></svg>Ouvrir</button>
+      <button class="cb txt" id="cbPause" title="Pause (Espace)"><svg><use href="#i-pause"/></svg>Pause</button>
+      <button class="cb txt" id="cbResume" title="Reprendre (Espace)"><svg><use href="#i-play"/></svg>Reprendre</button>
+      <button class="cb" id="cbInfo" title="Propriétés (Alt+Entrée)"><svg><use href="#i-info"/></svg></button>
+      <span class="sep"></span>
+      <button class="cb txt" id="cbSort"><svg><use href="#i-sort"/></svg>Trier<svg class="dd"><use href="#i-down"/></svg></button>
+      <button class="cb txt" id="cbView"><svg><use href="#i-grid"/></svg><span id="cbViewL">Affichage</span><svg class="dd"><use href="#i-down"/></svg></button>
+      <button class="cb" id="cbMore" title="Voir plus"><svg><use href="#i-more"/></svg></button>
+      <span style="flex:1"></span>
+      <button class="cb txt" id="cbPane" title="Volet des détails (Alt+Maj+P)"><svg><use href="#i-pane"/></svg>Détails</button>
     </div>
     <div class="bulk" id="bulk"><label class="check" style="margin:0"><input type="checkbox" id="bulkAll"> <b id="bulkN"></b></label>
       <button class="btn sm" data-bulk="resume"><svg><use href="#i-play"/></svg>Reprendre</button>
@@ -112,6 +137,7 @@
       <div class="list" id="list"></div>
       <div class="drawer" id="drawer"><header><div class="ftype" id="dIcon"></div><div class="t"><b id="dName"></b><div class="meta" id="dMeta"></div></div><button class="icon-btn" id="dClose"><svg><use href="#i-x"/></svg></button></header><div class="body" id="dBody"></div></div>
     </div>
+    <div class="sbar" id="sbar"></div>
   </main>
 </div>
 
@@ -212,8 +238,7 @@
         <label class="check"><input type="checkbox" id="sSound"> Son à la fin d'un téléchargement</label>
         <label class="check"><input type="checkbox" id="sTray"> Garder DrYAE dans la barre système quand la fenêtre est fermée</label>
         <label class="check"><input type="checkbox" id="sConfirmClear"> Demander avant de retirer les terminés (bouton corbeille)</label>
-        <label class="check"><input type="checkbox" id="sBoot"> Lancer DrYAE au démarrage de Windows</label>
-        <label class="check"><input type="checkbox" id="sBootMin"> … en arrière-plan (réduit)</label>
+        <label class="check"><input type="checkbox" id="sBoot"> Lancer DrYAE au démarrage de Windows (caché dans les icônes de la barre des tâches)</label>
         <label class="check"><input type="checkbox" id="sShut"> Éteindre l'ordinateur quand tous les téléchargements sont terminés</label>
         <label class="check"><input type="checkbox" id="sWeb"> Ouvrir dans le navigateur les liens qui mènent à une page web</label>
         <div class="row" style="margin-top:14px"><button class="btn" id="sMagnet"><svg><use href="#i-magnet"/></svg>Ouvrir les liens magnet avec DrYAE</button><span class="hint" id="sMagnetSt"></span></div>

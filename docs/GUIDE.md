@@ -12,10 +12,25 @@ Windows peut afficher « Windows a protégé votre ordinateur », parce que l'ap
 **Version portable :** décompressez le zip et lancez `DrYAE.exe`. Il n'y a rien à installer, mais les mises à jour en un clic ne sont pas disponibles.
 
 ## 2. Le gestionnaire de téléchargements
-La fenêtre principale contient :
+Le gestionnaire s'utilise comme un dossier de Windows :
 - **à gauche**, les filtres : Tous, En cours, Terminés, En pause, Planifiés, Échecs, ainsi que les types (Torrents, Vidéos en ligne…) et les catégories (Vidéos, Musique, Documents…) ;
-- **en haut**, le bouton **Ajouter**, **Tout reprendre**, **Tout mettre en pause** et la recherche (Ctrl+F) ;
-- **au centre**, la liste. Chaque ligne montre le titre, la taille, la vitesse et le temps restant. Faites un clic droit sur une ligne pour l'ouvrir, la mettre en pause, la reprendre, renommer le fichier, renouveler le lien, copier le lien, ou la supprimer.
+- **en haut**, le bouton **Ajouter**, **Tout reprendre**, **Tout mettre en pause** et la recherche (Ctrl+F ou F3) ;
+- **la barre de commandes** : Nouveau, Copier, Copier le chemin, Renommer, Supprimer, Ouvrir, Pause, Reprendre, Propriétés, **Trier**, **Affichage**, ⋯ (plus de commandes) et **Détails** (volet des détails) ;
+- **au centre**, la liste, et **en bas** la barre d'état (nombre d'éléments, sélection et taille).
+
+### Affichages
+**Affichage** propose : Grandes icônes, Icônes moyennes, Petites icônes, Liste, Détails et Contenu. Vous pouvez aussi utiliser **Ctrl+molette** ou **Ctrl+Maj+2…8**. En affichage Détails, cliquez sur un en-tête de colonne pour trier, et faites glisser son bord pour changer sa largeur.
+
+### Souris
+- **Clic** : sélectionne. **Ctrl+clic** et **Maj+clic** : sélection multiple.
+- **Double-clic** : ouvre le fichier terminé (ou les propriétés d'un téléchargement en cours).
+- **Glisser dans le vide** : sélection au rectangle.
+- **Clic droit** sur un élément : ouvrir, dossier, pause, renommer, copier, retirer… ; **clic droit dans le vide** : affichage, tri, coller un lien, tout sélectionner, actualiser.
+- **Glisser un fichier terminé** vers un dossier, le Bureau ou une autre application pour le copier.
+
+### Supprimer
+- **Suppr** retire l'élément de la liste (le fichier reste sur le disque). Un bouton **Annuler** apparaît quelques secondes ; **Ctrl+Z** fait la même chose.
+- **Maj+Suppr** supprime aussi le fichier, après confirmation.
 
 ### Ajouter un téléchargement
 - **Ajouter → Lien :** collez une ou plusieurs adresses (une par ligne). Vous pouvez choisir le dossier, le nom, le nombre de connexions et une limite de vitesse.
@@ -56,12 +71,13 @@ Les vidéos protégées par DRM (Netflix, Disney+…) ne peuvent pas être tél�
 
 ## 5. Le navigateur intégré
 - **Onglets :** Ctrl+T pour un nouvel onglet, Ctrl+Maj+N pour un onglet privé, Ctrl+W pour fermer. Faites glisser les onglets pour les réorganiser. Un onglet ne se charge que lorsque vous l'ouvrez.
+- **Souris :** boutons latéraux pour page précédente / suivante ; clic du milieu ou Ctrl+clic sur un lien pour l'ouvrir dans un onglet en arrière-plan ; clic du milieu sur un onglet pour le fermer ; double-clic dans la barre d'onglets pour en ouvrir un ; Ctrl+molette pour le zoom.
 - **Menu ⋮ :** nouvel onglet, historique, marque-pages, Téléchargements (le gestionnaire), mots de passe, extensions, imprimer, enregistrer sous, traduire la page, rechercher, zoom, **Paramètres du navigateur** (moteur de recherche, vie privée, bloqueur de publicités…, séparés de ceux du gestionnaire), outils supplémentaires, aide.
 - **Fichier(s) détecté(s) :** le bouton de téléchargement liste tout ce que la page lit, avec la taille (estimée « ~ » pour les flux), le nombre de morceaux, la résolution et la durée. **Tout effacer** vide la liste, **Réinitialiser** la réaffiche, **Trier** change l'ordre, et « Sélectionner les fichiers » permet d'en télécharger plusieurs d'un coup.
 - **Bloqueur de publicités :** cliquez sur le bouclier pour le désactiver sur un site.
-- **Mots de passe :** après une connexion, DrYAE propose de l'enregistrer. Les mots de passe sont chiffrés par Windows sur votre PC.
+- **Mots de passe :** après une connexion, DrYAE propose de l'enregistrer. Les mots de passe sont chiffrés par Windows sur votre PC. Dans le panneau Mots de passe, **Importer un fichier .csv…** reprend les mots de passe exportés depuis un autre navigateur ou un gestionnaire de mots de passe (colonnes url, username, password) ; **Exporter en .csv…** en fait une copie (le fichier n'est pas chiffré : gardez-le en lieu sûr).
 - **Saisie automatique :** remplissez votre profil (nom, e-mail, adresse…). DrYAE propose ensuite « Remplir avec mon profil » dans les formulaires.
-- **Extensions Chrome :** ouvrez le Chrome Web Store depuis le panneau Extensions, puis cliquez sur « Ajouter à Chrome ».
+- **Extensions Chrome :** ouvrez le Chrome Web Store depuis le panneau Extensions, puis cliquez sur « Ajouter à Chrome ». Si la boutique ne s'affiche pas, copiez le lien de la page de l'extension (ou son identifiant) dans **Installer avec un lien**.
 - Si une vérification « Êtes-vous un humain ? » ne passe pas, utilisez **⋮ → Ouvrir cette page dans Chrome** avec l'extension DrYAE (voir section 7).
 
 ## 6. Planificateur et limites
@@ -77,9 +93,9 @@ Elle envoie à DrYAE les téléchargements de Google Chrome, les vidéos et les 
 4. Épinglez l'icône DrYAE. DrYAE doit être ouvert pour recevoir les téléchargements.
 
 ## 8. Paramètres utiles
-- **Général :** langue, dossier de téléchargement, démarrage avec Windows, garder DrYAE dans la zone de notification.
+- **Général :** langue, dossier de téléchargement, démarrage avec Windows (DrYAE reste alors caché dans les icônes de la barre des tâches ; un clic sur son icône ouvre le navigateur), garder DrYAE dans la zone de notification.
 - **Téléchargements :** connexions par fichier (jusqu'à 32), téléchargements simultanés, que faire si le fichier existe déjà, qualité MP4/MP3 par défaut.
-- **Apparence :** thème clair, sombre ou noir (AMOLED), et couleur d'accent.
+- **Apparence :** thème clair, sombre ou noir (AMOLED), et couleur d'accent (par défaut, celle de Windows).
 - **À propos :** version, **Rechercher les mises à jour**, **Donner mon avis**, licences.
 
 ## 9. Mises à jour et avis
@@ -89,7 +105,7 @@ Elle envoie à DrYAE les téléchargements de Google Chrome, les vidéos et les 
 ## 10. Raccourcis clavier
 Appuyez sur **F1** dans le gestionnaire ou dans le navigateur pour afficher la liste complète.
 
-**Gestionnaire :** Ctrl+A (tout sélectionner) · Maj+clic / Ctrl+clic · ↑/↓ et Maj+↑/↓ · Entrée (ouvrir) · Espace (pause/reprendre) · Suppr (retirer) · Maj+Suppr (retirer et supprimer les fichiers) · F2 (renommer) · Ctrl+I (informations) · Ctrl+C (copier le lien) · Ctrl+E (dossier) · Ctrl+N (ajouter un lien) · Ctrl+T (torrent) · Ctrl+O (fichier .torrent) · Ctrl+V (coller un lien) · Ctrl+B (navigateur) · Échap.
+**Gestionnaire (raccourcis de Windows) :** Ctrl+A (tout sélectionner) · Ctrl+clic / Maj+clic · flèches et Maj+flèches · Début / Fin · Entrée (ouvrir) · Espace (pause / reprendre) · F2 (renommer) · Suppr (retirer de la liste) · Maj+Suppr (supprimer définitivement) · Ctrl+Z (annuler le retrait) · Ctrl+C (copier le fichier) · Ctrl+Maj+C (copier le chemin) · Ctrl+V (coller un lien) · Alt+Entrée (propriétés) · Alt+Maj+P (volet des détails) · Ctrl+Maj+2…8 (affichages) · F3 / Ctrl+F (rechercher) · F5 (actualiser) · Ctrl+E (dossier) · Ctrl+N (ajouter un lien) · Ctrl+T (torrent) · Ctrl+O (fichier .torrent) · Ctrl+B (navigateur) · Échap.
 
 **Navigateur (raccourcis standards) :** Ctrl+T · Ctrl+Maj+P (onglet privé) · Ctrl+W · Ctrl+Maj+T (rouvrir l'onglet fermé) · Ctrl+Tab · Ctrl+1…9 · Ctrl+L / F6 · Ctrl+F / F3 · F5 / Ctrl+R · Alt+←/→ · Ctrl+D · Ctrl+H · Ctrl+J (gestionnaire) · Ctrl+Maj+Y (fichiers détectés) · Ctrl+P · Ctrl+S · Ctrl+U · Ctrl+M (son) · Ctrl+ +/−/0 · F11 · F12 · Ctrl+Maj+Suppr · Ctrl+Maj+Q.
 

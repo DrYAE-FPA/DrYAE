@@ -3,7 +3,47 @@
 // de sa propre origine : l'origine est lue côté processus principal (senderFrame), jamais fournie par la page.
 const fs = require('fs');
 const path = require('path');
-const { ipcMain } = require('electron');
+const { ipcMain, dialog, BrowserWindow } = require('electron');
+
+// ---------- fichiers .csv (export des navigateurs et gestionnaires de mots de passe courants) ----------
+function parseCsv(text) {
+  text = String(text || '').replace(/^\uFEFF/, '');
+  const first = text.split(/\r?\n/, 1)[0] || '';
+  const sep = (first.match(/;/g) || []).length > (first.match(/,/g) || []).length ? ';' : (first.includes('\t') && !first.includes(',') ? '\t' : ',');
+  const rows = []; let row = [], f = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) { if (c === '"') { if (text[i + 1] === '"') { f += '"'; i++; } else q = false; } else f += c; continue; }
+    if (c === '"' && f === '') q = true;
+    else if (c === sep) { row.push(f); f = ''; }
+    else if (c === '\n' || c === '\r') { if (c === '\r' && text[i + 1] === '\n') i++; row.push(f); f = ''; if (row.some(x => x !== '')) rows.push(row); row = []; }
+    else f += c;
+  }
+  row.push(f); if (row.some(x => x !== '')) rows.push(row);
+  return rows;
+}
+const COLS = {
+  url: ['url', 'login_uri', 'website', 'web site', 'origin', 'origin_url', 'site', 'address', 'uri', 'login url', 'hostname'],
+  user: ['username', 'login_username', 'login name', 'user name', 'user', 'login', 'email', 'e-mail', 'identifiant'],
+  pass: ['password', 'login_password', 'pass', 'mot de passe'],
+};
+function readLogins(text) {
+  const rows = parseCsv(text);
+  if (rows.length < 2) return { list: [], bad: true };
+  const head = rows[0].map(h => h.trim().toLowerCase());
+  const at = k => { for (const n of COLS[k]) { const i = head.indexOf(n); if (i >= 0) return i; } return -1; };
+  const iu = at('url'), in_ = at('user'), ip = at('pass');
+  if (iu < 0 || ip < 0) return { list: [], bad: true };
+  const list = []; let skipped = 0;
+  for (const r of rows.slice(1)) {
+    const pw = r[ip] || ''; let o = '';
+    try { const raw = (r[iu] || '').trim(); const u = new URL(/^[a-z][\w+.-]*:\/\//i.test(raw) ? raw : 'https://' + raw); o = /^https?:$/.test(u.protocol) && u.hostname.includes('.') ? u.origin : ''; } catch {}
+    if (!o || !pw || pw.length > 500) { skipped++; continue; }
+    list.push({ origin: o, username: in_ >= 0 ? String(r[in_] || '').slice(0, 300) : '', password: pw });
+  }
+  return { list, skipped };
+}
+const csvCell = v => /[",\r\n;]/.test(v) ? '"' + String(v).replace(/"/g, '""') + '"' : String(v);
 
 class Vault {
   constructor({ userDir, enc, dec, settings, getWc, privatePartition }) {
@@ -71,10 +111,37 @@ class Vault {
       this.data.logins = this.data.logins.filter(l => !(l.origin === origin && l.username === username));
       this.data.logins.unshift({ origin, username, password: this.enc(password), t: Date.now() }); this.save();
     });
+    // importer / exporter un fichier .csv
+    ipcMain.handle('br:pwImport', async e => {
+      const win = BrowserWindow.fromWebContents(e.sender) || undefined;
+      const tr = x => (global.DRYAE_T || (y => y))(x);
+      const r = await dialog.showOpenDialog(win, { title: tr('Importer des mots de passe'), properties: ['openFile'], filters: [{ name: 'CSV', extensions: ['csv', 'txt'] }] });
+      if (r.canceled || !r.filePaths[0]) return null;
+      const { list, skipped, bad } = readLogins(fs.readFileSync(r.filePaths[0], 'utf8'));
+      if (bad) throw new Error(tr('Fichier non reconnu : il faut au moins les colonnes « url » et « password ».'));
+      let added = 0, updated = 0;
+      for (const l of list) {
+        const old = this.data.logins.find(x => x.origin === l.origin && x.username === l.username);
+        if (old) { if (this.dec(old.password) !== l.password) { old.password = this.enc(l.password); old.t = Date.now(); updated++; } }
+        else { this.data.logins.push({ origin: l.origin, username: l.username, password: this.enc(l.password), t: Date.now() }); added++; }
+      }
+      this.save();
+      return { added, updated, skipped: skipped || 0 };
+    });
+    ipcMain.handle('br:pwExport', async e => {
+      const win = BrowserWindow.fromWebContents(e.sender) || undefined;
+      const tr = x => (global.DRYAE_T || (y => y))(x);
+      const r = await dialog.showSaveDialog(win, { title: tr('Exporter les mots de passe'), defaultPath: 'DrYAE-mots-de-passe.csv', filters: [{ name: 'CSV', extensions: ['csv'] }] });
+      if (r.canceled || !r.filePath) return null;
+      const lines = ['name,url,username,password,note'];
+      for (const l of this.data.logins) { const pw = this.dec(l.password); if (!pw) continue; lines.push([new URL(l.origin).hostname, l.origin, l.username, pw, ''].map(csvCell).join(',')); }
+      fs.writeFileSync(r.filePath, '\uFEFF' + lines.join('\r\n') + '\r\n');
+      return { n: lines.length - 1, file: r.filePath };
+    });
     ipcMain.handle('br:pwUnnever', (_e, origin) => { this.data.never = this.data.never.filter(x => x !== origin); this.save(); });
     ipcMain.handle('br:pwSettings', (_e, patch) => { this.settings.set({ browser: { vault: { ...this.P(), ...patch } } }); return this.P(); });
     ipcMain.handle('br:afGet', () => this.settings.get().browser.autofillProfile || { enabled: false, profile: {} });
     ipcMain.handle('br:afSet', (_e, v) => { this.settings.set({ browser: { autofillProfile: v } }); return v; });
   }
 }
-module.exports = { Vault };
+module.exports = { Vault, parseCsv, readLogins };

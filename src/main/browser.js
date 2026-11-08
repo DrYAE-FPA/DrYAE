@@ -18,6 +18,9 @@ const UA_GOOGLE_LOGIN = `Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:${FF}.0) G
 const GOOGLE_LOGIN = /^(accounts\.google\.[a-z.]+|accounts\.youtube\.com|myaccount\.google\.com)$/;
 // vérifications anti-robot : jamais filtrées par le bloqueur
 const CHALLENGE = /(^|\.)(challenges\.cloudflare\.com|hcaptcha\.com|recaptcha\.net|turnstile\.cloudflare\.com)$/;
+// pages jamais filtrées par le bloqueur : boutique d'extensions et vérifications « je ne suis pas un robot »
+const NO_BLOCK_PAGE = /(^|\.)(chromewebstore\.google\.com|chrome\.google\.com|challenges\.cloudflare\.com)$/;
+const NO_BLOCK_URL = /^https?:\/\/[^/]+\/cdn-cgi\/(challenge-platform|images\/trace)\//i;
 const UA_MOBILE = `Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${CHROME_MAJOR}.0.0.0 Mobile Safari/537.36`;
 const PART = 'persist:dryae-web', PART_PRIV = 'dryae-incognito';
 const SEARCH = {
@@ -30,6 +33,7 @@ const SKIP_HOST = /(^|\.)(youtube\.com|googlevideo\.com|ytimg\.com)$/;
 class WebBrowser {
   constructor({ main, settings, userDir, onDownload, onTorrent, getPassword, assetsDir }) {
     Object.assign(this, { main, settings, userDir, onDownload, onTorrent, getPassword, assetsDir });
+    this.cfPass = new Set(); // onglets qui affichent une vérification Cloudflare
     this.win = null;   // fenêtre unique de DrYAE (fournie par main.js) une fois le navigateur ouvert
     this.view = null;  // vue du navigateur, posée au-dessus du gestionnaire
     this.blocker = null;
@@ -53,7 +57,13 @@ class WebBrowser {
     try { session.fromPartition(PART_PRIV).clearStorageData(); } catch {}
     if (this.B().clearOnExit) { try { session.fromPartition(PART).clearStorageData(); } catch {} this.store.history = []; this.saveStoreSync(); }
   }
-  sendTheme() { this.wc?.send('theme', this.settings.get().theme); }
+  // couleur d'accent « Windows » : celle choisie dans les paramètres de Windows (violet DrYAE sinon)
+  theme() {
+    const t = { ...(this.settings.get().theme || {}) };
+    if (!t.accent || t.accent === 'system') { let c = null; try { c = require('electron').systemPreferences.getAccentColor?.(); } catch {} t.accent = c ? '#' + c.slice(0, 6) : '#8b5cf6'; }
+    return t;
+  }
+  sendTheme() { this.wc?.send('theme', this.theme()); }
   // fichier de cookies (format Netscape) pour yt-dlp, à partir de la session du navigateur
   async cookieFile(url) {
     if (!this.B().cookies) return null;
@@ -80,17 +90,19 @@ class WebBrowser {
 
   async init() {
     const B = this.B();
+    // même identité partout (pages, workers, service workers) : sinon les vérifications anti-robot recommencent sans fin
+    try { app.userAgentFallback = this.ua(); } catch {}
     if (B.doh) { try { app.configureHostResolver({ secureDnsMode: 'secure', secureDnsServers: [B.doh] }); } catch {} }
     for (const ses of this.sessions()) this.setupSession(ses);
     await this.loadBlocker();
     await this.setupExtensions().catch(e => console.error('extensions', e.message));
     this.settings.on('change', (_d, patch) => {
-      if (patch.browser && ('ua' in patch.browser)) this.sessions().forEach(s => s.setUserAgent(this.ua()));
+      if (patch.browser && ('ua' in patch.browser)) { this.sessions().forEach(s => s.setUserAgent(this.ua())); try { app.userAgentFallback = this.ua(); } catch {} }
       if (patch.browser && ('filterLists' in patch.browser || 'hostsSources' in patch.browser || 'customFilters' in patch.browser)) this.updateBlocker(true);
     });
     // mise à jour des listes en arrière-plan (tous les 4 jours)
     setTimeout(() => this.updateBlocker(false), 20000);
-    ipcMain.handle('@ghostery/adblocker/inject-cosmetic-filters', (e, url, msg) => this.adblockActiveFor(url) ? this.blocker?.onInjectCosmeticFilters(e, url, msg) : undefined);
+    ipcMain.handle('@ghostery/adblocker/inject-cosmetic-filters', (e, url, msg) => this.adblockActiveFor(url) && !this.cfPass.has(e.sender.id) ? this.blocker?.onInjectCosmeticFilters(e, url, msg) : undefined);
     ipcMain.handle('@ghostery/adblocker/is-mutation-observer-enabled', e => this.blocker?.onIsMutationObserverEnabled(e));
   }
   // ---------- extensions Chrome (Chrome Web Store + dossiers) ----------
@@ -182,6 +194,7 @@ class WebBrowser {
     const B = this.B();
     if (!B.adblock || !this.blocker) return false;
     const h = hostOf(pageUrl);
+    if (h && NO_BLOCK_PAGE.test(h)) return false;
     return !(h && B.whitelist.some(w => h === w || h.endsWith('.' + w)));
   }
 
@@ -198,7 +211,7 @@ class WebBrowser {
     // comme Chrome : les notifications sont « à demander », pas accordées d'office
     ses.setPermissionCheckHandler((wc, perm) => perm === 'notifications' || perm === 'geolocation' || perm === 'midi-sysex' ? false : true);
     ses.webRequest.onBeforeRequest({ urls: ['<all_urls>'] }, (details, cb) => {
-      if (!this.blocker || details.resourceType === 'mainFrame' || CHALLENGE.test(hostOf(details.url))) return cb({});
+      if (!this.blocker || details.resourceType === 'mainFrame' || CHALLENGE.test(hostOf(details.url)) || NO_BLOCK_URL.test(details.url) || this.cfPass.has(details.webContentsId)) return cb({});
       const page = details.referrer || (details.webContents && !details.webContents.isDestroyed() ? details.webContents.getURL() : '');
       if (!this.adblockActiveFor(page)) return cb({});
       try {
@@ -210,8 +223,13 @@ class WebBrowser {
     });
     ses.webRequest.onHeadersReceived({ urls: ['<all_urls>'] }, (details, cb) => {
       try { this.sniff(details); } catch {}
+      // page de vérification Cloudflare : rien n'est filtré dans cet onglet tant qu'elle est affichée
+      if (details.resourceType === 'mainFrame' && details.webContentsId) {
+        const rh = details.responseHeaders || {}; const k = Object.keys(rh).find(x => x.toLowerCase() === 'cf-mitigated');
+        if (k && /challenge/i.test(String(rh[k]))) this.cfPass.add(details.webContentsId); else this.cfPass.delete(details.webContentsId);
+      }
       const page = details.webContents && !details.webContents.isDestroyed() ? details.webContents.getURL() : details.url;
-      if (this.blocker && this.adblockActiveFor(page) && !CHALLENGE.test(hostOf(details.url))) { try { return this.blocker.onHeadersReceived(details, cb); } catch {} }
+      if (this.blocker && this.adblockActiveFor(page) && !CHALLENGE.test(hostOf(details.url)) && !NO_BLOCK_URL.test(details.url) && !this.cfPass.has(details.webContentsId)) { try { return this.blocker.onHeadersReceived(details, cb); } catch {} }
       cb({});
     });
     ses.webRequest.onBeforeSendHeaders({ urls: ['<all_urls>'] }, (d, cb) => {
@@ -313,6 +331,8 @@ class WebBrowser {
     });
     if (!this._layoutHooked) {
       this._layoutHooked = true;
+      // boutons latéraux de la souris et touches multimédia du clavier (précédent / suivant / actualiser)
+      host.on('app-command', (_e, cmd) => { if (this.view && this.view.getVisible?.() !== false && this.wc) this.wc.send('app-cmd', cmd); });
       const lay = () => this.layout();
       host.on('resize', lay); host.on('maximize', lay); host.on('unmaximize', lay); host.on('enter-full-screen', lay); host.on('leave-full-screen', lay);
     }
@@ -366,6 +386,8 @@ class WebBrowser {
       else if (!/^(https?|file|about|data|blob|chrome):/i.test(url)) { e.preventDefault(); }
     };
     wc.on('will-navigate', nav);
+    // Ctrl + molette : Electron signale la demande, l'onglet applique son zoom
+    wc.on('zoom-changed', (_e, dir) => this.wc?.send('wheel-zoom', { wcId: wc.id, dir: dir === 'in' ? 1 : -1 }));
     const fixUa = (url) => { try { wc.setUserAgent(GOOGLE_LOGIN.test(new URL(url).hostname) ? UA_GOOGLE_LOGIN : this.ua()); } catch {} };
     wc.on('will-navigate', (_e, url) => fixUa(url));
     wc.on('will-redirect', (_e, url) => fixUa(url));
@@ -423,7 +445,7 @@ class WebBrowser {
 
   setupIpc() {
     ipcMain.handle('br:store', () => this.store);
-    ipcMain.handle('br:settings', () => ({ ...this.B(), theme: this.settings.get().theme, restoreSession: this.settings.get().restoreSession, searchUrl: SEARCH[this.B().search] || SEARCH.google, ua: this.B().ua, partitions: { normal: PART, incognito: PART_PRIV } }));
+    ipcMain.handle('br:settings', () => ({ ...this.B(), theme: this.theme(), restoreSession: this.settings.get().restoreSession, searchUrl: SEARCH[this.B().search] || SEARCH.google, ua: this.B().ua, partitions: { normal: PART, incognito: PART_PRIV } }));
     ipcMain.handle('br:setSettings', (_e, patch) => { this.settings.set({ browser: patch }); return this.B(); });
     ipcMain.handle('br:history', (_e, { url, title }) => {
       if (!/^https?:/.test(url)) return;
@@ -536,6 +558,18 @@ class WebBrowser {
     ipcMain.handle('br:selectTab', (_e, wcId) => { try { const wc = require('electron').webContents.fromId(wcId); if (wc && this.ext) this.ext.selectTab(wc); } catch {} });
     ipcMain.handle('br:extTabCreated', (_e, { reqId, wcId }) => { const r = this.extWaiters.get(reqId); if (r) { this.extWaiters.delete(reqId); r(wcId); } });
     ipcMain.handle('br:extList', () => this.extList());
+    // installation par lien de la boutique ou identifiant (si la page de la boutique ne s'affiche pas)
+    ipcMain.handle('br:extInstall', async (_e, v) => {
+      const tr = x => (global.DRYAE_T || (y => y))(x);
+      const m = String(v || '').match(/(?:^|[/=])([a-p]{32})(?:[/?#&]|$)/i);
+      if (!m) throw new Error(tr('Lien ou identifiant non reconnu (32 lettres de a à p).'));
+      const { installExtension } = require('electron-chrome-web-store');
+      try {
+        const x = await installExtension(m[1].toLowerCase(), { session: session.fromPartition(PART), extensionsPath: this.extDir });
+        try { this.wc?.send('ext-changed'); } catch {}
+        return { id: x.id, name: x.name };
+      } catch (e) { throw new Error(tr("Impossible d'installer l'extension : {0}").replace('{0}', e.message)); }
+    });
     ipcMain.handle('br:extRemove', async (_e, id) => {
       const ses = session.fromPartition(PART);
       try { const { uninstallExtension } = require('electron-chrome-web-store'); await uninstallExtension(id, { session: ses, extensionsPath: this.extDir }); }
