@@ -18,20 +18,11 @@ http.createServer((q,r)=>{
  const a=m.add({type:'http',url:'http://127.0.0.1:8770/film.mp4'});
  const h=m.add({type:'hls',url:'http://127.0.0.1:8770/hls/master.m3u8',name:'MaVideo'});
  const w=m.add({type:'http',url:'http://127.0.0.1:8770/page'});
- // torrent : seeder local
- const WT=(await import('webtorrent')).default;const ct=(await import('create-torrent')).default;
- const seeder=new WT({dht:false,lsd:false,tracker:false});
- const buf=await new Promise(r=>ct('/tmp/claude-0/t/big.bin',{announceList:[]},(e,b)=>r(b)));
- await new Promise(r=>seeder.add(buf,{path:'/tmp/claude-0/t'},r));
- const info=await m.torrents.inspect(buf,m.torrentDir);
- console.log('inspect',info.name,info.files.length);
- const t=m.add({type:'torrent',url:'magnet:?xt=urn:btih:'+info.infoHash,torrentFile:info.torrentFile,infoHash:info.infoHash,name:info.name,files:info.files.map(f=>({path:f.path,length:f.length}))});
- const iv=setInterval(async()=>{const tt=m.get(t.id).t; if(tt&&!tt._p){tt._p=1;tt.addPeer('127.0.0.1:'+seeder.torrentPort);}},300);
+ // (les torrents sont testés dans torrent2.test.js, moteur aria2)
  await new Promise(r=>setTimeout(r,2500));
  const A=m.get(a.id);console.log('http mid',A.status,A.segments.length,A.segments.filter(s=>s.active).length,(A.downloaded()/1e6).toFixed(1));
  m.pause(a.id);await new Promise(r=>setTimeout(r,300));m.resume(a.id);
  await new Promise(r=>{const x=setInterval(()=>{if(m.list.every(d=>['done','error'].includes(d.status))){clearInterval(x);r()}},200)});
- clearInterval(iv);
  const md5=b=>crypto.createHash('md5').update(b).digest('hex');
  for(const d of m.list){console.log(d.type,d.status,d.name,d.error||'',d.file||'', d.type!=='hls'&&d.status==='done'?md5(fs.readFileSync(d.type==='torrent'?d.rootPath():d.file))===md5(data):'');}
  const hf=m.get(h.id).file; console.log('hls', require('child_process').execFileSync('ffprobe',['-v','error','-show_entries','format=duration,format_name','-of','csv=p=0',hf]).toString().trim());

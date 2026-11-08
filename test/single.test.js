@@ -23,7 +23,7 @@ http.createServer((q,r)=>{
  await b.click('#bDrYAE'); await b.waitForTimeout(500); await b.screenshot({path:OUT+'/01-panneau.png'});
  await b.click('#bMenu'); await b.waitForTimeout(300); await b.screenshot({path:OUT+'/02-menu.png'});
  const before={...hits};
- await b.click('#menu button:has-text("Gestionnaire de téléchargements")'); await b.waitForTimeout(800);
+ await b.click('#menu button:has-text("Téléchargements")'); await b.waitForTimeout(800);
  console.log('vue gestionnaire — titre:', await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].getTitle()));
  await w.screenshot({path:OUT+'/03-gestionnaire.png'});
  await w.click('#openBrowser'); await b.waitForTimeout(1200);

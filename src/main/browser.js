@@ -343,6 +343,17 @@ class WebBrowser {
   }
 
   attachWebview(wc) {
+    wc.on('before-input-event', (ev, i) => {
+      if (i.type !== 'keyDown') return;
+      const k = String(i.key || '').toLowerCase(), c = i.control || i.meta;
+      const fkey = /^f(1|3|5|6|11|12)$/.test(k);
+      const plain = ['t', 'w', 'p', 'l', 'k', 'e', 'f', 'g', 'j', 'h', 'd', 'r', 's', 'u', 'm', 'tab', 'pageup', 'pagedown', 'f4', 'f5', '+', '=', '-', '0', '/'];
+      const withShift = ['t', 'n', 'p', 'o', 'a', 'y', 'i', 'q', 'r', 'g', 'delete', 'tab', 'pageup', 'pagedown'];
+      const hit = fkey || (i.alt && !c && ['arrowleft', 'arrowright', 'home', 'd'].includes(k)) || (c && (i.shift ? withShift.includes(k) : (plain.includes(k) || /^[1-9]$/.test(k))));
+      if (!hit) return;
+      ev.preventDefault();
+      this.wc?.send('shortcut', { key: i.key, ctrl: !!c, shift: !!i.shift, alt: !!i.alt, wcId: wc.id });
+    });
     try { if (this.ext && this.win && wc.session === session.fromPartition(PART)) this.ext.addTab(wc, this.win); } catch (e) { console.error('ext addTab', e.message); }
     wc.setWindowOpenHandler(({ url, disposition }) => {
       if (url.startsWith('magnet:')) { this.onTorrent(url, {}); return { action: 'deny' }; }
@@ -360,7 +371,9 @@ class WebBrowser {
     wc.on('will-redirect', (_e, url) => fixUa(url));
     wc.on('did-start-navigation', (_e, url, inPlace, isMain) => { if (isMain && !inPlace) fixUa(url); });
     wc.on('will-frame-navigate', d => { if (/^magnet:/i.test(d.url)) { d.preventDefault?.(); this.onTorrent(d.url, {}); } });
-    wc.on('did-start-navigation', (_e, url, inPlace, isMain) => { if (isMain && !inPlace) { this.seenMedia.delete(wc.id); this.blockedCount.set(wc.id, 0); this.wc?.send('media-reset', { wcId: wc.id }); } });
+    // la liste des fichiers détectés n'est vidée que quand une nouvelle page s'affiche vraiment
+    // (un clic sur un lien de téléchargement, .torrent par ex., ne change pas de page)
+    wc.on('did-navigate', () => { this.seenMedia.delete(wc.id); this.blockedCount.set(wc.id, 0); this.wc?.send('media-reset', { wcId: wc.id }); });
     wc.on('context-menu', (_e, p) => this.contextMenu(wc, p));
     wc.on('login', () => {});
   }
@@ -437,6 +450,9 @@ class WebBrowser {
       return out.slice(0, 9);
     });
     ipcMain.handle('br:session', (_e, sess) => { if (sess && Array.isArray(sess.tabs)) { this.store.session = { tabs: sess.tabs.filter(t => /^https?:/.test(t.url)).slice(0, 50), active: sess.active | 0 }; this.saveStore(); } });
+    ipcMain.handle('br:torInspect', async (_e, src, o) => { try { return { ok: true, info: await this.main.torrentInspect(src, o) }; } catch (e) { return { ok: false, error: String(e.message || e) }; } });
+    ipcMain.handle('br:torAdd', (_e, o) => { this.main.torrentAdd(o); return true; });
+    ipcMain.handle('br:torQuick', (_e, src) => this.main.torrentQuick(src));
     ipcMain.handle('br:ytInspect', async (_e, url, page) => {
       try { return { ok: true, v: await this.main.manager.ytdl.inspect(url, { 'User-Agent': this.ua(), ...(page && page !== url ? { Referer: page } : {}) }, await this.cookieFile(page || url)) }; }
       catch (e) { return { ok: false, error: e.message }; }
@@ -447,6 +463,27 @@ class WebBrowser {
       this.main.notify('Ajouté à DrYAE', `${o.title || o.url}`);
       return v;
     });
+    ipcMain.handle('br:hlsInfo', async (_e, { url, page, incognito }) => {
+      const ses = session.fromPartition(incognito ? PART_PRIV : PART);
+      try { return { ok: true, ...(await this.main.manager.hlsInfo(url, { Cookie: await this.cookieHeader(ses, url), 'User-Agent': this.ua(), Referer: page || '' })) }; }
+      catch (e) { return { ok: false, error: String(e.message || e) }; }
+    });
+    // menu du navigateur (façon Firefox)
+    ipcMain.handle('br:print', (_e, wcId) => { try { require('electron').webContents.fromId(wcId)?.print({}); } catch {} });
+    ipcMain.handle('br:savePage', async (_e, wcId) => {
+      const wc = require('electron').webContents.fromId(wcId); if (!wc) return false;
+      const name = (wc.getTitle() || 'page').replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 120) || 'page';
+      const r = await dialog.showSaveDialog(this.win, { defaultPath: require('path').join(this.settings.get().dir, name + '.html'), filters: [{ name: 'Page web complète', extensions: ['html'] }, { name: 'Page web (HTML seul)', extensions: ['htm'] }] });
+      if (r.canceled) return false;
+      await wc.savePage(r.filePath, /\.htm$/i.test(r.filePath) ? 'HTMLOnly' : 'HTMLComplete'); return true;
+    });
+    ipcMain.handle('br:fullscreen', () => { if (this.win) this.win.setFullScreen(!this.win.isFullScreen()); });
+    ipcMain.handle('br:devtools', (_e, wcId) => { try { require('electron').webContents.fromId(wcId)?.toggleDevTools(); } catch {} });
+    ipcMain.handle('br:mute', (_e, wcId) => { try { const wc = require('electron').webContents.fromId(wcId); wc.setAudioMuted(!wc.isAudioMuted()); return wc.isAudioMuted(); } catch { return false; } });
+    ipcMain.handle('br:quit', () => this.main.quit?.());
+    ipcMain.handle('br:hlsConvert', (_e, v) => { if (typeof v === 'boolean') this.settings.set({ hls: { convert: v } }); return !!this.settings.get().hls.convert; });
+    ipcMain.handle('br:setRestore', (_e, v) => { this.settings.set({ restoreSession: !!v }); return !!v; });
+    ipcMain.handle('br:openSettingsMain', (_e, sec) => this.main.openSettings?.(sec));
     ipcMain.handle('br:sizes', async (_e, { urls, page, incognito }) => {
       const ses = session.fromPartition(incognito ? PART_PRIV : PART);
       const cookie = urls[0] ? await this.cookieHeader(ses, urls[0]) : '';
@@ -485,7 +522,7 @@ class WebBrowser {
       const headers = { 'User-Agent': this.ua(), ...(o.headers || {}) };
       if (o.page && !headers.Referer) headers.Referer = o.page;
       if (!headers.Cookie && /^https?:/.test(o.url)) headers.Cookie = await this.cookieHeader(ses, o.url);
-      const common = { url: o.url, dir: o.dir || '', pageUrl: o.page || '', pageTitle: o.pageTitle || o.tabTitle || this.pageTitle(o.page), headers, startNow: o.startNow !== false, schedule: !!o.schedule, speedLimit: o.speedLimit || 0 };
+      const common = { url: o.url, dir: o.dir || '', pageUrl: o.page || '', pageTitle: o.pageTitle || o.tabTitle || this.pageTitle(o.page), headers, startNow: o.startNow !== false, schedule: !!o.schedule, speedLimit: o.speedLimit || 0, dupAction: o.dupAction };
       if (o.kind === 'torrent' || /^magnet:/i.test(o.url)) { this.onTorrent(o.url, { cookie: headers.Cookie, page: o.page }); return null; }
       if (o.kind === 'ytdl') return M.add({ ...common, type: 'ytdl', title: o.name || o.title || null, thumbnail: o.thumbnail || '', duration: o.duration || 0, mode: o.mode || 'video', quality: o.quality || 'best', audioFormat: o.audioFormat || 'mp3', audioBitrate: o.audioBitrate || '320' });
       const hls = o.kind === 'hls' || /\.m3u8(\?|$)/i.test(o.url);

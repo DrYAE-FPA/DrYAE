@@ -79,11 +79,14 @@ class YtdlHub {
     }
     const fmts = j.formats || [];
     const audioBest = fmts.filter(f => f.vcodec === 'none' && f.acodec !== 'none').sort((a, b) => (b.abr || 0) - (a.abr || 0))[0];
-    const aSize = audioBest ? (audioBest.filesize || audioBest.filesize_approx || 0) : 0;
+    const dur = j.duration || 0;
+    // taille inconnue (flux HLS…) : estimée d'après le débit × la durée
+    const est = f => f.filesize || f.filesize_approx || (f.tbr && dur ? Math.round(f.tbr * 125 * dur) : 0);
+    const aSize = audioBest ? (audioBest.filesize || audioBest.filesize_approx || (audioBest.abr && dur ? Math.round(audioBest.abr * 125 * dur) : 0)) : 0;
     const byH = new Map();
     for (const f of fmts) {
       if (!f.height || f.vcodec === 'none') continue;
-      const sz = (f.filesize || f.filesize_approx || 0) + (f.acodec === 'none' ? aSize : 0);
+      const sz = est(f) + (f.acodec === 'none' ? aSize : 0);
       const cur = byH.get(f.height);
       if (!cur || sz > cur.size) byH.set(f.height, { h: f.height, size: sz, fps: f.fps || 0 });
     }

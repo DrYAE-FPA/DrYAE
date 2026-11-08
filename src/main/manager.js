@@ -4,7 +4,7 @@ const path = require('path');
 const { EventEmitter } = require('events');
 const undici = require('undici');
 const { HttpDownload } = require('./engine/http');
-const { HlsDownload } = require('./engine/hls');
+const { HlsDownload, parseMaster, parseMedia } = require('./engine/hls');
 const { TorrentDownload, TorrentHub } = require('./engine/torrent');
 const { YtdlHub, YtdlDownload } = require('./engine/ytdl');
 const { Limiter } = require('./limiter');
@@ -73,6 +73,34 @@ class Manager extends EventEmitter {
       return { url, size, type, status: r.status };
     } catch { return { url, size: -1, type: '', status: 0 }; } finally { clearTimeout(t); ac.abort(); }
   }
+  // flux HLS (m3u8) : taille estimée (~), nombre de morceaux, résolution et durée, sans rien télécharger
+  async hlsInfo(url, headers = {}) {
+    const get = async u => {
+      const ac = new AbortController(); const t = setTimeout(() => ac.abort(), 15000);
+      try { const r = await this.fetch(u, { headers: this.buildHeaders({ headers, url: u }, {}), signal: ac.signal }); if (!r.ok) throw new Error('HTTP ' + r.status); return { text: await r.text(), url: r.url || u }; } finally { clearTimeout(t); }
+    };
+    const estimate = async media => {
+      const segs = media.segs; if (!segs.length) return 0;
+      if (segs.every(s => s.url === segs[0].url)) { const p = await this.probeSize(segs[0].url, headers); return p.size > 0 ? p.size : 0; }
+      const idx = [...new Set([0, segs.length >> 1, segs.length - 1].filter(i => i >= 0 && i < segs.length))];
+      const sz = (await this.probeSizes(idx.map(i => segs[i].url), headers)).map(p => p.size).filter(x => x > 0);
+      return sz.length ? Math.round(sz.reduce((a, b) => a + b, 0) / sz.length * segs.length) : 0;
+    };
+    let top = await get(url), width = 0, height = 0, bw = 0, variants = 0, audioSize = 0;
+    if (/#EXT-X-STREAM-INF/i.test(top.text)) {
+      const m = parseMaster(top.text, top.url);
+      const v = m.variants[0]; if (!v) throw new Error('Aucune variante vidéo dans la liste');
+      variants = m.variants.length; bw = v.bandwidth;
+      [width, height] = (v.resolution || '').split('x').map(n => +n || 0);
+      const au = v.audio && m.audios.find(a => a.group === v.audio && a.def) || (v.audio && m.audios.find(a => a.group === v.audio));
+      if (au) { try { audioSize = await estimate(parseMedia((await get(au.url)).text, au.url)); } catch {} }
+      top = await get(v.url);
+    }
+    const media = parseMedia(top.text, top.url);
+    let size = await estimate(media).catch(() => 0);
+    if (!size && bw && media.total) size = Math.round(bw * media.total / 8);
+    return { size: size ? size + audioSize : -1, approx: true, pieces: media.segs.length, duration: Math.round(media.total), width, height, variants, encrypted: media.segs.some(s => s.key) };
+  }
   async probeSizes(urls, headers) {
     const out = new Array(urls.length); let i = 0;
     await Promise.all(Array.from({ length: Math.min(6, urls.length) }, async () => { while (i < urls.length) { const k = i++; out[k] = await this.probeSize(urls[k], headers); } }));
@@ -130,6 +158,17 @@ class Manager extends EventEmitter {
         data.name = sanitize(pt) + (ext && /^(mp4|webm|mkv|mov|m4a|mp3|ts|flv|avi)$/i.test(ext) ? '.' + ext : '');
       }
     }
+    // doublon : même lien ou même titre déjà dans la liste -> on demande quoi faire (comme 1DM)
+    if (opts.type !== 'torrent') {
+      const act = opts.dupAction || (S.duplicate === 'ask' ? '' : S.duplicate);
+      const dup = this.findDuplicate(data);
+      if (dup) {
+        if (!act) return { duplicate: { id: dup.id, name: dup.name || dup.title || dup.url, status: dup.status, file: dup.file && fs.existsSync(dup.file) ? dup.file : '' } };
+        if (act === 'skip') return null;
+        if (act === 'overwrite') { data.onExist = 'overwrite'; if (!data.name && (dup.name || dup.title)) data.name = dup.type === data.type ? (dup.name || null) : data.name; this.remove([dup.id], true); }
+      }
+    }
+    delete data.dupAction;
     data.status = opts.schedule ? 'scheduled' : opts.startNow === false ? 'paused' : 'queued';
     if (S.scheduler.enabled && S.scheduler.addNew && !opts.startNow && !opts.schedule) data.status = 'scheduled';
     const d = this.create(data);
@@ -153,6 +192,20 @@ class Manager extends EventEmitter {
     this.attach(h);
     this.list.splice(this.list.length - 1, 1); this.list.splice(i, 0, h);
     this.emit('reload'); this.save(); this.schedule();
+  }
+  findDuplicate(data) {
+    const norm = s => String(s || '').toLowerCase().replace(/\.[a-z0-9]{2,4}$/, '').replace(/\s*\(\d+\)$/, '').replace(/\s+/g, ' ').trim();
+    const ext = s => (/\.([a-z0-9]{2,4})$/i.exec(String(s || '')) || [])[1]?.toLowerCase() || '';
+    const nm = norm(data.name || data.title), u = String(data.url || '');
+    return this.list.find(d => {
+      if (d.type === 'torrent') return false;
+      if (d.type === 'ytdl' && data.type === 'ytdl' && (d.mode || 'video') !== (data.mode || 'video')) return false;
+      if (u && d.url === u) return true;
+      const dn = norm(d.name || d.title);
+      if (!nm || nm.length < 3 || dn !== nm) return false;
+      const a = ext(data.name), b = ext(d.name);
+      return !a || !b || a === b;
+    });
   }
   findDup(url) { return this.list.find(d => d.url === url && d.status !== 'done'); }
 

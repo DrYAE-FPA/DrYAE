@@ -1,4 +1,4 @@
-DrYAE 1.6 — Third-party components / Composants tiers
+DrYAE 1.6.1 — Third-party components / Composants tiers
 ======================================================
 
 DrYAE is free software released under the GNU General Public License v3.0
@@ -34,6 +34,11 @@ QuickJS-ng 0.18.0
   QuickJS-ng contributors
   Source: https://github.com/quickjs-ng/quickjs
 
+aria2 1.37.0 (aria2c.exe — torrent engine), by Tatsuhiro Tsujikawa
+  License: GNU GPL v2 or later (with OpenSSL linking exception)
+  Source: https://github.com/aria2/aria2 — full license: resources/bin/aria2.COPYING
+  Source code of this exact version: https://github.com/aria2/aria2/releases/tag/release-1.37.0
+
 7-Zip 21.07 command-line version (7za.exe), by Igor Pavlov
   License: GNU LGPL v2.1 (+ BSD 3-clause for some parts)
   Source: https://www.7-zip.org
@@ -56,8 +61,7 @@ JavaScript libraries (folder resources/app/node_modules)
 @ghostery/adblocker-electron and related @ghostery/* and @remusao/* packages
   License: Mozilla Public License 2.0 — Source: https://github.com/ghostery/adblocker
   (unmodified; MPL-2.0 source available at that address)
-node-datachannel 0.32 — License: MPL-2.0 — https://github.com/murat-dogan/node-datachannel
-WebTorrent 2.8 — MIT — https://github.com/webtorrent/webtorrent
+parse-torrent — MIT — https://github.com/webtorrent/parse-torrent
 create-torrent — MIT — https://github.com/webtorrent/create-torrent
 undici — MIT — https://github.com/nodejs/undici
 electron-chrome-extensions 4.10 — MIT — https://github.com/samuelmaddock/electron-browser-shell

@@ -19,7 +19,7 @@ http.createServer((q,r)=>{
  let b;for(let i=0;i<40&&!b;i++){await w.waitForTimeout(250);b=app.windows().find(x=>x.url().includes('browser.html'));}
  b.on('pageerror',e=>console.log('[brerr]',e.message)); await b.setViewportSize({width:1300,height:820}); await b.waitForTimeout(3500);
  // 1. panneau universel
- await b.click('#bDrYAE'); await b.waitForTimeout(400); await b.click('#pBody [data-dl]'); await b.waitForTimeout(9000);
+ await b.click('#bDrYAE'); await b.waitForTimeout(400); await b.click('#pBody .dfile'); await b.waitForTimeout(9000);
  console.log('panneau:', (await b.textContent('#qsBody')).replace(/\s+/g,' ').slice(0,200));
  await b.click('#qsMore'); await b.waitForTimeout(300); await b.screenshot({path:OUT+'/01-universel.png'});
  await b.fill('#qaName','Vacances 2026'); await b.click('#qsBody .qopt[data-f="mp3"][data-b="192"]'); await b.waitForTimeout(500);

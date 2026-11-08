@@ -39,6 +39,23 @@ const api = {
     if (onClick) n.on('click', onClick);
     n.show();
   },
+  async torrentInspect(src, opts) {
+    let s = src;
+    if (/^https?:/i.test(src) && opts?.cookie) {
+      const r = await manager.fetch(src, { headers: manager.buildHeaders({ headers: { Cookie: opts.cookie, Referer: opts.page || '' }, url: src }, {}) });
+      if (!r.ok) throw new Error(`Fichier torrent inaccessible (${r.status})`);
+      s = Buffer.from(await r.arrayBuffer());
+    }
+    return manager.torrents.inspect(s, manager.torrentDir);
+  },
+  torrentAdd(o) {
+    return manager.add({ type: 'torrent', url: o.magnet || ('magnet:?xt=urn:btih:' + o.infoHash), torrentFile: o.torrentFile, infoHash: o.infoHash, name: o.name,
+      files: (o.files || []).map(f => ({ path: f.path, length: f.length })), selected: o.selected, dir: o.dir, sequential: o.sequential, seedAfter: o.seedAfter, startNow: o.startNow !== false, schedule: !!o.schedule });
+    return true;
+  },
+  torrentQuick(src) { const d = manager.add({ type: 'torrent', url: src }); return !!d; },
+  quit() { quitting = true; app.quit(); },
+  openSettings(sec) { api.showMain(); send('open-settings', sec || ''); },
   showMain() { if (!win) createWindow(); if (win.isMinimized()) win.restore(); win.show(); browser?.hideView(); win.focus(); },
   openFeedback() { const u = updater?.info(); if (u) shell.openExternal(u.feedbackUrl || u.repoUrl || 'https://github.com'); },
   hostWindow() { if (!win) createWindow(); return win; },
@@ -145,7 +162,8 @@ app.whenReady().then(async () => {
   browser = new WebBrowser({
     main: api, settings, userDir, assetsDir: ASSETS, getPassword: api.getPassword,
     onDownload: (o) => { api.showMain(); send('prompt-add', o); },
-    onTorrent: (src, o) => { api.showMain(); send('prompt-torrent', { src, ...o }); },
+    // torrent cliqué dans le navigateur : la fenêtre de choix s'ouvre sur la page, sans quitter le navigateur
+    onTorrent: (src, o) => { if (browser?.visible() && browser.wc) browser.wc.send('quick-torrent', { src, ...o }); else { api.showMain(); send('prompt-torrent', { src, ...o }); } },
   });
   await browser.init();
   manager.cookieFileFor = url => browser.cookieFile(url);
@@ -224,7 +242,7 @@ H('add', async (o) => {
       if (!/^https?:\/\//i.test(e.url || '')) continue;
       out.push(manager.add({ type: 'ytdl', url: e.url, dir: o.dir, startNow: o.startNow !== false, schedule: !!o.schedule, title: e.title || o.name || null,
         thumbnail: e.thumbnail || o.thumbnail || '', duration: e.duration || 0, mode: Y.mode || 'video', quality: Y.quality || 'best', audioFormat: Y.audioFormat || 'mp3', audioBitrate: Y.audioBitrate || '320',
-        headers: o.headers || {}, pageUrl: o.page || '', speedLimit: o.speedLimit || 0 }));
+        headers: o.headers || {}, pageUrl: o.page || '', speedLimit: o.speedLimit || 0, dupAction: o.dupAction }));
     }
     return out;
   }
@@ -234,7 +252,7 @@ H('add', async (o) => {
     const isHls = o.kind === 'hls' || /\.m3u8(\?|$)/i.test(url);
     const v = manager.add({
       type: isHls ? 'hls' : 'http', url, dir: o.dir, connections: o.connections, startNow: o.startNow !== false, schedule: !!o.schedule,
-      name: urls.length === 1 ? o.name : null, headers: o.headers || {}, pageUrl: o.page || '', pageTitle: o.pageTitle || (browser && browser.pageTitle ? browser.pageTitle(o.page) : ''), speedLimit: o.speedLimit || 0, quality: o.quality || null, allowPage: !!o.allowPage,
+      name: urls.length === 1 ? o.name : null, headers: o.headers || {}, pageUrl: o.page || '', pageTitle: o.pageTitle || (browser && browser.pageTitle ? browser.pageTitle(o.page) : ''), speedLimit: o.speedLimit || 0, quality: o.quality || null, allowPage: !!o.allowPage, dupAction: urls.length === 1 ? o.dupAction : (o.dupAction || 'rename'),
     });
     out.push(v);
   }

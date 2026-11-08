@@ -129,6 +129,7 @@ function render() {
       el.classList.toggle('sel', selected.has(d.id));
       const ck = el.querySelector('[data-chk]'); if (ck) ck.checked = selected.has(d.id);
       el.classList.toggle('cur', current === d.id);
+      el.classList.toggle('kfocus', kCursor === d.id);
       const want = prev ? prev.nextSibling : list.firstChild;
       if (want !== el) list.insertBefore(el, want);
       prev = el;
@@ -186,7 +187,7 @@ $('#list').addEventListener('click', async e => {
     const a = arr.indexOf(lastClickId), z = arr.indexOf(id);
     arr.slice(Math.min(a, z), Math.max(a, z) + 1).forEach(x => selected.add(x));
   } else { selected = new Set([id]); openDrawer(id); }
-  lastClickId = id;
+  lastClickId = id; kCursor = id;
   render();
 });
 $('#list').addEventListener('dblclick', e => {
@@ -578,7 +579,7 @@ function headersFromForm() {
 }
 $('#aBatch').onchange = inspectAdd;
 $('#aPick').onclick = async () => { const p = await call('pickDir'); if (p) $('#aDir').value = p; };
-async function submitAdd(startNow) {
+async function submitAdd(startNow, dupAction) {
   const urls = $('#aUrls').value.split(/\s+/).filter(Boolean);
   if (ytFor && urls.length === 1 && urls[0] === ytFor) {
     const m = $('#aYtMode').value;
@@ -586,20 +587,24 @@ async function submitAdd(startNow) {
     if (ytInfo?.playlist) { entries = $$('#aYtList [data-yt]').filter(x => x.checked).map(x => ytInfo.entries[+x.dataset.yt]); if (!entries.length) return toast('Coche au moins une vidéo'); }
     const r = await safe(() => call('add', { kind: 'ytdl', urls, entries, dir: $('#aDir').value.trim(), startNow, schedule: $('#aSchedule').checked,
       name: $('#aName').value.trim() || null, title: $('#aName').value.trim() || (ytInfo && !ytInfo.playlist ? ytInfo.title : null), thumbnail: ytInfo?.thumbnail || '', headers: headersFromForm(), page: $('#aRef').value.trim() || addCtx.page || '', pageTitle: addCtx.pageTitle || '',
-      speedLimit: +$('#aSpeed').value || 0, ytdl: { mode: m === 'video' ? 'video' : 'audio', audioFormat: m === 'm4a' ? 'm4a' : 'mp3', audioBitrate: $('#aYtB').value, quality: $('#aYtQ').value || 'best' } }));
+      speedLimit: +$('#aSpeed').value || 0, dupAction, ytdl: { mode: m === 'video' ? 'video' : 'audio', audioFormat: m === 'm4a' ? 'm4a' : 'mp3', audioBitrate: $('#aYtB').value, quality: $('#aYtQ').value || 'best' } }));
     if (!r) return;
-    r.forEach(d => items.set(d.id, d)); closeM(); render();
+    const dy = r.find(x => x && x.duplicate);
+    if (dy) { const a = await askDuplicate(dy.duplicate); if (a) return submitAdd(startNow, a); return; }
+    r.filter(Boolean).forEach(d => items.set(d.id, d)); closeM(); render();
     return toast(r.length > 1 ? `${r.length} vidéos ajoutées` : 'Vidéo ajoutée');
   }
   const v = $('#aVariants input:checked');
   const r = await safe(() => call('add', {
     urls, batch: $('#aBatch').checked, dir: $('#aDir').value.trim(), connections: +$('#aConn').value, startNow, schedule: $('#aSchedule').checked,
     name: $('#aName').value.trim() || addCtx.name || null, headers: headersFromForm(), page: $('#aRef').value.trim() || addCtx.page || '',
-    speedLimit: +$('#aSpeed').value || 0, kind: addCtx.kind === 'ytdl' ? undefined : addCtx.kind, quality: v ? v.value : null, allowPage: !!addCtx.allowPage,
+    speedLimit: +$('#aSpeed').value || 0, kind: addCtx.kind === 'ytdl' ? undefined : addCtx.kind, quality: v ? v.value : null, allowPage: !!addCtx.allowPage, dupAction,
   }));
   if (!r) return;
+  const dx = r.find(x => x && x.duplicate);
+  if (dx) { const a = await askDuplicate(dx.duplicate); if (a) return submitAdd(startNow, a); return; }
   if (!r.length && !urls.some(u => /^magnet:/i.test(u))) return toast('Aucun lien valide (http://, https:// ou magnet:)');
-  r.forEach(d => items.set(d.id, d));
+  r.filter(Boolean).forEach(d => items.set(d.id, d));
   closeM(); render();
   if (r.length) toast(r.length > 1 ? `${r.length} téléchargements ajoutés` : 'Téléchargement ajouté');
 }
@@ -719,7 +724,17 @@ async function extractTool() {
 
 $('#resumeAll').onclick = () => call('resumeAll');
 $('#pauseAll').onclick = () => call('pauseAll');
-$('#clearDone').onclick = () => call('clearFinished');
+// corbeille : vider les terminés, avec confirmation (désactivable : « Ne plus prévenir »)
+$('#clearDone').onclick = async () => {
+  const n = [...items.values()].filter(d => d.status === 'done').length;
+  if (!n) return toast('Aucun élément ici');
+  if (S.confirmClear !== false) {
+    const r = await askBox({ title: 'Retirer les terminés de la liste', text: T('{0} élément(s) terminé(s) seront retirés de la liste. Les fichiers restent sur le disque.').replace('{0}', n), ok: 'Retirer', danger: true, check: 'Ne plus prévenir' });
+    if (!r) return;
+    if (r.checked) { S = await call('setSettings', { confirmClear: false }); }
+  }
+  call('clearFinished');
+};
 $('#openDir').onclick = () => call('openDir');
 $('#openBrowser').onclick = () => call('openBrowser');
 $('#limitChip').onclick = async () => {
@@ -748,14 +763,71 @@ $('#nav').addEventListener('click', e => {
 });
 $('#q').addEventListener('input', render);
 
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { closeM(); $('#menu').classList.remove('on'); }
-  if (e.ctrlKey && e.key.toLowerCase() === 'n') { e.preventDefault(); showAdd(); }
-  if (e.ctrlKey && e.key.toLowerCase() === 't') { e.preventDefault(); showTorrent(); }
-  if (e.ctrlKey && e.key.toLowerCase() === 'b') { e.preventDefault(); call('openBrowser'); }
-  if (e.ctrlKey && e.key.toLowerCase() === 'f') { e.preventDefault(); $('#q').focus(); }
-  if (e.ctrlKey && e.key.toLowerCase() === 'a' && !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) { e.preventDefault(); selected = new Set(sorted().filter(match).map(d => d.id)); render(); }
-  if (e.key === 'Delete' && selected.size && !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName) && !$('.overlay.on')) removeItems([...selected]);
+// ---------------- raccourcis clavier du gestionnaire ----------------
+let kCursor = null; // élément « actif » au clavier (flèches)
+const SHORTCUTS = [
+  ['Ctrl + A', 'Tout sélectionner'], ['Maj + clic', 'Sélectionner une plage'], ['Ctrl + clic', 'Ajouter / retirer de la sélection'],
+  ['↑ / ↓', 'Se déplacer dans la liste'], ['Maj + ↑ / ↓', 'Étendre la sélection'], ['Début / Fin', 'Premier / dernier élément'],
+  ['Entrée', 'Ouvrir le fichier (ou reprendre)'], ['Espace', 'Pause / reprendre'], ['Suppr', 'Retirer de la liste'], ['Maj + Suppr', 'Retirer et supprimer les fichiers'],
+  ['F2', 'Renommer'], ['Ctrl + I', 'Informations'], ['Ctrl + C', 'Copier le lien'], ['Ctrl + E', 'Afficher dans le dossier'],
+  ['Ctrl + N', 'Ajouter un lien'], ['Ctrl + T', 'Ajouter un torrent'], ['Ctrl + O', 'Ouvrir un fichier .torrent'], ['Ctrl + V', 'Coller un lien et le télécharger'],
+  ['Ctrl + F', 'Rechercher'], ['Ctrl + B', 'Ouvrir le navigateur'], ['Ctrl + ,', 'Paramètres'], ['Ctrl + Maj + P', 'Tout mettre en pause'], ['Ctrl + Maj + R', 'Tout reprendre'],
+  ['Échap', 'Fermer / tout désélectionner'], ['F1  ou  Ctrl + /', 'Afficher ces raccourcis'],
+];
+function showShortcuts() {
+  prompt2('Raccourcis clavier', [{ html: `<div class="kbd-list">${SHORTCUTS.map(([k, l]) => `<div><kbd>${esc(T(k))}</kbd><span>${esc(T(l))}</span></div>`).join('')}</div>` }], 'OK');
+}
+$('#kbdBtn') && ($('#kbdBtn').onclick = showShortcuts);
+function moveCursor(step, extend, abs) {
+  const arr = sorted().filter(match).map(d => d.id);
+  if (!arr.length) return;
+  let i = arr.indexOf(kCursor ?? lastClickId);
+  i = abs === 'start' ? 0 : abs === 'end' ? arr.length - 1 : (i < 0 ? 0 : Math.max(0, Math.min(arr.length - 1, i + step)));
+  const id = arr[i];
+  if (extend) {
+    const anchor = lastClickId && arr.includes(lastClickId) ? lastClickId : arr[Math.max(0, i - step)];
+    const a = arr.indexOf(anchor);
+    selected = new Set(arr.slice(Math.min(a, i), Math.max(a, i) + 1));
+  } else { selected = new Set([id]); lastClickId = id; }
+  kCursor = id;
+  render();
+  $(`.item[data-id="${id}"]`)?.scrollIntoView({ block: 'nearest' });
+}
+const targets = () => (selected.size ? [...selected] : kCursor ? [kCursor] : []).map(id => items.get(id)).filter(Boolean);
+document.addEventListener('keydown', async e => {
+  const k = e.key, K = k.toLowerCase(), ctrl = e.ctrlKey || e.metaKey;
+  const typing = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName) || document.activeElement.isContentEditable;
+  const modal = $('.overlay.on');
+  if (k === 'Escape') {
+    if (modal || $('#menu.on')) { closeM(); $('#menu').classList.remove('on'); return; }
+    if (typing) { document.activeElement.blur(); return; }
+    if (current) return closeDrawer();
+    if (selected.size) { selected.clear(); kCursor = null; render(); }
+    return;
+  }
+  if (k === 'F1' || (ctrl && (k === '/' || k === ':'))) { e.preventDefault(); return showShortcuts(); }
+  if (ctrl && !e.shiftKey && K === 'n') { e.preventDefault(); return showAdd(); }
+  if (ctrl && !e.shiftKey && K === 't') { e.preventDefault(); return showTorrent(); }
+  if (ctrl && !e.shiftKey && K === 'o') { e.preventDefault(); showTorrent(); return setTimeout(() => $('#tPick').click(), 80); }
+  if (ctrl && K === 'b') { e.preventDefault(); return call('openBrowser'); }
+  if (ctrl && K === 'f') { e.preventDefault(); return $('#q').focus(); }
+  if (ctrl && k === ',') { e.preventDefault(); return $('#setBtn').click(); }
+  if (ctrl && e.shiftKey && K === 'p') { e.preventDefault(); return $('#pauseAll').click(); }
+  if (ctrl && e.shiftKey && K === 'r') { e.preventDefault(); return $('#resumeAll').click(); }
+  if (typing || modal) return;
+  if (ctrl && K === 'a') { e.preventDefault(); selected = new Set(sorted().filter(match).map(d => d.id)); return render(); }
+  if (ctrl && K === 'v') { e.preventDefault(); const t = (await navigator.clipboard.readText().catch(() => '')).trim(); if (/^magnet:/i.test(t)) return showTorrent({ src: t }); if (/^https?:\/\//i.test(t)) return showAdd({ url: t }); return toast('Aucun lien valide (http://, https:// ou magnet:)'); }
+  if (k === 'ArrowDown' || k === 'ArrowUp') { e.preventDefault(); return moveCursor(k === 'ArrowDown' ? 1 : -1, e.shiftKey); }
+  if (k === 'Home' || k === 'End') { e.preventDefault(); return moveCursor(0, e.shiftKey, k === 'Home' ? 'start' : 'end'); }
+  const T0 = targets(); if (!T0.length) return;
+  const one = T0.length === 1 ? T0[0] : (kCursor && items.get(kCursor)) || T0[0];
+  if (k === 'Delete') { e.preventDefault(); if (e.shiftKey) { await call('remove', T0.map(d => d.id), true); T0.forEach(d => { items.delete(d.id); selected.delete(d.id); }); if (T0.some(d => d.id === current)) closeDrawer(); render(); toast(T('{0} éléments retirés').replace('{0}', T0.length)); } else removeItems(T0.map(d => d.id)); return; }
+  if (k === 'Enter') { e.preventDefault(); return one.status === 'done' ? call('open', one.id) : ['paused', 'error'].includes(one.status) ? call('resume', one.id) : openDrawer(one.id); }
+  if (k === ' ') { e.preventDefault(); const anyRun = T0.some(d => ['running', 'queued', 'seeding'].includes(d.status)); T0.forEach(d => (anyRun ? ['running', 'queued', 'seeding', 'scheduled'].includes(d.status) && call('pause', d.id) : ['paused', 'error'].includes(d.status) && call('resume', d.id))); return; }
+  if (k === 'F2') { e.preventDefault(); return itemAction('rename', one); }
+  if (ctrl && K === 'i') { e.preventDefault(); return openDrawer(one.id); }
+  if (ctrl && K === 'e') { e.preventDefault(); return itemAction('folder', one); }
+  if (ctrl && K === 'c' && !window.getSelection().toString()) { e.preventDefault(); call('copy', T0.map(d => d.url).join('\n')); return toast(T0.length > 1 ? 'Liens copiés' : 'Lien copié'); }
 });
 
 // glisser-déposer : liens, .torrent, listes
@@ -803,8 +875,8 @@ async function showSettings(sec = 'gen') {
   S = await call('getSettings');
   sTmp = JSON.parse(JSON.stringify(S));
   const v = (id, x) => ($(id).value = x ?? ''), c = (id, x) => ($(id).checked = !!x);
-  v('#sDir', S.dir); c('#sCat', S.categorize); c('#sClip', S.clipboard); c('#sNotify', S.notify); c('#sSound', S.sound); c('#sTray', S.tray); c('#sBoot', S.startWithWindows); c('#sBootMin', S.startMinimized); c('#sShut', S.shutdownWhenDone); c('#sWeb', S.autoOpenWebpage);
-  v('#sConn', S.connections); bindRange('#sConn', '#sConnV'); v('#sPar', S.parallel); bindRange('#sPar', '#sParV'); v('#sRetry', S.maxRetries); v('#sDup', S.duplicate); v('#sHlsC', S.hls.connections); v('#sHlsQ', S.hls.quality); c('#sHlsConv', S.hls.convert); v('#sPerSite', S.perSite); c('#sRestore', S.restoreSession);
+  v('#sDir', S.dir); c('#sCat', S.categorize); c('#sClip', S.clipboard); c('#sNotify', S.notify); c('#sSound', S.sound); c('#sTray', S.tray); c('#sConfirmClear', S.confirmClear !== false); c('#sBoot', S.startWithWindows); c('#sBootMin', S.startMinimized); c('#sShut', S.shutdownWhenDone); c('#sWeb', S.autoOpenWebpage);
+  v('#sConn', S.connections); bindRange('#sConn', '#sConnV'); v('#sPar', S.parallel); bindRange('#sPar', '#sParV'); v('#sRetry', S.maxRetries); v('#sDup', S.duplicate); v('#sHlsC', S.hls.connections); v('#sHlsQ', S.hls.quality); c('#sHlsConv', S.hls.convert); v('#sPerSite', S.perSite);
   const Y = S.ytdl || {}; v('#sYtMode', Y.mode === 'audio' ? (Y.audioFormat || 'mp3') : 'video'); v('#sYtQ', Y.quality || '1080'); v('#sYtB', Y.audioBitrate || '320');
   call('ytdl:version').then(x => ($('#sYtVer').textContent = 'Version de yt-dlp : ' + x)).catch(() => {});
   call('extInfo').then(x => ($('#eInfo').textContent = x.port ? `DrYAE écoute l'extension sur le port ${x.port}. Identifiant de l'extension : ${x.id}` : 'Le service de l\'extension n\'a pas pu démarrer.')).catch(() => {});
@@ -812,9 +884,6 @@ async function showSettings(sec = 'gen') {
   const st = await call('stats'); v('#sDataUsed', fmt(st.dataToday));
   const T = S.torrent;
   c('#tEn', T.enabled); c('#tMeta', T.fetchMetadata); c('#tSeqD', T.sequential); c('#tSeedD', T.seed); v('#tRatio', T.ratio); v('#tUp', T.uploadLimit); v('#tDown', T.downloadLimit); v('#tConns', T.maxConns); v('#tPort', T.port); c('#tDht', T.dht); c('#tLsd', T.lsd); c('#tDefTr', T.useDefaultTrackers); v('#tTrackers', T.trackers); v('#tTrUrl', T.trackersUrl);
-  const B = S.browser;
-  v('#wSearch', B.search); v('#wUA', B.ua); c('#wAd', B.adblock); c('#wPop', B.blockPopups); c('#wSub', B.captureSubtitles); c('#wCookies', B.cookies); c('#wClear', B.clearOnExit); v('#wExtra', B.sniffExtra); v('#wDoh', B.doh);
-  v('#wLists', B.filterLists.join('\n')); v('#wHosts', B.hostsSources.join('\n')); v('#wCustom', B.customFilters);
   const C = S.scheduler;
   c('#cOn', C.enabled); v('#cStart', C.start); v('#cStop', C.stop); c('#cAdd', C.addNew); c('#cShut', C.shutdown);
   $('#cDays').innerHTML = DAYS.map((d, i) => `<label><input type="checkbox" data-day="${i}" ${C.days.includes(i) ? 'checked' : ''}>${d}</label>`).join('');
@@ -832,13 +901,11 @@ async function showSettings(sec = 'gen') {
 }
 function drawLists() {
   $('#sSiteList').innerHTML = sTmp.siteLimits.map((s, i) => `<div><span>${esc(s.host)} — ${s.max} simultané(s)</span><button class="icon-btn" data-rmsite="${i}">${ic('x')}</button></div>`).join('');
-  $('#wWhite').innerHTML = sTmp.browser.whitelist.map((h, i) => `<div><span>${esc(h)}</span><button class="icon-btn" data-rmwhite="${i}">${ic('x')}</button></div>`).join('') || '<p class="hint">Aucun site. Ajoute-en depuis le navigateur (bouclier).</p>';
   $('#pwList').innerHTML = S.passwords.map(p => `<div><span>${esc(p.host)} — ${esc(p.user)}</span><button class="icon-btn" data-rmpw="${esc(p.host)}">${ic('x')}</button></div>`).join('') || '<p class="hint">Aucun mot de passe enregistré.</p>';
 }
 $('#sModal').addEventListener('click', async e => {
   const t = e.target.closest('button'); if (!t) return;
   if (t.dataset.rmsite) { sTmp.siteLimits.splice(+t.dataset.rmsite, 1); drawLists(); }
-  if (t.dataset.rmwhite) { sTmp.browser.whitelist.splice(+t.dataset.rmwhite, 1); drawLists(); }
   if (t.dataset.rmpw) { await call('passwords:remove', t.dataset.rmpw); S = await call('getSettings'); drawLists(); }
   if (t.dataset.acc) { $('#lColor').value = t.dataset.acc; $$('#lSw button').forEach(b => b.classList.toggle('on', b === t)); }
 });
@@ -849,7 +916,6 @@ $('#eFolder').onclick = () => call('openExtFolder');
 $('#eChrome').onclick = async () => { await call('copy', 'chrome://extensions'); toast('Adresse copiée : colle-la dans la barre d\'adresse de Chrome'); };
 $('#sDirPick').onclick = async () => { const p = await call('pickDir', $('#sDir').value); if (p) $('#sDir').value = p; };
 $('#sMagnet').onclick = async () => { const ok = await call('registerMagnet'); $('#sMagnetSt').textContent = ok ? 'DrYAE ouvre maintenant les liens magnet ✔' : 'Windows a refusé — choisis DrYAE dans Paramètres > Applications par défaut'; };
-$('#wUpdate').onclick = async () => { $('#wUpdSt').textContent = 'Mise à jour…'; const ok = await call('br:updateAdblockProxy').catch(() => null); $('#wUpdSt').textContent = ok ? 'Filtres à jour ✔' : 'Impossible de mettre à jour (connexion ?)'; };
 $('#abReset').onclick = async () => { if (!confirmAsk('Réinitialiser tous les paramètres ?')) return; await call('resetSettings'); closeM(); S = await call('getSettings'); applyTheme(); updLimit(); toast('Paramètres réinitialisés'); };
 // ---- mises à jour, avis, langue ----
 function updText(u) {
@@ -893,15 +959,12 @@ $('#sOk').onclick = async () => {
   const v = id => $(id).value, c = id => $(id).checked, n = id => +$(id).value || 0;
   const lines = id => v(id).split(/\r?\n/).map(s => s.trim()).filter(Boolean);
   const patch = {
-    dir: v('#sDir').trim() || S.dir, categorize: c('#sCat'), clipboard: c('#sClip'), notify: c('#sNotify'), sound: c('#sSound'), tray: c('#sTray'), startWithWindows: c('#sBoot'), startMinimized: c('#sBootMin'), shutdownWhenDone: c('#sShut'), autoOpenWebpage: c('#sWeb'),
+    dir: v('#sDir').trim() || S.dir, categorize: c('#sCat'), clipboard: c('#sClip'), notify: c('#sNotify'), sound: c('#sSound'), tray: c('#sTray'), confirmClear: c('#sConfirmClear'), startWithWindows: c('#sBoot'), startMinimized: c('#sBootMin'), shutdownWhenDone: c('#sShut'), autoOpenWebpage: c('#sWeb'),
     connections: n('#sConn'), parallel: n('#sPar'), maxRetries: n('#sRetry'), duplicate: v('#sDup'), perSite: n('#sPerSite'), siteLimits: sTmp.siteLimits,
     hls: { connections: Math.max(1, n('#sHlsC')), quality: v('#sHlsQ'), convert: c('#sHlsConv') },
     ytdl: { mode: v('#sYtMode') === 'video' ? 'video' : 'audio', audioFormat: v('#sYtMode') === 'm4a' ? 'm4a' : 'mp3', quality: v('#sYtQ'), audioBitrate: v('#sYtB') },
-    restoreSession: c('#sRestore'),
     speedLimitOn: c('#sLimOn'), speedLimit: n('#sLim'), dataLimit: { enabled: c('#sDataOn'), mb: n('#sDataMb') }, proxy: { enabled: c('#sProxyOn'), url: v('#sProxy').trim() }, userAgent: v('#sUA').trim(),
     torrent: { enabled: c('#tEn'), fetchMetadata: c('#tMeta'), sequential: c('#tSeqD'), seed: c('#tSeedD'), ratio: +v('#tRatio') || 0, uploadLimit: n('#tUp'), downloadLimit: n('#tDown'), maxConns: n('#tConns') || 55, port: n('#tPort'), dht: c('#tDht'), lsd: c('#tLsd'), useDefaultTrackers: c('#tDefTr'), trackers: v('#tTrackers'), trackersUrl: v('#tTrUrl').trim() },
-    browser: { search: v('#wSearch'), ua: v('#wUA'), adblock: c('#wAd'), blockPopups: c('#wPop'), captureSubtitles: c('#wSub'), cookies: c('#wCookies'), clearOnExit: c('#wClear'), sniffExtra: v('#wExtra'), doh: v('#wDoh'),
-      filterLists: lines('#wLists'), hostsSources: lines('#wHosts'), customFilters: v('#wCustom'), whitelist: sTmp.browser.whitelist },
     scheduler: { enabled: c('#cOn'), start: v('#cStart') || '02:00', stop: v('#cStop'), days: $$('#cDays [data-day]').filter(x => x.checked).map(x => +x.dataset.day), addNew: c('#cAdd'), shutdown: c('#cShut') },
     theme: { mode: v('#lMode'), accent: $('#lColor').value },
   };
@@ -909,6 +972,7 @@ $('#sOk').onclick = async () => {
   applyTheme(); updLimit(); closeM(); toast('Paramètres enregistrés');
 };
 $('#setBtn').onclick = () => showSettings();
+D.on('open-settings', sec => showSettings(sec || undefined));
 
 // ---------------- événements du moteur ----------------
 D.on('changed', d => { items.set(d.id, { ...items.get(d.id), ...d }); render(); });
@@ -927,3 +991,32 @@ matchMedia('(prefers-color-scheme: light)').addEventListener('change', applyThem
   call('upd:info').then(drawUpd).catch(() => {});
   render();
 })();
+
+// ---------------- boîtes de dialogue ----------------
+// petite boîte de confirmation générique : { title, text, ok, danger, check, buttons:[{v,label,primary}] } -> valeur choisie
+function askBox(o) {
+  return new Promise(res => {
+    const m = $('#askModal');
+    $('#askTitle').textContent = T(o.title || '');
+    $('#askText').textContent = T(o.text || '');
+    $('#askChkBox').style.display = o.check ? '' : 'none';
+    $('#askChkTxt').textContent = T(o.check || '');
+    $('#askChk').checked = false;
+    const btns = o.buttons || [{ v: 'ok', label: o.ok || 'OK', primary: true, danger: o.danger }];
+    $('#askBtns').innerHTML = '<button class="btn" data-v="">' + esc(T('Annuler')) + '</button>' + btns.map(b => `<button class="btn ${b.primary ? 'primary' : ''} ${b.danger ? 'danger' : ''}" data-v="${b.v}">${esc(T(b.label))}</button>`).join('');
+    const done = v => { m.classList.remove('on'); $('#askBtns').onclick = null; m.onkeydown = null; res(v ? { value: v, checked: $('#askChk').checked } : null); };
+    $('#askBtns').onclick = e => { const b = e.target.closest('[data-v]'); if (b) done(b.dataset.v); };
+    m.querySelector('[data-askx]').onclick = () => done('');
+    m.classList.add('on');
+    setTimeout(() => $('#askBtns .primary')?.focus(), 30);
+  });
+}
+// doublon : remplacer, numéroter ou annuler (comme 1DM)
+async function askDuplicate(d) {
+  const st = d.status === 'done' ? T('déjà téléchargé') : T('déjà dans la liste');
+  const r = await askBox({ title: 'Ce fichier existe déjà', text: `« ${d.name} » — ${st}. ` + T('Que veux-tu faire ?'), check: 'Toujours faire ce choix',
+    buttons: [{ v: 'overwrite', label: 'Remplacer' }, { v: 'rename', label: 'Garder les deux (numéroter)', primary: true }] });
+  if (!r) return null;
+  if (r.checked) S = await call('setSettings', { duplicate: r.value });
+  return r.value;
+}

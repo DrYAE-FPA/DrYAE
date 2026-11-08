@@ -94,7 +94,7 @@ class HttpDownload extends Item {
         await fsp.mkdir(dir, { recursive: true });
         this.dir = dir;
         let target = path.join(dir, name);
-        if (fs.existsSync(target) && S.duplicate === 'overwrite') await fsp.rm(target, { force: true });
+        if (fs.existsSync(target) && (this.onExist || S.duplicate) === 'overwrite') await fsp.rm(target, { force: true });
         else target = uniquePath(dir, name);
         this.file = target; this.name = path.basename(target);
         this.size = info.size; this.resumable = info.resumable;

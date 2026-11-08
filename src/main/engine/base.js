@@ -25,6 +25,7 @@ class Item extends EventEmitter {
     this.headers = data.headers || {};
     this.pageUrl = data.pageUrl || '';
     this.md5 = data.md5 || null;
+    this.onExist = data.onExist || null; // 'overwrite' si l'utilisateur a choisi de remplacer
     if (this.status === 'running' || this.status === 'merging') this.status = 'queued';
     this.speed = 0;
     this.limiter = new Limiter(this.speedLimit * 1024);

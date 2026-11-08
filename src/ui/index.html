@@ -19,7 +19,8 @@
   <symbol id="i-folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></symbol>
   <symbol id="i-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 01-1 1H5a1 1 0 01-1-1V7a1 1 0 011-1h5"/></symbol>
   <symbol id="i-redo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12a8 8 0 0114-5l2 2M20 4v5h-5M20 12a8 8 0 01-14 5l-2-2M4 20v-5h5"/></symbol>
-  <symbol id="i-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></symbol>
+  <symbol id="i-kbd" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M6 9h.01M10 9h.01M14 9h.01M18 9h.01M6 13h.01M18 13h.01M8 16h8M10 13h4"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></symbol>
   <symbol id="i-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 9l6 6 6-6"/></symbol>
   <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></symbol>
@@ -70,7 +71,6 @@
       <button data-f="other"><svg><use href="#i-list"/></svg>Autres<span class="count" data-c="other"></span></button>
     </nav>
     <div class="side-foot">
-      <button class="browser-btn" id="openBrowser" title="Ctrl+B"><svg><use href="#i-globe"/></svg>Navigateur DrYAE</button>
       <div class="speedbox">
         <div class="row1"><span>Vitesse</span><button class="chip" id="limitChip" title="Activer / désactiver la limite de vitesse"><svg style="width:11px;height:11px"><use href="#i-gauge"/></svg><span id="limitTxt">MAX</span></button></div>
         <div class="v" id="total">0 o/s</div>
@@ -88,11 +88,13 @@
       <button class="btn" id="resumeAll"><svg><use href="#i-play"/></svg>Tout reprendre</button>
       <button class="btn" id="pauseAll"><svg><use href="#i-pause"/></svg>Tout en pause</button>
       <div class="search"><svg><use href="#i-search"/></svg><input id="q" placeholder="Rechercher…  (Ctrl+F)"></div>
+      <button class="web-btn" id="openBrowser" title="Navigateur DrYAE (Ctrl+B)"><svg><use href="#i-globe"/></svg>Navigateur</button>
       <button class="icon-btn" id="selBtn" title="Sélectionner plusieurs éléments"><svg><use href="#i-check"/></svg></button>
       <button class="icon-btn" id="themeBtn" title="Thème clair / sombre"><svg><use href="#i-sun" id="themeIc"/></svg></button>
       <button class="icon-btn" id="toolsBtn" title="Outils"><svg><use href="#i-tools"/></svg></button>
       <button class="icon-btn" id="openDir" title="Ouvrir le dossier de téléchargement"><svg><use href="#i-folder"/></svg></button>
       <button class="icon-btn" id="clearDone" title="Retirer les terminés de la liste"><svg><use href="#i-trash"/></svg></button>
+      <button class="icon-btn" id="kbdBtn" title="Raccourcis clavier (F1)"><svg><use href="#i-kbd"/></svg></button>
       <button class="icon-btn" id="setBtn" title="Paramètres"><svg><use href="#i-gear"/></svg></button>
     </div>
     <div class="bulk" id="bulk"><label class="check" style="margin:0"><input type="checkbox" id="bulkAll"> <b id="bulkN"></b></label>
@@ -178,6 +180,12 @@
 </div></div>
 
 <!-- Saisie générique -->
+<div class="overlay" id="askModal"><div class="modal" style="width:min(460px,100%)">
+  <h3 id="askTitle"></h3><button class="icon-btn x" data-askx style="position:absolute;top:14px;right:14px"><svg><use href="#i-x"/></svg></button>
+  <p id="askText" style="margin:6px 0 10px;line-height:1.5;word-break:break-word"></p>
+  <label class="check" id="askChkBox"><input type="checkbox" id="askChk"> <span id="askChkTxt"></span></label>
+  <div class="modal-foot" id="askBtns"></div>
+</div></div>
 <div class="overlay" id="pModal"><div class="modal">
   <h3 id="pTitle"></h3>
   <div id="pBody"></div>
@@ -190,7 +198,7 @@
   <div class="settings">
     <nav id="sNav">
       <button data-s="gen" class="on">Général</button><button data-s="dl">Téléchargements</button><button data-s="net">Vitesse &amp; réseau</button>
-      <button data-s="tor">Torrents</button><button data-s="web">Navigateur</button><button data-s="sch">Planificateur</button>
+      <button data-s="tor">Torrents</button><button data-s="sch">Planificateur</button>
       <button data-s="ext">Extension Chrome</button><button data-s="pwd">Mots de passe</button><button data-s="look">Apparence</button><button data-s="about">À propos</button>
     </nav>
     <div>
@@ -203,9 +211,9 @@
         <label class="check"><input type="checkbox" id="sNotify"> Notifications</label>
         <label class="check"><input type="checkbox" id="sSound"> Son à la fin d'un téléchargement</label>
         <label class="check"><input type="checkbox" id="sTray"> Garder DrYAE dans la barre système quand la fenêtre est fermée</label>
+        <label class="check"><input type="checkbox" id="sConfirmClear"> Demander avant de retirer les terminés (bouton corbeille)</label>
         <label class="check"><input type="checkbox" id="sBoot"> Lancer DrYAE au démarrage de Windows</label>
         <label class="check"><input type="checkbox" id="sBootMin"> … en arrière-plan (réduit)</label>
-        <label class="check"><input type="checkbox" id="sRestore"> Rouvrir les fenêtres et onglets laissés ouverts au prochain lancement</label>
         <label class="check"><input type="checkbox" id="sShut"> Éteindre l'ordinateur quand tous les téléchargements sont terminés</label>
         <label class="check"><input type="checkbox" id="sWeb"> Ouvrir dans le navigateur les liens qui mènent à une page web</label>
         <div class="row" style="margin-top:14px"><button class="btn" id="sMagnet"><svg><use href="#i-magnet"/></svg>Ouvrir les liens magnet avec DrYAE</button><span class="hint" id="sMagnetSt"></span></div>
@@ -216,7 +224,7 @@
           <div><label>Connexions par fichier</label><div class="range"><input type="range" id="sConn" min="1" max="32"><b id="sConnV"></b></div></div>
           <div><label>Téléchargements simultanés</label><div class="range"><input type="range" id="sPar" min="1" max="20"><b id="sParV"></b></div></div>
           <div><label>Tentatives en cas d'erreur</label><input type="number" id="sRetry" min="0" max="100"></div>
-          <div><label>Si le fichier existe déjà</label><select id="sDup"><option value="rename">Renommer (fichier (1).ext)</option><option value="overwrite">Écraser</option></select></div>
+          <div><label>Si le fichier existe déjà</label><select id="sDup"><option value="ask">Me demander à chaque fois</option><option value="rename">Renommer (fichier (1).ext)</option><option value="overwrite">Écraser</option></select></div>
           <div><label>Connexions par flux vidéo (HLS)</label><input type="number" id="sHlsC" min="1" max="16"></div>
           <div><label>Qualité vidéo par défaut</label><select id="sHlsQ"><option value="best">Meilleure</option><option value="lowest">La plus légère</option></select></div>
         </div>
@@ -266,27 +274,6 @@
         <label class="check"><input type="checkbox" id="tDefTr"> Ajouter les trackers par défaut à chaque torrent</label>
         <label>Liste de trackers (un par ligne)</label><textarea id="tTrackers"></textarea>
         <label>Mettre à jour automatiquement depuis cette adresse (texte brut)</label><input type="text" id="tTrUrl">
-      </section>
-      <section data-s="web">
-        <h4>Navigateur</h4>
-        <div class="grid2">
-          <div><label>Moteur de recherche</label><select id="wSearch"><option value="google">Google</option><option value="bing">Bing</option><option value="duckduckgo">DuckDuckGo</option><option value="qwant">Qwant</option><option value="brave">Brave</option><option value="yahoo">Yahoo</option></select></div>
-          <div><label>Mode d'affichage</label><select id="wUA"><option value="desktop">Ordinateur</option><option value="mobile">Mobile</option></select></div>
-        </div>
-        <label class="check"><input type="checkbox" id="wAd"> Bloquer les publicités et les traqueurs</label>
-        <label class="check"><input type="checkbox" id="wPop"> Bloquer les fenêtres pop-up</label>
-        <label class="check"><input type="checkbox" id="wSub"> Détecter les sous-titres</label>
-        <label class="check"><input type="checkbox" id="wCookies"> Transmettre les cookies du navigateur aux téléchargements</label>
-        <label class="check"><input type="checkbox" id="wClear"> Effacer l'historique et les cookies en fermant le navigateur</label>
-        <label>Types de fichiers supplémentaires à détecter</label><input type="text" id="wExtra" placeholder="zip,rar,apk,pdf">
-        <label>DNS sécurisé (DNS-over-HTTPS, appliqué au redémarrage)</label>
-        <select id="wDoh"><option value="">Désactivé (DNS du système)</option><option value="https://cloudflare-dns.com/dns-query">Cloudflare</option><option value="https://dns.google/dns-query">Google</option><option value="https://dns.quad9.net/dns-query">Quad9</option><option value="https://dns.adguard-dns.com/dns-query">AdGuard (bloque les pubs)</option></select>
-        <div class="sect">Bloqueur de publicités</div>
-        <label>Listes de filtres supplémentaires (une adresse par ligne)</label><textarea id="wLists" style="min-height:60px"></textarea>
-        <label>Sources de fichiers hosts (une adresse par ligne)</label><textarea id="wHosts" style="min-height:50px"></textarea>
-        <label>Filtres personnalisés (syntaxe Adblock)</label><textarea id="wCustom" style="min-height:50px" placeholder="||pub.exemple.com^"></textarea>
-        <label>Sites autorisés (bloqueur désactivé)</label><div class="list-edit" id="wWhite"></div>
-        <div class="row" style="margin-top:10px"><button class="btn" id="wUpdate">Mettre à jour les filtres maintenant</button><span class="hint" id="wUpdSt"></span></div>
       </section>
       <section data-s="sch">
         <h4>Planificateur</h4>

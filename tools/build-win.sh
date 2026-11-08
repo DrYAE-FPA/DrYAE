@@ -13,9 +13,6 @@ npx @electron/packager . DrYAE --platform=win32 --arch=x64 --out=dist --icon=ass
   --ignore="^/tools" --ignore="^/\.github" --ignore="^/README" --ignore="\.gitignore" --overwrite --quiet
 mv dist/DrYAE-win32-x64 dist/DrYAE
 A=dist/DrYAE/resources/app
-# module natif WebRTC compilé pour Windows (torrents web)
-NDC=${NDC_WIN:-/home/claude/wt/ndc-win32/Release/node_datachannel.node}
-mkdir -p $A/node_modules/node-datachannel/build/Release && cp "$NDC" $A/node_modules/node-datachannel/build/Release/
 # retirer les binaires des autres systèmes
 find $A/node_modules -type d -path "*/prebuilds/*" ! -name "win32-x64" -prune -exec rm -rf {} + 2>/dev/null || true
 rm -rf $A/node_modules/7zip-bin/linux $A/node_modules/7zip-bin/mac

@@ -26,7 +26,8 @@ function defaults(app) {
     maxRetries: 10,
     userAgent: '',
     proxy: { enabled: false, url: '' },
-    duplicate: 'rename',      // rename | ask | overwrite
+    duplicate: 'ask',         // ask | rename | overwrite (doublon : même lien ou même titre)
+    confirmClear: true,       // demander avant de vider la liste des terminés
     notify: true,
     sound: true,
     clipboard: true,
@@ -80,6 +81,8 @@ class Settings extends EventEmitter {
     let saved = {};
     try { saved = JSON.parse(fs.readFileSync(this.file, 'utf8')); } catch {}
     this.data = deepMerge(this.def, saved);
+    // 1.6.1 : on demande désormais quoi faire en cas de doublon (l'ancien réglage par défaut était « renommer »)
+    if (!saved.v161) { this.data.duplicate = 'ask'; this.data.v161 = true; }
   }
   get() { return this.data; }
   set(patch) {

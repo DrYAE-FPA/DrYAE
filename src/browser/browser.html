@@ -38,6 +38,33 @@ body{display:flex;flex-direction:column;height:100vh}
 .loadbar{height:2px;background:transparent;flex:none;position:relative;overflow:hidden}
 .loadbar i{position:absolute;left:0;top:0;bottom:0;background:var(--accent);width:0;transition:width .3s}
 .stage{flex:1;position:relative;display:flex;min-height:0}
+.menu.wide{min-width:300px}
+.menu button .ml{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.menu button kbd{font:11px ui-monospace,Consolas,monospace;color:var(--dim);margin-left:12px;white-space:nowrap}
+.menu button .mar svg{width:12px;height:12px;color:var(--dim)}
+.menu button:disabled{opacity:.4;cursor:default}.menu button:disabled:hover{background:none}
+.menu .mback{font-weight:600}
+.mzoom{display:flex;align-items:center;gap:6px;padding:4px 10px}
+.mzoom span{flex:1}
+.mzoom button{width:30px;height:28px;justify-content:center;padding:0;border:1px solid var(--line2);border-radius:6px;font-size:16px}
+.mzoom b{min-width:52px;text-align:center;font-size:12px;font-weight:600}
+.dtop{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.dtop .check{margin-top:0;font-size:12px}
+.dopt{font-size:12px}
+.dfile{display:flex;gap:10px;padding:10px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;background:var(--panel2);cursor:pointer;align-items:flex-start}
+.dfile:hover{border-color:var(--accent-line)}
+.dfile.sel{border-color:var(--accent);background:var(--accent-soft)}
+.dfile .ico{width:62px;flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--muted);font-size:10.5px;text-align:center}
+.dfile .ico svg{width:26px;height:26px;color:var(--text)}
+.dfile .ico b{font-size:11.5px;color:var(--text)}
+.dfile .mid{flex:1;min-width:0}
+.dfile .mid .h{color:var(--dim);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dfile .mid .n{font-weight:700;font-size:13px;word-break:break-word;margin:2px 0}
+.dfile .mid .m{color:var(--muted);font-size:11.5px}.dfile .mid .m b{color:var(--text)}
+.dfile .more{padding:4px;border-radius:6px;color:var(--muted)}.dfile .more:hover{background:var(--line)}
+.dfile .ck{margin-top:4px;accent-color:var(--accent)}
+.pfoot{display:flex;gap:6px;padding:10px;border-top:1px solid var(--line);flex-wrap:wrap}
+.pfoot .sp{flex:1}
 .views{flex:1;position:relative}
 webview{position:absolute;inset:0;width:100%;height:100%;display:none;background:#fff}
 webview.on{display:flex}
@@ -88,6 +115,11 @@ browser-action-list::part(action):hover{background:var(--panel2)}
 .qgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .qopt{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);text-align:left;cursor:pointer}
 .qopt:hover{border-color:var(--accent);background:var(--accent-soft)}
+.tfl{max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:4px;margin-bottom:8px}
+.tfr{display:flex;align-items:center;gap:8px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:12.5px}
+.tfr:hover{background:var(--panel2)}
+.tfr .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tfr .s{color:var(--muted);font-variant-numeric:tabular-nums}
 .qopt b{font-size:13px}.qopt span{color:var(--muted);font-size:11px}
 .qopt.best{border-color:var(--accent-line)}
 .spin{width:22px;height:22px;border:3px solid var(--line2);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;margin:18px auto}
@@ -122,6 +154,22 @@ browser-action-list::part(action):hover{background:var(--panel2)}
   <symbol id="i-puzzle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 3a2 2 0 014 0v2h4a1 1 0 011 1v4h-2a2 2 0 000 4h2v4a1 1 0 01-1 1h-4v-2a2 2 0 00-4 0v2H6a1 1 0 01-1-1v-4h2a2 2 0 000-4H5V6a1 1 0 011-1h4z"/></symbol>
   <symbol id="i-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
   <symbol id="i-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></symbol>
+  <symbol id="i-print" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V3h12v6M6 18H4a1 1 0 01-1-1v-6a2 2 0 012-2h14a2 2 0 012 2v6a1 1 0 01-1 1h-2"/><rect x="6" y="14" width="12" height="7" rx="1"/></symbol>
+  <symbol id="i-save" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 3h11l4 4v13a1 1 0 01-1 1H5a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M8 3v5h7V3M8 21v-7h8v7"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 010 18M12 3a14 14 0 000 18"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-tools" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a4 4 0 00-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 005.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/></symbol>
+  <symbol id="i-sound" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9v6h4l5 4V5L8 9zM16 9a4 4 0 010 6M19 6a8 8 0 010 12"/></symbol>
+  <symbol id="i-code" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5"/></symbol>
+  <symbol id="i-help" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 015 .5c0 2-2.5 2-2.5 4M12 17h.01"/></symbol>
+  <symbol id="i-kbd" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M6 9h.01M10 9h.01M14 9h.01M18 9h.01M6 13h.01M18 13h.01M8 16h8M10 13h4"/></symbol>
+  <symbol id="i-expand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></symbol>
+  <symbol id="i-filter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></symbol>
+  <symbol id="i-sort" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4"/></symbol>
+  <symbol id="i-film" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16M3 8h4M3 12h4M3 16h4M17 8h4M17 12h4M17 16h4"/></symbol>
+  <symbol id="i-music" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H6a1 1 0 00-1 1v16a1 1 0 001 1h12a1 1 0 001-1V8z"/><path d="M14 3v5h5"/></symbol>
 </svg>
 
 <div class="tabstrip" id="tabs"><button class="newtab" id="newTab" title="Nouvel onglet (Ctrl+T)"><svg><use href="#i-plus"/></svg></button></div>
@@ -149,7 +197,7 @@ browser-action-list::part(action):hover{background:var(--panel2)}
     </div>
     <div class="findbar" id="findbar"><input id="findQ" placeholder="Rechercher dans la page"><span class="hint" id="findN"></span><button class="icon-btn" id="findPrev"><svg><use href="#i-back"/></svg></button><button class="icon-btn" id="findNext"><svg><use href="#i-fwd"/></svg></button><button class="icon-btn" id="findX"><svg><use href="#i-x"/></svg></button></div>
   </div>
-  <div class="panel" id="panel"><header><b id="pTitle"></b><button class="icon-btn" id="pClose"><svg><use href="#i-x"/></svg></button></header><div class="pbody" id="pBody"></div></div>
+  <div class="panel" id="panel"><header><b id="pTitle"></b><button class="icon-btn" id="pClose"><svg><use href="#i-x"/></svg></button></header><div class="pbody" id="pBody"></div><div class="pfoot" id="pFoot" style="display:none"></div></div>
 </div>
 
 <div class="menu" id="menu"></div>
@@ -171,6 +219,76 @@ browser-action-list::part(action):hover{background:var(--panel2)}
     <div class="row" style="gap:16px;flex-wrap:wrap;margin-top:4px"><label class="check"><input type="checkbox" id="qaPaused"> Ajouter en pause</label><label class="check"><input type="checkbox" id="qaSched"> Planifier</label><label class="check" style="gap:6px">Limite <input type="number" id="qaSpeed" min="0" value="0" style="width:80px"> Ko/s</label></div>
   </div>
   <div class="modal-foot"><span class="l hint">Ne télécharge que ce que tu as le droit de copier.</span><button class="btn" id="qsMore">Plus d'options…</button></div>
+</div></div>
+<!-- raccourcis -->
+<div class="overlay" id="kbModal"><div class="modal" style="width:min(760px,100%)">
+  <h3>Raccourcis clavier du navigateur<button class="icon-btn x" data-close><svg><use href="#i-x"/></svg></button></h3>
+  <div class="kbd-list"></div>
+</div></div>
+<!-- effacer les données -->
+<div class="overlay" id="cdModal"><div class="modal" style="width:min(420px,100%)">
+  <h3>Effacer l'historique récent<button class="icon-btn x" data-close><svg><use href="#i-x"/></svg></button></h3>
+  <label class="check"><input type="checkbox" id="cdHist" checked> Historique de navigation</label>
+  <label class="check"><input type="checkbox" id="cdCookies"> Cookies et connexions aux sites</label>
+  <label class="check"><input type="checkbox" id="cdCache" checked> Fichiers en cache</label>
+  <div class="modal-foot"><button class="btn" data-close>Annuler</button><button class="btn primary" id="cdOk">Effacer</button></div>
+</div></div>
+<!-- paramètres propres au navigateur -->
+<div class="overlay" id="bsModal"><div class="modal wide">
+  <h3>Paramètres du navigateur<button class="icon-btn x" data-close><svg><use href="#i-x"/></svg></button></h3>
+  <div class="settings">
+    <nav id="bsNav">
+      <button data-s="gen" class="on">Général</button><button data-s="priv">Vie privée et sécurité</button><button data-s="ads">Bloqueur de publicités</button>
+      <button data-s="pw">Mots de passe et saisie</button><button data-s="ext">Extensions</button><button data-s="adv">Avancé</button>
+    </nav>
+    <div>
+      <section data-s="gen" class="on">
+        <h4>Général</h4>
+        <div class="grid2">
+          <div><label>Moteur de recherche</label><select id="wSearch"><option value="google">Google</option><option value="bing">Bing</option><option value="duckduckgo">DuckDuckGo</option><option value="qwant">Qwant</option><option value="brave">Brave</option><option value="yahoo">Yahoo</option></select></div>
+          <div><label>Mode d'affichage</label><select id="wUA"><option value="desktop">Ordinateur</option><option value="mobile">Mobile</option></select></div>
+        </div>
+        <label class="check"><input type="checkbox" id="wRestore"> Rouvrir au prochain lancement les onglets laissés ouverts</label>
+        <label class="check"><input type="checkbox" id="wPop"> Bloquer les fenêtres pop-up</label>
+        <div class="sect">Téléchargements</div>
+        <p class="hint">Les téléchargements ont leurs propres réglages dans le gestionnaire.</p>
+        <div class="row" style="margin-top:8px"><button class="btn" id="wDlSet">Ouvrir les paramètres de téléchargement</button></div>
+      </section>
+      <section data-s="priv">
+        <h4>Vie privée et sécurité</h4>
+        <label class="check"><input type="checkbox" id="wClear"> Effacer l'historique et les cookies en fermant le navigateur</label>
+        <label class="check"><input type="checkbox" id="wCookies"> Transmettre les cookies du navigateur aux téléchargements</label>
+        <label>DNS sécurisé (DNS-over-HTTPS, appliqué au redémarrage)</label>
+        <select id="wDoh"><option value="">Désactivé (DNS du système)</option><option value="https://cloudflare-dns.com/dns-query">Cloudflare</option><option value="https://dns.google/dns-query">Google</option><option value="https://dns.quad9.net/dns-query">Quad9</option><option value="https://dns.adguard-dns.com/dns-query">AdGuard (bloque les pubs)</option></select>
+        <div class="row" style="margin-top:14px;gap:8px"><button class="btn" id="wClearNow">Effacer l'historique récent…</button></div>
+      </section>
+      <section data-s="ads">
+        <h4>Bloqueur de publicités</h4>
+        <label class="check"><input type="checkbox" id="wAd"> Bloquer les publicités et les traqueurs</label>
+        <label>Listes de filtres supplémentaires (une adresse par ligne)</label><textarea id="wLists" style="min-height:60px"></textarea>
+        <label>Sources de fichiers hosts (une adresse par ligne)</label><textarea id="wHosts" style="min-height:50px"></textarea>
+        <label>Filtres personnalisés (syntaxe Adblock)</label><textarea id="wCustom" style="min-height:50px" placeholder="||pub.exemple.com^"></textarea>
+        <label>Sites autorisés (bloqueur désactivé)</label><div class="list-edit" id="wWhite"></div>
+        <div class="row" style="margin-top:10px"><button class="btn" id="wUpdate">Mettre à jour les filtres maintenant</button><span class="hint" id="wUpdSt"></span></div>
+      </section>
+      <section data-s="pw">
+        <h4>Mots de passe et saisie automatique</h4>
+        <p class="hint">Les mots de passe sont chiffrés par Windows sur ce PC.</p>
+        <div class="row" style="margin-top:10px;gap:8px"><button class="btn" id="wPwOpen">Mots de passe enregistrés</button><button class="btn" id="wAfOpen">Saisie automatique</button></div>
+      </section>
+      <section data-s="ext">
+        <h4>Extensions</h4>
+        <p class="hint">Ouvre le Chrome Web Store, choisis une extension, puis clique « Ajouter à Chrome ».</p>
+        <div class="row" style="margin-top:10px;gap:8px"><button class="btn" id="wExtOpen">Gérer les extensions</button></div>
+      </section>
+      <section data-s="adv">
+        <h4>Avancé</h4>
+        <label class="check"><input type="checkbox" id="wSub"> Détecter les sous-titres</label>
+        <label>Types de fichiers supplémentaires à détecter</label><input type="text" id="wExtra" placeholder="zip,rar,apk,pdf">
+      </section>
+    </div>
+  </div>
+  <div class="modal-foot"><button class="btn" data-close>Annuler</button><button class="btn primary" id="wOk">Enregistrer</button></div>
 </div></div>
 <div class="toast" id="toast"></div>
 <script src="../shared/locales.js"></script>
