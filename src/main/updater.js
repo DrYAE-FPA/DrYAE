@@ -31,7 +31,15 @@ class Updater {
       const { autoUpdater } = require('electron-updater');
       autoUpdater.autoDownload = false;
       autoUpdater.autoInstallOnAppQuit = true;
-      autoUpdater.setFeedURL({ provider: 'github', owner: this.cfg.github.owner, repo: this.cfg.github.repo });
+      // electron-updater a besoin du fichier app-update.yml : s'il manque (ancienne construction), on le crée
+      const g = this.cfg.github;
+      const yml = `provider: github\nowner: ${g.owner}\nrepo: ${g.repo}\nupdaterCacheDirName: dryae-updater\n`;
+      const own = path.join(process.resourcesPath || '', 'app-update.yml');
+      if (!fs.existsSync(own)) {
+        const alt = path.join(app.getPath('userData'), 'app-update.yml');
+        try { fs.writeFileSync(alt, yml); autoUpdater.updateConfigPath = alt; } catch {}
+      }
+      autoUpdater.setFeedURL({ provider: 'github', owner: g.owner, repo: g.repo });
       autoUpdater.on('checking-for-update', () => this.set({ status: 'checking', error: null }));
       autoUpdater.on('update-available', i => { this.set({ status: 'available', version: i.version }); this.notify(this.T('Mise à jour disponible'), 'DrYAE ' + i.version); });
       autoUpdater.on('update-not-available', () => this.set({ status: 'latest' }));

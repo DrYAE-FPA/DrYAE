@@ -28,6 +28,8 @@ if [ "$STAGE" != "installer" ]; then
   cp LICENSE dist/DrYAE/LICENSE.txt
   cp THIRD_PARTY_NOTICES.txt PRIVACY.md dist/DrYAE/
   cp -r extension "dist/DrYAE/Extension Chrome DrYAE"
+  # fichier lu par la mise à jour en un clic (electron-updater)
+  node -e "const c=require('./dryae.config.json').github||{};if(c.owner&&c.repo)require('fs').writeFileSync('dist/DrYAE/resources/app-update.yml','provider: github\\nowner: '+c.owner+'\\nrepo: '+c.repo+'\\nupdaterCacheDirName: dryae-updater\\n')"
   cat > dist/DrYAE/LISEZMOI.txt <<TXT
 DrYAE $VER — version portable / portable version
 FR : lancez DrYAE.exe. La langue se change dans Paramètres → Général. Pour les mises à jour en un clic, utilisez l'installateur DrYAE-Setup-$VER.exe. F1 affiche les raccourcis clavier.

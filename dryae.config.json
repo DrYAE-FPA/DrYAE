@@ -2,7 +2,7 @@
   "_comment": "Renseigne ton dépôt GitHub avant de publier : il sert aux mises à jour en un clic et au bouton « Donner mon avis ». donateUrl est facultatif (GitHub Sponsors, PayPal…).",
   "github": {
     "owner": "DrYAE-FPA",
-    "repo": "dryae"
+    "repo": "DrYAE"
   },
   "donateUrl": ""
 }
