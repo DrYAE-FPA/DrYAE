@@ -4,6 +4,18 @@
 
 ---
 
+## ✨ Nouveautés de la version 1.6.1 / What's new
+
+- ⚡ **Torrents beaucoup plus légers** (nouveau moteur natif aria2), et choix des fichiers directement sur la page.
+- ⌨️ **Raccourcis clavier** dans le gestionnaire et dans le navigateur (comme Firefox). Appuyez sur **F1** pour les voir.
+- 🔁 **Doublons détectés** : Remplacer, Garder les deux ou Annuler.
+- 🧭 **Menu et paramètres du navigateur façon Firefox**.
+- 🎞️ Panneau **« Fichier(s) détecté(s) »** avec la taille, la résolution et la durée, et le bouton *Tout effacer*.
+
+👉 Toutes les nouveautés : [CHANGELOG.md](CHANGELOG.md) · ⬇️ [Télécharger DrYAE](https://github.com/DrYAE-FPA/DrYAE/releases/latest)
+
+---
+
 ## Français
 
 DrYAE télécharge vos fichiers plus vite en plusieurs morceaux, gère les torrents et les flux vidéo, et inclut un navigateur avec bloqueur de publicités.
