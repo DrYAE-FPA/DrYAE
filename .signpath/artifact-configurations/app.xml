@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SignPath : à copier dans la configuration d'artefact « app » du projet DrYAE.
+     Signe uniquement DrYAE.exe (nos propres programmes). Les outils tiers inclus (ffmpeg, yt-dlp, aria2…) ne sont pas signés par nous. -->
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <zip-file>
+    <pe-file-set>
+      <include path="DrYAE.exe" product-name="DrYAE" />
+      <for-each>
+        <authenticode-sign />
+      </for-each>
+    </pe-file-set>
+  </zip-file>
+</artifact-configuration>

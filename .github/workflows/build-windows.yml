@@ -1,0 +1,101 @@
+# Construit DrYAE pour Windows sur les serveurs de GitHub, à partir du code de ce dépôt.
+# Si SignPath est configuré (variable SIGNPATH_ORGANIZATION_ID + secret SIGNPATH_API_TOKEN),
+# DrYAE.exe puis l'installateur sont signés : Windows n'affiche plus l'alerte « application dangereuse ».
+# Lancement : automatiquement à chaque tag v* (ex. v1.6.2), ou à la main (onglet Actions → Run workflow).
+name: Build Windows
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    env:
+      SIGN: ${{ vars.SIGNPATH_ORGANIZATION_ID != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Télécharger les outils inclus (ffmpeg, yt-dlp, aria2, QuickJS, 7-Zip)
+        shell: pwsh
+        run: ./tools/fetch-win-tools.ps1
+
+      - name: Construire l'application (dossier portable)
+        shell: bash
+        run: ./tools/build-win.sh package
+
+      - name: Envoyer l'application non signée
+        id: app-unsigned
+        uses: actions/upload-artifact@v4
+        with:
+          name: DrYAE-app-unsigned
+          path: dist/DrYAE
+
+      - name: Signer DrYAE.exe (SignPath)
+        if: env.SIGN == 'true'
+        uses: signpath/github-action-submit-signing-request@v1
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: DrYAE
+          signing-policy-slug: release-signing
+          artifact-configuration-slug: app
+          github-artifact-id: ${{ steps.app-unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: dist/DrYAE
+
+      - name: Construire l'installateur
+        shell: bash
+        run: ./tools/build-win.sh installer
+
+      - name: Envoyer l'installateur non signé
+        id: inst-unsigned
+        uses: actions/upload-artifact@v4
+        with:
+          name: DrYAE-installer-unsigned
+          path: dist/installer/DrYAE-Setup-*.exe
+
+      - name: Signer l'installateur (SignPath)
+        if: env.SIGN == 'true'
+        uses: signpath/github-action-submit-signing-request@v1
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: DrYAE
+          signing-policy-slug: release-signing
+          artifact-configuration-slug: installer
+          github-artifact-id: ${{ steps.inst-unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: dist/installer
+
+      - name: Mettre à jour latest.yml après la signature
+        if: env.SIGN == 'true'
+        run: node tools/update-latest-yml.js dist/installer
+
+      - name: Zipper la version portable
+        shell: pwsh
+        run: |
+          $v = node -p "require('./package.json').version"
+          Compress-Archive -Path dist/DrYAE -DestinationPath "dist/installer/DrYAE-$v-portable.zip"
+
+      - name: Fichiers à joindre à la version GitHub
+        uses: actions/upload-artifact@v4
+        with:
+          name: DrYAE-release
+          path: |
+            dist/installer/DrYAE-Setup-*.exe
+            dist/installer/DrYAE-Setup-*.exe.blockmap
+            dist/installer/latest.yml
+            dist/installer/DrYAE-*-portable.zip

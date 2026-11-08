@@ -875,7 +875,7 @@ async function showSettings(sec = 'gen') {
   S = await call('getSettings');
   sTmp = JSON.parse(JSON.stringify(S));
   const v = (id, x) => ($(id).value = x ?? ''), c = (id, x) => ($(id).checked = !!x);
-  v('#sDir', S.dir); c('#sCat', S.categorize); c('#sClip', S.clipboard); c('#sNotify', S.notify); c('#sSound', S.sound); c('#sTray', S.tray); c('#sConfirmClear', S.confirmClear !== false); c('#sBoot', S.startWithWindows); c('#sBootMin', S.startMinimized); c('#sShut', S.shutdownWhenDone); c('#sWeb', S.autoOpenWebpage);
+  v('#sDir', S.dir); c('#sCat', S.categorize); c('#sClip', S.clipboard); c('#sNotify', S.notify); c('#sSound', S.sound); c('#sTray', S.tray); c('#sConfirmClear', S.confirmClear !== false); c('#sAutoUpd', S.autoUpdateCheck !== false); c('#sBoot', S.startWithWindows); c('#sBootMin', S.startMinimized); c('#sShut', S.shutdownWhenDone); c('#sWeb', S.autoOpenWebpage);
   v('#sConn', S.connections); bindRange('#sConn', '#sConnV'); v('#sPar', S.parallel); bindRange('#sPar', '#sParV'); v('#sRetry', S.maxRetries); v('#sDup', S.duplicate); v('#sHlsC', S.hls.connections); v('#sHlsQ', S.hls.quality); c('#sHlsConv', S.hls.convert); v('#sPerSite', S.perSite);
   const Y = S.ytdl || {}; v('#sYtMode', Y.mode === 'audio' ? (Y.audioFormat || 'mp3') : 'video'); v('#sYtQ', Y.quality || '1080'); v('#sYtB', Y.audioBitrate || '320');
   call('ytdl:version').then(x => ($('#sYtVer').textContent = 'Version de yt-dlp : ' + x)).catch(() => {});
@@ -959,7 +959,7 @@ $('#sOk').onclick = async () => {
   const v = id => $(id).value, c = id => $(id).checked, n = id => +$(id).value || 0;
   const lines = id => v(id).split(/\r?\n/).map(s => s.trim()).filter(Boolean);
   const patch = {
-    dir: v('#sDir').trim() || S.dir, categorize: c('#sCat'), clipboard: c('#sClip'), notify: c('#sNotify'), sound: c('#sSound'), tray: c('#sTray'), confirmClear: c('#sConfirmClear'), startWithWindows: c('#sBoot'), startMinimized: c('#sBootMin'), shutdownWhenDone: c('#sShut'), autoOpenWebpage: c('#sWeb'),
+    dir: v('#sDir').trim() || S.dir, categorize: c('#sCat'), clipboard: c('#sClip'), notify: c('#sNotify'), sound: c('#sSound'), tray: c('#sTray'), confirmClear: c('#sConfirmClear'), autoUpdateCheck: c('#sAutoUpd'), startWithWindows: c('#sBoot'), startMinimized: c('#sBootMin'), shutdownWhenDone: c('#sShut'), autoOpenWebpage: c('#sWeb'),
     connections: n('#sConn'), parallel: n('#sPar'), maxRetries: n('#sRetry'), duplicate: v('#sDup'), perSite: n('#sPerSite'), siteLimits: sTmp.siteLimits,
     hls: { connections: Math.max(1, n('#sHlsC')), quality: v('#sHlsQ'), convert: c('#sHlsConv') },
     ytdl: { mode: v('#sYtMode') === 'video' ? 'video' : 'audio', audioFormat: v('#sYtMode') === 'm4a' ? 'm4a' : 'mp3', quality: v('#sYtQ'), audioBitrate: v('#sYtB') },

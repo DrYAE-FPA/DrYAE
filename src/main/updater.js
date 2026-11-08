@@ -11,8 +11,8 @@ function readConfig() {
 }
 
 class Updater {
-  constructor({ send, notify, T }) {
-    this.send = send; this.notify = notify; this.T = T;
+  constructor({ send, notify, T, auto }) {
+    this.send = send; this.notify = notify; this.T = T; this.auto = auto || (() => true);
     this.cfg = readConfig();
     this.state = { status: 'idle', version: null, progress: 0, error: null };
     this.au = null;
@@ -39,8 +39,9 @@ class Updater {
       autoUpdater.on('update-downloaded', i => this.set({ status: 'ready', version: i.version }));
       autoUpdater.on('error', e => this.set({ status: 'error', error: String(e && e.message || e).split('\n')[0] }));
       this.au = autoUpdater;
-      setTimeout(() => this.check(), 15000);
-      setInterval(() => this.check(), 6 * 3600 * 1000);
+      // vérification automatique (désactivable dans Paramètres → À propos)
+      setTimeout(() => this.auto() && this.check(), 15000);
+      setInterval(() => this.auto() && this.check(), 6 * 3600 * 1000);
     } catch (e) { console.error('updater', e.message); }
   }
   async check() {

@@ -18,7 +18,7 @@ nsis:
   installerLanguages: [en_US, es_ES, fr_FR, ar_SA, pt_PT, ru_RU]
   language: "1033"
   include: build/installer.nsh
-  license: LICENSE
+  license: build/license.txt
   installerIcon: assets/icon.ico
   uninstallerIcon: assets/icon.ico
   createDesktopShortcut: true

@@ -70,6 +70,10 @@ DrYAE is a neutral tool, like a web browser. **Only download content you have th
 
 ---
 
+## Code signing policy
+
+Free code signing provided by [SignPath.io](https://about.signpath.io/), certificate by [SignPath Foundation](https://signpath.org/) (once approved). Details: [CODE_SIGNING_POLICY.md](CODE_SIGNING_POLICY.md) · Privacy: [PRIVACY.md](PRIVACY.md)
+
 ## License / Licence
 
 DrYAE is free software, released under the **GNU General Public License v3.0 or later**. See [LICENSE](LICENSE). Anyone may use, study, modify and share it. Any copy or modified version must stay under the same license, with its source code. Bundled third-party components are listed in [THIRD_PARTY_NOTICES.txt](THIRD_PARTY_NOTICES.txt).

@@ -27,7 +27,8 @@ function defaults(app) {
     userAgent: '',
     proxy: { enabled: false, url: '' },
     duplicate: 'ask',         // ask | rename | overwrite (doublon : même lien ou même titre)
-    confirmClear: true,       // demander avant de vider la liste des terminés
+    confirmClear: true,
+    autoUpdateCheck: true,    // vérifier automatiquement les nouvelles versions sur GitHub (désactivable)       // demander avant de vider la liste des terminés
     notify: true,
     sound: true,
     clipboard: true,

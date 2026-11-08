@@ -168,7 +168,7 @@ app.whenReady().then(async () => {
   await browser.init();
   manager.cookieFileFor = url => browser.cookieFile(url);
   startExtensionServer();
-  updater = new Updater({ send, notify: api.notify, T });
+  updater = new Updater({ send, notify: api.notify, T, auto: () => settings.get().autoUpdateCheck !== false });
   updater.init();
   settings.on('change', (_d, patch) => { if (patch.theme) browser.sendTheme(); });
 
