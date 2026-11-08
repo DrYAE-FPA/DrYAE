@@ -5,7 +5,7 @@
 ### 🇫🇷 Français
 
 **Torrents plus légers**
-- Nouveau moteur torrent **aria2** (natif, comme qBittorrent) : beaucoup moins de processeur et de batterie. Il ne tourne que pendant les téléchargements de torrents.
+- Nouveau moteur torrent **aria2** (natif et léger) : beaucoup moins de processeur et de batterie. Il ne tourne que pendant les téléchargements de torrents.
 - Un lien `.torrent` ou `magnet:` cliqué dans le navigateur DrYAE ouvre le choix des fichiers **sur la page** : on ne quitte plus le site.
 
 **Gestionnaire de téléchargements**

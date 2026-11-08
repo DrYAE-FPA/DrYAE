@@ -1011,7 +1011,7 @@ function askBox(o) {
     setTimeout(() => $('#askBtns .primary')?.focus(), 30);
   });
 }
-// doublon : remplacer, numéroter ou annuler (comme 1DM)
+// doublon : remplacer, numéroter ou annuler
 async function askDuplicate(d) {
   const st = d.status === 'done' ? T('déjà téléchargé') : T('déjà dans la liste');
   const r = await askBox({ title: 'Ce fichier existe déjà', text: `« ${d.name} » — ${st}. ` + T('Que veux-tu faire ?'), check: 'Toujours faire ce choix',

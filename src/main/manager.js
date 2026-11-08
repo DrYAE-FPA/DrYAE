@@ -158,7 +158,7 @@ class Manager extends EventEmitter {
         data.name = sanitize(pt) + (ext && /^(mp4|webm|mkv|mov|m4a|mp3|ts|flv|avi)$/i.test(ext) ? '.' + ext : '');
       }
     }
-    // doublon : même lien ou même titre déjà dans la liste -> on demande quoi faire (comme 1DM)
+    // doublon : même lien ou même titre déjà dans la liste -> on demande quoi faire
     if (opts.type !== 'torrent') {
       const act = opts.dupAction || (S.duplicate === 'ask' ? '' : S.duplicate);
       const dup = this.findDuplicate(data);

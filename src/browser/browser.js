@@ -320,7 +320,7 @@ function togglePanel(name, force) {
 }
 $('#pClose').onclick = closePanel;
 
-// ---- panneau « Fichier(s) détecté(s) » (comme 1DM) : tailles, morceaux, résolution, durée, tri, sélection, Tout effacer ----
+// ---- panneau « Fichier(s) détecté(s) » : tailles, morceaux, résolution, durée, tri, sélection, Tout effacer ----
 let dSort = 0, dSel = null, dFilter = 'all';
 const DSORTS = ['Plus récents', 'Taille', 'Nom', 'Type'];
 const kindIco = k => (k === 'audio' ? 'music' : k === 'subtitle' || k === 'file' ? 'file' : 'film');
