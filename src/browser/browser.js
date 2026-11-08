@@ -250,7 +250,7 @@ function mainMenu() {
       { label: 'Afficher les favoris', icon: 'list', key: 'Ctrl+Maj+O', fn: () => togglePanel('bookmarks', true) },
       ...STORE.bookmarks.slice(0, 12).map(b => ({ label: b.title || b.url, icon: 'link', fn: () => navigate(cur, b.url) })),
     ] },
-    { label: 'Téléchargements', icon: 'dl', key: 'Ctrl+J', fn: () => B.call('br:openMain') },
+    { label: 'Téléchargements', icon: 'dl', key: 'Ctrl+J', hl: true, fn: () => B.call('br:openMain') },
     { label: 'Mots de passe', icon: 'key', fn: () => togglePanel('passwords', true) },
     { label: 'Extensions et thèmes', icon: 'puzzle', key: 'Ctrl+Maj+A', fn: () => togglePanel('extensions', true) },
     '-',
@@ -294,7 +294,7 @@ function menu(x, y, entries, wide, back) {
     if (!e) return '';
     if (e === '-') return '<hr>';
     if (e.zoom) return `<div class="mzoom"><span>${esc(T('Zoom'))}</span><button data-z="-1" title="Ctrl −">−</button><b>${e.pct} %</b><button data-z="1" title="Ctrl +">+</button><button data-z="fs" title="F11">${ic('expand')}</button></div>`;
-    return `<button data-i="${i}" ${e.disabled ? 'disabled' : ''}>${ic(e.icon || 'list')}<span class="ml">${esc(e.label)}</span>${e.key ? `<kbd>${esc(T(e.key))}</kbd>` : ''}${e.sub ? `<span class="mar">${ic('fwd')}</span>` : ''}</button>`;
+    return `<button data-i="${i}" ${e.hl ? 'class="mhl"' : ''} ${e.disabled ? 'disabled' : ''}>${ic(e.icon || 'list')}<span class="ml">${esc(e.label)}</span>${e.key ? `<kbd>${esc(T(e.key))}</kbd>` : ''}${e.sub ? `<span class="mar">${ic('fwd')}</span>` : ''}</button>`;
   }).join('');
   m.classList.add('on');
   const r = m.getBoundingClientRect();

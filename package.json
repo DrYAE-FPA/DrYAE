@@ -1,7 +1,7 @@
 {
   "name": "dryae",
   "productName": "DrYAE",
-  "version": "1.6.2",
+  "version": "1.6.3",
   "description": "DrYAE - free download manager with built-in browser",
   "author": "DrYAE contributors",
   "main": "src/main/main.js",

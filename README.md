@@ -4,7 +4,9 @@
 
 ---
 
-## ✨ Nouveautés de la version 1.6.2 / What's new
+## ✨ Nouveautés de la version 1.6.3 / What's new
+
+- 🛠️ **1.6.3** : correctifs (bouton Paramètres, démarrage caché), entrée Téléchargements mise en avant dans le menu du navigateur, copie de sécurité des données avant chaque mise à jour.
 
 - 🪟 **Le gestionnaire fonctionne comme un dossier Windows** : affichages (icônes, liste, détails, contenu), barre de commandes, sélection au rectangle, glisser-déposer, raccourcis de Windows (Ctrl+C, Ctrl+Z, F2, Alt+Entrée…).
 - 🚀 **Démarrage discret** : avec Windows, DrYAE reste caché dans les icônes de la barre des tâches. Un clic ouvre le navigateur.

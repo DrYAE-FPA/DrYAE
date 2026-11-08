@@ -1,5 +1,19 @@
 # Nouveautés / Changelog
 
+## 1.6.3 (correctif de la 1.6.2)
+
+### 🇫🇷 Français
+- **Paramètres** : le bouton Paramètres ne répondait pas quand la couleur d'accent de Windows était utilisée. C'est corrigé.
+- **Démarrage avec Windows** : DrYAE reste bien caché dans les icônes de la barre des tâches, même si la fenêtre était agrandie la dernière fois.
+- **Navigateur** : dans le menu ⋮, l'entrée **Téléchargements** (retour au gestionnaire) est mise en couleur pour être trouvée tout de suite.
+- **Mises à jour** : juste avant une mise à jour, DrYAE fait une copie de sécurité de vos réglages, de la liste des téléchargements, de l'historique, des favoris et des mots de passe. Si un fichier manque après la mise à jour, il est repris automatiquement.
+
+### 🇬🇧 English
+- Fixed the Settings button not responding when the Windows accent color was in use.
+- DrYAE now stays hidden in the taskbar icons when it starts with Windows, even if the window was maximized last time.
+- Browser ⋮ menu: the **Downloads** entry (back to the download manager) is now highlighted.
+- Before an update, DrYAE backs up your settings, download list, history, bookmarks and passwords, and restores any missing file afterwards.
+
 ## 1.6.2
 
 ### 🇫🇷 Français

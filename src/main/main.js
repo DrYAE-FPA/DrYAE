@@ -87,7 +87,8 @@ function createWindow() {
   win.on('focus', () => send('focus'));
   win.on('show', () => send('reload', manager.views()));
   win.on('restore', () => send('reload', manager.views()));
-  if (b?.maximized) win.maximize();
+  // agrandir une fenêtre cachée l'afficherait : au démarrage caché, on agrandit seulement à la première ouverture
+  if (b?.maximized) { if (process.argv.includes('--hidden')) win.once('show', () => win.maximize()); else win.maximize(); }
   const saveB = () => { if (!win || win.isMinimized()) return; settings.set({ winBounds: { ...(win.isMaximized() ? settings.get().winBounds || {} : win.getBounds()), maximized: win.isMaximized() } }); };
   win.on('resized', saveB); win.on('moved', saveB); win.on('maximize', saveB); win.on('unmaximize', saveB);
   win.on('close', e => { if (!quitting && settings.get().tray && tray) { e.preventDefault(); win.hide(); } });
@@ -154,7 +155,23 @@ function clipWatch() {
   }, 1200);
 }
 
+// copie de sécurité des données (réglages, liste des téléchargements, historique, favoris, mots de passe)
+// faite juste avant une mise à jour ; si un fichier manque ou est illisible au démarrage, il est repris de la copie
+const DATA_FILES = ['settings.json', 'downloads.json', 'browser.json', 'web-passwords.json'];
+function backupData() {
+  const u = app.getPath('userData'), b = path.join(u, 'backup');
+  try { fs.mkdirSync(b, { recursive: true }); for (const f of DATA_FILES) { try { JSON.parse(fs.readFileSync(path.join(u, f), 'utf8')); fs.copyFileSync(path.join(u, f), path.join(b, f)); } catch {} } } catch {}
+}
+function restoreData() {
+  const u = app.getPath('userData'), b = path.join(u, 'backup');
+  for (const f of DATA_FILES) {
+    let ok = false; try { JSON.parse(fs.readFileSync(path.join(u, f), 'utf8')); ok = true; } catch {}
+    if (!ok) { try { JSON.parse(fs.readFileSync(path.join(b, f), 'utf8')); fs.copyFileSync(path.join(b, f), path.join(u, f)); } catch {} }
+  }
+}
+
 app.whenReady().then(async () => {
+  restoreData();
   settings = new Settings(app);
   resolveLanguage();
   i18n = I18N.create(settings.get().lang, LOCALES);
@@ -170,7 +187,7 @@ app.whenReady().then(async () => {
   await browser.init();
   manager.cookieFileFor = url => browser.cookieFile(url);
   startExtensionServer();
-  updater = new Updater({ send, notify: api.notify, T, auto: () => settings.get().autoUpdateCheck !== false });
+  updater = new Updater({ send, notify: api.notify, T, beforeInstall: () => { browser?.saveStoreSync(); manager?.saveSync(); settings?.save?.(); backupData(); }, auto: () => settings.get().autoUpdateCheck !== false });
   updater.init();
   settings.on('change', (_d, patch) => { if (patch.theme) browser.sendTheme(); });
 

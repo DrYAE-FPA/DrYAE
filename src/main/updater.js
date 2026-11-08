@@ -11,8 +11,8 @@ function readConfig() {
 }
 
 class Updater {
-  constructor({ send, notify, T, auto }) {
-    this.send = send; this.notify = notify; this.T = T; this.auto = auto || (() => true);
+  constructor({ send, notify, T, auto, beforeInstall }) {
+    this.send = send; this.notify = notify; this.T = T; this.auto = auto || (() => true); this.beforeInstall = beforeInstall || (() => {});
     this.cfg = readConfig();
     this.state = { status: 'idle', version: null, progress: 0, error: null };
     this.au = null;
@@ -67,7 +67,7 @@ class Updater {
   }
   async install() {
     if (!this.au) { if (this.repoUrl) shell.openExternal(this.repoUrl + '/releases/latest'); return; }
-    if (this.state.status === 'ready') return this.au.quitAndInstall(false, true);
+    if (this.state.status === 'ready') { try { this.beforeInstall(); } catch {} return this.au.quitAndInstall(false, true); }
     this.set({ status: 'downloading', progress: 0 });
     try { await this.au.downloadUpdate(); } catch (e) { this.set({ status: 'error', error: e.message }); }
   }

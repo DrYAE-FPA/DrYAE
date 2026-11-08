@@ -30,7 +30,7 @@ const OUT = '/tmp/claude-0/shots162b'; fs.rmSync(OUT, { recursive: true, force: 
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].emit('app-command', {}, 'browser-backward')); await b.waitForTimeout(1000);
   console.log('bouton précédent :', await b.evaluate(() => cur.wv.getURL().slice(0, 40)));
   // panneau mots de passe
-  await b.evaluate(() => togglePanel('passwords', true));
+  await b.click('#bMenu'); await b.waitForTimeout(300); await b.screenshot({ path: OUT + '/menu.png' }); await b.keyboard.press('Escape'); await b.evaluate(() => togglePanel('passwords', true));
   await b.waitForTimeout(500);
   console.log('import csv :', !!(await b.$('#pwImp')), 'export :', !!(await b.$('#pwExp')));
   await b.screenshot({ path: OUT + '/pw.png' });

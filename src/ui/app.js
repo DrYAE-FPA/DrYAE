@@ -955,8 +955,8 @@ async function showSettings(sec = 'gen') {
   call('extInfo').then(x => ($('#eInfo').textContent = x.port ? `DrYAE écoute l'extension sur le port ${x.port}. Identifiant de l'extension : ${x.id}` : 'Le service de l\'extension n\'a pas pu démarrer.')).catch(() => {});
   c('#sLimOn', S.speedLimitOn); v('#sLim', S.speedLimit); c('#sDataOn', S.dataLimit.enabled); v('#sDataMb', S.dataLimit.mb); c('#sProxyOn', S.proxy.enabled); v('#sProxy', S.proxy.url); v('#sUA', S.userAgent);
   const st = await call('stats'); v('#sDataUsed', fmt(st.dataToday));
-  const T = S.torrent;
-  c('#tEn', T.enabled); c('#tMeta', T.fetchMetadata); c('#tSeqD', T.sequential); c('#tSeedD', T.seed); v('#tRatio', T.ratio); v('#tUp', T.uploadLimit); v('#tDown', T.downloadLimit); v('#tConns', T.maxConns); v('#tPort', T.port); c('#tDht', T.dht); c('#tLsd', T.lsd); c('#tDefTr', T.useDefaultTrackers); v('#tTrackers', T.trackers); v('#tTrUrl', T.trackersUrl);
+  const TO = S.torrent;
+  c('#tEn', TO.enabled); c('#tMeta', TO.fetchMetadata); c('#tSeqD', TO.sequential); c('#tSeedD', TO.seed); v('#tRatio', TO.ratio); v('#tUp', TO.uploadLimit); v('#tDown', TO.downloadLimit); v('#tConns', TO.maxConns); v('#tPort', TO.port); c('#tDht', TO.dht); c('#tLsd', TO.lsd); c('#tDefTr', TO.useDefaultTrackers); v('#tTrackers', TO.trackers); v('#tTrUrl', TO.trackersUrl);
   const C = S.scheduler;
   c('#cOn', C.enabled); v('#cStart', C.start); v('#cStop', C.stop); c('#cAdd', C.addNew); c('#cShut', C.shutdown);
   $('#cDays').innerHTML = DAYS.map((d, i) => `<label><input type="checkbox" data-day="${i}" ${C.days.includes(i) ? 'checked' : ''}>${d}</label>`).join('');
