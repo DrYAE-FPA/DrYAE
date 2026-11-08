@@ -468,7 +468,7 @@ class WebBrowser {
       try { return { ok: true, ...(await this.main.manager.hlsInfo(url, { Cookie: await this.cookieHeader(ses, url), 'User-Agent': this.ua(), Referer: page || '' })) }; }
       catch (e) { return { ok: false, error: String(e.message || e) }; }
     });
-    // menu du navigateur (façon Firefox)
+    // menu du navigateur
     ipcMain.handle('br:print', (_e, wcId) => { try { require('electron').webContents.fromId(wcId)?.print({}); } catch {} });
     ipcMain.handle('br:savePage', async (_e, wcId) => {
       const wc = require('electron').webContents.fromId(wcId); if (!wc) return false;

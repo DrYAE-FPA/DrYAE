@@ -56,7 +56,7 @@ Les vidéos protégées par DRM (Netflix, Disney+…) ne peuvent pas être tél�
 
 ## 5. Le navigateur intégré
 - **Onglets :** Ctrl+T pour un nouvel onglet, Ctrl+Maj+N pour un onglet privé, Ctrl+W pour fermer. Faites glisser les onglets pour les réorganiser. Un onglet ne se charge que lorsque vous l'ouvrez.
-- **Menu ⋮ (comme Firefox) :** nouvel onglet, historique, marque-pages, Téléchargements (le gestionnaire), mots de passe, extensions, imprimer, enregistrer sous, traduire la page, rechercher, zoom, **Paramètres du navigateur** (moteur de recherche, vie privée, bloqueur de publicités…, séparés de ceux du gestionnaire), outils supplémentaires, aide.
+- **Menu ⋮ :** nouvel onglet, historique, marque-pages, Téléchargements (le gestionnaire), mots de passe, extensions, imprimer, enregistrer sous, traduire la page, rechercher, zoom, **Paramètres du navigateur** (moteur de recherche, vie privée, bloqueur de publicités…, séparés de ceux du gestionnaire), outils supplémentaires, aide.
 - **Fichier(s) détecté(s) :** le bouton de téléchargement liste tout ce que la page lit, avec la taille (estimée « ~ » pour les flux), le nombre de morceaux, la résolution et la durée. **Tout effacer** vide la liste, **Réinitialiser** la réaffiche, **Trier** change l'ordre, et « Sélectionner les fichiers » permet d'en télécharger plusieurs d'un coup.
 - **Bloqueur de publicités :** cliquez sur le bouclier pour le désactiver sur un site.
 - **Mots de passe :** après une connexion, DrYAE propose de l'enregistrer. Les mots de passe sont chiffrés par Windows sur votre PC.
@@ -91,7 +91,7 @@ Appuyez sur **F1** dans le gestionnaire ou dans le navigateur pour afficher la l
 
 **Gestionnaire :** Ctrl+A (tout sélectionner) · Maj+clic / Ctrl+clic · ↑/↓ et Maj+↑/↓ · Entrée (ouvrir) · Espace (pause/reprendre) · Suppr (retirer) · Maj+Suppr (retirer et supprimer les fichiers) · F2 (renommer) · Ctrl+I (informations) · Ctrl+C (copier le lien) · Ctrl+E (dossier) · Ctrl+N (ajouter un lien) · Ctrl+T (torrent) · Ctrl+O (fichier .torrent) · Ctrl+V (coller un lien) · Ctrl+B (navigateur) · Échap.
 
-**Navigateur (comme Firefox) :** Ctrl+T · Ctrl+Maj+P (onglet privé) · Ctrl+W · Ctrl+Maj+T (rouvrir l'onglet fermé) · Ctrl+Tab · Ctrl+1…9 · Ctrl+L / F6 · Ctrl+F / F3 · F5 / Ctrl+R · Alt+←/→ · Ctrl+D · Ctrl+H · Ctrl+J (gestionnaire) · Ctrl+Maj+Y (fichiers détectés) · Ctrl+P · Ctrl+S · Ctrl+U · Ctrl+M (son) · Ctrl+ +/−/0 · F11 · F12 · Ctrl+Maj+Suppr · Ctrl+Maj+Q.
+**Navigateur (raccourcis standards) :** Ctrl+T · Ctrl+Maj+P (onglet privé) · Ctrl+W · Ctrl+Maj+T (rouvrir l'onglet fermé) · Ctrl+Tab · Ctrl+1…9 · Ctrl+L / F6 · Ctrl+F / F3 · F5 / Ctrl+R · Alt+←/→ · Ctrl+D · Ctrl+H · Ctrl+J (gestionnaire) · Ctrl+Maj+Y (fichiers détectés) · Ctrl+P · Ctrl+S · Ctrl+U · Ctrl+M (son) · Ctrl+ +/−/0 · F11 · F12 · Ctrl+Maj+Suppr · Ctrl+Maj+Q.
 
 ## Utilisation responsable
 Téléchargez uniquement ce que vous avez le droit de copier : vos fichiers, des contenus libres ou autorisés. Respectez les conditions d'utilisation des sites que vous visitez.

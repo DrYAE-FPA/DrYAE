@@ -221,7 +221,7 @@ $('#bShield').onclick = e => {
     { label: CFG.adblock ? 'Désactiver le bloqueur partout' : 'Activer le bloqueur', icon: 'shield', fn: async () => { CFG = { ...CFG, ...(await B.call('br:setSettings', { adblock: !CFG.adblock })) }; cur.wv?.reload(); updToolbar(); } },
   ].filter(Boolean));
 };
-// ---------- menu ⋮ (façon Firefox : raccourcis à droite, sous-menus, zoom) ----------
+// ---------- menu ⋮ (raccourcis à droite, sous-menus, zoom) ----------
 function mainMenu() {
   const zoomPct = cur && cur.zoom ? Math.round(Math.pow(1.2, cur.zoom) * 100) : 100;
   return [
@@ -492,7 +492,7 @@ $('#findNext').onclick = () => find(true); $('#findPrev').onclick = () => find(f
 function closeFind() { $('#findbar').classList.remove('on'); cur.wv?.stopFindInPage('clearSelection'); }
 $('#findX').onclick = closeFind;
 
-// ---------- raccourcis clavier du navigateur (façon Firefox) ----------
+// ---------- raccourcis clavier du navigateur (raccourcis standards des navigateurs) ----------
 const BR_SHORTCUTS = [
   ['Ctrl + T', 'Nouvel onglet'], ['Ctrl + Maj + P  /  Ctrl + Maj + N', 'Nouvel onglet privé'], ['Ctrl + W  /  Ctrl + F4', "Fermer l'onglet"], ['Ctrl + Maj + T', "Rouvrir l'onglet fermé"],
   ['Ctrl + Tab  /  Ctrl + Maj + Tab', 'Onglet suivant / précédent'], ['Ctrl + 1 … 8  /  Ctrl + 9', "Aller à l'onglet n° / au dernier"], ['Ctrl + Maj + Page ↑/↓', "Déplacer l'onglet"],

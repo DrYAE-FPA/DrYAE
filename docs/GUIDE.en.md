@@ -56,7 +56,7 @@ DRM-protected videos (Netflix, Disney+…) cannot be downloaded.
 
 ## 5. The built-in browser
 - **Tabs:** Ctrl+T for a new tab, Ctrl+Shift+N for a private tab, Ctrl+W to close. Drag tabs to reorder them. A tab only loads when you open it.
-- **⋮ menu (like Firefox):** new tab, history, bookmarks, Downloads (the download manager), passwords, extensions, print, save as, translate page, find, zoom, **Browser settings** (search engine, privacy, ad blocker…, kept separate from the download manager's settings), more tools, help.
+- **⋮ menu:** new tab, history, bookmarks, Downloads (the download manager), passwords, extensions, print, save as, translate page, find, zoom, **Browser settings** (search engine, privacy, ad blocker…, kept separate from the download manager's settings), more tools, help.
 - **Detected file(s):** the download button lists everything the page plays, with the size (estimated "~" for streams), the number of pieces, the resolution and the duration. **Clear all** empties the list, **Reset** shows it again, **Sort** changes the order, and "Select the files" lets you download several at once.
 - **Ad blocker:** click the shield to turn it off for a site.
 - **Passwords:** after you sign in, DrYAE offers to save the password. Passwords are encrypted by Windows on your PC.
@@ -91,7 +91,7 @@ Press **F1** in the download manager or in the browser to see the full list.
 
 **Download manager:** Ctrl+A (select all) · Shift+click / Ctrl+click · ↑/↓ and Shift+↑/↓ · Enter (open) · Space (pause/resume) · Del (remove) · Shift+Del (remove and delete files) · F2 (rename) · Ctrl+I (information) · Ctrl+C (copy link) · Ctrl+E (folder) · Ctrl+N (add link) · Ctrl+T (torrent) · Ctrl+O (.torrent file) · Ctrl+V (paste a link) · Ctrl+B (browser) · Esc.
 
-**Browser (like Firefox):** Ctrl+T · Ctrl+Shift+P (private tab) · Ctrl+W · Ctrl+Shift+T (reopen closed tab) · Ctrl+Tab · Ctrl+1…9 · Ctrl+L / F6 · Ctrl+F / F3 · F5 / Ctrl+R · Alt+←/→ · Ctrl+D · Ctrl+H · Ctrl+J (download manager) · Ctrl+Shift+Y (detected files) · Ctrl+P · Ctrl+S · Ctrl+U · Ctrl+M (mute) · Ctrl+ +/−/0 · F11 · F12 · Ctrl+Shift+Del · Ctrl+Shift+Q.
+**Browser (standard shortcuts):** Ctrl+T · Ctrl+Shift+P (private tab) · Ctrl+W · Ctrl+Shift+T (reopen closed tab) · Ctrl+Tab · Ctrl+1…9 · Ctrl+L / F6 · Ctrl+F / F3 · F5 / Ctrl+R · Alt+←/→ · Ctrl+D · Ctrl+H · Ctrl+J (download manager) · Ctrl+Shift+Y (detected files) · Ctrl+P · Ctrl+S · Ctrl+U · Ctrl+M (mute) · Ctrl+ +/−/0 · F11 · F12 · Ctrl+Shift+Del · Ctrl+Shift+Q.
 
 ## Responsible use
 Only download content you have the right to copy: your own files, free content, or content you are allowed to download. Follow the terms of service of the sites you visit.
