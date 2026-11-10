@@ -2,6 +2,7 @@
 # Si SignPath est configuré (variable SIGNPATH_ORGANIZATION_ID + secret SIGNPATH_API_TOKEN),
 # DrYAE.exe puis l'installateur sont signés : Windows n'affiche plus l'alerte « application dangereuse ».
 # Lancement : automatiquement à chaque tag v* (ex. v1.6.2), ou à la main (onglet Actions → Run workflow).
+# Pour un tag v*, la version (Release) est publiée avec ses 4 fichiers et le texte de docs/notes/<version>.md.
 name: Build Windows
 
 on:
@@ -10,7 +11,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write # pour publier la version (Release) avec ses 4 fichiers
 
 jobs:
   build:
@@ -99,3 +100,15 @@ jobs:
             dist/installer/DrYAE-Setup-*.exe.blockmap
             dist/installer/latest.yml
             dist/installer/DrYAE-*-portable.zip
+
+      - name: Publier la version sur GitHub (tags v* seulement)
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="$GITHUB_REF_NAME"; V="${TAG#v}"
+          NOTES="docs/notes/$V.md"; [ -f "$NOTES" ] || { echo "DrYAE $V" > notes.md; NOTES=notes.md; }
+          FILES=("dist/installer/DrYAE-Setup-$V.exe" "dist/installer/DrYAE-Setup-$V.exe.blockmap" "dist/installer/latest.yml" "dist/installer/DrYAE-$V-portable.zip")
+          if gh release view "$TAG" >/dev/null 2>&1; then gh release upload "$TAG" "${FILES[@]}" --clobber
+          else gh release create "$TAG" "${FILES[@]}" --title "DrYAE $V" --notes-file "$NOTES" --latest; fi
