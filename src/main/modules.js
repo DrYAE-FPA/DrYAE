@@ -160,6 +160,31 @@ async function readImage(buf, lang) {
   ocrBusy = p.catch(() => {});
   return p;
 }
+// relit des zones précises (bulles déjà trouvées) avec Tesseract : sert aux langues dont le modèle multilingue
+// ne connaît pas tous les signes (vietnamien, coréen, thaï, cyrillique…)
+async function readRegions(buf, lang, rects) {
+  const run = async () => {
+    const w = await ocrWorker(lang);
+    const { PSM } = require('tesseract.js');
+    await w.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_BLOCK });
+    const out = [];
+    try {
+      for (const r of rects) {
+        try {
+          const res = await w.recognize(buf, { rectangle: { left: Math.max(0, Math.round(r.x0)), top: Math.max(0, Math.round(r.y0)), width: Math.max(4, Math.round(r.x1 - r.x0)), height: Math.max(4, Math.round(r.y1 - r.y0)) } });
+          const t = String(res.data.text || '').replace(/\s+/g, ' ').trim();
+          out.push(res.data.confidence >= 40 && /\p{L}{2}/u.test(t) ? t : '');
+        } catch { out.push(''); }
+      }
+    } finally { try { await w.setParameters({ tessedit_pageseg_mode: PSM.SPARSE_TEXT }); } catch {} }
+    return out;
+  };
+  const p = ocrBusy.then(run, run);
+  ocrBusy = p.catch(() => {});
+  return p;
+}
+// langue reconnue par le service de traduction → données de lecture plus précises pour cette langue
+const OCR_FIX = { vi: 'vie', ko: 'kor', th: 'tha', ru: 'rus', uk: 'ukr', bg: 'bul', ar: 'ara', fa: 'fas', hi: 'hin', pl: 'pol', tr: 'tur', cs: 'ces', ro: 'ron', hu: 'hun', el: 'ell', he: 'heb', id: 'ind' };
 function ocrDownloaded() {
   return [...PADDLE_LANGS, ...ocrFiles()];
 }
@@ -222,4 +247,4 @@ function generatePassword(n = 16) {
   return out.join('');
 }
 
-module.exports = { MODULES, MOD_DEFAULT, PROVIDERS, PADDLE_LANGS, translate, setUserAgent, readImage, OCR_LANGS, ocrDownloaded, windowsHello, pwnedCount, weak, generatePassword };
+module.exports = { MODULES, MOD_DEFAULT, PROVIDERS, PADDLE_LANGS, OCR_FIX, readRegions, translate, setUserAgent, readImage, OCR_LANGS, ocrDownloaded, windowsHello, pwnedCount, weak, generatePassword };

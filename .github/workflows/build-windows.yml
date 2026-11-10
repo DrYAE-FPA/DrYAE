@@ -113,5 +113,5 @@ jobs:
           V=$(node -p "require('./package.json').version"); TAG="v$V"
           NOTES="docs/notes/$V.md"; [ -f "$NOTES" ] || { echo "DrYAE $V" > notes.md; NOTES=notes.md; }
           FILES=("dist/installer/DrYAE-Setup-$V.exe" "dist/installer/DrYAE-Setup-$V.exe.blockmap" "dist/installer/latest.yml" "dist/installer/DrYAE-$V-portable.zip")
-          if gh release view "$TAG" >/dev/null 2>&1; then gh release upload "$TAG" "${FILES[@]}" --clobber
+          if gh release view "$TAG" >/dev/null 2>&1; then gh release upload "$TAG" "${FILES[@]}" --clobber && gh release edit "$TAG" --notes-file "$NOTES"
           else gh release create "$TAG" "${FILES[@]}" --title "DrYAE $V" --notes-file "$NOTES" --target "$GITHUB_SHA" --latest; fi

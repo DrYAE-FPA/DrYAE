@@ -6,11 +6,16 @@
 - **Traducteur de scans sur MangaDex (vraie cause trouvée)** : MangaDex protège ses pages avec une règle de sécurité (« Trusted Types ») qui bloquait l'affichage de tout ce que DrYAE ajoute dans la page (bulles traduites, barre du traducteur, bouton de traduction, lumières…). DrYAE construit maintenant ces éléments d'une façon acceptée par ces pages. Corrige aussi les autres sites qui utilisent cette protection.
 - Traducteur de scans : les petits signes japonais ou chinois isolés (bruitages dessinés) ne sont plus traduits sur une page en français, anglais, portugais…
 - **Lumières tamisées** : elles restent éteintes quand on clique dans la page ou sur la vidéo (les clics passent à travers la zone sombre). On rallume avec Échap, Ctrl+Maj+L ou le bouton. Mettre en pause une vidéo ne rallume plus.
+- **Traducteur de scans : langue reconnue toute seule, même pour le vietnamien, le polonais, le turc, le tchèque…** : DrYAE reconnaît d'abord la langue, puis relit les bulles avec les données de cette langue quand le modèle principal ne connaît pas ses accents (téléchargées la première fois). Pour le coréen, le thaï, le russe ou l'arabe, choisissez la langue dans « Langue des images ». Testé sur un chapitre MangaDex en vietnamien : les accents (CÓ THỂ, TÔI, KHÔNG…) sont maintenant lus.
+- La fenêtre du traducteur de scans affiche la **langue détectée** et la langue de traduction (ex. vietnamien → français).
 
 ### 🇬🇧 English
 - **Image text translator on MangaDex (real cause found)**: MangaDex protects its pages with a security rule ("Trusted Types") that blocked everything DrYAE adds to the page (translated bubbles, translator bar, translate button, dimmed lights…). DrYAE now builds these elements in a way such pages accept. Also fixes other sites using this protection.
 - Image text translator: small isolated Japanese/Chinese signs (drawn sound effects) are no longer translated on Latin-script pages.
 - **Dimmed lights**: they stay on when you click in the page or on the video (clicks go through the dark area). Turn the lights back on with Esc, Ctrl+Shift+L or the button. Pausing a video no longer turns the lights back on.
+- **Image text translator: language detected by itself, also for Vietnamese, Polish, Turkish, Czech…**: DrYAE first detects the language, then re-reads the bubbles with that language's data when the main model doesn't know its accents (downloaded the first time). For Korean, Thai, Russian or Arabic, choose the language in "Image language".
+- The image text translator window shows the **detected language** and the target language (e.g. Vietnamese → French).
+
 
 ## 1.6.7
 

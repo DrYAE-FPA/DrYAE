@@ -205,6 +205,7 @@ async function drawScanPop() {
       <button id="scPage" ${h ? '' : 'disabled'}>${ic('scan')}<span>${esc(T('Traduire les images de la page'))}</span></button>
       <button id="scZone" ${h ? '' : 'disabled'}>${ic('crop')}<span>${esc(T('Capture d\'une zone'))} <kbd>Ctrl+Maj+S</kbd></span></button>
     </div>
+    ${cur?.scanLang?.from ? `<div class="prow"><span class="grow">${esc(T('Langue détectée'))}</span><b class="notr">${esc(langName(cur.scanLang.from))} → ${esc(langName(cur.scanLang.to))}</b></div>` : ''}
     <div class="prow"><span class="grow">${esc(T('Langue des images'))}<small>${esc(T('↓ : téléchargée à la première utilisation'))}</small></span><select id="scSrc">${ocrOpts}</select></div>
     <div class="prow"><span class="grow">${esc(T('Traduire vers'))}</span><select id="scTo">${langOptions(s.target || '', `<option value="">${esc(T('Comme le traducteur'))}</option>`)}</select></div>
     <div class="prow"><span class="grow">${esc(T('Icônes d\'action sur les images'))}<small>${esc(T('Original / traduction, comparer, relire'))}</small></span>${tg('scIcons', s.icons !== false)}</div>

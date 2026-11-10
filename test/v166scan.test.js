@@ -7,7 +7,7 @@ const PAGE = `<!doctype html><html><head><title>Reader</title><style>body{margin
 (async () => {
   const srv = http.createServer((q, r) => {
     if (q.url === '/page.png') { r.setHeader('Content-Type', 'image/png'); return r.end(fs.readFileSync(IMG)); }
-    if (q.url === '/translate') { let b = ''; q.on('data', d => (b += d)); return q.on('end', () => { const j = JSON.parse(b); const tr = s => 'FR: ' + s.toLowerCase(); r.setHeader('Content-Type', 'application/json'); r.end(JSON.stringify({ translatedText: Array.isArray(j.q) ? j.q.map(tr) : tr(j.q), detectedLanguage: [{ language: 'pt' }] })); }); }
+    if (q.url === '/translate') { let b = ''; q.on('data', d => (b += d)); return q.on('end', () => { const j = JSON.parse(b); const tr = s => j.target.toUpperCase() + ': ' + s.toLowerCase(); console.log('[tr]', j.source, j.target, JSON.stringify(j.q).slice(0, 300)); r.setHeader('Content-Type', 'application/json'); r.end(JSON.stringify({ translatedText: Array.isArray(j.q) ? j.q.map(tr) : tr(j.q), detectedLanguage: [{ language: /KHONG|TOI|NOI|kh[oô]ng/i.test(JSON.stringify(j.q)) ? 'vi' : 'pt' }] })); }); }
     r.setHeader('Content-Type', 'text/html; charset=utf-8'); if (process.env.TT) r.setHeader('Content-Security-Policy', "object-src 'none'; base-uri 'none'; require-trusted-types-for 'script';"); r.end(PAGE);
   }).listen(0);
   const base = `http://127.0.0.1:${srv.address().port}`;
@@ -23,7 +23,7 @@ const PAGE = `<!doctype html><html><head><title>Reader</title><style>body{margin
   await pg.waitForTimeout(2000);
   const t0 = Date.now();
   await b.evaluate(() => pageCmd('scan'));
-  await pg.waitForTimeout(15000);
+  await pg.waitForTimeout(+process.env.WAIT || 15000);
   await pg.screenshot({ path: OUT + '/reader-scan.png' });
   console.log('fini en', Date.now() - t0);
   await app.close(); srv.close(); process.exit(0);

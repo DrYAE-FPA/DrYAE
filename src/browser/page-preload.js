@@ -772,6 +772,7 @@ function pageFeatures() {
         it.blocks = res.blocks; it.w = res.w; it.captured = res.captured ? { left: Math.max(0, r.left) - r.left, top: Math.max(0, r.top) - r.top, w: vis.w / dpr } : null;
         it.box?.remove(); it.box = drawScan(it); it.cmp = 100;
         scan.n += res.blocks.length;
+        if (res.from) toHost('dryae-scanlang', { from: res.from, to: res.to });
       }
       status(ptf('{0} bulle(s) traduite(s)', scan?.n || 0));
     } catch (e) {
@@ -892,6 +893,7 @@ function pageFeatures() {
         document.body.appendChild(anchor);
         const it = { blocks: res.blocks, w: res.w, captured: null, cmp: 100 };
         it.box = drawScan(it); scan.items.set(anchor, it); scan.n += res.blocks.length;
+        if (res.from) toHost('dryae-scanlang', { from: res.from, to: res.to });
         status(ptf('{0} bulle(s) traduite(s)', scan.n));
       } catch (e) { wait.remove(); hint(ptf('Traduction impossible : {0}', String(e.message || e).replace(/^.*Error: /, '').slice(0, 80))); }
     }

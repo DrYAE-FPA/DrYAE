@@ -1249,6 +1249,19 @@ class WebBrowser {
         for (let i = 0; i < bm.length; i += 4) { const t = bm[i]; bm[i] = bm[i + 2]; bm[i + 2] = t; }
         groups = await require('./paddle-ocr').readBubbles({ width: sz.width, height: sz.height, data: bm });
         w = sz.width;
+        // langue reconnue → si le modèle multilingue ne connaît pas ses accents (vietnamien, coréen…),
+        // les bulles sont relues avec les données de cette langue (téléchargées la première fois)
+        if (groups.length && src === 'auto') {
+          try {
+            const guess = await M.translate([groups.map(g => g.text).join('\n').slice(0, 2000)], 'en', 'auto', this.B().translate || {});
+            const fix = M.OCR_FIX[String(guess.from || '').split('-')[0]];
+            if (fix) {
+              const pad = 6, texts = await M.readRegions(img.toPNG(), fix, groups.map(g => ({ x0: g.x0 - pad, y0: g.y0 - pad, x1: g.x1 + pad, y1: g.y1 + pad })));
+              groups = groups.map((g, i) => (texts[i] ? { ...g, text: texts[i] } : g));
+              o.lang = fix;
+            }
+          } catch {}
+        }
       } else {
         // autres écritures (coréen, thaï, arabe, cyrillique…) : lecture classique
         const sz = img.getSize();

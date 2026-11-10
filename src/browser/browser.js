@@ -82,7 +82,7 @@ function ensureWebview(tab) {
   wv.addEventListener('did-start-loading', () => { tab.loading = true; updTab(tab); });
   wv.addEventListener('did-stop-loading', () => { tab.loading = false; updTab(tab); });
   
-  wv.addEventListener('did-navigate', e => { tab.url = e.url; tab.tr = null; tab.lit = false; updTab(tab); if (!tab.incognito) B.call('br:history', { url: e.url, title: tab.title }); });
+  wv.addEventListener('did-navigate', e => { tab.url = e.url; tab.tr = null; tab.lit = false; tab.scanLang = null; updTab(tab); if (!tab.incognito) B.call('br:history', { url: e.url, title: tab.title }); });
   wv.addEventListener('did-navigate-in-page', e => { if (e.isMainFrame) { tab.url = e.url; updTab(tab); } });
   wv.addEventListener('page-title-updated', e => { tab.title = e.title; updTab(tab); if (!tab.incognito) B.call('br:history', { url: tab.url, title: e.title }); });
   wv.addEventListener('page-favicon-updated', e => { tab.fav = e.favicons[0] || ''; updTab(tab); if (!tab.incognito && /^https?:/.test(tab.url)) B.call('br:history', { url: tab.url, title: tab.title, fav: tab.fav, favOnly: true }); });
@@ -99,6 +99,7 @@ function ensureWebview(tab) {
     else if (e.channel === 'dryae-lights') { tab.lit = !!a; if (tab === cur) drawMods(); }
     else if (e.channel === 'dryae-night') { tab.night = !!a; }
     else if (e.channel === 'dryae-vstate') { tab.video = a || {}; }
+    else if (e.channel === 'dryae-scanlang') { tab.scanLang = a; if (tab === cur && typeof POP !== 'undefined' && POP.kind === 'scan') popRender(); }
     else if (e.channel === 'dryae-shot') { B.call('br:shot', tab.wcId, a).then(f => f && toast('Capture enregistrée dans Images', { label: 'Ouvrir', fn: () => B.call('br:showItem', f) })); }
   });
   wv.addEventListener('found-in-page', e => { $('#findN').textContent = e.result.matches ? `${e.result.activeMatchOrdinal}/${e.result.matches}` : '0'; });
