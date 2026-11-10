@@ -1,5 +1,17 @@
 # Nouveautés / Changelog
 
+## 1.6.8
+
+### 🇫🇷 Français
+- **Traducteur de scans sur MangaDex (vraie cause trouvée)** : MangaDex protège ses pages avec une règle de sécurité (« Trusted Types ») qui bloquait l'affichage de tout ce que DrYAE ajoute dans la page (bulles traduites, barre du traducteur, bouton de traduction, lumières…). DrYAE construit maintenant ces éléments d'une façon acceptée par ces pages. Corrige aussi les autres sites qui utilisent cette protection.
+- Traducteur de scans : les petits signes japonais ou chinois isolés (bruitages dessinés) ne sont plus traduits sur une page en français, anglais, portugais…
+- **Lumières tamisées** : elles restent éteintes quand on clique dans la page ou sur la vidéo (les clics passent à travers la zone sombre). On rallume avec Échap, Ctrl+Maj+L ou le bouton. Mettre en pause une vidéo ne rallume plus.
+
+### 🇬🇧 English
+- **Image text translator on MangaDex (real cause found)**: MangaDex protects its pages with a security rule ("Trusted Types") that blocked everything DrYAE adds to the page (translated bubbles, translator bar, translate button, dimmed lights…). DrYAE now builds these elements in a way such pages accept. Also fixes other sites using this protection.
+- Image text translator: small isolated Japanese/Chinese signs (drawn sound effects) are no longer translated on Latin-script pages.
+- **Dimmed lights**: they stay on when you click in the page or on the video (clicks go through the dark area). Turn the lights back on with Esc, Ctrl+Shift+L or the button. Pausing a video no longer turns the lights back on.
+
 ## 1.6.7
 
 ### 🇫🇷 Français

@@ -69,7 +69,7 @@ function defaults(app) {
       adModes: {}, adDefaultMode: 'optimal', extUnpinned: [], tbOrder: [],
       translate: { target: '', provider: 'google', selection: 'button', deeplKey: '', libreUrl: '', libreKey: '', second: '', hideSame: false, delay: 0, offSites: [], autoSites: [] },
       scan: { source: 'auto', target: '', font: 'auto', icons: true, withEng: false, autoSites: [] },
-      lights: { opacity: 85, auto: false, color: '#000000', fade: true, clickOff: true, eye: false, eyeLevel: 30, glow: false, wheelVolume: false, stopAutoplay: false, videoTools: true, nightAll: false, nightSchedule: false, nightFrom: '20:00', nightTo: '07:00', nightHosts: [], nightExcept: [] },
+      lights: { opacity: 85, auto: false, color: '#000000', fade: true, clickOff: false, eye: false, eyeLevel: 30, glow: false, wheelVolume: false, stopAutoplay: false, videoTools: true, nightAll: false, nightSchedule: false, nightFrom: '20:00', nightTo: '07:00', nightHosts: [], nightExcept: [] },
       pip: { side: 'right', hidden: [] },
       showBookmarksBar: false, showHome: true, startup: 'restore', startupPages: [],
       nativeDl: { ask: false, dir: '' },
@@ -118,6 +118,12 @@ class Settings extends EventEmitter {
       // lecture automatique de la langue des images (nouveau moteur)
       if (this.data.browser.scan) this.data.browser.scan.source = 'auto';
       this.data.v166 = true;
+      try { fs.writeFileSync(this.file, JSON.stringify(this.data, null, 2)); } catch {}
+    }
+    // 1.6.8 : les lumières restent éteintes quand on clique dans la page (les clics passent à travers la zone sombre)
+    if (!saved.v168) {
+      if (this.data.browser.lights) this.data.browser.lights.clickOff = false;
+      this.data.v168 = true;
       try { fs.writeFileSync(this.file, JSON.stringify(this.data, null, 2)); } catch {}
     }
   }

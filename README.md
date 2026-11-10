@@ -4,7 +4,12 @@
 
 ---
 
-## ✨ Nouveautés de la version 1.6.7 / What's new
+## ✨ Nouveautés de la version 1.6.8 / What's new
+
+- 🖼️ **Traducteur de scans sur MangaDex** : la vraie cause est corrigée (protection « Trusted Types » de la page), les bulles traduites s'affichent.
+- 💡 **Lumières tamisées** : elles restent éteintes quand on clique dans la page ou sur la vidéo.
+
+### Version 1.6.7
 
 - 🖼️ Traducteur de scans : fonctionne maintenant sur **MangaDex**.
 - 🔑 Extensions Chrome : **connexion à un compte** possible (ex. « Continue with Google »).

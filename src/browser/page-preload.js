@@ -37,6 +37,17 @@ if (CFG.internal) {
 function pageFeatures() {
   // conteneur commun (shadow DOM fermé : invisible pour la page)
   let uiHost = null, uiRoot = null;
+  // Pages protégées par « Trusted Types » (ex. MangaDex) : le HTML de DrYAE passe par une règle à lui,
+  // ou, si la page l'interdit, est construit dans un document à part puis copié.
+  let ttPolicy = null;
+  try { if (window.trustedTypes) ttPolicy = trustedTypes.createPolicy('dryae-ui', { createHTML: x => x }); } catch {}
+  const scratch = document.implementation.createHTMLDocument('');
+  const setHTML = (node, html) => {
+    try { node.innerHTML = ttPolicy ? ttPolicy.createHTML(html) : html; return; } catch {}
+    const box = scratch.createElement('div'); box.innerHTML = html;
+    node.textContent = '';
+    for (const c of [...box.childNodes]) node.appendChild(document.importNode(c, true));
+  };
   const UI_CSS = `:host{all:initial}
     *{box-sizing:border-box;font-family:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif}
     .card{position:fixed;pointer-events:auto;background:#151922;color:#e9ebf1;border:1px solid #2c3242;border-radius:12px;box-shadow:0 14px 40px #0009;font-size:13.5px;line-height:1.45}
@@ -48,12 +59,12 @@ function pageFeatures() {
       uiHost = document.createElement('dryae-ui');
       uiHost.style.cssText = 'all:initial;position:fixed;inset:0 auto auto 0;width:0;height:0;z-index:2147483647;pointer-events:none';
       uiRoot = uiHost.attachShadow({ mode: 'closed' });
-      uiRoot.innerHTML = `<style>${UI_CSS}</style>`;
+      setHTML(uiRoot, `<style>${UI_CSS}</style>`);
     }
     if (!uiHost.isConnected) (document.documentElement || document).appendChild(uiHost);
     return uiRoot;
   };
-  const el = (html, parent) => { const d = document.createElement('div'); d.innerHTML = html.trim(); const n = d.firstElementChild; (parent || ui()).appendChild(n); return n; };
+  const el = (html, parent) => { const d = document.createElement('div'); setHTML(d, html.trim()); const n = d.firstElementChild; (parent || ui()).appendChild(n); return n; };
   const ICO = {
     tr: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 5h9M8.5 3v2M6 5c.6 3 2.6 5.6 5 7M11 5c-.8 3.6-3.2 6.8-7 8.5"/><path d="M13 20l4-9 4 9M14.5 17h5"/></svg>',
     pip: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><rect x="12" y="11" width="7" height="6" rx="1" fill="currentColor"/></svg>',
@@ -89,13 +100,13 @@ function pageFeatures() {
       hostEl = document.createElement('dryae-video-button');
       hostEl.style.cssText = 'all:initial;position:fixed;z-index:2147483647;top:0;left:0;pointer-events:none';
       const root = hostEl.attachShadow({ mode: 'closed' });
-      root.innerHTML = `<style>
+      setHTML(root, `<style>
         .b{pointer-events:auto;display:flex;align-items:center;gap:0;font:600 13px "Segoe UI",system-ui,sans-serif;color:#fff;background:linear-gradient(135deg,#8b5cf6,#6d28d9);border-radius:10px;box-shadow:0 6px 24px #0007;overflow:hidden;opacity:.94;transition:opacity .2s,transform .2s;user-select:none}
         .b:hover{opacity:1;transform:translateY(-1px)}
         .go{display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer}
         .x{padding:8px 9px;cursor:pointer;border-left:1px solid #ffffff33;opacity:.8}.x:hover{opacity:1;background:#0002}
         svg{width:16px;height:16px}
-      </style><div class="b"><div class="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 20h14"/></svg>${esc(pt('Télécharger cette vidéo'))}</div><div class="x" title="${esc(pt('Masquer'))}">✕</div></div>`;
+      </style><div class="b"><div class="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 20h14"/></svg>${esc(pt('Télécharger cette vidéo'))}</div><div class="x" title="${esc(pt('Masquer'))}">✕</div></div>`);
       btn = root.querySelector('.b');
       root.querySelector('.go').addEventListener('click', e => {
         e.preventDefault(); e.stopPropagation();
@@ -214,7 +225,7 @@ function pageFeatures() {
       const r = anchor.getBoundingClientRect();
       ddFor = anchor;
       dd.style.minWidth = Math.max(220, Math.min(r.width, 420)) + 'px';
-      dd.querySelector('.lst').innerHTML = items.map((it, i) => `<div class="i" data-i="${i}"><div class="k">${it.icon}</div><div class="t"><b>${esc(it.title)}</b><span>${esc(it.sub || '')}</span></div></div>`).join('');
+      setHTML(dd.querySelector('.lst'), items.map((it, i) => `<div class="i" data-i="${i}"><div class="k">${it.icon}</div><div class="t"><b>${esc(it.title)}</b><span>${esc(it.sub || '')}</span></div></div>`).join(''));
       dd.style.display = 'block';
       dd.style.left = Math.max(4, Math.min(r.left, innerWidth - dd.offsetWidth - 8)) + 'px';
       dd.style.top = (r.bottom + 4 + dd.offsetHeight > innerHeight ? Math.max(4, r.top - dd.offsetHeight - 4) : r.bottom + 4) + 'px';
@@ -680,7 +691,7 @@ function pageFeatures() {
       else if (e.key === 'F10') { e.preventDefault(); const on = !eyeEl; eye(on, L.eyeLevel); ipcRenderer.invoke('lights:pref', { eye: on }).catch(() => {}); hint(pt(on ? 'Protection des yeux activée' : 'Protection des yeux désactivée')); }
     }, true);
     document.addEventListener('play', e => { const v = e.target; if (L.auto && v.tagName === 'VIDEO' && !lights) { const r = v.getBoundingClientRect(); if (r.width >= 320 && r.height >= 180) setTimeout(() => lightsOn(true), 300); } }, true);
-    document.addEventListener('pause', e => { if (e.target.tagName === 'VIDEO' && autoLit) lightsOff(); }, true);
+    // une pause (clic sur la vidéo) ne rallume pas : seule la fin de la vidéo rallume (mode automatique)
     document.addEventListener('ended', e => { if (e.target.tagName === 'VIDEO' && autoLit) lightsOff(); }, true);
     // pas de lecture automatique tant qu'on n'a pas touché à la page
     document.addEventListener('play', e => { const v = e.target; if (L.stopAutoplay && v.tagName === 'VIDEO' && !(navigator.userActivation && navigator.userActivation.hasBeenActive)) { try { v.pause(); } catch {} } }, true);

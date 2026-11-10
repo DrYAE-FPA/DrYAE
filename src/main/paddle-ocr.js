@@ -165,7 +165,10 @@ async function readBubbles(img) {
     const l = { ...b, ...r };
     if (good(l)) lines.push(l);
   }
-  return group(lines);
+  const groups = group(lines);
+  // page en écriture latine : on ignore les petits signes japonais/chinois isolés (bruitages dessinés)
+  const latin = groups.filter(g => !isCJK(g.text)).length, cjk = groups.length - latin;
+  return latin > cjk ? groups.filter(g => !(isCJK(g.text) && g.text.replace(/[\s\p{P}]/gu, '').length <= 2)) : groups;
 }
 
 module.exports = { readBubbles, load };
