@@ -142,6 +142,10 @@ class WebBrowser {
     const ses = session.fromPartition(PART);
     this.extDir = path.join(this.userDir, 'extensions');
     fs.mkdirSync(this.extDir, { recursive: true });
+    // connexion des extensions (chrome.identity) : enregistré AVANT les fonctions des extensions (l'objet chrome est ensuite figé)
+    const identity = path.join(__dirname, '..', 'browser', 'ext-identity-preload.js');
+    for (const type of ['service-worker', 'frame']) { try { ses.registerPreloadScript({ id: 'dryae-ext-identity-' + type, type, filePath: identity }); } catch {} }
+    this.setupIdentity(ses);
     this.ext = new ElectronChromeExtensions({
       session: ses,
       createTab: details => this.extCreateTab(details),
@@ -322,6 +326,34 @@ class WebBrowser {
     const M = this.B().adModes || {}; if (!h) return 'optimal';
     const k = Object.keys(M).filter(d => M[d] && (h === d || h.endsWith('.' + d))).sort((a, b) => b.length - a.length)[0];
     return k ? M[k] : (this.B().adDefaultMode || 'optimal');
+  }
+
+  // chrome.identity.launchWebAuthFlow : la page de connexion s'ouvre dans une fenêtre ; quand elle revient
+  // vers https://<id de l'extension>.chromiumapp.org/…, l'adresse est rendue à l'extension et la fenêtre se ferme
+  setupIdentity(ses) {
+    const run = (extId, url, interactive) => new Promise((resolve, reject) => {
+      if (!/^https?:\/\//i.test(url) || !/^[a-p]{32}$/.test(extId)) return reject(new Error('Invalid URL'));
+      const back = `https://${extId}.chromiumapp.org`;
+      const win = new BrowserWindow({ width: 520, height: 700, parent: this.win || undefined, show: !!interactive || true, autoHideMenuBar: true, title: 'DrYAE', backgroundColor: '#ffffff', icon: path.join(this.assetsDir, process.platform === 'win32' ? 'icon.ico' : 'icon.png'), webPreferences: { session: ses, contextIsolation: true, sandbox: true } });
+      let done = false;
+      const finish = (u, err) => { if (done) return; done = true; if (!win.isDestroyed()) win.close(); err ? reject(err) : resolve(u); };
+      const check = (e, u) => { if (String(u).startsWith(back)) { try { e && e.preventDefault && e.preventDefault(); } catch {} finish(u); } };
+      win.webContents.on('will-redirect', check); win.webContents.on('will-navigate', check);
+      win.webContents.on('did-start-navigation', (e, u) => check(null, u));
+      win.on('closed', () => finish(null, new Error('The user did not approve access.')));
+      win.loadURL(url).catch(() => {});
+    });
+    const handler = async (extId, url, interactive) => run(extId, url, interactive);
+    const extOf = u => { const m = /^chrome-extension:\/\/([a-p]{32})/.exec(u || ''); return m ? m[1] : ''; };
+    ipcMain.handle('dryae-identity-auth', (e, url, interactive) => handler(extOf(e.senderFrame?.url), url, interactive));
+    const seen = new WeakSet();
+    const hook = ({ versionId }) => {
+      const sw = ses.serviceWorkers.getWorkerFromVersionID(versionId);
+      if (!sw || seen.has(sw) || !String(sw.scope || '').startsWith('chrome-extension://')) return;
+      seen.add(sw);
+      try { sw.ipc.handle('dryae-identity-auth', (_e, url, interactive) => handler(extOf(sw.scope), url, interactive)); } catch {}
+    };
+    ses.serviceWorkers.on('running-status-changed', hook);
   }
 
   // décode une image (WebP, AVIF…) avec le moteur de l'interface du navigateur

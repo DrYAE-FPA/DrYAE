@@ -1,5 +1,15 @@
 # Nouveautés / Changelog
 
+## 1.6.7
+
+### 🇫🇷 Français
+- **Traducteur de scans sur MangaDex** (et les sites qui font pareil) : ces sites affichent l'image puis effacent aussitôt sa copie temporaire ; DrYAE recopie maintenant l'image depuis la page. Une image pas encore lisible (hors de l'écran) est retentée quand elle devient visible (3 fois au plus).
+- **Extensions Chrome : connexion à un compte** (fonction « identity ») ajoutée. Les extensions qui demandent de se connecter (ex. « Continue with Google ») ouvrent la page de connexion dans une petite fenêtre, qui se ferme toute seule à la fin.
+
+### 🇬🇧 English
+- **Image text translator on MangaDex** (and sites doing the same): these sites show the image then immediately delete its temporary copy; DrYAE now copies the image from the page itself. An image not yet readable (off screen) is retried when it becomes visible (up to 3 times).
+- **Chrome extensions: account sign-in** ("identity" API) added. Extensions asking you to sign in (e.g. "Continue with Google") open the sign-in page in a small window that closes by itself when done.
+
 ## 1.6.6
 
 ### 🇫🇷 Français

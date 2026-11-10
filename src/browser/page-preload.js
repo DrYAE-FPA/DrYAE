@@ -731,6 +731,15 @@ function pageFeatures() {
   }
   const status = s => { if (scan) scan.bar.querySelector('.st').textContent = s; };
   function scanQueue(img, first) { if (!scan) return; if (scan.items.has(img)) { const it = scan.items.get(img); if (!first || it.blocks) return; } scan.items.set(img, { blocks: null, box: null }); first ? scan.queue.unshift(img) : scan.queue.push(img); scanNext(); }
+  const retry = new WeakMap();
+  async function imgBytes(img) {
+    try {
+      const c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight;
+      c.getContext('2d').drawImage(img, 0, 0);
+      const b = await new Promise(r => c.toBlob(r, 'image/png'));
+      return b ? new Uint8Array(await b.arrayBuffer()) : null;
+    } catch { return null; }
+  }
   async function scanNext() {
     if (!scan || scan.busy || !scan.queue.length) return;
     scan.busy = true;
@@ -742,6 +751,9 @@ function pageFeatures() {
       const src = img.currentSrc || img.src;
       let data = null;
       if (/^(blob|data):/.test(src)) { try { data = new Uint8Array(await (await fetch(src)).arrayBuffer()); } catch {} }
+      // image déjà affichée mais dont l'adresse n'est plus lisible (adresse « blob: » retirée par le site, ex. MangaDex) :
+      // on la recopie depuis la page elle-même (possible quand elle vient du même site ou autorise le partage)
+      if (!data && !/^https?:/.test(src)) data = await imgBytes(img);
       const vis = { x: Math.max(0, r.left) * dpr, y: Math.max(0, r.top) * dpr, w: (Math.min(innerWidth, r.right) - Math.max(0, r.left)) * dpr, h: (Math.min(innerHeight, r.bottom) - Math.max(0, r.top)) * dpr };
       const res = await ipcRenderer.invoke('scan:image', { src: /^https?:/.test(src) ? src : '', data, page: location.href, rect: r.top >= 0 && r.bottom <= innerHeight ? vis : (vis.h > 60 ? vis : null), natural: { w: img.naturalWidth, h: img.naturalHeight } });
       const it = scan?.items.get(img);
@@ -751,7 +763,12 @@ function pageFeatures() {
         scan.n += res.blocks.length;
       }
       status(ptf('{0} bulle(s) traduite(s)', scan?.n || 0));
-    } catch (e) { status(ptf('Traduction impossible : {0}', String(e.message || e).replace(/^.*Error: /, '').slice(0, 80))); }
+    } catch (e) {
+      // image pas encore lisible (hors de l'écran, protégée) : on réessaie quand elle sera bien visible (3 fois au plus)
+      const n = (retry.get(img) || 0) + 1;
+      if (scan && /inaccessible/i.test(String(e.message || e)) && n <= 3) { retry.set(img, n); scan.items.delete(img); setTimeout(() => scan && scan.io.observe(img), 1500); }
+      else status(ptf('Traduction impossible : {0}', String(e.message || e).replace(/^.*Error: /, '').slice(0, 80)));
+    }
     if (scan) { scan.busy = false; scanNext(); }
   }
   // police et mise en forme des bulles : texte noir sur fond blanc, coins arrondis, centré, sans bordure visible

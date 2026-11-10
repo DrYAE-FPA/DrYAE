@@ -4,7 +4,12 @@
 
 ---
 
-## ✨ Nouveautés de la version 1.6.6 / What's new
+## ✨ Nouveautés de la version 1.6.7 / What's new
+
+- 🖼️ Traducteur de scans : fonctionne maintenant sur **MangaDex**.
+- 🔑 Extensions Chrome : **connexion à un compte** possible (ex. « Continue with Google »).
+
+### Version 1.6.6
 
 - 🧩 **Extensions Chrome réparées** : leur partie « arrière-plan » démarre enfin (ex. Simple Translate), leurs fenêtres s'ouvrent bien placées.
 - ↔️ **Ordre des extensions au choix** : glissez les boutons dans la barre d'outils ou dans le menu des extensions ; elles restent toujours à gauche du bouton des extensions.
