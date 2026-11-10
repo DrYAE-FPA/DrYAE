@@ -22,17 +22,29 @@ const PROVIDERS = {
   deepl: { name: 'DeepL (clé API personnelle)' },
   libre: { name: 'LibreTranslate (serveur au choix)' },
 };
+let UA = '';
+function setUserAgent(ua) { if (ua) UA = ua; }
 async function fetchJson(url, opts = {}) {
-  const r = await net.fetch(url, { ...opts, headers: { 'User-Agent': 'DrYAE/' + app.getVersion(), ...(opts.headers || {}) } });
+  let r;
+  try { r = await net.fetch(url, { ...opts, headers: { 'User-Agent': UA || 'DrYAE/' + app.getVersion(), ...(opts.headers || {}) } }); }
+  catch { throw new Error('pas de connexion au service de traduction'); }
+  if (r.status === 429) throw new Error('trop de demandes, réessayez dans une minute');
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   return r.json();
 }
 // Google : un appel par lot de lignes (séparées par des retours à la ligne)
 async function googleBatch(lines, to, from = 'auto') {
   const q = lines.map(s => s.replace(/\n+/g, ' ')).join('\n');
-  const j = await fetchJson(`https://translate.googleapis.com/translate_a/single?client=gtx&dt=t&sl=${encodeURIComponent(from)}&tl=${encodeURIComponent(to)}`, {
-    method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' }, body: 'q=' + encodeURIComponent(q),
-  });
+  const base = `https://translate.googleapis.com/translate_a/single?client=gtx&dt=t&sl=${encodeURIComponent(from)}&tl=${encodeURIComponent(to)}`;
+  let j;
+  // texte court : requête simple ; texte long (ou échec) : envoi du texte dans le corps de la requête
+  try {
+    if (q.length > 1500) throw 0;
+    j = await fetchJson(base + '&q=' + encodeURIComponent(q));
+  } catch (e) {
+    if (e && /trop de demandes/.test(e.message)) throw e;
+    j = await fetchJson(base, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' }, body: 'q=' + encodeURIComponent(q) });
+  }
   const out = (j[0] || []).map(x => x[0] || '').join('');
   const parts = out.split('\n');
   return { texts: parts.length === lines.length ? parts : null, from: j[2] || from };
@@ -92,7 +104,7 @@ async function translate(texts, to, from, cfg) {
 }
 
 // ---------- lecture du texte des images (traducteur de scans) ----------
-const OCR_LANGS = { eng: 'Anglais', jpn: 'Japonais', jpn_vert: 'Japonais (vertical)', kor: 'Coréen', chi_sim: 'Chinois simplifié', chi_tra: 'Chinois traditionnel', fra: 'Français', spa: 'Espagnol', por: 'Portugais', rus: 'Russe', ara: 'Arabe' };
+const OCR_LANGS = { eng: 'Anglais', jpn: 'Japonais', jpn_vert: 'Japonais (vertical)', kor: 'Coréen', kor_vert: 'Coréen (vertical)', chi_sim: 'Chinois simplifié', chi_sim_vert: 'Chinois simplifié (vertical)', chi_tra: 'Chinois traditionnel', chi_tra_vert: 'Chinois traditionnel (vertical)', vie: 'Vietnamien', tha: 'Thaï', ind: 'Indonésien', fra: 'Français', spa: 'Espagnol', por: 'Portugais', deu: 'Allemand', ita: 'Italien', tur: 'Turc', pol: 'Polonais', rus: 'Russe', ukr: 'Ukrainien', ara: 'Arabe', hin: 'Hindi' };
 let ocr = null, ocrLang = '', ocrBusy = Promise.resolve();
 async function ocrWorker(lang) {
   if (ocr && ocrLang === lang) return ocr;
@@ -101,25 +113,37 @@ async function ocrWorker(lang) {
   const dir = path.join(app.getPath('userData'), 'ocr');
   fs.mkdirSync(dir, { recursive: true });
   ocr = await createWorker(lang, 1, { langPath: 'https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/main', gzip: false, cachePath: dir });
-  await ocr.setParameters({ tessedit_pageseg_mode: /vert/.test(lang) ? PSM.SINGLE_BLOCK_VERT_TEXT : PSM.SPARSE_TEXT, preserve_interword_spaces: '1' });
+  // texte vertical (japonais, coréen, chinois) : lecture en colonnes ; sinon texte épars (bulles)
+  await ocr.setParameters({ tessedit_pageseg_mode: /vert/.test(lang) ? PSM.SINGLE_BLOCK_VERT_TEXT : PSM.SPARSE_TEXT, preserve_interword_spaces: /^(jpn|chi|tha)/.test(lang) ? '0' : '1' });
   ocrLang = lang;
   return ocr;
 }
-// regroupe les lignes proches en bulles
-function groupLines(lines) {
-  const items = lines.filter(l => l.text.trim() && l.confidence > 35).map(l => ({ ...l.bbox, text: l.text.trim(), h: l.bbox.y1 - l.bbox.y0 }));
-  items.sort((a, b) => a.y0 - b.y0);
+// regroupe les lignes proches en bulles (texte horizontal) ou les colonnes proches (texte vertical)
+function groupLines(lines, vertical, cjk) {
+  const items = lines.filter(l => l.text.trim() && l.confidence > 35).map(l => ({ ...l.bbox, text: l.text.trim(), h: l.bbox.y1 - l.bbox.y0, w: l.bbox.x1 - l.bbox.x0 }));
+  const join = (a, b) => (cjk ? a + b : a + ' ' + b).replace(/\s+/g, cjk ? '' : ' ');
   const groups = [];
-  for (const it of items) {
-    const g = groups.find(g => {
-      const gap = it.y0 - g.y1, lh = Math.max(g.lh, it.h);
-      const overlap = Math.min(g.x1, it.x1) - Math.max(g.x0, it.x0);
-      return gap < lh * 1.1 && gap > -lh && overlap > -lh * 0.5;
-    });
-    if (g) { g.x0 = Math.min(g.x0, it.x0); g.x1 = Math.max(g.x1, it.x1); g.y1 = Math.max(g.y1, it.y1); g.text += ' ' + it.text; g.lh = Math.max(g.lh, it.h); }
-    else groups.push({ x0: it.x0, y0: it.y0, x1: it.x1, y1: it.y1, text: it.text, lh: it.h });
+  if (vertical) {
+    // colonnes lues de droite à gauche
+    items.sort((a, b) => b.x1 - a.x1);
+    for (const it of items) {
+      const g = groups.find(g => { const gap = g.x0 - it.x1, cw = Math.max(g.cw, it.w); const ov = Math.min(g.y1, it.y1) - Math.max(g.y0, it.y0); return gap < cw * 1.2 && gap > -cw && ov > -cw; });
+      if (g) { g.x0 = Math.min(g.x0, it.x0); g.x1 = Math.max(g.x1, it.x1); g.y0 = Math.min(g.y0, it.y0); g.y1 = Math.max(g.y1, it.y1); g.text = join(g.text, it.text); g.cw = Math.max(g.cw, it.w); }
+      else groups.push({ x0: it.x0, y0: it.y0, x1: it.x1, y1: it.y1, text: it.text, cw: it.w });
+    }
+  } else {
+    items.sort((a, b) => a.y0 - b.y0);
+    for (const it of items) {
+      const g = groups.find(g => {
+        const gap = it.y0 - g.y1, lh = Math.max(g.lh, it.h);
+        const overlap = Math.min(g.x1, it.x1) - Math.max(g.x0, it.x0);
+        return gap < lh * 1.1 && gap > -lh && overlap > -lh * 0.5;
+      });
+      if (g) { g.x0 = Math.min(g.x0, it.x0); g.x1 = Math.max(g.x1, it.x1); g.y1 = Math.max(g.y1, it.y1); g.text = join(g.text, it.text); g.lh = Math.max(g.lh, it.h); }
+      else groups.push({ x0: it.x0, y0: it.y0, x1: it.x1, y1: it.y1, text: it.text, lh: it.h });
+    }
   }
-  return groups.filter(g => /[\p{L}\p{N}]/u.test(g.text) && g.text.replace(/\s/g, '').length > 1);
+  return groups.filter(g => /[\p{L}\p{N}]/u.test(g.text) && g.text.replace(/\s/g, '').length > 1).map(({ x0, y0, x1, y1, text }) => ({ x0, y0, x1, y1, text, vertical: !!vertical }));
 }
 async function readImage(buf, lang) {
   const run = async () => {
@@ -127,7 +151,8 @@ async function readImage(buf, lang) {
     const r = await w.recognize(buf, {}, { blocks: true });
     const lines = [];
     for (const b of r.data.blocks || []) for (const p of b.paragraphs || []) for (const l of p.lines || []) lines.push({ text: l.text, confidence: l.confidence, bbox: l.bbox });
-    return groupLines(lines);
+    const L = String(lang || 'eng');
+    return groupLines(lines, /vert/.test(L), /^(jpn|chi|kor_vert|tha)/.test(L));
   };
   const p = ocrBusy.then(run, run);
   ocrBusy = p.catch(() => {});
@@ -192,4 +217,4 @@ function generatePassword(n = 16) {
   return out.join('');
 }
 
-module.exports = { MODULES, MOD_DEFAULT, PROVIDERS, translate, readImage, OCR_LANGS, ocrDownloaded, windowsHello, pwnedCount, weak, generatePassword };
+module.exports = { MODULES, MOD_DEFAULT, PROVIDERS, translate, setUserAgent, readImage, OCR_LANGS, ocrDownloaded, windowsHello, pwnedCount, weak, generatePassword };

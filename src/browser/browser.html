@@ -160,6 +160,71 @@ browser-action-list::part(action):hover{background:var(--panel2)}
 .nditem .row{display:flex;gap:4px;flex-wrap:wrap}
 .lock.int{color:var(--accent)!important}
 .spin{width:22px;height:22px;border:3px solid var(--line2);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;margin:18px auto}
+
+/* 1.6.5 : fenêtres de la barre d'outils (extensions, traducteur, scans, lumières, bloqueur) */
+.pop{position:fixed;z-index:45;display:none;width:350px;max-height:calc(100vh - 100px);overflow:auto;background:var(--panel3);border:1px solid var(--line2);border-radius:14px;box-shadow:var(--shadow);padding:12px;font-size:13px}
+.pop.on{display:block}
+.pop .ph{display:flex;align-items:center;gap:8px;margin:-2px 0 10px}
+.pop .ph b{flex:1;font-size:14px}
+.pop .ph svg,.pop .prow svg{width:16px;height:16px}
+.pop .psec{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--dim);margin:12px 2px 6px}
+.pop .prow{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:9px;min-height:36px}
+.pop .prow:hover{background:var(--panel2)}
+.pop .prow .grow{flex:1;min-width:0}
+.pop .prow .grow small{display:block;color:var(--dim);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pop .prow .nm{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pop .prow img,.pop .prow .xi{width:20px;height:20px;border-radius:4px;flex:none;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--line);color:var(--muted)}
+.pop .prow .xi svg{width:16px;height:16px}
+.pop .prow.clk{cursor:pointer}
+.pop .pin{padding:5px;border-radius:7px;color:var(--dim);display:inline-flex}
+.pop .pin:hover{background:var(--line);color:var(--text)}
+.pop .pin.on{color:var(--accent)}
+.pop .pfoot{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+.pop .pfoot .btn{flex:1;justify-content:center}
+.pop textarea{min-height:70px;resize:vertical;font:inherit}
+.pop .pout{min-height:54px;max-height:220px;overflow:auto;white-space:pre-wrap;padding:9px 10px;border-radius:8px;background:var(--panel2);border:1px solid var(--line);margin-top:8px}
+.pop .pout.dim{color:var(--dim)}
+.pop .pmeta{display:flex;align-items:center;gap:6px;margin-top:6px;color:var(--dim);font-size:11px}
+.pop .pmeta span{flex:1}
+.pop select{width:auto;max-width:170px;padding:5px 8px}
+.pop input[type=range]{flex:1;accent-color:var(--accent)}
+.pop input[type=color]{width:34px;height:26px;border:1px solid var(--line);border-radius:6px;background:none;padding:1px}
+.pop .big{display:flex;align-items:center;gap:12px;padding:10px;border-radius:12px;background:var(--panel2);border:1px solid var(--line)}
+.pop .big .pw{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--line);color:var(--dim);flex:none}
+.pop .big .pw.on{background:var(--accent);color:#fff;box-shadow:0 0 0 4px var(--accent-soft)}
+.pop .big .pw svg{width:22px;height:22px}
+.pop .nums{display:flex;gap:8px;margin-top:8px}
+.pop .nums div{flex:1;padding:8px;border-radius:10px;background:var(--panel2);text-align:center}
+.pop .nums b{display:block;font-size:18px}
+.pop .nums small{color:var(--dim);font-size:11px}
+.pop .seg{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;margin-top:6px}
+.pop .seg button{flex:1;padding:7px 4px;font-size:12px;color:var(--muted)}
+.pop .seg button.on{background:var(--accent);color:#fff;font-weight:600}
+.pop .tools{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.pop .tools button{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 2px;border-radius:9px;background:var(--panel2);border:1px solid var(--line);font-size:11px;color:var(--muted)}
+.pop .tools button:hover{color:var(--text);border-color:var(--line2)}
+.pop .tools button.on{color:var(--accent);border-color:var(--accent-line)}
+.pop .tools svg{width:18px;height:18px}
+.pop .tg{position:relative;width:34px;height:20px;border-radius:99px;background:var(--line2);flex:none;transition:background .15s;cursor:pointer}
+.pop .tg::after{content:'';position:absolute;left:3px;top:3px;width:14px;height:14px;border-radius:50%;background:#fff;transition:left .15s}
+.pop .tg.on{background:var(--accent)}.pop .tg.on::after{left:17px}
+.tb.ext{width:32px;height:32px;padding:0;background-position:center;background-repeat:no-repeat;background-size:18px;border:0}
+.tb.ext.no-icon::after{content:attr(data-letter);text-transform:uppercase;font-size:11px;font-weight:700;background:var(--line2);color:var(--text);border-radius:5px;width:20px;height:20px;display:grid;place-items:center;margin:auto}
+.tb.ext .badge{position:absolute;bottom:1px;right:0;height:12px;padding:0 2px;border-radius:3px;font-size:9px;line-height:12px;pointer-events:none}
+
+.bmdlg{position:fixed;inset:0;z-index:50;background:#0007;display:none;align-items:center;justify-content:center}
+.bmdlg.on{display:flex}
+.bmdlg .box{width:min(520px,92vw);background:var(--panel);border:1px solid var(--line2);border-radius:14px;box-shadow:var(--shadow);padding:18px}
+.bmdlg h4{margin:0 0 8px;font-size:15px}
+.bmdlg label{display:block;font-size:11.5px;color:var(--muted);margin:10px 0 4px}
+.bmdlg .tree{margin-top:12px;height:240px;overflow:auto;border:1px solid var(--line);border-radius:10px;background:var(--bg);padding:4px}
+.bmdlg .tn{display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:7px;cursor:pointer;user-select:none}
+.bmdlg .tn:hover{background:var(--panel2)}
+.bmdlg .tn.on{background:var(--accent-soft);color:var(--text);box-shadow:inset 0 0 0 1px var(--accent-line)}
+.bmdlg .tn .tw{width:14px;display:inline-flex;color:var(--dim)}
+.bmdlg .tn svg{width:15px;height:15px}
+.bmdlg .tn input{padding:3px 6px;height:auto}
+.bmdlg .row{display:flex;gap:6px;margin-top:14px}
 </style>
 </head>
 <body>
@@ -223,6 +288,12 @@ browser-action-list::part(action):hover{background:var(--panel2)}
   <symbol id="i-pause" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></symbol>
   <symbol id="i-play" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5v14l12-7z"/></symbol>
   <symbol id="i-dryae" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9 8h3.5a4 4 0 010 8H9z"/></symbol>
+  <symbol id="i-ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/><path d="M12 2.5l4.5 4.5-4.5 4.5L7.5 7z"/></symbol>
+  <symbol id="i-pushpin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M9 3h6l-1 6 3.5 3.5h-11L10 9zM12 12.5V21"/></symbol>
+  <symbol id="i-pushpin-f" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M9 3h6l-1 6 3.5 3.5h-11L10 9z"/><path d="M12 12.5V21" fill="none"/></symbol>
+  <symbol id="i-power" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 3v8M6.3 7.3a8 8 0 1011.4 0"/></symbol>
+  <symbol id="i-crop" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2v14a2 2 0 002 2h14M2 6h14a2 2 0 012 2v14"/></symbol>
+  <symbol id="i-swap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 4L3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/></symbol>
   <symbol id="i-file" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H6a1 1 0 00-1 1v16a1 1 0 001 1h12a1 1 0 001-1V8z"/><path d="M14 3v5h5"/></symbol>
 </svg>
 
@@ -234,7 +305,8 @@ browser-action-list::part(action):hover{background:var(--panel2)}
   <button class="tb" id="bHome" title="Accueil"><svg><use href="#i-home"/></svg></button>
   <div class="addr"><svg class="lock no" id="lock"><use href="#i-lock" id="lockIc"/></svg><input id="url" placeholder="Rechercher ou saisir une adresse" spellcheck="false"><span class="zoom" id="zoom"></span><button class="tb" id="bStar" title="Ajouter aux favoris"><svg><use href="#i-star" id="starIc"/></svg></button></div>
   <span id="modBar" style="display:contents"></span>
- <browser-action-list id="extBar" partition="persist:dryae-web" alignment="bottom right"></browser-action-list>
+  <span id="extPins" style="display:contents"></span>
+  <button class="tb" id="bExt" title="Extensions"><svg><use href="#i-ext"/></svg></button>
   <button class="tb shield" id="bShield" title="Bloqueur de publicités"><svg><use href="#i-shield"/></svg><span class="n" id="shieldN"></span></button>
   <button class="tb dl" id="bDrYAE" title="Fichiers détectés sur cette page"><svg><use href="#i-dl"/></svg><span class="n" id="dlN"></span></button>
   <button class="tb nd" id="bNd" title="Téléchargements du navigateur"><svg><use href="#i-dl"/></svg><i class="ring"></i><span class="n" id="ndN"></span></button>
@@ -290,8 +362,17 @@ browser-action-list::part(action):hover{background:var(--panel2)}
   <div class="row"><button class="btn sm" id="bmeDel">Supprimer</button><button class="btn sm" id="bmeMgr">Gérer…</button><span style="flex:1"></span><button class="btn sm primary" id="bmeOk">Terminé</button></div>
 </div>
 <div class="toast" id="toast"></div>
+<div class="pop" id="pop"></div>
+<div class="bmdlg" id="bmDlg"><div class="box">
+  <h4 id="bmdH">Modifier le favori</h4>
+  <label>Nom</label><input type="text" id="bmdName" spellcheck="false">
+  <label id="bmdUrlL">URL</label><input type="text" id="bmdUrl" spellcheck="false" class="notr">
+  <div class="tree" id="bmdTree"></div>
+  <div class="row"><button class="btn sm" id="bmdNew">Nouveau dossier</button><span style="flex:1"></span><button class="btn sm" id="bmdCancel">Annuler</button><button class="btn sm primary" id="bmdSave">Enregistrer</button></div>
+</div></div>
 <script src="../shared/locales.js"></script>
 <script src="../shared/i18n.js"></script>
 <script src="browser.js"></script>
+<script src="popups.js"></script>
 </body>
 </html>

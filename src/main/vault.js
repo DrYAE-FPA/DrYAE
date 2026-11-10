@@ -187,11 +187,16 @@ class Vault {
 
   setupIpc() {
     // ---- appels venant des pages (script page-preload) ----
+    // identifiant choisi ou saisi sur une première page (connexion en deux étapes : adresse, puis mot de passe)
+    this.lastUser = this.lastUser || new Map();
+    const lastFor = (e, o) => { const x = this.lastUser.get(e.sender.id); return x && x.origin === o && Date.now() - x.t < 15 * 60000 ? x.username : ''; };
+    ipcMain.handle('pw:user', (e, username) => { const o = this.frameOrigin(e); username = String(username || '').trim().slice(0, 300); if (o && username) this.lastUser.set(e.sender.id, { origin: o, username, t: Date.now() }); });
     ipcMain.handle('pw:get', e => {
       if (this.P().autofill === false) return [];
       const o = this.frameOrigin(e);
       if (!o) return [];
-      return this.forOrigin(o).map(l => ({ username: l.username, password: this.dec(l.password) })).filter(l => l.password);
+      const last = lastFor(e, o);
+      return this.forOrigin(o).map(l => ({ username: l.username, password: this.dec(l.password), last: !!last && l.username === last })).filter(l => l.password);
     });
     ipcMain.handle('pw:used', (e, username) => { const o = this.frameOrigin(e); const l = o && this.find(o, username); if (l) { l.used = Date.now(); this.save(); } });
     ipcMain.handle('pw:gen', e => (this.P().suggest !== false && this.frameOrigin(e) ? M.generatePassword(16) : ''));
@@ -200,7 +205,7 @@ class Vault {
       if (e.sender.session && this.privatePartition && e.sender.session === require('electron').session.fromPartition(this.privatePartition)) return;
       const o = this.frameOrigin(e);
       if (!o || this.data.never.includes(o)) return;
-      const username = String(c.username || '').slice(0, 300), password = String(c.password);
+      const username = String(c.username || lastFor(e, o) || '').slice(0, 300), password = String(c.password);
       const same = this.forOrigin(o).find(l => l.username === username);
       if (same && this.dec(same.password) === password) return;
       this.pending.set(e.sender.id, { origin: o, username, password });

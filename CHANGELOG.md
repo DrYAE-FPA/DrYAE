@@ -1,5 +1,58 @@
 # Nouveautés / Changelog
 
+## 1.6.5
+
+### 🇫🇷 Français
+
+**Extensions**
+- Nouveau **menu des extensions** (bouton à côté du bouclier) : les extensions intégrées à DrYAE et les extensions Chrome sont listées ensemble. Une **punaise** épingle ou retire chaque extension de la barre d'outils ; le menu ⋮ d'une extension Chrome donne ses options, la désactive ou la retire.
+- Les fenêtres des extensions Chrome s'ouvrent **sous leur bouton et entièrement à l'écran**, même quand DrYAE est agrandi ou sur un deuxième écran. Si une fenêtre ne donne pas sa taille, DrYAE la mesure et l'affiche quand même.
+- L'onglet affiché est bien celui que voit l'extension quand on clique sur son bouton.
+- Les icônes des extensions s'affichent dans la page Extensions et dans le menu.
+
+**Traducteur** (repensé)
+- **Fenêtre du traducteur** dans la barre d'outils : traduction **en direct** du texte saisi, langue de destination, deuxième langue, copier / écouter, « Traduire la page », interrupteur **Activé sur ce site**, et **Traduire automatiquement ce site**.
+- Le bouton sur le texte sélectionné réagit dès qu'on appuie dessus, et la bulle peut montrer le texte d'origine.
+- Option **Ne pas afficher le bouton si la traduction n'est pas nécessaire** (texte déjà dans votre langue, reconnu sur le PC), **délai** avant l'apparition du bouton, **deuxième langue** utilisée automatiquement.
+- Clic droit sur un lien → **Traduire le texte du lien**.
+- Service Google plus fiable (requête simple pour les textes courts, message clair si le service refuse temporairement).
+
+**Traducteur de scans** (repensé)
+- **Fenêtre unique** : traduire les images de la page, **capture d'une zone** (Ctrl+Maj+S : dessinez un rectangle, puis « Traduire la zone » ou Annuler), langue des images, « Traduire vers », **traduction automatique des images d'un site**.
+- **Icônes d'action** au survol d'une image traduite (désactivables) : original / traduction, **comparer** (glisser pour voir l'avant / après), relire l'image, copier le texte traduit, retirer.
+- Bulles plus propres (taille du texte ajustée à la bulle, police au choix), **texte vertical** (japonais, coréen, chinois) et nouvelles langues : vietnamien, thaï, indonésien, allemand, italien, turc, polonais, ukrainien, hindi ; option « Lire aussi l'anglais ».
+- Les images ajoutées pendant le défilement (webtoons) sont traduites aussi.
+
+**Lumières tamisées** (repensées)
+- Fenêtre avec interrupteur, **opacité et couleur en direct**, **protection des yeux** (filtre orangé réglable, Alt+F10), **lueur** autour de la vidéo, mode nuit sur ce site.
+- **Outils vidéo** : vitesse, boucle, zoom, filtres, capture d'image (enregistrée dans Images\DrYAE), plein onglet, détacher, réinitialiser.
+- Volume avec la molette sur la vidéo, empêcher la lecture automatique, fondu, clic sur la zone sombre (au choix).
+- Raccourcis : Alt+↑ / Alt+↓ (opacité), Alt+F8 (opacité par défaut), Alt+F9 (garder l'opacité actuelle).
+- **Mode nuit sur tous les sites**, avec horaire et sites exclus.
+
+**Bloqueur de publicités**
+- Fenêtre du bouclier : protection du site, **mode de filtrage par site** (Aucun, Basique, Optimal), éléments bloqués, masquer un élément, actualiser.
+- La **liste de serveurs de Peter Lowe** est active par défaut (avec les filtres uBlock, EasyList et EasyPrivacy).
+
+**Navigateur**
+- Clic droit sur un lien : « Ouvrir dans un nouvel onglet », « Ouvrir dans un onglet privé » et « Copier le lien » en premier ; « Télécharger le lien avec DrYAE » est rangé avec « Télécharger l'image avec DrYAE ».
+- Favoris : **Choisir un autre dossier…** ouvre une fenêtre avec le nom, l'adresse, l'arborescence des dossiers et **Nouveau dossier**.
+- Historique, favoris, mots de passe : **sélection à la souris** (clic, ou glisser pour sélectionner plusieurs lignes).
+- Connexion en deux étapes (adresse puis mot de passe, comme Google) : la liste des **comptes enregistrés** s'affiche dans le champ de l'adresse, et le mot de passe du compte choisi est proposé à l'étape suivante.
+
+**Mises à jour**
+- Le téléchargement de la mise à jour s'affiche dans le gestionnaire, dans une carte à part (progression, taille, vitesse).
+- « Redémarrer et installer » installe **sans fenêtre d'installation** : DrYAE se rouvre normalement, avec vos réglages et **sans redemander la langue**.
+
+### 🇬🇧 English
+- New **extensions menu**: built-in and Chrome extensions in one place, with a pin to show or hide each one in the toolbar. Chrome extension pop-ups open under their button and fully on screen (maximized window, second screen).
+- Reworked **Translator**: live translation window, more reliable selection button (hidden when the text is already in your language), delay option, automatic second language, per-site on/off, automatically translated sites, "Translate link text".
+- Reworked **Image text translator**: single window, **area capture** (Ctrl+Shift+S), automatic translation per site, cleaner bubbles, vertical text, more languages, hover icons to compare original and translation.
+- Reworked **Dimmed lights**: live opacity and color, eye protection, glow, video tools (speed, loop, zoom, filters, screenshot, fill tab), wheel volume, block autoplay, scheduled night mode.
+- Ad blocker window with a **per-site filtering mode** (None / Basic / Optimal); Peter Lowe's list on by default.
+- Context menu reordered; "Choose another folder…" bookmark dialog; mouse selection in lists; saved account chooser for two-step sign-in.
+- Updates install **without an installer window** and keep your settings and language; the update download is shown in the manager.
+
 ## 1.6.4
 
 ### 🇫🇷 Français

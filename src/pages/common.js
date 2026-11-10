@@ -131,9 +131,35 @@ class ListNav {
       const i = this.idx(r.dataset.k), k = r.dataset.k;
       if (e.shiftKey && this.anchor >= 0) { const ks = this.keys(); this.sel = new Set(ks.slice(Math.min(this.anchor, i), Math.max(this.anchor, i) + 1)); this.focus = i; }
       else if (e.ctrlKey || e.metaKey || e.target.classList.contains('ck')) { this.sel.has(k) ? this.sel.delete(k) : this.sel.add(k); this.focus = i; this.anchor = i; }
-      else { this.focus = i; this.anchor = i; if (!this.sel.has(k) || this.sel.size > 1) { this.sel = new Set(this.selectMode ? [k] : []); } }
+      else { this.focus = i; this.anchor = i; this.sel = new Set([k]); }
       if (e.target.classList.contains('ck')) e.preventDefault();
       this.paint();
+    });
+    // sélection à la souris : clic maintenu puis glisser (rectangle de sélection) ; Ctrl : ajoute à la sélection
+    this.root.addEventListener('mousedown', e => {
+      if (e.button !== 0 || e.target.closest('button, a, input, select, textarea, [draggable="true"], .dlg, .pmenu')) return;
+      if (!e.target.closest('[data-k]') && !e.target.closest('.plist')) return;
+      const keep = e.ctrlKey || e.metaKey ? new Set(this.sel) : new Set();
+      const sx = e.clientX, sy = e.clientY + this.root.scrollTop;
+      let band = null, raf = 0, last = e;
+      if (!e.target.closest('[data-k]')) { this.sel = new Set(keep); this.paint(); }
+      const upd = () => {
+        const y = last.clientY + this.root.scrollTop, top = Math.min(sy, y), bot = Math.max(sy, y), l = Math.min(sx, last.clientX), r = Math.max(sx, last.clientX);
+        const rb = this.root.getBoundingClientRect();
+        Object.assign(band.style, { left: l + 'px', top: (top - this.root.scrollTop) + 'px', width: (r - l) + 'px', height: (bot - top) + 'px' });
+        const s = new Set(keep); let f = -1;
+        this.rows().forEach((row, i) => { const b = row.getBoundingClientRect(); const bt = b.top + this.root.scrollTop, bb = b.bottom + this.root.scrollTop; if (bb > top && bt < bot) { s.add(row.dataset.k); f = i; } });
+        this.sel = s; if (f >= 0) this.focus = f; this.paint();
+        // défilement automatique près des bords
+        if (last.clientY < rb.top + 30) this.root.scrollTop -= 14; else if (last.clientY > rb.bottom - 30) this.root.scrollTop += 14;
+        raf = requestAnimationFrame(upd);
+      };
+      const move = m => {
+        last = m;
+        if (!band) { if (Math.abs(m.clientY - sy + this.root.scrollTop) < 6 && Math.abs(m.clientX - sx) < 6) return; band = document.createElement('div'); band.className = 'selband'; document.body.appendChild(band); document.body.classList.add('banding'); getSelection()?.removeAllRanges(); upd(); }
+      };
+      const up = () => { removeEventListener('mousemove', move, true); removeEventListener('mouseup', up, true); cancelAnimationFrame(raf); if (band) { band.remove(); document.body.classList.remove('banding'); this.anchor = this.focus; } };
+      addEventListener('mousemove', move, true); addEventListener('mouseup', up, true);
     });
     this.root.addEventListener('click', e => { if (e.target.classList.contains('ck')) e.preventDefault(); });
     this.root.addEventListener('dblclick', e => { const r = e.target.closest('[data-k]'); if (r && !e.target.closest('button, a, input')) this.onOpen?.(r.dataset.k, e); });

@@ -233,3 +233,11 @@ textarea{min-height:90px;resize:vertical;font-family:Consolas,monospace;font-siz
 .list:not(.v-content) .item:hover .rowchk,.selmode .list .rowchk,.list .rowchk:checked{opacity:1}
 .list:not(.v-content) .item.sel{background:var(--accent-soft);border-color:var(--accent-line)}
 .toast .tact{pointer-events:auto;margin-left:14px;padding:3px 10px;border-radius:6px;background:var(--accent);color:#fff;font-weight:600}
+
+/* 1.6.5 : téléchargement de la mise à jour de DrYAE, affiché à part en haut de la liste */
+.updcard{display:none;align-items:center;gap:14px;margin:8px 10px 4px;padding:12px 14px;border-radius:12px;border:1px solid var(--accent-line);background:linear-gradient(120deg,var(--accent-soft),transparent 70%)}
+.updcard.on{display:flex}
+.updcard .uc-ic{width:38px;height:38px;border-radius:10px;background:var(--accent);color:#fff;display:grid;place-items:center;flex:none}
+.updcard .uc-ic svg{width:20px;height:20px}
+.updcard .uc-tx{flex:1;min-width:0}.updcard .uc-tx b{display:block}.updcard .uc-tx span{display:block;color:var(--muted);font-size:12px;margin:2px 0 6px}
+.updcard .uc-bar{height:5px;border-radius:9px;background:var(--line);overflow:hidden}.updcard .uc-bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .3s}

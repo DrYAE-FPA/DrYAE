@@ -81,13 +81,17 @@ Les vidéos protégées par DRM (Netflix, Disney+…) ne peuvent pas être tél�
   - **Vérification** : mots de passe compromis (fuites connues), réutilisés ou faibles ;
   - **Modes de paiement** (cartes, sans le code CVC) et **Adresses**, proposés dans les formulaires ;
   - **Paramètres** : Windows Hello avant d'afficher un mot de passe, import / export .csv (colonnes url, username, password), sites refusés.
-- **Extensions intégrées** (page Extensions : activer, afficher dans la barre d'outils, retirer, options) :
-  - **Bloqueur de publicités** : bouclier pour le désactiver sur un site, listes au choix, clic droit → « Masquer cet élément… » pour cacher un élément gênant ;
+- **Menu des extensions** (bouton à côté du bouclier) : toutes les extensions, intégrées et Chrome. Cliquez sur une extension pour l'ouvrir, sur la **punaise** pour l'épingler dans la barre d'outils (ou l'en retirer), sur ⋮ pour ses options.
+- **Extensions intégrées** (activer, épingler, retirer, options) :
+  - **Bloqueur de publicités** : le bouclier ouvre une fenêtre avec la protection du site, le **mode de filtrage** (Aucun, Basique, Optimal), le nombre d'éléments bloqués et « Masquer un élément » ;
   - **Téléchargements par DrYAE** : désactivée, le navigateur enregistre lui-même les fichiers (bouton de téléchargements dans la barre d'outils) ;
-  - **Traducteur** : sélectionnez un texte puis cliquez sur le bouton « Traduire », ou traduisez la page (Ctrl+Maj+E) ;
-  - **Traducteur de scans** : Ctrl+Maj+S ou clic droit sur une image → « Traduire le texte de l'image » ; la langue des images se choisit dans les paramètres (téléchargée la première fois) ;
-  - **Lumières tamisées** (Ctrl+Maj+L) et mode nuit par site ;
+  - **Traducteur** : sélectionnez un texte puis cliquez sur le bouton qui apparaît ; la fenêtre du traducteur traduit en direct ce que vous tapez, traduit la page (Ctrl+Maj+E) et peut traduire un site automatiquement. Une **deuxième langue** sert quand le texte est déjà dans la première. Clic droit sur un lien → « Traduire le texte du lien » ;
+  - **Traducteur de scans** : bouton de la barre d'outils pour toutes les images, **Ctrl+Maj+S** pour traduire une zone (dessinez un rectangle puis « Traduire la zone »), ou clic droit sur une image. Au survol d'une image traduite, des icônes permettent de revoir l'original, de **comparer** en glissant, de relire ou de copier le texte ;
+  - **Lumières tamisées** (Ctrl+Maj+L) : opacité (Alt+↑ / Alt+↓), couleur, protection des yeux (Alt+F10), lueur, outils vidéo (vitesse, boucle, zoom, filtres, capture, plein onglet), mode nuit par site ou partout (avec horaire) ;
   - **Image dans l'image** : bouton sur les vidéos, ou Ctrl+Maj+U.
+- **Listes (historique, favoris, mots de passe)** : cliquez sur une ligne pour la sélectionner, ou maintenez le clic et glissez pour en sélectionner plusieurs (Ctrl pour ajouter).
+- **Favoris** : dans la bulle de l'étoile, « Choisir un autre dossier… » ouvre une fenêtre avec le nom, l'adresse, les dossiers et « Nouveau dossier ».
+- **Connexion en deux étapes** (adresse puis mot de passe) : un clic dans le champ de l'adresse affiche vos comptes enregistrés pour ce site.
 - **Extensions Chrome :** ouvrez le Chrome Web Store depuis la page Extensions, puis cliquez sur « Ajouter à Chrome ». Si la boutique ne s'affiche pas, copiez le lien de la page de l'extension (ou son identifiant) dans **Installer avec un lien**.
 - Si une vérification « Êtes-vous un humain ? » ne passe pas, utilisez **⋮ → Ouvrir cette page dans Chrome** avec l'extension DrYAE (voir section 7).
 
@@ -110,7 +114,7 @@ Elle envoie à DrYAE les téléchargements de Google Chrome, les vidéos et les 
 - **À propos :** version, **Rechercher les mises à jour**, **Donner mon avis**, licences.
 
 ## 9. Mises à jour et avis
-- Quand une nouvelle version sort, un bandeau **Mettre à jour** apparaît. Cliquez dessus, puis sur **Redémarrer et installer**.
+- Quand une nouvelle version sort, un bandeau **Mettre à jour** apparaît. Cliquez dessus : le téléchargement s'affiche dans le gestionnaire. Puis cliquez sur **Redémarrer et installer** : DrYAE s'installe sans fenêtre et se rouvre avec vos réglages et votre langue.
 - Le bouton **Donner mon avis** ouvre la page [Issues](https://github.com/DrYAE-FPA/dryae/issues) pour signaler un problème ou proposer une idée.
 
 ## 10. Raccourcis clavier

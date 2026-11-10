@@ -86,13 +86,17 @@ DRM-protected videos (Netflix, Disney+…) cannot be downloaded.
   - **Check-up**: breached, reused or weak passwords;
   - **Payment methods** (cards, without the CVC) and **Addresses**, offered in forms;
   - **Settings**: Windows Hello before showing a password, .csv import/export (url, username, password columns), refused sites.
-- **Built-in extensions** (Extensions page: turn on/off, show in the toolbar, remove, options):
-  - **Ad blocker**: shield to turn it off on a site, filter lists, right-click → "Hide this element…";
+- **Extensions menu** (button next to the shield): all extensions, built-in and Chrome. Click an extension to open it, the **pin** to show or hide it in the toolbar, ⋮ for its options.
+- **Built-in extensions** (turn on/off, pin, remove, options):
+  - **Ad blocker**: the shield opens a window with site protection, the **filtering mode** (None, Basic, Optimal), the number of blocked items and "Hide an element";
   - **Downloads with DrYAE**: when off, the browser saves files itself (downloads button in the toolbar);
-  - **Translator**: select text and click "Translate", or translate the page (Ctrl+Shift+E);
-  - **Image text translator**: Ctrl+Shift+S or right-click an image → "Translate image text"; choose the image language in Settings (downloaded the first time);
-  - **Dimmed lights** (Ctrl+Shift+L) and per-site night mode;
+  - **Translator**: select text and click the button that appears; the translator window translates what you type as you type, translates the page (Ctrl+Shift+E) and can translate a site automatically. A **second language** is used when the text is already in the first one. Right-click a link → "Translate link text";
+  - **Image text translator**: toolbar button for all images, **Ctrl+Shift+S** to translate an area (draw a rectangle, then "Translate area"), or right-click an image. When hovering a translated image, icons let you see the original, **compare** by dragging, read again or copy the text;
+  - **Dimmed lights** (Ctrl+Shift+L): opacity (Alt+↑ / Alt+↓), color, eye protection (Alt+F10), glow, video tools (speed, loop, zoom, filters, screenshot, fill tab), night mode per site or everywhere (with a schedule);
   - **Picture-in-picture**: button on videos, or Ctrl+Shift+U.
+- **Lists (history, bookmarks, passwords)**: click a row to select it, or hold the click and drag to select several (Ctrl to add).
+- **Bookmarks**: in the star bubble, "Choose another folder…" opens a window with the name, address, folders and "New folder".
+- **Two-step sign-in** (address, then password): clicking the address field shows your saved accounts for that site.
 - **Chrome extensions:** open the Chrome Web Store from the Extensions page, then click "Add to Chrome". If the store does not show, paste the extension's link (or ID) into **Install from a link**.
 - If a "Are you human?" check doesn't pass, use **⋮ → Open this page in Chrome** with the DrYAE extension (see section 7).
 
@@ -115,7 +119,7 @@ It sends Google Chrome downloads, videos and magnet links to DrYAE.
 - **About:** version, **Check for updates**, **Give feedback**, licenses.
 
 ## 9. Updates and feedback
-- When a new version is out, an **Update** banner appears. Click it, then click **Restart and install**.
+- When a new version is out, an **Update** banner appears. Click it: the download shows in the manager. Then click **Restart and install**: DrYAE installs without any window and reopens with your settings and language.
 - **Give feedback** opens the [Issues](https://github.com/DrYAE-FPA/dryae/issues) page, where you can report a problem or suggest an idea.
 
 ## 10. Keyboard shortcuts

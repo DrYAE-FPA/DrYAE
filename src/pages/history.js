@@ -11,7 +11,7 @@ $('#nav').innerHTML = `
 const search = $('#q');
 const nav = new ListNav({
   root: $('#wrap'), search,
-  onSel: ks => { const b = $('#selbar'); if (!b) return; b.classList.toggle('on', ks.length > 0); $('#selN').textContent = TRF('{0} sélectionné(s)', ks.length); },
+  onSel: ks => { const b = $('#selbar'); if (!b) return; b.classList.toggle('on', ks.length > 1); $('#selN').textContent = TRF('{0} sélectionné(s)', ks.length); },
   onOpen: (k, e) => { const h = byKey(k); if (h) open(h.url, e && (e.ctrlKey || e.metaKey)); },
   onDelete: ks => del(ks),
   onUndo: () => undo(),

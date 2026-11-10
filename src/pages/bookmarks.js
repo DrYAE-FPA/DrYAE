@@ -51,8 +51,8 @@ function draw() {
       ${path ? `<p class="notr">${esc(path)}</p>` : ''}</div>
     <div class="kbdhelp"><span><kbd>Entrée</kbd> ${esc(TR('ouvrir'))}</span><span><kbd>Ctrl</kbd>+<kbd>Entrée</kbd> ${esc(TR('nouvel onglet'))}</span><span><kbd>F2</kbd> ${esc(TR('modifier'))}</span><span><kbd>Suppr</kbd> ${esc(TR('supprimer'))}</span><span><kbd>Ctrl</kbd>+<kbd>X</kbd> / <kbd>Ctrl</kbd>+<kbd>V</kbd> ${esc(TR('déplacer'))}</span><span><kbd>Alt</kbd>+<kbd>↑↓</kbd> ${esc(TR('monter / descendre'))}</span><span><kbd>Retour arrière</kbd> ${esc(TR('dossier parent'))}</span><span><kbd>Ctrl</kbd>+<kbd>Z</kbd> ${esc(TR('annuler'))}</span></div>
     <div class="selbar" id="selbar"><b id="selN"></b><button class="btn sm" id="selOpen">${ic('open')}${esc(TR('Tout ouvrir'))}</button><button class="btn sm" id="selDel">${ic('trash')}${esc(TR('Supprimer'))}</button><button class="btn sm" id="selX">${esc(TR('Annuler'))}</button></div>
-    <div class="plist" id="lst">${list.length ? list.map(n => `<div class="lrow" data-k="${esc(n.id)}" draggable="${q ? 'false' : 'true'}">
-      <span style="color:var(--dim);cursor:grab;display:flex">${ic('drag')}</span>
+    <div class="plist" id="lst">${list.length ? list.map(n => `<div class="lrow" data-k="${esc(n.id)}">
+      <span style="color:var(--dim);cursor:grab;display:flex" draggable="${q ? 'false' : 'true'}" title="${esc(TR('Glisser pour déplacer'))}">${ic('drag')}</span>
       ${n.type === 'folder' ? `<span class="favx" style="background:var(--panel3);color:var(--accent)">${ic('folder')}</span>` : favHtml(n.url, n.fav)}
       <div class="tt"><b class="notr" title="${esc(n.title)}">${esc(n.title || n.url)}</b><span class="notr">${esc(n.type === 'folder' ? TRF('{0} élément(s)', count(n)) : q ? pathOf(n.id) + ' · ' + hostOf(n.url) : n.url)}</span></div>
       <div class="act"><button class="icon-btn" data-ed title="${esc(TR('Modifier'))}">${ic('edit')}</button><button class="icon-btn" data-more title="${esc(TR('Plus'))}">${ic('more')}</button></div></div>`).join('')
@@ -157,7 +157,7 @@ document.addEventListener('keydown', async e => {
 });
 // glisser-déposer : réordonner dans la liste ou ranger dans un dossier de gauche
 let drag = null;
-$('#wrap').addEventListener('dragstart', e => { const r = e.target.closest('[data-k]'); if (!r) return; drag = nav.sel.has(r.dataset.k) ? nav.selected() : [r.dataset.k]; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', drag.join(',')); });
+$('#wrap').addEventListener('dragstart', e => { const r = e.target.closest('[data-k]'); if (!r) return; drag = nav.sel.has(r.dataset.k) ? nav.selected() : [r.dataset.k]; e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setDragImage(r, 30, 18); } catch {} e.dataTransfer.setData('text/plain', drag.join(',')); });
 $('#wrap').addEventListener('dragover', e => { const r = e.target.closest('[data-k]'); if (!drag || !r) return; e.preventDefault(); $$('.lrow').forEach(x => (x.style.boxShadow = '')); const b = r.getBoundingClientRect(); r.style.boxShadow = e.clientY > b.top + b.height / 2 ? 'inset 0 -2px 0 var(--accent)' : 'inset 0 2px 0 var(--accent)'; });
 $('#wrap').addEventListener('drop', async e => {
   const r = e.target.closest('[data-k]'); $$('.lrow').forEach(x => (x.style.boxShadow = '')); if (!drag || !r) return; e.preventDefault();

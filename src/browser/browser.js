@@ -98,6 +98,8 @@ function ensureWebview(tab) {
     else if (e.channel === 'dryae-tr') { tab.tr = a; if (tab === cur) drawTrBar(); }
     else if (e.channel === 'dryae-lights') { tab.lit = !!a; if (tab === cur) drawMods(); }
     else if (e.channel === 'dryae-night') { tab.night = !!a; }
+    else if (e.channel === 'dryae-vstate') { tab.video = a || {}; }
+    else if (e.channel === 'dryae-shot') { B.call('br:shot', tab.wcId, a).then(f => f && toast('Capture enregistrée dans Images', { label: 'Ouvrir', fn: () => B.call('br:showItem', f) })); }
   });
   wv.addEventListener('found-in-page', e => { $('#findN').textContent = e.result.matches ? `${e.result.activeMatchOrdinal}/${e.result.matches}` : '0'; });
   wv.addEventListener('enter-html-full-screen', () => document.body.classList.add('fs'));
@@ -186,7 +188,8 @@ function updToolbar() {
   $('#dlN').textContent = nDl > 99 ? '99+' : nDl; $('#dlN').classList.toggle('on', nDl > 0);
   $('#bDrYAE').classList.toggle('has', nDl > 0);
   // bloqueur
-  const wl = CFG.whitelist?.some(w => hostOf(t.url) === w || hostOf(t.url).endsWith('.' + w));
+  const wl = typeof adModeOf === 'function' ? adModeOf(hostOf(t.url)) === 'none' : CFG.whitelist?.some(w => hostOf(t.url) === w || hostOf(t.url).endsWith('.' + w));
+  if (typeof drawExtTab === 'function') drawExtTab();
   const adOn = modOn('adblock');
   $('#bShield').style.display = CFG.mods?.adblock?.installed !== false && CFG.mods?.adblock?.pinned !== false ? '' : 'none';
   $('#bShield').classList.toggle('on', adOn && !wl);
@@ -230,20 +233,7 @@ $('#newTab').onclick = () => newTab();
 $('#bDrYAE').onclick = () => togglePanel('media');
 $('#bStar').onclick = () => starClick();
 
-$('#bShield').onclick = e => {
-  const h = hostOf(cur.url);
-  const wl = (CFG.whitelist || []).some(w => h === w || h.endsWith('.' + w));
-  const r = e.currentTarget.getBoundingClientRect();
-  menu(r.right - 260, r.bottom + 4, [
-    { label: `${cur.blocked} élément(s) bloqué(s) sur cette page`, icon: 'shield', fn: () => {} },
-    '-',
-    modOn('adblock') && h && { label: wl ? `Réactiver le bloqueur sur ${h}` : `Désactiver le bloqueur sur ${h}`, icon: 'shield', fn: async () => { CFG.whitelist = await B.call('br:whitelist', { host: h, add: !wl }); cur.wv?.reload(); updToolbar(); } },
-    modOn('adblock') && h && { label: 'Masquer un élément de la page…', icon: 'eye', fn: () => pageCmd('picker') },
-    { label: modOn('adblock') ? 'Désactiver le bloqueur partout' : 'Activer le bloqueur', icon: 'shield', fn: async () => { await setModule('adblock', { enabled: !modOn('adblock') }); cur.wv?.reload(); } },
-    '-',
-    { label: 'Paramètres du bloqueur', icon: 'gear', fn: () => openPage('settings', 'adblock') },
-  ].filter(Boolean));
-};
+$('#bShield').onclick = e => popOpen('adblock', e.currentTarget);
 // ---------- menu ⋮ (raccourcis à droite, sous-menus, zoom) ----------
 const modOn = id => !!(CFG.mods && CFG.mods[id] && CFG.mods[id].on);
 const MODS = [['adblock', 'Bloqueur de publicités', 'shield'], ['capture', 'Téléchargements par DrYAE', 'dl'], ['translate', 'Traducteur', 'translate'], ['scan', 'Traducteur de scans', 'scan'], ['lights', 'Lumières tamisées', 'bulb'], ['pip', "Image dans l'image", 'pip']];
@@ -551,7 +541,7 @@ function onKey(k, ctrl, shift, alt) {
     if (k === 'b') return go(toggleBar);
     if (k === 'd') return go(bookmarkAll);
     if (k === 'e') return go(() => modOn('translate') && pageCmd('translate-selection'));
-    if (k === 's') return go(() => modOn('scan') && pageCmd('scan'));
+    if (k === 's') return go(() => modOn('scan') && pageCmd('scan-region'));
     if (k === 'l') return go(() => modOn('lights') && pageCmd('lights'));
     if (k === 'u') return go(() => modOn('pip') && cur?.wcId && B.call('br:pip', cur.wcId));
     if (k === 'i') return go(() => cur?.wcId && B.call('br:devtools', cur.wcId));
@@ -1019,7 +1009,7 @@ $('#bmbar').addEventListener('drop', async e => {
 let bmEditing = null;
 function folderOptions(sel) {
   const out = []; const w = (l, d) => l.forEach(n => { if (n.type === 'folder') { out.push(`<option value="${esc(n.id)}" ${n.id === sel ? 'selected' : ''}>${'  '.repeat(d)}${esc(T(n.title))}</option>`); w(n.children, d + 1); } });
-  w([BM.bar, BM.other], 0); return out.join('');
+  w([BM.bar, BM.other], 0); return out.join('') + `<option value="__other">${esc(T('Choisir un autre dossier…'))}</option>`;
 }
 const parentOf = id => { let p = null; const w = (l, par) => l.forEach(n => { if (n.id === id) p = par; if (n.children) w(n.children, n); }); w([BM.bar, BM.other], null); return p; };
 function showBmEdit(n, anchor, isNew) {
@@ -1051,6 +1041,66 @@ $('#bmeOk').onclick = async () => {
   hideBmEdit();
 };
 $('#bmeName').onkeydown = e => { if (e.key === 'Enter') $('#bmeOk').click(); };
+// « Choisir un autre dossier… » : fenêtre complète (nom, adresse, arborescence, nouveau dossier)
+$('#bmeFolder').onchange = e => { if (e.target.value === '__other') { const n = bmEditing; const p = parentOf(n?.id); e.target.value = p?.id || 'bar'; if (n) { hideBmEdit(); openBmDialog(n); } } };
+let bmDlg = null;
+function openBmDialog(n) {
+  bmDlg = { n, sel: parentOf(n.id)?.id || 'bar', open: new Set(['bar', 'other']) };
+  $('#bmdH').textContent = T(n.type === 'folder' ? 'Modifier le dossier' : 'Modifier le favori');
+  $('#bmdName').value = n.title || ''; $('#bmdUrl').value = n.url || '';
+  $('#bmdUrl').style.display = $('#bmdUrlL').style.display = n.type === 'folder' ? 'none' : '';
+  // les dossiers qui mènent au dossier actuel sont ouverts
+  let p = parentOf(n.id); while (p) { bmDlg.open.add(p.id); p = parentOf(p.id); }
+  drawBmTree();
+  $('#bmDlg').classList.add('on');
+  setTimeout(() => { $('#bmdName').focus(); $('#bmdName').select(); }, 30);
+}
+function drawBmTree(editId) {
+  const out = [];
+  const w = (l, d) => l.forEach(f => {
+    if (f.type !== 'folder' || (bmDlg.n.type === 'folder' && f.id === bmDlg.n.id)) return;
+    const kids = f.children.filter(c => c.type === 'folder' && c.id !== bmDlg.n.id);
+    const open = bmDlg.open.has(f.id);
+    out.push(`<div class="tn ${f.id === bmDlg.sel ? 'on' : ''}" data-f="${esc(f.id)}" style="padding-left:${8 + d * 18}px"><span class="tw" data-tw>${kids.length ? ic(open ? 'fwd' : 'fwd') : ''}</span>${ic('folder')}${f.id === editId ? `<input type="text" id="bmdFolderName" value="${esc(f.title)}" spellcheck="false">` : `<span class="${['bar', 'other'].includes(f.id) ? '' : 'notr'}">${esc(['bar', 'other'].includes(f.id) ? T(f.title) : f.title)}</span>`}</div>`);
+    if (open) w(f.children, d + 1);
+  });
+  w([BM.bar, BM.other], 0);
+  $('#bmdTree').innerHTML = out.join('');
+  $$('#bmdTree [data-f]').forEach(r => { const tw = r.querySelector('[data-tw] svg'); if (tw) tw.style.transform = bmDlg.open.has(r.dataset.f) ? 'rotate(90deg)' : ''; });
+  const inp = $('#bmdFolderName');
+  if (inp) {
+    inp.focus(); inp.select();
+    const done = async () => { if (!inp.isConnected) return; const v = inp.value.trim(); if (v) await B.call('br:bmUpdate', editId, { title: v }); drawBmTree(); };
+    inp.onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); done(); } else if (e.key === 'Escape') { e.preventDefault(); drawBmTree(); } };
+    inp.onblur = done;
+  }
+}
+$('#bmdTree').onclick = e => {
+  const r = e.target.closest('[data-f]'); if (!r || e.target.closest('input')) return;
+  const id = r.dataset.f;
+  if (e.target.closest('[data-tw]')) { bmDlg.open.has(id) ? bmDlg.open.delete(id) : bmDlg.open.add(id); }
+  else { bmDlg.sel = id; bmDlg.open.add(id); }
+  drawBmTree();
+};
+$('#bmdTree').ondblclick = e => { const r = e.target.closest('[data-f]'); if (r && !['bar', 'other'].includes(r.dataset.f)) drawBmTree(r.dataset.f); };
+$('#bmdNew').onclick = async () => {
+  const f = await B.call('br:bmAdd', { parentId: bmDlg.sel, type: 'folder', title: T('Nouveau dossier') });
+  BM = await B.call('br:bmTree');
+  bmDlg.open.add(bmDlg.sel); bmDlg.sel = f.id; drawBmTree(f.id);
+};
+const closeBmDialog = () => { $('#bmDlg').classList.remove('on'); bmDlg = null; };
+$('#bmdCancel').onclick = closeBmDialog;
+$('#bmDlg').onmousedown = e => { if (e.target === e.currentTarget) closeBmDialog(); };
+$('#bmdSave').onclick = async () => {
+  const d = bmDlg; if (!d) return;
+  const patch = { title: $('#bmdName').value.trim() || d.n.title };
+  if (d.n.type !== 'folder') { let u = $('#bmdUrl').value.trim(); if (u && !/^[a-z][\w+.-]*:/i.test(u)) u = 'https://' + u; if (u) patch.url = u; }
+  await B.call('br:bmUpdate', d.n.id, patch);
+  const p = parentOf(d.n.id);
+  if (d.sel && (!p || d.sel !== p.id)) await B.call('br:bmMove', [d.n.id], d.sel, -1);
+  closeBmDialog(); toast('Favori enregistré');
+};
+$('#bmDlg').addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); closeBmDialog(); } else if (e.key === 'Enter' && e.target.tagName === 'INPUT' && e.target.id !== 'bmdFolderName') $('#bmdSave').click(); });
 $('#bmeDel').onclick = async () => { const n = bmEditing; hideBmEdit(); if (n) { await B.call('br:bmRemove', [n.id]); toast('Retiré des favoris'); } };
 $('#bmeMgr').onclick = () => { hideBmEdit(); openPage('bookmarks'); };
 document.addEventListener('mousedown', e => { if (bmEditing && !e.target.closest('#bmEdit') && !e.target.closest('#bStar')) $('#bmeOk').click(); });
@@ -1062,26 +1112,13 @@ function drawMods() {
   const M = CFG.mods || {};
   const btn = (id, icon, title, act) => (M[id]?.on && M[id]?.pinned !== false ? `<button class="tb mod ${act ? 'act' : ''}" data-mod="${id}" title="${esc(T(title))}"><svg><use href="#i-${icon}"/></svg></button>` : '');
   const t = cur || {};
-  box.innerHTML = btn('translate', 'translate', 'Traduire (Ctrl+Maj+E)', t.tr && ['done', 'working'].includes(t.tr.state)) + btn('scan', 'scan', 'Traducteur de scans (Ctrl+Maj+S)', false) + btn('lights', 'bulb', 'Lumières tamisées (Ctrl+Maj+L)', t.lit) + btn('pip', 'pip', "Image dans l'image (Ctrl+Maj+U)", false);
+  box.innerHTML = btn('translate', 'translate', 'Traduire (Ctrl+Maj+E)', t.tr && ['done', 'working'].includes(t.tr.state)) + btn('scan', 'scan', 'Traducteur de scans', false) + btn('lights', 'bulb', 'Lumières tamisées (Ctrl+Maj+L)', t.lit) + btn('pip', 'pip', "Image dans l'image (Ctrl+Maj+U)", false);
 }
 $('#modBar').addEventListener('click', e => {
   const b = e.target.closest('[data-mod]'); if (!b) return;
-  const id = b.dataset.mod, r = b.getBoundingClientRect();
-  const web = /^https?:/.test(cur?.url || '');
-  if (id === 'translate') return menu(r.right - 280, r.bottom + 4, [
-    { label: cur?.tr && cur.tr.state !== 'restored' ? "Afficher l'original" : 'Traduire la page', icon: 'translate', key: 'Ctrl+Maj+E', fn: () => pageCmd('translate-page'), disabled: !web },
-    { label: 'Traduire le texte sélectionné', icon: 'translate', fn: () => pageCmd('translate-selection'), disabled: !web },
-    '-',
-    { label: 'Paramètres du traducteur', icon: 'gear', fn: () => openPage('settings', 'translate') },
-  ]);
-  if (id === 'scan') return menu(r.right - 280, r.bottom + 4, [
-    { label: 'Traduire les images de la page', icon: 'scan', key: 'Ctrl+Maj+S', fn: () => pageCmd('scan'), disabled: !web },
-    { title: 'Astuce : clic droit sur une image → « Traduire le texte de l\'image »' },
-    '-',
-    { label: 'Paramètres du traducteur de scans', icon: 'gear', fn: () => openPage('settings', 'scan') },
-  ]);
-  if (id === 'lights') return pageCmd('lights');
+  const id = b.dataset.mod;
   if (id === 'pip') return cur?.wcId && B.call('br:pip', cur.wcId);
+  popOpen(id, b);
 });
 $('#modBar').addEventListener('contextmenu', e => {
   const b = e.target.closest('[data-mod]'); if (!b) return; e.preventDefault();

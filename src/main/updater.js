@@ -31,6 +31,7 @@ class Updater {
       const { autoUpdater } = require('electron-updater');
       autoUpdater.autoDownload = false;
       autoUpdater.autoInstallOnAppQuit = true;
+      autoUpdater.disableWebInstaller = true;
       // electron-updater a besoin du fichier app-update.yml : s'il manque (ancienne construction), on le crée
       const g = this.cfg.github;
       const yml = `provider: github\nowner: ${g.owner}\nrepo: ${g.repo}\nupdaterCacheDirName: dryae-updater\n`;
@@ -43,8 +44,8 @@ class Updater {
       autoUpdater.on('checking-for-update', () => this.set({ status: 'checking', error: null }));
       autoUpdater.on('update-available', i => { this.set({ status: 'available', version: i.version }); this.notify(this.T('Mise à jour disponible'), 'DrYAE ' + i.version); });
       autoUpdater.on('update-not-available', () => this.set({ status: 'latest' }));
-      autoUpdater.on('download-progress', p => this.set({ status: 'downloading', progress: p.percent || 0 }));
-      autoUpdater.on('update-downloaded', i => this.set({ status: 'ready', version: i.version }));
+      autoUpdater.on('download-progress', p => this.set({ status: 'downloading', progress: p.percent || 0, transferred: p.transferred || 0, total: p.total || 0, speed: p.bytesPerSecond || 0 }));
+      autoUpdater.on('update-downloaded', i => this.set({ status: 'ready', version: i.version, progress: 100, speed: 0 }));
       autoUpdater.on('error', e => this.set({ status: 'error', error: String(e && e.message || e).split('\n')[0] }));
       this.au = autoUpdater;
       // vérification automatique (désactivable dans Paramètres → À propos)
@@ -67,7 +68,8 @@ class Updater {
   }
   async install() {
     if (!this.au) { if (this.repoUrl) shell.openExternal(this.repoUrl + '/releases/latest'); return; }
-    if (this.state.status === 'ready') { try { this.beforeInstall(); } catch {} return this.au.quitAndInstall(false, true); }
+    // installation silencieuse (sans fenêtre d'installation ni choix de langue), puis DrYAE se rouvre tout seul
+    if (this.state.status === 'ready') { try { this.beforeInstall(); } catch {} return this.au.quitAndInstall(true, true); }
     this.set({ status: 'downloading', progress: 0 });
     try { await this.au.downloadUpdate(); } catch (e) { this.set({ status: 'error', error: e.message }); }
   }

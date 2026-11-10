@@ -26,6 +26,10 @@ const row = (t, s, ctl, attrs = '') => `<div class="prow" ${attrs}><div class="t
 const sel = (id, opts, v) => `<select id="${id}">${opts.map(([k, l]) => `<option value="${esc(k)}" ${String(k) === String(v) ? 'selected' : ''}>${esc(TR(l))}</option>`).join('')}</select>`;
 const sec = (id, title, body, desc = '') => `<section id="s-${id}" style="scroll-margin-top:10px"><div class="phead" style="margin-top:${id === 'startup' ? 0 : 28}px"><h2>${esc(TR(title))}</h2>${desc ? `<p>${esc(TR(desc))}</p>` : ''}</div><div class="pcard">${body}</div></section>`;
 const modRow = id => { const m = C.mods[id] || {}; return m.installed === false ? row('Extension retirée', 'Rajoutez-la depuis la page des extensions.', `<button class="btn sm" data-goext>${esc(TR('Gérer les extensions'))}</button>`) : row('Activer', '', sw('mod_' + id, m.enabled !== false)) + row('Bouton dans la barre d\'outils', '', sw('pin_' + id, m.pinned !== false)); };
+// 1.6.5 : réglage générique « groupe.clé » (interrupteur, liste, heure)
+const swk = (k, on) => sw('k_' + k.replace(/\./g, '__'), on, `data-k="${k}"`);
+const selk = (k, opts, v) => `<select data-k="${k}">${opts.map(([o, l]) => `<option value="${esc(o)}" ${String(o) === String(v) ? 'selected' : ''}>${esc(TR(l))}</option>`).join('')}</select>`;
+const sites = (k, list) => (list || []).map(h => `<div class="prow" style="padding-left:40px"><span class="notr" style="flex:1">${esc(h)}</span><button class="icon-btn" data-rm="${k}|${esc(h)}" title="${esc(TR('Retirer'))}">${ic('x')}</button></div>`).join('');
 const TLANGS = ['fr', 'en', 'es', 'pt', 'ru', 'ar', 'de', 'it', 'nl', 'pl', 'tr', 'uk', 'ro', 'el', 'sv', 'ja', 'ko', 'zh-CN', 'zh-TW', 'hi', 'id', 'vi', 'th', 'fa', 'he', 'sw', 'ha', 'yo', 'wo', 'ln'];
 const lname = c => { try { const n = new Intl.DisplayNames([(window.I18N && I18N.lang) || 'fr'], { type: 'language' }).of(c); return n.charAt(0).toUpperCase() + n.slice(1); } catch { return c; } };
 const langOpts = (withAuto) => [...(withAuto ? [['', 'Langue de DrYAE']] : []), ...TLANGS.map(c => [c, lname(c)])];
@@ -80,8 +84,11 @@ function draw() {
       ${row('Éléments bloqués depuis l\'ouverture', '', `<span class="tag">${STATS.total}</span>`)}
       <div class="prow" style="flex-direction:column;align-items:stretch"><div class="tx"><b>${esc(TR('Listes de filtres'))}</b><span>${esc(TR('Les listes sont mises à jour tous les 4 jours.'))} ${b.adblockUpdated ? esc(TRF('Dernière mise à jour : {0}', new Date(b.adblockUpdated).toLocaleString(LOC()))) : ''}</span></div>
         <label class="cbx"><input type="checkbox" checked disabled><div><b>${esc(TR('Publicités'))}</b><span>${esc(TR('Toujours active'))}</span></div></label>
-        ${[['privacy', 'Traqueurs et statistiques', 'Empêche le suivi d\'un site à l\'autre.'], ['cookies', 'Bannières de cookies', 'Masque les demandes de consentement aux cookies.'], ['annoyances', 'Éléments gênants', 'Fenêtres d\'inscription, bulles de discussion, incitations à installer une appli…'], ['regional', 'Liste française', 'Publicités des sites en français.'], ['malware', 'Sites malveillants', 'Bloque les adresses connues pour diffuser des logiciels malveillants.']].map(([k, l, s]) => `<label class="cbx"><input type="checkbox" data-al="${k}" ${AL[k] ? 'checked' : ''}><div><b>${esc(TR(l))}</b><span>${esc(TR(s))}</span></div></label>`).join('')}
+        ${[['privacy', 'Traqueurs et statistiques', 'Empêche le suivi d\'un site à l\'autre.'], ['cookies', 'Bannières de cookies', 'Masque les demandes de consentement aux cookies.'], ['annoyances', 'Éléments gênants', 'Fenêtres d\'inscription, bulles de discussion, incitations à installer une appli…'], ['regional', 'Liste française', 'Publicités des sites en français.'], ['malware', 'Sites malveillants', 'Bloque les adresses connues pour diffuser des logiciels malveillants.'], ['peterLowe', 'Liste de serveurs de Peter Lowe', 'Serveurs de publicité et de suivi connus.']].map(([k, l, s]) => `<label class="cbx"><input type="checkbox" data-al="${k}" ${AL[k] !== false && (AL[k] || k === 'peterLowe') ? 'checked' : ''}><div><b>${esc(TR(l))}</b><span>${esc(TR(s))}</span></div></label>`).join('')}
         <div style="display:flex;gap:8px;align-items:center;margin-top:6px"><button class="btn sm" id="adUpd">${ic('reload')}${esc(TR('Mettre à jour les filtres maintenant'))}</button><span class="hint" id="adSt"></span></div></div>
+      ${row('Mode de filtrage par défaut', 'Basique : seulement les requêtes (publicités, traqueurs). Optimal : aussi les emplacements vides et les éléments de la page.', selk('adDefaultMode', [['basic', 'Basique'], ['optimal', 'Optimal']], b.adDefaultMode || 'optimal'))}
+      ${row('Mode choisi pour certains sites', 'Bouclier de la barre d\'outils → mode de filtrage pour ce site.', '')}
+      ${Object.entries(b.adModes || {}).filter(([, m]) => m).map(([h, m]) => `<div class="prow" style="padding-left:40px"><span class="notr" style="flex:1">${esc(h)}</span><span class="tag">${esc(TR({ none: 'Aucun', basic: 'Basique', optimal: 'Optimal' }[m] || m))}</span><button class="icon-btn" data-admode="${esc(h)}">${ic('x')}</button></div>`).join('')}
       ${row('Sites autorisés', 'Le bloqueur est désactivé sur ces sites (bouclier → « Désactiver le bloqueur sur ce site »).', '')}
       ${(b.whitelist || []).map(h => `<div class="prow" style="padding-left:40px"><span class="notr" style="flex:1">${esc(h)}</span><button class="icon-btn" data-wl="${esc(h)}">${ic('x')}</button></div>`).join('')}
       ${row('Éléments masqués à la main', 'Clic droit sur un élément → « Masquer cet élément… ».', '')}
@@ -95,18 +102,38 @@ function draw() {
       ${row('Service de traduction', '', sel('trProv', [['google', 'Google Traduction (gratuit, sans compte)'], ['deepl', 'DeepL (clé API personnelle)'], ['libre', 'LibreTranslate (serveur au choix)']], T2.provider || 'google'))}
       <div id="trDeepl" ${T2.provider === 'deepl' ? '' : 'style="display:none"'}>${row('Clé API DeepL', 'Gratuite jusqu\'à 500 000 caractères par mois sur deepl.com.', `<input type="password" id="trKey" value="${esc(T2.deeplKey || '')}" spellcheck="false">`)}</div>
       <div id="trLibre" ${T2.provider === 'libre' ? '' : 'style="display:none"'}>${row('Adresse du serveur LibreTranslate', '', `<input type="url" id="trUrl" value="${esc(T2.libreUrl || '')}" placeholder="https://…" spellcheck="false">`)}${row('Clé API (si le serveur en demande une)', '', `<input type="password" id="trLKey" value="${esc(T2.libreKey || '')}" spellcheck="false">`)}</div>
-      ${row('Langue de traduction', '', sel('trTo2', langOpts(true), T2.target || ''))}`, 'Traduit le texte sélectionné ou la page entière. Le texte est envoyé au service choisi.') +
+      ${row('Langue de traduction', '', sel('trTo2', langOpts(true), T2.target || ''))}
+      ${row('Deuxième langue', 'Si le texte est déjà dans la langue de traduction, il est traduit dans celle-ci.', selk('translate.second', [['', 'Aucune'], ...TLANGS.map(c => [c, lname(c)])], T2.second || ''))}
+      ${row('Ne pas afficher le bouton si la traduction n\'est pas nécessaire', 'Le bouton n\'apparaît pas quand le texte sélectionné est déjà dans votre langue.', swk('translate.hideSame', T2.hideSame !== false))}
+      ${row('Délai avant l\'apparition du bouton', '', selk('translate.delay', [[0, 'Aucun'], [200, '0,2 s'], [500, '0,5 s'], [1000, '1 s']], T2.delay || 0))}
+      ${row('Sites où le traducteur est éteint', 'Fenêtre du traducteur → « Activé sur ce site ».', '')}${sites('translate.offSites', T2.offSites)}
+      ${row('Sites traduits automatiquement', '', '')}${sites('translate.autoSites', T2.autoSites)}`, 'Traduit le texte sélectionné ou la page entière. Le texte est envoyé au service choisi.') +
     sec('scan', 'Traducteur de scans', `
       ${modRow('scan')}
       ${row('Langue du texte dans les images', 'La première fois, les données de lecture de cette langue sont téléchargées (2 à 15 Mo).', sel('scSrc', Object.entries(OCR.langs).map(([k, l]) => [k, TR(l) + (OCR.have.includes(k) ? ' ✓' : '')]), S.source || 'eng'))}
       ${row('Traduire vers', '', sel('scTo', langOpts(true), S.target || ''))}
-      <div class="prow"><div class="tx"><span>${esc(TR('Utilisation : bouton du traducteur de scans dans la barre d\'outils (ou Ctrl+Maj+S) pour toutes les images de la page, ou clic droit sur une image → « Traduire le texte de l\'image ». Cliquez sur une bulle traduite pour revoir le texte d\'origine.'))}</span></div></div>`, 'Lit le texte des images (mangas, manhwas, webtoons…) et place la traduction sur chaque bulle. La lecture se fait sur ce PC ; seul le texte trouvé est envoyé au service de traduction.') +
+      ${row('Lire aussi l\'anglais', 'Pour les images qui mélangent deux langues (plus lent).', swk('scan.withEng', !!S.withEng))}
+      ${row('Icônes d\'action sur les images', 'Au survol d\'une image traduite : original / traduction, comparer, relire, copier, retirer.', swk('scan.icons', S.icons !== false))}
+      ${row('Police des bulles', '', selk('scan.font', [['auto', 'Standard'], ['comic', 'Bande dessinée'], ['serif', 'Avec empattements']], S.font || 'auto'))}
+      ${row('Sites traduits automatiquement', 'Fenêtre du traducteur de scans → « Traduire automatiquement les images de ce site ».', '')}${sites('scan.autoSites', S.autoSites)}
+      <div class="prow"><div class="tx"><span>${esc(TR('Utilisation : bouton du traducteur de scans dans la barre d\'outils pour toutes les images de la page, Ctrl+Maj+S pour traduire une zone de l\'écran, ou clic droit sur une image → « Traduire le texte de l\'image ». Cliquez sur une bulle traduite pour revoir le texte d\'origine.'))}</span></div></div>`, 'Lit le texte des images (mangas, manhwas, webtoons…) et place la traduction sur chaque bulle. La lecture se fait sur ce PC ; seul le texte trouvé est envoyé au service de traduction.') +
     sec('lights', 'Lumières tamisées', `
       ${modRow('lights')}
       ${row('Opacité de l\'assombrissement', '', `<input type="range" id="liOp" min="40" max="97" value="${L.opacity || 85}" style="width:200px"><b id="liOpV" style="width:44px;text-align:right">${L.opacity || 85} %</b>`)}
       ${row('Couleur', '', `<input type="color" id="liCol" value="${/^#[0-9a-f]{6}$/i.test(L.color || '') ? L.color : '#000000'}" style="width:44px;height:30px;padding:2px;border-radius:6px">`)}
       ${row('Éteindre automatiquement quand une vidéo démarre', 'Et rallumer à la pause.', sw('liAuto', L.auto))}
-      ${row('Sites en mode nuit', 'Menu ⋮ → Outils supplémentaires → « Mode nuit sur ce site ».', '')}
+      ${row('Fondu à l\'extinction', '', swk('lights.fade', L.fade !== false))}
+      ${row('Cliquer sur la zone sombre rallume', 'Sinon, appuyez sur Échap ou utilisez le bouton.', swk('lights.clickOff', L.clickOff !== false))}
+      ${row('Lueur autour de la vidéo', 'Reprend les couleurs de l\'image quand c\'est possible.', swk('lights.glow', !!L.glow))}
+      ${row('Volume avec la molette sur la vidéo', '', swk('lights.wheelVolume', !!L.wheelVolume))}
+      ${row('Empêcher la lecture automatique des vidéos', 'Une vidéo ne démarre pas toute seule tant que vous n\'avez pas cliqué dans la page.', swk('lights.stopAutoplay', !!L.stopAutoplay))}
+      ${row('Protection des yeux', 'Filtre orangé sur toutes les pages (Alt+F10).', swk('lights.eye', !!L.eye))}
+      ${row('Intensité du filtre', '', `<input type="range" data-k="lights.eyeLevel" min="5" max="60" value="${L.eyeLevel || 30}" style="width:200px">`)}
+      ${row('Raccourcis', 'Ctrl+Maj+L : éteindre / rallumer. Alt+↑ / Alt+↓ : opacité. Alt+F8 : opacité par défaut. Alt+F9 : garder l\'opacité actuelle. Alt+F10 : protection des yeux.', '')}
+      ${row('Mode nuit sur tous les sites', 'Fonce les pages claires.', swk('lights.nightAll', !!L.nightAll))}
+      ${row('Seulement aux heures choisies', '', swk('lights.nightSchedule', !!L.nightSchedule) + ` <input type="time" data-k="lights.nightFrom" value="${esc(L.nightFrom || '20:00')}" style="width:auto"> → <input type="time" data-k="lights.nightTo" value="${esc(L.nightTo || '07:00')}" style="width:auto">`)}
+      ${row('Sites exclus du mode nuit', '', '')}${sites('lights.nightExcept', L.nightExcept)}
+      ${row('Sites en mode nuit', 'Fenêtre des lumières tamisées → « Mode nuit sur ce site ».', '')}
       ${(L.nightHosts || []).map(h => `<div class="prow" style="padding-left:40px"><span class="notr" style="flex:1">${esc(h)}</span><button class="icon-btn" data-night="${esc(h)}">${ic('x')}</button></div>`).join('')}`, 'Assombrit la page autour de la vidéo. Cliquez à côté de la vidéo ou appuyez sur Échap pour rallumer.') +
     sec('pip', "Image dans l'image", `
       ${modRow('pip')}
@@ -132,6 +159,13 @@ function bind() {
   const w = $('#wrap');
   const v = id => $('#' + id);
   w.onchange = async e => {
+    if (e.target.dataset && e.target.dataset.k) {
+      const t = e.target, [g, k] = t.dataset.k.split('.');
+      const val = t.type === 'checkbox' ? t.checked : (t.type === 'range' || k === 'delay') ? +t.value : t.value;
+      await setB(k ? { [g]: { ...(C[g] || {}), [k]: val } } : { [g]: val });
+      if (t.dataset.k === 'lights.eye') draw();
+      return toast('Paramètre enregistré');
+    }
     const t = e.target, id = t.id;
     if (t.name === 'st') { await setB({ startup: t.value }); await setRoot({ restoreSession: t.value === 'restore' }); v('spRow').style.display = t.value === 'pages' ? '' : 'none'; }
     else if (id === 'sp') await setB({ startupPages: t.value.split(/\n+/).map(x => x.trim()).filter(Boolean).map(x => (/^[a-z]+:\/\//i.test(x) ? x : 'https://' + x)) });
@@ -176,6 +210,8 @@ function bind() {
     if (e.target.closest('[data-goext]')) return D.call('openPage', 'extensions');
     if ((x = g('wl'))) { await setB({ whitelist: (C.whitelist || []).filter(h => h !== x) }); return draw(); }
     if ((x = g('hide'))) { STATS.hides = await call('hideRemove', x); return draw(); }
+    if ((x = g('rm'))) { const [path, h] = x.split('|'); const [gr, k] = path.split('.'); await setB({ [gr]: { ...(C[gr] || {}), [k]: ((C[gr] || {})[k] || []).filter(v => v !== h) } }); return draw(); }
+    if ((x = g('admode'))) { await setB({ adModes: { [x]: null } }); return draw(); }
     if ((x = g('night'))) { await setB({ lights: { ...(C.lights || {}), nightHosts: (C.lights.nightHosts || []).filter(h => h !== x) } }); return draw(); }
     if ((x = g('piph'))) { await setB({ pip: { ...(C.pip || {}), hidden: (C.pip.hidden || []).filter(h => h !== x) } }); return draw(); }
     const id = e.target.closest('button')?.id;

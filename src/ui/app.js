@@ -1005,6 +1005,7 @@ function updText(u) {
 }
 function drawUpd(u) {
   if (!u) return;
+  try { drawUpdCard(u); } catch {}
   $('#abNoRepo').style.display = u.configured ? 'none' : '';
   $('#abCheck').disabled = !u.configured; $('#abFeedback').disabled = !u.configured; $('#abRepo').disabled = !u.configured; $('#feedbackBtn').style.display = u.configured ? '' : 'none';
   $('#abDonate').style.display = u.donateUrl ? '' : 'none';
@@ -1020,6 +1021,20 @@ function drawUpd(u) {
   if (pill) { $('#updPillTxt').textContent = u.status === 'downloading' ? T('Téléchargement de la mise à jour : {0} %').replace('{0}', Math.round(u.progress || 0)) : u.status === 'ready' ? T('Redémarrer et installer') : T('Mettre à jour') + ' (' + (u.version || '') + ')'; $('#updPill').disabled = u.status === 'downloading'; }
 }
 $('#updPill').onclick = () => call('upd:install');
+// carte « Mise à jour de DrYAE » en haut de la liste (différente des téléchargements)
+function drawUpdCard(u) {
+  const on = ['available', 'downloading', 'ready'].includes(u.status);
+  $('#updCard').classList.toggle('on', on); if (!on) return;
+  const mb = b => (b / 1048576).toFixed(1).replace('.', ',') + ' ' + T('Mo');
+  $('#ucT').textContent = T('Mise à jour de DrYAE') + ' ' + (u.version || '');
+  $('#ucS').textContent = u.status === 'downloading' ? T('Téléchargement de la mise à jour : {0} %').replace('{0}', Math.round(u.progress || 0)) + (u.total ? ' · ' + mb(u.transferred || 0) + ' / ' + mb(u.total) : '') + (u.speed ? ' · ' + mb(u.speed) + '/s' : '')
+    : u.status === 'ready' ? T('Prête : DrYAE va redémarrer et s\'installer sans fenêtre, avec vos réglages et votre langue.') : T('DrYAE {0} est disponible.').replace('{0}', u.version || '');
+  $('#ucBar').style.width = (u.status === 'ready' ? 100 : u.status === 'downloading' ? (u.progress || 0) : 0) + '%';
+  $('#ucGo').style.display = u.status === 'downloading' ? 'none' : '';
+  $('#ucGo').textContent = u.status === 'ready' ? T('Redémarrer et installer') : T('Mettre à jour');
+}
+$('#ucGo').onclick = () => call('upd:install');
+D.on('update-state', drawUpdCard);
 let updDismissed = false;
 D.on('update-state', drawUpd);
 $('#abCheck').onclick = async () => drawUpd(await call('upd:check'));

@@ -1,5 +1,5 @@
 // Navigateur intégré : sessions, bloqueur de pubs, détecteur de médias, interception des téléchargements
-const { BrowserWindow, WebContentsView, session, ipcMain, Menu, clipboard, app, dialog, shell, webContents } = require('electron');
+const { BrowserWindow, WebContentsView, session, ipcMain, Menu, clipboard, app, dialog, shell, webContents, screen } = require('electron');
 const fs = require('fs');
 const fsp = fs.promises;
 const path = require('path');
@@ -11,6 +11,7 @@ const M = require('./modules');
 
 const CHROME_MAJOR = (process.versions.chrome || '152').split('.')[0];
 const UA_DESKTOP = `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${CHROME_MAJOR}.0.0.0 Safari/537.36`;
+M.setUserAgent(UA_DESKTOP); // le traducteur se présente comme le navigateur de DrYAE (Chromium)
 const PAGE_PRELOAD = path.join(__dirname, '..', 'browser', 'page-preload.js');
 // Google refuse la connexion depuis les navigateurs intégrés : on se présente comme Firefox sur ses pages de connexion
 // version de Firefox actuelle estimée (une version toutes les 4 semaines depuis la 132 du 29/10/2024)
@@ -127,7 +128,7 @@ class WebBrowser {
     });
     // mise à jour des listes en arrière-plan (tous les 4 jours)
     setTimeout(() => this.updateBlocker(false), 20000);
-    ipcMain.handle('@ghostery/adblocker/inject-cosmetic-filters', (e, url, msg) => this.adblockActiveFor(url) && !this.cfPass.has(e.sender.id) ? this.blocker?.onInjectCosmeticFilters(e, url, msg) : undefined);
+    ipcMain.handle('@ghostery/adblocker/inject-cosmetic-filters', (e, url, msg) => this.adblockActiveFor(url) && this.adMode(hostOf(url)) !== 'basic' && !this.cfPass.has(e.sender.id) ? this.blocker?.onInjectCosmeticFilters(e, url, msg) : undefined);
     ipcMain.handle('@ghostery/adblocker/is-mutation-observer-enabled', e => this.blocker?.onIsMutationObserverEnabled(e));
   }
   // réglages envoyés à l'interface du navigateur
@@ -150,6 +151,32 @@ class WebBrowser {
       removeWindow: () => {},
     });
     ElectronChromeExtensions.handleCRXProtocol(session.defaultSession);
+    // fenêtre d'extension (popup) : placée sous son bouton, à l'intérieur de l'écran,
+    // même quand la fenêtre est agrandie ou sur un 2e écran
+    this.ext.on('browser-action-popup-created', popup => {
+      popup.updatePosition = function () {
+        const bw = this.browserWindow, par = this.parent;
+        if (!bw || bw.isDestroyed() || !par || par.isDestroyed()) return;
+        const c = par.getContentBounds(), v = bw.getBounds(), a = this.anchorRect || { x: 0, y: 0, width: 0, height: 0 };
+        let x = c.x + a.x + a.width - v.width, y = c.y + a.y + a.height + 4;
+        const wa = screen.getDisplayMatching({ x: c.x + a.x, y: c.y + a.y, width: Math.max(1, a.width), height: Math.max(1, a.height) }).workArea;
+        x = Math.max(wa.x + 4, Math.min(x, wa.x + wa.width - v.width - 4));
+        if (y + v.height > wa.y + wa.height - 4) y = Math.max(wa.y + 4, wa.y + wa.height - v.height - 4);
+        if (process.env.DRYAE_DEBUG_POPUP) console.log('popup', JSON.stringify({ c, v, a, wa, x, y }));
+        bw.setBounds({ ...v, x: Math.floor(x), y: Math.floor(y) });
+      };
+      try { popup.updatePosition(); } catch {}
+      // secours : si la taille demandée par la fenêtre n'arrive pas, on la mesure nous-mêmes puis on l'affiche
+      const bw = popup.browserWindow;
+      bw?.webContents.once('did-finish-load', () => setTimeout(async () => {
+        if (popup.isDestroyed() || !popup.hidden) return;
+        try {
+          const r = await bw.webContents.executeJavaScript('(() => { const e = document.documentElement, b = document.body; return { width: Math.max(e.scrollWidth, b ? b.scrollWidth : 0), height: Math.max(e.scrollHeight, b ? b.scrollHeight : 0) }; })()');
+          if (popup.isDestroyed() || !popup.hidden) return;
+          popup.setSize(r); popup.updatePosition(); popup.show();
+        } catch {}
+      }, 350));
+    });
     await installChromeWebStore({ session: ses, extensionsPath: this.extDir, allowUnpackedExtensions: true, minimumManifestVersion: 2, autoUpdate: true });
     // extensions désactivées par l'utilisateur : fichiers gardés, extension non chargée
     const X = ses.extensions || ses;
@@ -168,7 +195,13 @@ class WebBrowser {
   extList() {
     const ses = session.fromPartition(PART);
     const X = ses.extensions || ses;
-    const icon = x => { const ic = x.manifest?.icons || {}; const k = Object.keys(ic).sort((a, b) => b - a)[0]; return k ? `crx://extension-icon/${x.id}/${k}/2?partition=${encodeURIComponent(PART)}` : ''; };
+    // icône lue directement dans les fichiers de l'extension (data:), visible partout (pages dryae:, menu)
+    const icon = x => {
+      const mf = x.manifest || {}; const act = mf.action || mf.browser_action || {};
+      const ic = { ...(typeof act.default_icon === 'string' ? { 16: act.default_icon } : act.default_icon || {}), ...(mf.icons || {}) };
+      const k = Object.keys(ic).sort((a, b) => b - a)[0]; if (!k || !x.path) return '';
+      try { const f = path.join(x.path, String(ic[k]).replace(/^\//, '')); const ext = path.extname(f).slice(1).toLowerCase(); return `data:image/${ext === 'svg' ? 'svg+xml' : ext || 'png'};base64,` + fs.readFileSync(f).toString('base64'); } catch { return ''; }
+    };
     const msg = (x, s) => {
       const m = /^__MSG_(\w+)__$/.exec(s || ''); if (!m) return s || '';
       for (const l of [String(this.settings.get().lang || 'fr'), x.manifest?.default_locale || 'en', 'en']) {
@@ -181,13 +214,14 @@ class WebBrowser {
       const opt = mf.options_ui?.page || mf.options_page || '';
       return { id: x.id, name: msg(x, x.name), version: x.version, description: msg(x, mf.description || ''), path: x.path, icon: icon(x), enabled: true,
         options: opt ? `chrome-extension://${x.id}/${opt.replace(/^\//, '')}` : '', homepage: mf.homepage_url || `https://chromewebstore.google.com/detail/${x.id}`,
+        popup: !!((mf.action || mf.browser_action || {}).default_popup), pinned: !(this.B().extUnpinned || []).includes(x.id),
         permissions: [...(mf.permissions || []), ...(mf.host_permissions || [])].filter(p => typeof p === 'string'), local: !!(x.path && path.basename(x.path).startsWith('local-')), mv: mf.manifest_version };
     };
     const on = X.getAllExtensions().map(desc);
     const off = (this.store.extDisabled || []).filter(d => !on.some(x => x.id === d.id)).map(d => {
       let mf = {}; try { mf = JSON.parse(fs.readFileSync(path.join(d.path, 'manifest.json'), 'utf8')); } catch {}
       const x = { id: d.id, name: mf.name || d.name || d.id, version: mf.version || '', manifest: mf, path: d.path };
-      return { ...desc(x), enabled: false, icon: (() => { const ic = mf.icons || {}; const k = Object.keys(ic).sort((a, b) => b - a)[0]; try { return k ? 'data:image/png;base64,' + fs.readFileSync(path.join(d.path, ic[k])).toString('base64') : ''; } catch { return ''; } })() };
+      return { ...desc(x), enabled: false };
     });
     return [...on, ...off].sort((a, b) => a.name.localeCompare(b.name));
   }
@@ -232,7 +266,8 @@ class WebBrowser {
   }
   filterUrls() {
     const B = this.B(), L = B.adLists || {};
-    const urls = adsLists.filter(u => !/peter-lowe/.test(u));
+    // listes de base : filtres uBlock, EasyList et la liste de serveurs de Peter Lowe (désactivable)
+    const urls = adsLists.filter(u => L.peterLowe !== false || !/peter-lowe/.test(u));
     for (const k of Object.keys(AD_LISTS)) if (L[k]) urls.push(...AD_LISTS[k]);
     return [...new Set([...urls, ...(B.filterLists || []).filter(Boolean)])];
   }
@@ -267,7 +302,23 @@ class WebBrowser {
     if (!this.modOn('adblock') || !this.blocker) return false;
     const h = hostOf(pageUrl);
     if (h && NO_BLOCK_PAGE.test(h)) return false;
+    if (this.adMode(h) === 'none') return false;
     return !(h && (B.whitelist || []).some(w => h === w || h.endsWith('.' + w)));
+  }
+  // mode nuit sur tous les sites (avec horaire facultatif), sauf les sites exclus
+  nightBySchedule(host) {
+    const l = this.B().lights || {};
+    if (!l.nightAll || (l.nightExcept || []).includes(host)) return false;
+    if (!l.nightSchedule) return true;
+    const m = s => { const [h, mi] = String(s || '0:0').split(':').map(Number); return (h || 0) * 60 + (mi || 0); };
+    const d = new Date(), now = d.getHours() * 60 + d.getMinutes(), a = m(l.nightFrom || '20:00'), b = m(l.nightTo || '07:00');
+    return a <= b ? now >= a && now < b : now >= a || now < b;
+  }
+  // mode de filtrage par site : none (aucun), basic (requêtes seulement), optimal (requêtes + éléments de la page)
+  adMode(h) {
+    const M = this.B().adModes || {}; if (!h) return 'optimal';
+    const k = Object.keys(M).filter(d => M[d] && (h === d || h.endsWith('.' + d))).sort((a, b) => b.length - a.length)[0];
+    return k ? M[k] : (this.B().adDefaultMode || 'optimal');
   }
 
   // ---------- sessions ----------
@@ -552,17 +603,25 @@ class WebBrowser {
     const cmd = (c, extra = {}) => this.wc?.send('page-cmd', { wcId: wc.id, cmd: c, ...extra });
     const dl = async (url, name) => this.quickFile({ url, name, page: wc.getURL(), incognito: ses !== session.fromPartition(PART), headers: { Cookie: await this.cookieHeader(ses, url), 'User-Agent': this.ua(), Referer: wc.getURL() } });
     const cap = this.modOn('capture');
-    if (p.linkURL && !/^dryae:/.test(p.linkURL)) {
-      if (cap) {
-        if (/^magnet:/i.test(p.linkURL)) T.push({ label: 'Télécharger le torrent avec DrYAE', click: () => this.onTorrent(p.linkURL, {}) });
-        else T.push({ label: 'Télécharger le lien avec DrYAE', click: () => dl(p.linkURL) });
-      } else if (/^https?:/i.test(p.linkURL)) T.push({ label: 'Enregistrer le lien sous…', click: () => wc.downloadURL(p.linkURL) });
-      T.push({ label: 'Ouvrir dans un nouvel onglet', click: () => this.wc?.send('open-url', { url: p.linkURL, background: true }) });
-      T.push({ label: 'Ouvrir dans un onglet privé', click: () => this.wc?.send('open-url', { url: p.linkURL, incognito: true }) });
-      T.push({ label: 'Copier le lien', click: () => clipboard.writeText(p.linkURL) });
+    // 1) le lien : ouvrir, onglet privé, copier
+    const link = p.linkURL && !/^dryae:/.test(p.linkURL) ? p.linkURL : '';
+    if (link) {
+      T.push({ label: 'Ouvrir dans un nouvel onglet', click: () => this.wc?.send('open-url', { url: link, background: true }) });
+      T.push({ label: 'Ouvrir dans un onglet privé', click: () => this.wc?.send('open-url', { url: link, incognito: true }) });
+      T.push({ label: 'Copier le lien', click: () => clipboard.writeText(link) });
+      if (this.modOn('translate') && (p.linkText || '').trim() && !internal) T.push({ label: 'Traduire le texte du lien', click: () => cmd('translate-text', { text: p.linkText.trim(), x: p.x, y: p.y }) });
       T.push({ type: 'separator' });
     }
-    if (p.srcURL && /^(https?|blob|data):/.test(p.srcURL) && ['image', 'video', 'audio'].includes(p.mediaType)) {
+    // 2) les téléchargements : lien puis image / vidéo / son
+    const media = p.srcURL && /^(https?|blob|data):/.test(p.srcURL) && ['image', 'video', 'audio'].includes(p.mediaType);
+    const before = T.length;
+    if (link) {
+      if (cap) {
+        if (/^magnet:/i.test(link)) T.push({ label: 'Télécharger le torrent avec DrYAE', click: () => this.onTorrent(link, {}) });
+        else T.push({ label: 'Télécharger le lien avec DrYAE', click: () => dl(link) });
+      } else if (/^https?:/i.test(link)) T.push({ label: 'Enregistrer le lien sous…', click: () => wc.downloadURL(link) });
+    }
+    if (media) {
       const lab = { image: "l'image", video: 'la vidéo', audio: "l'audio" }[p.mediaType];
       if (/^https?:/.test(p.srcURL)) {
         if (cap) T.push({ label: `Télécharger ${lab} avec DrYAE`, click: () => dl(p.srcURL) });
@@ -571,8 +630,8 @@ class WebBrowser {
       }
       if (p.mediaType === 'image' && this.modOn('scan')) T.push({ label: "Traduire le texte de l'image", click: () => cmd('scan-one', { src: p.srcURL, x: p.x, y: p.y }) });
       if (p.mediaType === 'video' && this.modOn('pip')) T.push({ label: 'Image dans l\'image', click: () => this.pipToggle(wc) });
-      T.push({ type: 'separator' });
     }
+    if (T.length > before) T.push({ type: 'separator' });
     if (p.selectionText) {
       T.push({ label: 'Copier', role: 'copy' });
       const s = p.selectionText.trim();
@@ -962,9 +1021,25 @@ class WebBrowser {
     ipcMain.handle('br:selectTab', (_e, wcId) => { try { const wc = webContents.fromId(wcId); if (wc && this.ext) this.ext.selectTab(wc); } catch {} });
     ipcMain.handle('br:extTabCreated', (_e, { reqId, wcId }) => { const r = this.extWaiters.get(reqId); if (r) { this.extWaiters.delete(reqId); r(wcId); } });
     ipcMain.handle('br:extList', () => this.extList());
+    ipcMain.handle('br:extEnable', async (_e, id, on) => { await this.extSetEnabled(id, !!on); return this.extList(); });
+    // capture d'une vidéo (lumières tamisées) : image de la zone, enregistrée dans « Images\DrYAE »
+    ipcMain.handle('br:shot', async (_e, wcId, r) => {
+      try {
+        const wc = webContents.fromId(wcId); if (!wc || !r) return '';
+        const img = await wc.capturePage({ x: Math.max(0, Math.round(r.x)), y: Math.max(0, Math.round(r.y)), width: Math.max(1, Math.round(r.w)), height: Math.max(1, Math.round(r.h)) });
+        if (img.isEmpty()) return '';
+        const dir = path.join(app.getPath('pictures'), 'DrYAE'); await fsp.mkdir(dir, { recursive: true });
+        const d = new Date(), pad = n => String(n).padStart(2, '0');
+        const f = path.join(dir, `capture-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}.png`);
+        await fsp.writeFile(f, img.toPNG()); clipboard.writeImage(img);
+        return f;
+      } catch { return ''; }
+    });
+    ipcMain.handle('br:showItem', (_e, f) => { if (typeof f === 'string' && f.startsWith(path.join(app.getPath('pictures'), 'DrYAE'))) shell.showItemInFolder(f); });
+    ipcMain.handle('br:ocrLangs', () => ({ langs: M.OCR_LANGS, have: M.ocrDownloaded() }));
     // installation par lien de la boutique ou identifiant (si la page de la boutique ne s'affiche pas)
     ipcMain.handle('br:extInstall', (_e, v) => this.extInstall(v));
-    ipcMain.handle('br:extRemove', (_e, id) => this.extRemove(id));
+    ipcMain.handle('br:extRemove', async (_e, id) => { await this.extRemove(id); this.wc?.send('ext-changed'); return this.extList(); });
     ipcMain.handle('br:extLoadDir', () => this.extLoadDir());
     ipcMain.handle('br:whitelist', (_e, { host, add }) => {
       const w = new Set(this.B().whitelist);
@@ -1003,7 +1078,7 @@ class WebBrowser {
       const f = e.senderFrame; let host = ''; try { host = new URL(f?.url || '').hostname; } catch {}
       const B = this.B();
       const T = global.DRYAE_T || (s => s);
-      const keys = ['Télécharger cette vidéo', 'Masquer', 'Remplir avec mon profil', 'mon profil', '(sans identifiant)', '— mot de passe enregistré', 'Suggérer un mot de passe fort', 'Utiliser ce mot de passe', 'Carte enregistrée', 'Remplir avec la carte', 'Image dans l\'image', 'Masquer le bouton sur ce site', 'Placer le bouton à gauche', 'Placer le bouton à droite', 'Traduire', 'Copier', 'Écouter', 'Fermer', 'Traduction…', 'Traduit de {0}', 'Afficher l\'original', 'Masquer les traductions', 'Arrêter', 'Lecture des images…', '{0} bulle(s) traduite(s)', 'Aucun texte trouvé dans cette image', 'Cliquez sur un élément à masquer. Molette ou ↑ ↓ : agrandir / réduire. Échap : annuler.', 'Masquer cet élément', 'Annuler', 'Traduction impossible : {0}', 'Adresse', 'Cliquez à côté pour rallumer', 'Traducteur de scans'];
+      const keys = ['Télécharger cette vidéo', 'Masquer', 'Remplir avec mon profil', 'mon profil', '(sans identifiant)', '— mot de passe enregistré', 'Suggérer un mot de passe fort', 'Utiliser ce mot de passe', 'Carte enregistrée', 'Remplir avec la carte', 'Image dans l\'image', 'Masquer le bouton sur ce site', 'Placer le bouton à gauche', 'Placer le bouton à droite', 'Traduire', 'Copier', 'Écouter', 'Fermer', 'Traduction…', 'Traduit de {0}', 'Afficher l\'original', 'Masquer les traductions', 'Arrêter', 'Lecture des images…', '{0} bulle(s) traduite(s)', 'Aucun texte trouvé dans cette image', 'Cliquez sur un élément à masquer. Molette ou ↑ ↓ : agrandir / réduire. Échap : annuler.', 'Masquer cet élément', 'Annuler', 'Traduction impossible : {0}', 'Adresse', 'Cliquez à côté pour rallumer', 'Traducteur de scans', 'Texte d\'origine', 'Échap pour rallumer', 'Aucune vidéo sur cette page', 'Boucle activée', 'Boucle désactivée', 'Sans filtre', 'Opacité gardée : {0} %', 'Protection des yeux activée', 'Protection des yeux désactivée', 'Aucune image à traduire sur cette page', 'Afficher la traduction', 'Original / traduction', 'Comparer', 'Relire cette image', 'Copier le texte traduit', 'Retirer la traduction', 'Dessinez un rectangle autour du texte à traduire. Échap : annuler.', 'Traduire la zone', 'Compte enregistré'];
       const pip = B.pip || {};
       const isInt = pages.isPageUrl(f?.url);
       e.returnValue = {
@@ -1011,9 +1086,9 @@ class WebBrowser {
         internal: isInt, lang: this.settings.get().lang,
         capture: this.modOn('capture') && !isInt,
         pip: this.modOn('pip') && !isInt && !(pip.hidden || []).includes(host) ? { side: pip.side || 'left' } : null,
-        translate: this.modOn('translate') && !isInt ? { selection: (B.translate || {}).selection || 'button' } : null,
-        lights: this.modOn('lights') && !isInt ? { ...(B.lights || {}), night: ((B.lights || {}).nightHosts || []).includes(host) } : null,
-        scan: this.modOn('scan') && !isInt,
+        translate: this.modOn('translate') && !isInt ? (() => { const t = B.translate || {}; return { selection: t.selection || 'button', off: (t.offSites || []).includes(host), hideSame: t.hideSame !== false, delay: Math.max(0, Math.min(3000, +t.delay || 0)), target: target(), second: t.second || '', pageAuto: (t.autoSites || []).includes(host) }; })() : null,
+        lights: this.modOn('lights') && !isInt ? (() => { const l = B.lights || {}; return { ...l, night: (l.nightHosts || []).includes(host) || this.nightBySchedule(host), nightOff: (l.nightExcept || []).includes(host) }; })() : null,
+        scan: this.modOn('scan') && !isInt ? (() => { const sc = B.scan || {}; return { auto: (sc.autoSites || []).includes(host), icons: sc.icons !== false, minSize: 250 }; })() : null,
         hides: this.modOn('adblock') && !this.loginTabs.has(e.sender.id) ? ((this.store.hides || {})[host] || []) : [],
       };
     });
@@ -1024,6 +1099,34 @@ class WebBrowser {
       return { ...r, to: opts.to || target() };
     });
     ipcMain.handle('tr:target', () => target());
+    // fenêtre du traducteur (barre d'outils) : traduction du texte saisi, avec 2e langue automatique
+    ipcMain.handle('br:tr', async (_e, text, to) => {
+      if (!this.modOn('translate')) throw new Error('Traducteur désactivé');
+      text = String(text || '').slice(0, 5000); if (!text.trim()) return { text: '', from: '', to: to || target() };
+      const T = this.B().translate || {}; let dest = to || target();
+      let r = await M.translate([text], dest, 'auto', T);
+      if (!to && T.second && r.from && r.from.split('-')[0] === dest.split('-')[0] && T.second !== dest) { dest = T.second; r = await M.translate([text], dest, r.from, T); }
+      return { text: r.texts[0] || '', from: r.from, to: dest };
+    });
+    // réglages par site (traducteur, traducteur de scans, bloqueur)
+    ipcMain.handle('br:site', (_e, kind, host, val) => {
+      host = String(host || '').toLowerCase(); if (!host) return this.cfg();
+      const B = this.B();
+      const toggle = (obj, key) => { const s = new Set((obj || {})[key] || []); val ? s.add(host) : s.delete(host); return [...s].slice(-500); };
+      if (kind === 'trOff') this.settings.set({ browser: { translate: { ...(B.translate || {}), offSites: toggle(B.translate, 'offSites') } } });
+      else if (kind === 'trAuto') this.settings.set({ browser: { translate: { ...(B.translate || {}), autoSites: toggle(B.translate, 'autoSites') } } });
+      else if (kind === 'scanAuto') this.settings.set({ browser: { scan: { ...(B.scan || {}), autoSites: toggle(B.scan, 'autoSites') } } });
+      else if (kind === 'nightExcept') this.settings.set({ browser: { lights: { ...(B.lights || {}), nightExcept: toggle(B.lights, 'nightExcept') } } });
+      else if (kind === 'adMode') {
+        const m = { ...(B.adModes || {}) }; if (['none', 'basic', 'optimal'].includes(val) && val !== (B.adDefaultMode || 'optimal')) m[host] = val; else m[host] = null; // null : retour au mode par défaut (les réglages sont fusionnés)
+        const wl = (B.whitelist || []).filter(w => w !== host);
+        this.settings.set({ browser: { adModes: m, whitelist: wl } });
+      }
+      return this.cfg();
+    });
+    ipcMain.handle('br:extPin', (_e, id, pin) => { const s = new Set(this.B().extUnpinned || []); pin ? s.delete(id) : s.add(id); this.settings.set({ browser: { extUnpinned: [...s] } }); return [...s]; });
+    ipcMain.handle('br:extOptions', (_e, id) => { const x = this.extList().find(e => e.id === id); if (x?.options) this.open(x.options); });
+    ipcMain.handle('br:stats', (_e, wcId) => ({ page: this.blockedCount.get(wcId) || 0, total: this.blockedTotal || 0 }));
     ipcMain.handle('pk:add', (e, sel) => {
       let host = ''; try { host = new URL(e.senderFrame.url).hostname; } catch {}
       if (!host || typeof sel !== 'string' || sel.length > 500) return;
@@ -1038,6 +1141,12 @@ class WebBrowser {
       if (patch.side) P.side = patch.side;
       this.settings.set({ browser: { pip: P } }); return true;
     });
+    ipcMain.handle('lights:pref', (_e, patch = {}) => {
+      const L = { ...(this.B().lights || {}) };
+      if ('opacity' in patch) L.opacity = Math.max(30, Math.min(97, +patch.opacity || 85));
+      if ('eye' in patch) L.eye = !!patch.eye;
+      this.settings.set({ browser: { lights: L } }); this.pushCfg(); return true;
+    });
     ipcMain.handle('lights:night', (e, on) => {
       let host = ''; try { host = new URL(e.senderFrame.url).hostname; } catch {}
       const L = { ...(this.B().lights || {}) }; const s = new Set(L.nightHosts || []);
@@ -1047,6 +1156,7 @@ class WebBrowser {
     // traducteur de scans : lecture du texte d'une image puis traduction
     ipcMain.handle('scan:image', async (e, o) => {
       if (!this.modOn('scan')) throw new Error('Traducteur de scans désactivé');
+      if (o.region && o.rect) { o.src = ''; o.data = null; } // capture d'une zone choisie à l'écran
       const wc = e.sender; const S = this.B().scan || {};
       let buf = null, scale = 1;
       if (o.data) buf = Buffer.from(o.data);
@@ -1066,10 +1176,11 @@ class WebBrowser {
       const sz = img.getSize();
       if (sz.width < 1100) img = img.resize({ width: sz.width * 2, quality: 'best' });
       const w = img.getSize().width;
-      const groups = await M.readImage(img.toPNG(), S.source || 'eng');
+      const lang = (o.lang && /^[a-z_]+$/.test(o.lang) ? o.lang : S.source || 'eng') + (S.withEng && !/^eng/.test(o.lang || S.source || 'eng') ? '+eng' : '');
+      const groups = await M.readImage(img.toPNG(), lang);
       if (!groups.length) return { blocks: [], w };
-      const tr = await M.translate(groups.map(g => g.text), S.target || target(), 'auto', this.B().translate || {});
-      return { blocks: groups.map((g, i) => ({ x0: g.x0, y0: g.y0, x1: g.x1, y1: g.y1, text: g.text, tr: tr.texts[i] })), w, captured: scale === 0 };
+      const tr = await M.translate(groups.map(g => g.text), o.to || S.target || target(), 'auto', this.B().translate || {});
+      return { blocks: groups.map((g, i) => ({ x0: g.x0, y0: g.y0, x1: g.x1, y1: g.y1, text: g.text, tr: tr.texts[i], vertical: g.vertical })), w, captured: scale === 0, from: tr.from, to: o.to || S.target || target() };
     });
   }
 }

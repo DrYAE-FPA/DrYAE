@@ -4,13 +4,15 @@
 
 ---
 
-## ✨ Nouveautés de la version 1.6.4 / What's new
+## ✨ Nouveautés de la version 1.6.5 / What's new
 
-- 🗂️ **Pages de gestion dans un onglet** : Historique, Favoris, Mots de passe, Extensions et Paramètres, avec recherche et raccourcis clavier (comme le gestionnaire de téléchargements).
-- ⭐ **Barre de favoris** (Ctrl+Maj+B), gestionnaire de favoris avec dossiers, import / export.
-- 🔑 **Mots de passe** : liste par site, vérification (compromis, réutilisés, faibles), Windows Hello, mots de passe forts proposés, **cartes de paiement** et **adresses**.
-- 🧩 **Extensions intégrées** activables / masquables / retirables : bloqueur amélioré (masquer un élément), téléchargements par DrYAE ou par le navigateur, **traducteur**, **traducteur de scans** (mangas, webtoons), **lumières tamisées** et mode nuit, **image dans l'image**.
-- 🔐 Connexion aux comptes Google plus fiable ; 🔔 icône de mise à jour visible dès l'ouverture.
+- 🧩 **Menu des extensions** : toutes les extensions (intégrées et Chrome) au même endroit, avec une punaise pour les **épingler** dans la barre d'outils. Les fenêtres des extensions Chrome s'ouvrent sous leur bouton, entièrement visibles.
+- 🌐 **Traducteur repensé** : traduction en direct du texte saisi, bouton plus fiable sur la sélection (masqué si le texte est déjà dans votre langue), deuxième langue automatique, sites traduits automatiquement.
+- 🖼️ **Traducteur de scans repensé** : capture d'une zone (Ctrl+Maj+S), traduction automatique par site, bulles plus propres, texte vertical (japonais, coréen, chinois), icônes pour comparer l'original et la traduction.
+- 💡 **Lumières tamisées** : opacité et couleur en direct, protection des yeux, lueur, outils vidéo (vitesse, boucle, zoom, filtres, capture, plein onglet), mode nuit programmé.
+- 🛡️ Bloqueur : fenêtre avec **mode de filtrage par site** (Aucun / Basique / Optimal) et la liste de Peter Lowe par défaut.
+- ⭐ « Choisir un autre dossier… » pour les favoris, sélection à la souris dans les listes, choix du compte enregistré à la connexion.
+- 🔄 **Mises à jour sans fenêtre d'installation** : DrYAE redémarre avec vos réglages et votre langue ; le téléchargement de la mise à jour s'affiche dans le gestionnaire.
 
 👉 Toutes les nouveautés : [CHANGELOG.md](CHANGELOG.md) · ⬇️ [Télécharger DrYAE](https://github.com/DrYAE-FPA/DrYAE/releases/latest)
 

@@ -731,3 +731,145 @@ La plupart des extensions courantes fonctionnent ; certaines fonctions avancées
 Aucune.	None.	Ninguna.	Nenhuma.	Нет.	لا شيء.
 Lit le texte des images (mangas, manhwas, webtoons…) et place la traduction sur chaque bulle. La lecture se fait sur ce PC ; seul le texte trouvé est envoyé au service de traduction.	Reads the text in images (manga, manhwa, webtoons…) and places the translation on each speech bubble. Reading happens on this PC; only the text found is sent to the translation service.	Lee el texto de las imágenes (mangas, manhwas, webtoons…) y coloca la traducción en cada bocadillo. La lectura se hace en este PC; solo se envía el texto encontrado al servicio de traducción.	Lê o texto das imagens (mangás, manhwas, webtoons…) e coloca a tradução em cada balão. A leitura é feita neste PC; só o texto encontrado é enviado ao serviço de tradução.	Читает текст на изображениях (манга, манхва, вебтуны…) и размещает перевод на каждом облачке. Чтение выполняется на этом ПК; в службу перевода отправляется только найденный текст.	يقرأ النص في الصور (مانغا، مانهوا، ويبتون…) ويضع الترجمة على كل فقاعة. تتم القراءة على هذا الكمبيوتر؛ ولا يُرسل إلى خدمة الترجمة إلا النص المعثور عليه.
 La première fois, les données de lecture de cette langue sont téléchargées (2 à 15 Mo).	The first time, the reading data for this language is downloaded (2 to 15 MB).	La primera vez se descargan los datos de lectura de este idioma (de 2 a 15 MB).	Da primeira vez, os dados de leitura deste idioma são transferidos (2 a 15 MB).	В первый раз загружаются данные распознавания для этого языка (от 2 до 15 МБ).	في المرة الأولى، تُنزَّل بيانات القراءة لهذه اللغة (من 2 إلى 15 ميغابايت).
+# --- 1.6.5 ---
+Activer ou désactiver	Turn on or off	Activar o desactivar	Ativar ou desativar	Включить или выключить	تشغيل أو إيقاف
+Activer ou désactiver sur ce site	Turn on or off on this site	Activar o desactivar en este sitio	Ativar ou desativar neste site	Включить или выключить на этом сайте	تشغيل أو إيقاف على هذا الموقع
+Activez d'abord cette extension	Turn on this extension first	Activa primero esta extensión	Ative primeiro esta extensão	Сначала включите это расширение	شغّل هذه الإضافة أولاً
+Activé sur ce site	On for this site	Activado en este sitio	Ativado neste site	Включено на этом сайте	مفعّل على هذا الموقع
+Activée	On	Activada	Ativada	Включено	مفعّلة
+Actualiser la page	Reload page	Recargar la página	Recarregar a página	Обновить страницу	إعادة تحميل الصفحة
+Afficher la traduction	Show translation	Mostrar la traducción	Mostrar a tradução	Показать перевод	إظهار الترجمة
+Astuce : clic droit sur une image → « Traduire le texte de l'image ».	Tip: right-click an image → "Translate image text".	Consejo: clic derecho en una imagen → «Traducir el texto de la imagen».	Dica: clique com o botão direito numa imagem → «Traduzir o texto da imagem».	Совет: щёлкните правой кнопкой по изображению → «Перевести текст изображения».	تلميح: انقر بزر الفأرة الأيمن على صورة ← «ترجمة نص الصورة».
+Au survol d'une image traduite : original / traduction, comparer, relire, copier, retirer.	When hovering a translated image: original / translation, compare, read again, copy, remove.	Al pasar sobre una imagen traducida: original / traducción, comparar, volver a leer, copiar, quitar.	Ao passar sobre uma imagem traduzida: original / tradução, comparar, reler, copiar, remover.	При наведении на переведённое изображение: оригинал / перевод, сравнить, прочитать заново, копировать, убрать.	عند المرور فوق صورة مترجمة: الأصل / الترجمة، مقارنة، إعادة القراءة، نسخ، إزالة.
+Aucun filtrage sur ce site.	No filtering on this site.	Sin filtrado en este sitio.	Sem filtragem neste site.	На этом сайте фильтрация отключена.	لا تصفية على هذا الموقع.
+Aucune extension Chrome. Ajoutez-en depuis le Chrome Web Store.	No Chrome extensions. Add some from the Chrome Web Store.	No hay extensiones de Chrome. Añádelas desde Chrome Web Store.	Nenhuma extensão do Chrome. Adicione algumas na Chrome Web Store.	Нет расширений Chrome. Добавьте их из Chrome Web Store.	لا توجد إضافات Chrome. أضف بعضها من Chrome Web Store.
+Aucune image à traduire sur cette page	No images to translate on this page	No hay imágenes que traducir en esta página	Nenhuma imagem para traduzir nesta página	На этой странице нет изображений для перевода	لا توجد صور للترجمة في هذه الصفحة
+Aucune page web	No web page	Ninguna página web	Nenhuma página web	Нет веб-страницы	لا توجد صفحة ويب
+Avec empattements	Serif	Con serifa	Com serifa	С засечками	بزوائد (Serif)
+Bande dessinée	Comic	Cómic	Banda desenhada	Комикс	قصص مصورة
+Basique	Basic	Básico	Básico	Базовый	أساسي
+Basique : seulement les requêtes (publicités, traqueurs). Optimal : aussi les emplacements vides et les éléments de la page.	Basic: requests only (ads, trackers). Optimal: also empty ad slots and page elements.	Básico: solo las solicitudes (anuncios, rastreadores). Óptimo: también los huecos vacíos y los elementos de la página.	Básico: só os pedidos (anúncios, rastreadores). Ótimo: também os espaços vazios e os elementos da página.	Базовый: только запросы (реклама, трекеры). Оптимальный: также пустые места и элементы страницы.	أساسي: الطلبات فقط (إعلانات، متتبعات). مثالي: أيضاً المساحات الفارغة وعناصر الصفحة.
+Bloque aussi les emplacements vides et les éléments gênants de la page.	Also blocks empty slots and annoying page elements.	También bloquea los huecos vacíos y los elementos molestos de la página.	Também bloqueia os espaços vazios e os elementos incómodos da página.	Также скрывает пустые места и мешающие элементы страницы.	يحجب أيضاً المساحات الفارغة والعناصر المزعجة في الصفحة.
+Bloque les publicités et traqueurs (requêtes) sans toucher à la mise en page.	Blocks ads and trackers (requests) without touching the page layout.	Bloquea anuncios y rastreadores (solicitudes) sin tocar el diseño de la página.	Bloqueia anúncios e rastreadores (pedidos) sem mexer no aspeto da página.	Блокирует рекламу и трекеры (запросы), не меняя вид страницы.	يحجب الإعلانات والمتتبعات (الطلبات) دون المساس بتخطيط الصفحة.
+Bloqueur activé partout	Blocker on everywhere	Bloqueador activado en todas partes	Bloqueador ativado em todo o lado	Блокировщик включён везде	المانع مفعّل في كل مكان
+Bloqueur désactivé partout	Blocker off everywhere	Bloqueador desactivado en todas partes	Bloqueador desativado em todo o lado	Блокировщик выключен везде	المانع متوقف في كل مكان
+Boucle	Loop	Bucle	Repetir	Повтор	تكرار
+Boucle activée	Loop on	Bucle activado	Repetição ativada	Повтор включён	التكرار مفعّل
+Boucle désactivée	Loop off	Bucle desactivado	Repetição desativada	Повтор выключен	التكرار متوقف
+Bouclier de la barre d'outils → mode de filtrage pour ce site.	Toolbar shield → filtering mode for this site.	Escudo de la barra de herramientas → modo de filtrado para este sitio.	Escudo da barra de ferramentas → modo de filtragem para este site.	Щит на панели инструментов → режим фильтрации для этого сайта.	درع شريط الأدوات ← وضع التصفية لهذا الموقع.
+Capture	Screenshot	Captura	Captura	Снимок	لقطة
+Capture d'une zone	Capture an area	Capturar una zona	Capturar uma área	Снимок области	التقاط منطقة
+Capture enregistrée dans Images	Screenshot saved in Pictures	Captura guardada en Imágenes	Captura guardada em Imagens	Снимок сохранён в «Изображения»	حُفظت اللقطة في الصور
+Cette extension est désactivée	This extension is turned off	Esta extensión está desactivada	Esta extensão está desativada	Это расширение выключено	هذه الإضافة متوقفة
+Choisir un autre dossier…	Choose another folder…	Elegir otra carpeta…	Escolher outra pasta…	Выбрать другую папку…	اختيار مجلد آخر…
+Cliquer sur la zone sombre rallume	Clicking the dark area turns the lights back on	Hacer clic en la zona oscura vuelve a encender	Clicar na zona escura volta a acender	Щелчок по тёмной области включает свет	النقر على المنطقة المظلمة يعيد الإضاءة
+Cliquez pour ouvrir	Click to open	Haz clic para abrir	Clique para abrir	Щёлкните, чтобы открыть	انقر للفتح
+Comme le traducteur	Same as translator	Igual que el traductor	Igual ao tradutor	Как в переводчике	مثل المترجم
+Comparer	Compare	Comparar	Comparar	Сравнить	مقارنة
+Compte enregistré	Saved account	Cuenta guardada	Conta guardada	Сохранённая учётная запись	حساب محفوظ
+Copier le texte traduit	Copy translated text	Copiar el texto traducido	Copiar o texto traduzido	Копировать переведённый текст	نسخ النص المترجم
+Copié	Copied	Copiado	Copiado	Скопировано	تم النسخ
+Ctrl+Maj+L : éteindre / rallumer. Alt+↑ / Alt+↓ : opacité. Alt+F8 : opacité par défaut. Alt+F9 : garder l'opacité actuelle. Alt+F10 : protection des yeux.	Ctrl+Shift+L: lights off / on. Alt+↑ / Alt+↓: opacity. Alt+F8: default opacity. Alt+F9: keep current opacity. Alt+F10: eye protection.	Ctrl+Mayús+L: apagar / encender. Alt+↑ / Alt+↓: opacidad. Alt+F8: opacidad por defecto. Alt+F9: guardar la opacidad actual. Alt+F10: protección de los ojos.	Ctrl+Shift+L: apagar / acender. Alt+↑ / Alt+↓: opacidade. Alt+F8: opacidade predefinida. Alt+F9: guardar a opacidade atual. Alt+F10: proteção dos olhos.	Ctrl+Shift+L: выключить / включить свет. Alt+↑ / Alt+↓: непрозрачность. Alt+F8: непрозрачность по умолчанию. Alt+F9: сохранить текущую непрозрачность. Alt+F10: защита глаз.	Ctrl+Shift+L: إطفاء / إعادة الإضاءة. Alt+↑ / Alt+↓: العتامة. Alt+F8: العتامة الافتراضية. Alt+F9: حفظ العتامة الحالية. Alt+F10: حماية العينين.
+Ctrl+Maj+L · Échap pour rallumer · Alt+↑ / Alt+↓ : opacité	Ctrl+Shift+L · Esc to turn lights on · Alt+↑ / Alt+↓: opacity	Ctrl+Mayús+L · Esc para encender · Alt+↑ / Alt+↓: opacidad	Ctrl+Shift+L · Esc para acender · Alt+↑ / Alt+↓: opacidade	Ctrl+Shift+L · Esc — включить свет · Alt+↑ / Alt+↓: непрозрачность	Ctrl+Shift+L · Esc لإعادة الإضاءة · Alt+↑ / Alt+↓: العتامة
+Dessinez un rectangle autour du texte à traduire. Échap : annuler.	Draw a rectangle around the text to translate. Esc: cancel.	Dibuja un rectángulo alrededor del texto que quieres traducir. Esc: cancelar.	Desenhe um retângulo à volta do texto a traduzir. Esc: cancelar.	Обведите прямоугольником текст для перевода. Esc — отмена.	ارسم مستطيلاً حول النص المراد ترجمته. Esc: إلغاء.
+Deuxième langue	Second language	Segundo idioma	Segundo idioma	Второй язык	اللغة الثانية
+Délai avant l'apparition du bouton	Delay before the button appears	Retraso antes de que aparezca el botón	Atraso antes de o botão aparecer	Задержка перед появлением кнопки	المهلة قبل ظهور الزر
+Désactiver	Turn off	Desactivar	Desativar	Выключить	إيقاف
+Désactivée	Off	Desactivada	Desativada	Выключено	متوقفة
+Détacher	Pop out	Separar	Destacar	Открепить	فصل
+Empêcher la lecture automatique	Block autoplay	Impedir la reproducción automática	Impedir a reprodução automática	Запретить автовоспроизведение	منع التشغيل التلقائي
+Empêcher la lecture automatique des vidéos	Block video autoplay	Impedir la reproducción automática de vídeos	Impedir a reprodução automática de vídeos	Запретить автовоспроизведение видео	منع التشغيل التلقائي للفيديو
+Extensions Chrome	Chrome extensions	Extensiones de Chrome	Extensões do Chrome	Расширения Chrome	إضافات Chrome
+Favori enregistré	Bookmark saved	Marcador guardado	Marcador guardado	Закладка сохранена	تم حفظ الإشارة المرجعية
+Fenêtre des lumières tamisées → « Mode nuit sur ce site ».	Dim lights window → "Night mode on this site".	Ventana de luces atenuadas → «Modo noche en este sitio».	Janela das luzes atenuadas → «Modo noturno neste site».	Окно приглушённого света → «Ночной режим на этом сайте».	نافذة الإضاءة الخافتة ← «الوضع الليلي على هذا الموقع».
+Fenêtre du traducteur de scans → « Traduire automatiquement les images de ce site ».	Image text translator window → "Automatically translate this site's images".	Ventana del traductor de escaneos → «Traducir automáticamente las imágenes de este sitio».	Janela do tradutor de digitalizações → «Traduzir automaticamente as imagens deste site».	Окно переводчика сканов → «Автоматически переводить изображения этого сайта».	نافذة مترجم الصور ← «ترجمة صور هذا الموقع تلقائياً».
+Fenêtre du traducteur → « Activé sur ce site ».	Translator window → "On for this site".	Ventana del traductor → «Activado en este sitio».	Janela do tradutor → «Ativado neste site».	Окно переводчика → «Включено на этом сайте».	نافذة المترجم ← «مفعّل على هذا الموقع».
+Filtre	Filter	Filtro	Filtro	Фильтр	مرشّح
+Filtre orangé sur toutes les pages (Alt+F10)	Orange filter on all pages (Alt+F10)	Filtro anaranjado en todas las páginas (Alt+F10)	Filtro alaranjado em todas as páginas (Alt+F10)	Оранжевый фильтр на всех страницах (Alt+F10)	مرشّح برتقالي على كل الصفحات (Alt+F10)
+Filtre orangé sur toutes les pages (Alt+F10).	Orange filter on all pages (Alt+F10).	Filtro anaranjado en todas las páginas (Alt+F10).	Filtro alaranjado em todas as páginas (Alt+F10).	Оранжевый фильтр на всех страницах (Alt+F10).	مرشّح برتقالي على كل الصفحات (Alt+F10).
+Fonce les pages claires.	Darkens light pages.	Oscurece las páginas claras.	Escurece as páginas claras.	Затемняет светлые страницы.	يُعتّم الصفحات الفاتحة.
+Fondu à l'extinction	Fade when dimming	Fundido al apagar	Desvanecer ao apagar	Плавное затемнение	تلاشٍ عند الإطفاء
+Glisser pour déplacer	Drag to move	Arrastra para mover	Arraste para mover	Перетащите, чтобы переместить	اسحب للنقل
+Icônes d'action sur les images	Action icons on images	Iconos de acción en las imágenes	Ícones de ação nas imagens	Значки действий на изображениях	أيقونات الإجراءات على الصور
+Intensité	Strength	Intensidad	Intensidade	Интенсивность	الشدة
+Intensité du filtre	Filter strength	Intensidad del filtro	Intensidade do filtro	Интенсивность фильтра	شدة المرشّح
+Intégrées à DrYAE	Built into DrYAE	Integradas en DrYAE	Integradas no DrYAE	Встроенные в DrYAE	مدمجة في DrYAE
+La traduction s'affiche ici pendant que vous écrivez.	The translation appears here as you type.	La traducción aparece aquí mientras escribes.	A tradução aparece aqui enquanto escreve.	Перевод появляется здесь по мере ввода.	تظهر الترجمة هنا أثناء الكتابة.
+Langue des images	Image language	Idioma de las imágenes	Idioma das imagens	Язык изображений	لغة الصور
+Le bouton n'apparaît pas quand le texte sélectionné est déjà dans votre langue.	The button doesn't appear when the selected text is already in your language.	El botón no aparece cuando el texto seleccionado ya está en tu idioma.	O botão não aparece quando o texto selecionado já está no seu idioma.	Кнопка не появляется, если выделенный текст уже на вашем языке.	لا يظهر الزر عندما يكون النص المحدد بلغتك أصلاً.
+Lire aussi l'anglais	Also read English	Leer también inglés	Ler também inglês	Также распознавать английский	قراءة الإنجليزية أيضاً
+Liste de serveurs de Peter Lowe	Peter Lowe's server list	Lista de servidores de Peter Lowe	Lista de servidores de Peter Lowe	Список серверов Питера Лоу	قائمة خوادم Peter Lowe
+Listes par défaut : filtres uBlock, EasyList, EasyPrivacy et la liste de serveurs de Peter Lowe.	Default lists: uBlock filters, EasyList, EasyPrivacy and Peter Lowe's server list.	Listas por defecto: filtros uBlock, EasyList, EasyPrivacy y la lista de servidores de Peter Lowe.	Listas predefinidas: filtros uBlock, EasyList, EasyPrivacy e a lista de servidores de Peter Lowe.	Списки по умолчанию: фильтры uBlock, EasyList, EasyPrivacy и список серверов Питера Лоу.	القوائم الافتراضية: مرشحات uBlock وEasyList وEasyPrivacy وقائمة خوادم Peter Lowe.
+Lueur autour de la vidéo	Glow around the video	Brillo alrededor del vídeo	Brilho à volta do vídeo	Свечение вокруг видео	توهج حول الفيديو
+Lumières allumées	Lights on	Luces encendidas	Luzes acesas	Свет включён	الإضاءة مشغّلة
+Lumières éteintes	Lights off	Luces apagadas	Luzes apagadas	Свет выключен	الإضاءة مطفأة
+Masquer un élément	Hide an element	Ocultar un elemento	Ocultar um elemento	Скрыть элемент	إخفاء عنصر
+Mode choisi pour certains sites	Mode chosen for some sites	Modo elegido para algunos sitios	Modo escolhido para alguns sites	Режим, выбранный для отдельных сайтов	الوضع المختار لبعض المواقع
+Mode de filtrage par défaut	Default filtering mode	Modo de filtrado por defecto	Modo de filtragem predefinido	Режим фильтрации по умолчанию	وضع التصفية الافتراضي
+Mode de filtrage pour ce site	Filtering mode for this site	Modo de filtrado para este sitio	Modo de filtragem para este site	Режим фильтрации для этого сайта	وضع التصفية لهذا الموقع
+Mode nuit sur tous les sites	Night mode on all sites	Modo noche en todos los sitios	Modo noturno em todos os sites	Ночной режим на всех сайтах	الوضع الليلي على كل المواقع
+Ne pas afficher le bouton si la traduction n'est pas nécessaire	Don't show the button if translation isn't needed	No mostrar el botón si no hace falta traducir	Não mostrar o botão se a tradução não for necessária	Не показывать кнопку, если перевод не нужен	عدم إظهار الزر إذا لم تكن الترجمة لازمة
+Opacité	Opacity	Opacidad	Opacidade	Непрозрачность	العتامة
+Optimal	Optimal	Óptimo	Ótimo	Оптимальный	مثالي
+Original / traduction	Original / translation	Original / traducción	Original / tradução	Оригинал / перевод	الأصل / الترجمة
+Original / traduction, comparer, relire	Original / translation, compare, read again	Original / traducción, comparar, volver a leer	Original / tradução, comparar, reler	Оригинал / перевод, сравнить, прочитать заново	الأصل / الترجمة، مقارنة، إعادة القراءة
+Plein onglet	Fill tab	Llenar la pestaña	Ocupar o separador	На всю вкладку	ملء علامة التبويب
+Plus d'options	More options	Más opciones	Mais opções	Другие параметры	خيارات أخرى
+Police des bulles	Bubble font	Fuente de los bocadillos	Tipo de letra dos balões	Шрифт облачков	خط الفقاعات
+Pour les images qui mélangent deux langues (plus lent).	For images that mix two languages (slower).	Para imágenes que mezclan dos idiomas (más lento).	Para imagens que misturam dois idiomas (mais lento).	Для изображений с двумя языками (медленнее).	للصور التي تمزج لغتين (أبطأ).
+Pour les pages qui mélangent deux langues	For pages that mix two languages	Para páginas que mezclan dos idiomas	Para páginas que misturam dois idiomas	Для страниц с двумя языками	للصفحات التي تمزج لغتين
+Protection active sur ce site	Protection on for this site	Protección activa en este sitio	Proteção ativa neste site	Защита включена на этом сайте	الحماية مفعّلة على هذا الموقع
+Protection des yeux	Eye protection	Protección de los ojos	Proteção dos olhos	Защита глаз	حماية العينين
+Protection des yeux activée	Eye protection on	Protección de los ojos activada	Proteção dos olhos ativada	Защита глаз включена	حماية العينين مفعّلة
+Protection des yeux désactivée	Eye protection off	Protección de los ojos desactivada	Proteção dos olhos desativada	Защита глаз выключена	حماية العينين متوقفة
+Protection désactivée sur ce site	Protection off for this site	Protección desactivada en este sitio	Proteção desativada neste site	Защита выключена на этом сайте	الحماية متوقفة على هذا الموقع
+Prête : DrYAE va redémarrer et s'installer sans fenêtre, avec vos réglages et votre langue.	Ready: DrYAE will restart and install without any window, keeping your settings and language.	Lista: DrYAE se reiniciará y se instalará sin ventana, con tus ajustes y tu idioma.	Pronta: o DrYAE vai reiniciar e instalar-se sem janela, com as suas definições e o seu idioma.	Готово: DrYAE перезапустится и установится без окна, сохранив ваши настройки и язык.	جاهز: سيُعاد تشغيل DrYAE ويُثبَّت دون نافذة، مع إعداداتك ولغتك.
+Raccourcis	Shortcuts	Atajos	Atalhos	Сочетания клавиш	الاختصارات
+Relire cette image	Read this image again	Volver a leer esta imagen	Reler esta imagem	Прочитать изображение заново	إعادة قراءة هذه الصورة
+Reprend les couleurs de l'image quand c'est possible.	Uses the picture's colors when possible.	Usa los colores de la imagen cuando es posible.	Usa as cores da imagem quando possível.	По возможности повторяет цвета изображения.	يستخدم ألوان الصورة عندما يكون ذلك ممكناً.
+Retirer de DrYAE	Remove from DrYAE	Quitar de DrYAE	Remover do DrYAE	Удалить из DrYAE	إزالة من DrYAE
+Retirer la traduction	Remove translation	Quitar la traducción	Remover a tradução	Убрать перевод	إزالة الترجمة
+Saisissez ou collez un texte à traduire	Type or paste text to translate	Escribe o pega un texto para traducir	Escreva ou cole um texto para traduzir	Введите или вставьте текст для перевода	اكتب أو الصق نصاً لترجمته
+Sans filtre	No filter	Sin filtro	Sem filtro	Без фильтра	بدون مرشّح
+Serveurs de publicité et de suivi connus.	Known ad and tracking servers.	Servidores conocidos de publicidad y seguimiento.	Servidores conhecidos de publicidade e rastreio.	Известные рекламные и следящие серверы.	خوادم إعلانات وتتبع معروفة.
+Seulement aux heures choisies	Only at chosen times	Solo en las horas elegidas	Só nas horas escolhidas	Только в выбранные часы	فقط في الأوقات المختارة
+Si le texte est déjà dans la langue de traduction, il est traduit dans celle-ci.	If the text is already in the translation language, it is translated into this one.	Si el texto ya está en el idioma de traducción, se traduce a este.	Se o texto já estiver no idioma de tradução, é traduzido para este.	Если текст уже на языке перевода, он переводится на этот язык.	إذا كان النص بلغة الترجمة أصلاً، يُترجم إلى هذه اللغة.
+Sinon, appuyez sur Échap ou utilisez le bouton.	Otherwise, press Esc or use the button.	Si no, pulsa Esc o usa el botón.	Caso contrário, prima Esc ou use o botão.	Иначе нажмите Esc или используйте кнопку.	وإلا فاضغط Esc أو استخدم الزر.
+Sites exclus du mode nuit	Sites excluded from night mode	Sitios excluidos del modo noche	Sites excluídos do modo noturno	Сайты без ночного режима	مواقع مستثناة من الوضع الليلي
+Sites où le traducteur est éteint	Sites where the translator is off	Sitios donde el traductor está apagado	Sites onde o tradutor está desligado	Сайты, где переводчик выключен	مواقع يكون فيها المترجم متوقفاً
+Sites traduits automatiquement	Automatically translated sites	Sitios traducidos automáticamente	Sites traduzidos automaticamente	Автоматически переводимые сайты	مواقع تُترجم تلقائياً
+Standard	Standard	Estándar	Padrão	Стандартный	قياسي
+Texte d'origine	Original text	Texto original	Texto original	Исходный текст	النص الأصلي
+Traduire automatiquement ce site	Automatically translate this site	Traducir automáticamente este sitio	Traduzir automaticamente este site	Автоматически переводить этот сайт	ترجمة هذا الموقع تلقائياً
+Traduire automatiquement les images de ce site	Automatically translate this site's images	Traducir automáticamente las imágenes de este sitio	Traduzir automaticamente as imagens deste site	Автоматически переводить изображения этого сайта	ترجمة صور هذا الموقع تلقائياً
+Traduire la sélection	Translate selection	Traducir la selección	Traduzir a seleção	Перевести выделенное	ترجمة التحديد
+Traduire la zone	Translate area	Traducir la zona	Traduzir a área	Перевести область	ترجمة المنطقة
+Traduire le texte du lien	Translate link text	Traducir el texto del enlace	Traduzir o texto da ligação	Перевести текст ссылки	ترجمة نص الرابط
+Une vidéo ne démarre pas toute seule tant que vous n'avez pas cliqué dans la page.	A video won't start by itself until you've clicked in the page.	Un vídeo no empieza solo hasta que hayas hecho clic en la página.	Um vídeo não começa sozinho enquanto não clicar na página.	Видео не запускается само, пока вы не щёлкнете по странице.	لن يبدأ الفيديو تلقائياً حتى تنقر في الصفحة.
+Utilisation : bouton du traducteur de scans dans la barre d'outils pour toutes les images de la page, Ctrl+Maj+S pour traduire une zone de l'écran, ou clic droit sur une image → « Traduire le texte de l'image ». Cliquez sur une bulle traduite pour revoir le texte d'origine.	How to use: the image text translator button in the toolbar for all images on the page, Ctrl+Shift+S to translate an area of the screen, or right-click an image → "Translate image text". Click a translated bubble to see the original text again.	Uso: botón del traductor de escaneos en la barra de herramientas para todas las imágenes de la página, Ctrl+Mayús+S para traducir una zona de la pantalla, o clic derecho en una imagen → «Traducir el texto de la imagen». Haz clic en un bocadillo traducido para volver a ver el texto original.	Utilização: botão do tradutor de digitalizações na barra de ferramentas para todas as imagens da página, Ctrl+Shift+S para traduzir uma área do ecrã, ou clique com o botão direito numa imagem → «Traduzir o texto da imagem». Clique num balão traduzido para rever o texto original.	Как пользоваться: кнопка переводчика сканов на панели инструментов — для всех изображений страницы, Ctrl+Shift+S — перевод области экрана, или щелчок правой кнопкой по изображению → «Перевести текст изображения». Щёлкните по переведённому облачку, чтобы снова увидеть оригинал.	طريقة الاستخدام: زر مترجم الصور في شريط الأدوات لكل صور الصفحة، أو Ctrl+Shift+S لترجمة منطقة من الشاشة، أو انقر بزر الفأرة الأيمن على صورة ← «ترجمة نص الصورة». انقر على فقاعة مترجمة لرؤية النص الأصلي من جديد.
+Utilisée si le texte est déjà dans la première	Used if the text is already in the first	Se usa si el texto ya está en el primero	Usado se o texto já estiver no primeiro	Используется, если текст уже на первом	تُستخدم إذا كان النص باللغة الأولى أصلاً
+Vidéo de la page	Video on the page	Vídeo de la página	Vídeo da página	Видео на странице	فيديو الصفحة
+Volume avec la molette sur la vidéo	Volume with the mouse wheel over the video	Volumen con la rueda sobre el vídeo	Volume com a roda do rato sobre o vídeo	Громкость колёсиком над видео	مستوى الصوت بعجلة الفأرة فوق الفيديو
+depuis le démarrage	since startup	desde el inicio	desde o arranque	с момента запуска	منذ بدء التشغيل
+sur cette page	on this page	en esta página	nesta página	на этой странице	في هذه الصفحة
+Échap pour rallumer	Esc to turn the lights on	Esc para encender	Esc para acender	Esc — включить свет	Esc لإعادة الإضاءة
+Épingler dans la barre d'outils	Pin to toolbar	Fijar en la barra de herramientas	Fixar na barra de ferramentas	Закрепить на панели инструментов	تثبيت في شريط الأدوات
+Éteindre en lançant une vidéo	Dim when a video starts	Apagar al iniciar un vídeo	Apagar ao iniciar um vídeo	Затемнять при запуске видео	الإطفاء عند تشغيل فيديو
+↓ : téléchargée à la première utilisation	↓: downloaded on first use	↓: se descarga al usarla por primera vez	↓: transferida na primeira utilização	↓: загружается при первом использовании	↓: تُنزَّل عند أول استخدام
+Version {0}	Version {0}	Versión {0}	Versão {0}	Версия {0}	الإصدار {0}
+Opacité gardée : {0} %	Opacity kept: {0} %	Opacidad guardada: {0} %	Opacidade guardada: {0} %	Непрозрачность сохранена: {0} %	تم حفظ العتامة: {0} %
+Coréen (vertical)	Korean (vertical)	Coreano (vertical)	Coreano (vertical)	Корейский (вертикальный)	الكورية (عمودي)
+Chinois simplifié (vertical)	Simplified Chinese (vertical)	Chino simplificado (vertical)	Chinês simplificado (vertical)	Китайский упрощённый (вертикальный)	الصينية المبسطة (عمودي)
+Chinois traditionnel (vertical)	Traditional Chinese (vertical)	Chino tradicional (vertical)	Chinês tradicional (vertical)	Китайский традиционный (вертикальный)	الصينية التقليدية (عمودي)
+Vietnamien	Vietnamese	Vietnamita	Vietnamita	Вьетнамский	الفيتنامية
+Thaï	Thai	Tailandés	Tailandês	Тайский	التايلاندية
+Indonésien	Indonesian	Indonesio	Indonésio	Индонезийский	الإندونيسية
+Allemand	German	Alemán	Alemão	Немецкий	الألمانية
+Italien	Italian	Italiano	Italiano	Итальянский	الإيطالية
+Turc	Turkish	Turco	Turco	Турецкий	التركية
+Polonais	Polish	Polaco	Polaco	Польский	البولندية
+Ukrainien	Ukrainian	Ucraniano	Ucraniano	Украинский	الأوكرانية
+Hindi	Hindi	Hindi	Hindi	Хинди	الهندية
+trop de demandes, réessayez dans une minute	too many requests, try again in a minute	demasiadas solicitudes, vuelve a intentarlo en un minuto	demasiados pedidos, tente de novo dentro de um minuto	слишком много запросов, повторите через минуту	طلبات كثيرة جداً، أعد المحاولة بعد دقيقة
+pas de connexion au service de traduction	no connection to the translation service	sin conexión con el servicio de traducción	sem ligação ao serviço de tradução	нет связи со службой перевода	لا اتصال بخدمة الترجمة
+URL	URL	URL	URL	URL	URL

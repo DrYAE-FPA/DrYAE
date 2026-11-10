@@ -234,6 +234,18 @@ function pageFeatures() {
     let creds = null;
     const getCreds = () => (creds = creds || ipcRenderer.invoke('pw:get').catch(() => []));
     const filled = new WeakSet();
+    // champ d'identifiant seul (pas de mot de passe sur la page)
+    const isUserOnly = t => {
+      if (!(t instanceof HTMLInputElement) || !/^(text|email|tel|)$/i.test(t.type)) return false;
+      if ((t.form || document).querySelector('input[type=password]')) return false;
+      const ac = (t.autocomplete || '').toLowerCase();
+      if (/username|webauthn/.test(ac) || (t.type === 'email' && !/off|new/.test(ac))) return true;
+      return /identifier|login|user(name)?|e-?mail|identifiant|account|compte/i.test([t.name, t.id, t.getAttribute('aria-label')].join(' ')) && !/search|recherche|newsletter/i.test([t.name, t.id, t.placeholder].join(' '));
+    };
+    // l'identifiant saisi est gardé pour la page suivante (mot de passe)
+    const keepUser = t => { if (t && isUserOnly(t) && t.value.trim()) ipcRenderer.invoke('pw:user', t.value.trim()).catch(() => {}); };
+    document.addEventListener('keydown', e => { if (e.key === 'Enter') keepUser(e.target); }, true);
+    document.addEventListener('click', e => { if (e.target.closest && e.target.closest('button, [role=button], input[type=submit]')) { const scope = e.target.closest('form') || document; [...scope.querySelectorAll('input')].filter(i => visible(i) && isUserOnly(i)).forEach(keepUser); } }, true);
     function fillLogin(pw, c) { const u = userFieldFor(pw); if (u && c.username) setVal(u, c.username); setVal(pw, c.password); ipcRenderer.invoke('pw:used', c.username).catch(() => {}); }
     async function scanPw() {
       const pws = [...document.querySelectorAll('input[type=password]')].filter(visible);
@@ -243,7 +255,8 @@ function pageFeatures() {
       for (const pw of pws) {
         if (filled.has(pw)) continue;
         filled.add(pw);
-        if (list.length === 1 && !pw.value && !isNewPw(pw)) fillLogin(pw, list[0]);
+        const last = list.find(c => c.last);
+        if ((list.length === 1 || (last && !userFieldFor(pw))) && !pw.value && !isNewPw(pw)) fillLogin(pw, last || list[0]);
       }
     }
     document.addEventListener('focusin', async e => {
@@ -270,9 +283,16 @@ function pageFeatures() {
           } });
         } else {
           const list = await getCreds();
-          list.forEach(c => items.push({ icon: '🔑', title: c.username || pt('(sans identifiant)'), sub: '•'.repeat(Math.min(12, c.password.length)) + '  ' + pt('— mot de passe enregistré'), run: () => fillLogin(pw, c) }));
+          list.sort((a, b) => (b.last ? 1 : 0) - (a.last ? 1 : 0)).forEach(c => items.push({ icon: '🔑', title: c.username || pt('(sans identifiant)'), sub: '•'.repeat(Math.min(12, c.password.length)) + '  ' + pt('— mot de passe enregistré'), run: () => fillLogin(pw, c) }));
         }
         if (items.length && document.activeElement === target) return showDrop(target, items);
+        return;
+      }
+      // connexion en deux étapes (adresse d'abord, mot de passe ensuite) : choix parmi les comptes enregistrés
+      if (isUserOnly(target)) {
+        const list = await getCreds();
+        const users = [...new Map(list.filter(c => c.username).map(c => [c.username, c])).values()];
+        if (users.length && document.activeElement === target) return showDrop(target, users.map(c => ({ icon: (c.username[0] || '?').toUpperCase(), title: c.username, sub: pt('Compte enregistré'), run: () => { setVal(target, c.username); ipcRenderer.invoke('pw:user', c.username).catch(() => {}); } })));
         return;
       }
       // adresses
@@ -430,24 +450,53 @@ function pageFeatures() {
   }
 
   // ---------- 5b. traducteur (sélection et page entière) ----------
-  let bubble = null, trBtn = null;
-  const closeTr = () => { bubble?.remove(); bubble = null; trBtn?.remove(); trBtn = null; };
+  // Sélection : un petit bouton apparaît à côté du texte choisi ; un clic affiche la traduction tout de suite.
+  // Le bouton n'apparaît pas si le texte est déjà dans votre langue (option) ni sur les sites où le traducteur est éteint.
+  let bubble = null, trBtn = null, trBtnTimer = 0;
+  const TRC = CFG.translate || null;
+  const closeTr = () => { bubble?.remove(); bubble = null; trBtn?.remove(); trBtn = null; clearTimeout(trBtnTimer); };
   const selText = () => { const s = getSelection(); return s && !s.isCollapsed ? String(s).trim() : ''; };
   const inField = () => { const a = document.activeElement; return a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.isContentEditable); };
   const selRect = () => { try { const r = getSelection().getRangeAt(0).getBoundingClientRect(); return r.width || r.height ? r : null; } catch { return null; } };
+  const langName = c => { try { return new Intl.DisplayNames([CFG.lang || 'fr'], { type: 'language' }).of(c || 'und') || c; } catch { return c || '?'; } };
+  // détection locale et rapide de l'écriture du texte (sans rien envoyer) : sert à ne pas proposer de traduire un texte déjà dans votre langue
+  const SCRIPT = { ar: /[؀-ۿ]/, ru: /[Ѐ-ӿ]/, uk: /[Ѐ-ӿ]/, ja: /[぀-ヿ]/, ko: /[가-힯]/, zh: /[一-鿿]/, he: /[֐-׿]/, el: /[Ͱ-Ͽ]/, th: /[฀-๿]/, hi: /[ऀ-ॿ]/ };
+  const STOP = {
+    fr: /\b(le|la|les|des|est|et|une|pour|que|qui|dans|pas|vous|avec|sur|ce|il|nous)\b/gi,
+    en: /\b(the|and|is|are|of|to|in|that|it|for|you|with|on|this|was|have|be)\b/gi,
+    es: /\b(el|los|las|es|y|que|de|en|un|una|por|con|para|del|se|no|lo)\b/gi,
+    pt: /\b(o|os|as|é|e|que|de|em|um|uma|para|com|não|do|da|se|por)\b/gi,
+    de: /\b(der|die|das|und|ist|nicht|ein|eine|zu|mit|den|ich|sie|es|auf)\b/gi,
+    it: /\b(il|lo|gli|è|e|che|di|un|una|per|con|non|del|della|sono)\b/gi,
+  };
+  function looksLike(text, lang) {
+    lang = String(lang || '').split('-')[0];
+    const letters = (text.match(/\p{L}/gu) || []).length; if (letters < 4) return false;
+    if (SCRIPT[lang]) return (text.match(new RegExp(SCRIPT[lang].source, 'g')) || []).length / letters > 0.5;
+    if (Object.values(SCRIPT).some(r => (text.match(new RegExp(r.source, 'g')) || []).length / letters > 0.3)) return false;
+    const words = (text.match(/\p{L}+/gu) || []).length; if (words < 4) return false;
+    const score = l => (text.match(STOP[l]) || []).length;
+    if (!STOP[lang]) return false;
+    const mine = score(lang), best = Math.max(...Object.keys(STOP).filter(l => l !== lang).map(score));
+    return mine >= 2 && mine > best;
+  }
   async function translateSelection(text, rect) {
-    text = text || selText(); rect = rect || selRect() || { left: innerWidth / 2 - 160, bottom: 80, top: 60 };
+    text = text || selText(); rect = rect || selRect() || { left: innerWidth / 2 - 180, bottom: 80, top: 60 };
     if (!text) return;
     closeTr();
-    bubble = el(`<div class="card" style="width:min(380px,92vw);padding:12px 14px 10px;--a:#8b5cf6"><div class="hd" style="display:flex;align-items:center;gap:6px;color:#8f97aa;font-size:11px;margin-bottom:6px">${ICO.tr}<span class="from" style="flex:1">${esc(pt('Traduction…'))}</span><button class="btn x" style="padding:3px;background:none">${ICO.x}</button></div><div class="out" style="white-space:pre-wrap;max-height:42vh;overflow:auto;font-size:14px"></div><div class="ft" style="display:flex;gap:6px;margin-top:10px"><button class="btn cp">${ICO.copy}${esc(pt('Copier'))}</button><button class="btn sp">${ICO.spk}${esc(pt('Écouter'))}</button></div></div>`);
-    const place = () => { const w = bubble.offsetWidth, h = bubble.offsetHeight; bubble.style.left = Math.max(8, Math.min(innerWidth - w - 8, rect.left)) + 'px'; bubble.style.top = (rect.bottom + 8 + h < innerHeight ? rect.bottom + 8 : Math.max(8, rect.top - h - 8)) + 'px'; };
+    bubble = el(`<div class="card" style="width:min(400px,92vw);padding:12px 14px 10px;--a:#8b5cf6"><div class="hd" style="display:flex;align-items:center;gap:6px;color:#8f97aa;font-size:11px;margin-bottom:6px">${ICO.tr}<span class="from" style="flex:1">${esc(pt('Traduction…'))}</span><button class="btn x" style="padding:3px;background:none" title="${esc(pt('Fermer'))}">${ICO.x}</button></div><div class="out" style="white-space:pre-wrap;max-height:42vh;overflow:auto;font-size:14.5px;line-height:1.5"></div><div class="src" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid #2c3242;color:#8f97aa;font-size:12px;white-space:pre-wrap;max-height:18vh;overflow:auto"></div><div class="ft" style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap"><button class="btn cp">${ICO.copy}${esc(pt('Copier'))}</button><button class="btn sp">${ICO.spk}${esc(pt('Écouter'))}</button><button class="btn so">${esc(pt('Texte d\'origine'))}</button></div></div>`);
+    const place = () => { if (!bubble) return; const w = bubble.offsetWidth, h = bubble.offsetHeight; bubble.style.left = Math.max(8, Math.min(innerWidth - w - 8, rect.left)) + 'px'; bubble.style.top = (rect.bottom + 8 + h < innerHeight ? rect.bottom + 8 : Math.max(8, rect.top - h - 8)) + 'px'; };
     place();
     bubble.querySelector('.x').onclick = closeTr;
     let out = '', to = 'fr';
     bubble.querySelector('.cp').onclick = () => { try { navigator.clipboard.writeText(out); } catch {} };
     bubble.querySelector('.sp').onclick = () => { try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(out); u.lang = to; speechSynthesis.speak(u); } catch {} };
+    bubble.querySelector('.so').onclick = () => { const s = bubble.querySelector('.src'); s.textContent = text; s.style.display = s.style.display === 'none' ? '' : 'none'; place(); };
+    bubble.addEventListener('mousedown', e => e.stopPropagation());
     try {
-      const r = await ipcRenderer.invoke('tr:text', [text.slice(0, 5000)]);
+      let r = await ipcRenderer.invoke('tr:text', [text.slice(0, 5000)]);
+      // texte déjà dans la première langue : on passe automatiquement à la deuxième
+      if (TRC && TRC.second && r.from && String(r.from).split('-')[0] === String(r.to).split('-')[0] && TRC.second !== r.to) r = await ipcRenderer.invoke('tr:text', [text.slice(0, 5000)], { to: TRC.second });
       out = r.texts[0] || ''; to = r.to;
       if (!bubble) return;
       bubble.querySelector('.out').textContent = out;
@@ -455,26 +504,34 @@ function pageFeatures() {
     } catch (e) { if (bubble) bubble.querySelector('.out').textContent = ptf('Traduction impossible : {0}', String(e.message || e).replace(/^.*Error: /, '')); }
     place();
   }
-  const langName = c => { try { return new Intl.DisplayNames([CFG.lang || 'fr'], { type: 'language' }).of(c || 'und') || c; } catch { return c || '?'; } };
-  if (CFG.translate) {
+  function showTrButton(t, r, x, y) {
+    trBtn?.remove();
+    trBtn = el(`<button class="card" title="${esc(pt('Traduire'))}" style="all:unset;position:fixed;pointer-events:auto;cursor:pointer;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#8b5cf6;color:#fff;box-shadow:0 6px 18px #0006;opacity:0;transform:scale(.7);transition:opacity .12s,transform .12s">${ICO.tr}</button>`);
+    trBtn.style.left = Math.min(innerWidth - 40, x + 8) + 'px'; trBtn.style.top = Math.min(innerHeight - 40, y + 10) + 'px';
+    requestAnimationFrame(() => { if (trBtn) { trBtn.style.opacity = 1; trBtn.style.transform = 'none'; } });
+    // le bouton réagit dès qu'on appuie dessus (la page ne peut pas effacer la sélection avant)
+    trBtn.addEventListener('pointerdown', ev => { ev.preventDefault(); ev.stopPropagation(); translateSelection(t, r); }, true);
+    trBtn.onmousedown = ev => { ev.preventDefault(); ev.stopPropagation(); };
+  }
+  let trEnabled = !!(TRC && !TRC.off);
+  if (TRC) {
     document.addEventListener('mouseup', e => {
-      if (e.button !== 0 || e.composedPath().includes(uiHost)) return;
-      setTimeout(() => {
+      if (!trEnabled || e.button !== 0 || e.composedPath().includes(uiHost)) return;
+      clearTimeout(trBtnTimer);
+      trBtnTimer = setTimeout(() => {
         const t = selText();
         if (!t || inField() || t.length > 5000) { if (trBtn && !t) { trBtn.remove(); trBtn = null; } return; }
-        const mode = CFG.translate.selection;
+        const mode = TRC.selection;
         if (mode === 'off') return;
+        if (TRC.hideSame && looksLike(t, TRC.target)) return;
         const r = selRect(); if (!r) return;
         if (mode === 'auto') return translateSelection(t, r);
-        trBtn?.remove();
-        trBtn = el(`<button class="card" title="${esc(pt('Traduire'))}" style="all:unset;position:fixed;pointer-events:auto;cursor:pointer;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#8b5cf6;color:#fff;box-shadow:0 6px 18px #0006">${ICO.tr}</button>`);
-        trBtn.style.left = Math.min(innerWidth - 40, e.clientX + 8) + 'px'; trBtn.style.top = Math.min(innerHeight - 40, e.clientY + 10) + 'px';
-        trBtn.onmousedown = ev => { ev.preventDefault(); ev.stopPropagation(); };
-        trBtn.onclick = ev => { ev.preventDefault(); ev.stopPropagation(); translateSelection(t, r); };
-      }, 10);
+        showTrButton(t, r, e.clientX, e.clientY);
+      }, 30 + (TRC.delay || 0));
     }, true);
     document.addEventListener('mousedown', e => { if (!e.composedPath().includes(uiHost)) { if (bubble) closeTr(); else if (trBtn) { trBtn.remove(); trBtn = null; } } }, true);
     addEventListener('keydown', e => { if (e.key === 'Escape' && (bubble || trBtn)) closeTr(); }, true);
+    addEventListener('scroll', () => { if (trBtn) { trBtn.remove(); trBtn = null; } }, { passive: true, capture: true });
   }
   // traduction de la page : seuls les textes changent, les originaux sont gardés pour « Afficher l'original »
   const SKIP_TR = 'script,style,noscript,code,pre,textarea,input,select,svg,math,kbd,samp,var,[translate=no],.notranslate,[contenteditable=""],[contenteditable=true],dryae-ui,dryae-video-button';
@@ -498,7 +555,7 @@ function pageFeatures() {
   }
   let trFrom = '', trTo = '';
   async function translatePage() {
-    if (trBusy) return;
+    if (trBusy || !TOP) return;
     trBusy = true; trOrig = trOrig || new Map();
     toHost('dryae-tr', { state: 'working', done: 0 });
     try {
@@ -520,24 +577,30 @@ function pageFeatures() {
     trOrig = null;
     toHost('dryae-tr', { state: 'restored' });
   }
+  // site traduit automatiquement (choisi dans la fenêtre du traducteur)
+  if (TRC && TRC.pageAuto && !TRC.off && TOP) {
+    const go = () => setTimeout(() => { if (!looksLike((document.body?.innerText || '').slice(0, 3000), TRC.target)) translatePage(); }, 800);
+    if (document.readyState === 'complete') go(); else addEventListener('load', go, { once: true });
+  }
 
-  // ---------- 5c. lumières tamisées et mode nuit ----------
+  // ---------- 5c. lumières tamisées, protection des yeux, mode nuit, outils vidéo ----------
   let lights = null, autoLit = false;
   const L = CFG.lights || {};
+  const LC = { opacity: +L.opacity || 85, color: /^#[0-9a-f]{6}$/i.test(L.color || '') ? L.color : '#000000' };
   function lightsTarget() {
     const v = pickVideo(200); if (v) return v;
     let best = null, area = 0;
     for (const f of document.querySelectorAll('iframe')) { const r = f.getBoundingClientRect(); const a = r.width * r.height; if (r.width >= 300 && r.height >= 160 && /youtube|vimeo|dailymotion|player|embed|video|stream|twitch/i.test(f.src || '') && a > area) { area = a; best = f; } }
     return best;
   }
+  const opNow = () => Math.max(0.3, Math.min(0.97, LC.opacity / 100));
   function lightsOn(auto) {
     if (lights) return;
     const t = lightsTarget();
-    const op = Math.max(0.3, Math.min(0.97, (+L.opacity || 85) / 100));
-    const R = ui();
-    const col = /^#[0-9a-f]{6}$/i.test(L.color || '') ? L.color : '#000000';
-    const panes = [0, 1, 2, 3].map(() => el(`<div style="position:fixed;pointer-events:auto;background:${col};opacity:0;transition:opacity .35s;cursor:pointer"></div>`));
-    const tip = el(`<div class="card" style="left:50%;top:14px;transform:translateX(-50%);padding:6px 12px;font-size:12px;opacity:.85">${esc(pt('Cliquez à côté pour rallumer'))}</div>`);
+    const fade = L.fade !== false ? 'opacity .45s ease' : 'none';
+    const panes = [0, 1, 2, 3].map(() => el(`<div style="position:fixed;pointer-events:${L.clickOff === false ? 'none' : 'auto'};background:${LC.color};opacity:0;transition:${fade};cursor:pointer"></div>`));
+    const glow = el('<div style="position:fixed;pointer-events:none;border-radius:6px;opacity:0;transition:opacity .6s,box-shadow 1s"></div>');
+    const tip = el(`<div class="card" style="left:50%;top:14px;transform:translateX(-50%);padding:6px 12px;font-size:12px;opacity:.85">${esc(pt(L.clickOff === false ? 'Échap pour rallumer' : 'Cliquez à côté pour rallumer'))}</div>`);
     setTimeout(() => tip.remove(), 2200);
     let raf = 0;
     const lay = () => {
@@ -545,24 +608,92 @@ function pageFeatures() {
       const W = innerWidth, H = innerHeight, l = Math.max(0, r.left), rt = Math.min(W, r.right), tp = Math.max(0, r.top), bt = Math.min(H, r.bottom);
       const set = (p, x, y, w, h) => Object.assign(p.style, { left: x + 'px', top: y + 'px', width: Math.max(0, w) + 'px', height: Math.max(0, h) + 'px' });
       set(panes[0], 0, 0, W, tp); set(panes[1], 0, bt, W, H - bt); set(panes[2], 0, tp, l, bt - tp); set(panes[3], rt, tp, W - rt, bt - tp);
-      if (document.fullscreenElement) panes.forEach(p => { p.style.display = 'none'; }); else panes.forEach(p => { p.style.display = ''; });
+      set(glow, l, tp, rt - l, bt - tp);
+      const fs = !!document.fullscreenElement; panes.forEach(p => { p.style.display = fs ? 'none' : ''; }); glow.style.display = fs ? 'none' : '';
       raf = requestAnimationFrame(lay);
     };
     lay();
-    requestAnimationFrame(() => panes.forEach(p => { p.style.opacity = op; }));
+    requestAnimationFrame(() => panes.forEach(p => { p.style.opacity = opNow(); }));
     panes.forEach(p => { p.onclick = e => { e.preventDefault(); e.stopPropagation(); lightsOff(); }; });
-    lights = { off: () => { cancelAnimationFrame(raf); panes.forEach(p => { p.style.opacity = 0; setTimeout(() => p.remove(), 350); }); tip.remove(); } };
+    // lueur : couleur moyenne de l'image (si la vidéo le permet), sinon violet doux
+    let gt = 0; const cv = document.createElement('canvas'); cv.width = cv.height = 4;
+    const tint = () => {
+      if (!lights) return;
+      if (!L.glow || !t || t.tagName !== 'VIDEO') { glow.style.opacity = 0; } else {
+        let c = '139,92,246';
+        try { const x = cv.getContext('2d', { willReadFrequently: true }); x.drawImage(t, 0, 0, 4, 4); const d = x.getImageData(0, 0, 4, 4).data; let r = 0, g = 0, b = 0; for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; b += d[i + 2]; } c = `${r / 16 | 0},${g / 16 | 0},${b / 16 | 0}`; } catch {}
+        glow.style.boxShadow = `0 0 90px 30px rgba(${c},.55)`; glow.style.opacity = 1;
+      }
+      gt = setTimeout(tint, 700);
+    };
+    lights = { panes, glow, off: () => { cancelAnimationFrame(raf); clearTimeout(gt); panes.concat(glow).forEach(p => { p.style.opacity = 0; setTimeout(() => p.remove(), L.fade !== false ? 450 : 0); }); tip.remove(); }, tint };
+    tint();
     autoLit = !!auto;
     toHost('dryae-lights', true);
   }
   function lightsOff() { if (!lights) return; lights.off(); lights = null; autoLit = false; toHost('dryae-lights', false); }
-  if (CFG.lights) {
-    addEventListener('keydown', e => { if (e.key === 'Escape' && lights) lightsOff(); }, true);
-    if (L.auto) {
-      document.addEventListener('play', e => { const v = e.target; if (v.tagName === 'VIDEO' && !lights) { const r = v.getBoundingClientRect(); if (r.width >= 320 && r.height >= 180) setTimeout(() => lightsOn(true), 300); } }, true);
-      document.addEventListener('pause', e => { if (e.target.tagName === 'VIDEO' && autoLit) lightsOff(); }, true);
-      document.addEventListener('ended', e => { if (e.target.tagName === 'VIDEO' && autoLit) lightsOff(); }, true);
+  function lightsLook(o) {
+    if (o.opacity) LC.opacity = Math.max(30, Math.min(97, +o.opacity));
+    if (o.color && /^#[0-9a-f]{6}$/i.test(o.color)) LC.color = o.color;
+    for (const k of ['glow', 'wheelVolume', 'stopAutoplay', 'auto']) if (k in o) L[k] = !!o[k];
+    if (lights) { lights.panes.forEach(p => { p.style.opacity = opNow(); p.style.background = LC.color; }); lights.tint(); }
+  }
+  // bulle d'information (opacité, volume…)
+  let hintEl = null, hintT = 0;
+  const hint = txt => { if (!hintEl || !hintEl.isConnected) hintEl = el('<div class="card" style="left:50%;top:50%;transform:translate(-50%,-50%);padding:8px 16px;font-size:16px;font-weight:700"></div>'); hintEl.textContent = txt; clearTimeout(hintT); hintT = setTimeout(() => { hintEl?.remove(); hintEl = null; }, 900); };
+  // protection des yeux : filtre orangé au-dessus de la page (ne bloque pas les clics)
+  let eyeEl = null;
+  function eye(on, level) {
+    if (!TOP) return;
+    if (on) { if (!eyeEl || !eyeEl.isConnected) eyeEl = el('<div style="position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;mix-blend-mode:multiply"></div>'); eyeEl.style.background = `rgba(255,150,40,${Math.max(5, Math.min(60, +level || 30)) / 100})`; }
+    else if (eyeEl) { eyeEl.remove(); eyeEl = null; }
+  }
+  if (CFG.lights && L.eye) eye(true, L.eyeLevel);
+  // outils vidéo
+  const VS = { rate: 1, loop: false, zoom: 1, filter: '', full: false };
+  const SPEEDS = [1, 1.25, 1.5, 2, 0.5, 0.75], ZOOMS = [1, 1.25, 1.5, 2], FILTERS = ['', 'grayscale(1)', 'sepia(.8)', 'contrast(1.35)', 'saturate(1.8)', 'brightness(1.3)'];
+  let fullSave = null;
+  function videoAct(act) {
+    const v = pickVideo(120); if (!v) return hint(pt('Aucune vidéo sur cette page'));
+    const next = (arr, x) => arr[(arr.indexOf(x) + 1) % arr.length];
+    if (act === 'speed') { VS.rate = next(SPEEDS, VS.rate); v.playbackRate = VS.rate; hint('× ' + VS.rate); }
+    else if (act === 'loop') { VS.loop = !VS.loop; v.loop = VS.loop; hint(pt(VS.loop ? 'Boucle activée' : 'Boucle désactivée')); }
+    else if (act === 'zoom') { VS.zoom = next(ZOOMS, VS.zoom); v.style.transform = VS.zoom === 1 ? '' : `scale(${VS.zoom})`; hint('× ' + VS.zoom); }
+    else if (act === 'filter') { VS.filter = next(FILTERS, VS.filter); v.style.filter = VS.filter; hint(VS.filter ? VS.filter.replace(/\(.*/, '') : pt('Sans filtre')); }
+    else if (act === 'full') {
+      VS.full = !VS.full;
+      if (VS.full) { fullSave = v.getAttribute('style') || ''; v.style.cssText += ';position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;max-width:none!important;max-height:none!important;z-index:2147483646!important;background:#000!important;object-fit:contain!important'; }
+      else { v.setAttribute('style', fullSave || ''); fullSave = null; }
     }
+    else if (act === 'shot') { const r = v.getBoundingClientRect(); let z = 1; try { z = webFrame.getZoomFactor() || 1; } catch {} const x = Math.max(0, r.left), y = Math.max(0, r.top); toHost('dryae-shot', { x: x * z, y: y * z, w: (Math.min(innerWidth, r.right) - x) * z, h: (Math.min(innerHeight, r.bottom) - y) * z }); }
+    else if (act === 'reset') { VS.rate = 1; VS.loop = false; VS.zoom = 1; VS.filter = ''; v.playbackRate = 1; v.loop = false; v.style.transform = ''; v.style.filter = ''; if (VS.full) videoAct('full'); }
+    toHost('dryae-vstate', { ...VS });
+  }
+  if (CFG.lights) {
+    addEventListener('keydown', e => {
+      if (e.key === 'Escape' && lights) return lightsOff();
+      if (!e.altKey || e.ctrlKey || e.metaKey) return;
+      // Alt+↑ / Alt+↓ : opacité ; Alt+F8 : opacité par défaut ; Alt+F9 : garder l'opacité actuelle ; Alt+F10 : protection des yeux
+      if (lights && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) { e.preventDefault(); lightsLook({ opacity: LC.opacity + (e.key === 'ArrowUp' ? 5 : -5) }); hint(LC.opacity + ' %'); }
+      else if (e.key === 'F8') { e.preventDefault(); lightsLook({ opacity: 85 }); hint('85 %'); }
+      else if (e.key === 'F9') { e.preventDefault(); ipcRenderer.invoke('lights:pref', { opacity: LC.opacity }).catch(() => {}); hint(ptf('Opacité gardée : {0} %', LC.opacity)); }
+      else if (e.key === 'F10') { e.preventDefault(); const on = !eyeEl; eye(on, L.eyeLevel); ipcRenderer.invoke('lights:pref', { eye: on }).catch(() => {}); hint(pt(on ? 'Protection des yeux activée' : 'Protection des yeux désactivée')); }
+    }, true);
+    document.addEventListener('play', e => { const v = e.target; if (L.auto && v.tagName === 'VIDEO' && !lights) { const r = v.getBoundingClientRect(); if (r.width >= 320 && r.height >= 180) setTimeout(() => lightsOn(true), 300); } }, true);
+    document.addEventListener('pause', e => { if (e.target.tagName === 'VIDEO' && autoLit) lightsOff(); }, true);
+    document.addEventListener('ended', e => { if (e.target.tagName === 'VIDEO' && autoLit) lightsOff(); }, true);
+    // pas de lecture automatique tant qu'on n'a pas touché à la page
+    document.addEventListener('play', e => { const v = e.target; if (L.stopAutoplay && v.tagName === 'VIDEO' && !(navigator.userActivation && navigator.userActivation.hasBeenActive)) { try { v.pause(); } catch {} } }, true);
+    // molette sur une vidéo : volume
+    addEventListener('wheel', e => {
+      if (!L.wheelVolume || e.ctrlKey) return;
+      const v = e.target && e.target.closest ? (e.target.closest('video') || (pickVideo(200) && pickVideo(200).contains?.(e.target) ? pickVideo(200) : null)) : null;
+      const vv = v || (() => { const p = pickVideo(200); if (!p) return null; const r = p.getBoundingClientRect(); return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom ? p : null; })();
+      if (!vv) return;
+      e.preventDefault();
+      vv.volume = Math.max(0, Math.min(1, Math.round((vv.volume + (e.deltaY < 0 ? 0.05 : -0.05)) * 100) / 100)); if (vv.volume > 0) vv.muted = false;
+      hint('🔊 ' + Math.round(vv.volume * 100) + ' %');
+    }, { passive: false, capture: true });
   }
   let nightKey = null;
   const NIGHT = 'html{filter:invert(.9) hue-rotate(180deg)!important;background:#fff!important}img,video,picture,canvas,iframe,embed,object,[style*="background-image"]{filter:invert(1) hue-rotate(180deg)!important}';
@@ -570,24 +701,36 @@ function pageFeatures() {
   if (CFG.lights && L.night) night(true);
 
   // ---------- 5d. traducteur de scans ----------
+  // Lecture du texte des images puis traduction affichée dans des bulles propres, au-dessus de chaque bulle d'origine.
+  // Icônes d'action au survol d'une image traduite : original / traduction, comparer (glisser), relire, retirer.
   let scan = null;
+  const SC = CFG.scan || {};
+  let scIcons = SC.icons !== false;
+  function scanInit() {
+    if (scan) return;
+    const layer = el('<div style="position:fixed;inset:0;pointer-events:none"></div>');
+    const bar = el(`<div class="card" style="right:16px;bottom:16px;padding:8px 10px;display:flex;align-items:center;gap:8px;font-size:12px"><span style="color:#c4b5fd;display:flex">${ICO.tr}</span><b>${esc(pt('Traducteur de scans'))}</b><span class="st" style="color:#8f97aa"></span><button class="btn tg">${esc(pt('Afficher l\'original'))}</button><button class="btn st2">${esc(pt('Arrêter'))}</button></div>`);
+    scan = { layer, bar, items: new Map(), queue: [], busy: false, shown: true, n: 0, io: null, tools: null, hover: null };
+    bar.querySelector('.tg').onclick = () => { scan.shown = !scan.shown; layer.style.display = scan.shown ? '' : 'none'; bar.querySelector('.tg').textContent = pt(scan.shown ? 'Afficher l\'original' : 'Afficher la traduction'); };
+    bar.querySelector('.st2').onclick = scanStop;
+    const loop = () => { if (!scan) return; for (const [img, it] of scan.items) placeScan(img, it); placeTools(); scan.raf = requestAnimationFrame(loop); };
+    loop();
+    scan.io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { scanQueue(e.target); scan.io.unobserve(e.target); } }), { rootMargin: '300px' });
+    // survol : quelle image traduite est sous la souris
+    scan.move = e => { if (!scan || !scIcons) return; let hit = null; for (const [img, it] of scan.items) { if (!it.box) continue; const r = img.getBoundingClientRect(); if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) { hit = img; break; } } if (hit !== scan.hover) { scan.hover = hit; drawTools(); } };
+    addEventListener('mousemove', scan.move, { passive: true, capture: true });
+  }
   function scanStart(onlySrc) {
-    if (!scan) {
-      const layer = el('<div style="position:fixed;inset:0;pointer-events:none"></div>');
-      const bar = el(`<div class="card" style="right:16px;bottom:16px;padding:8px 10px;display:flex;align-items:center;gap:8px;font-size:12px"><span style="color:#c4b5fd;display:flex">${ICO.tr}</span><b>${esc(pt('Traducteur de scans'))}</b><span class="st" style="color:#8f97aa"></span><button class="btn tg">${esc(pt('Afficher l\'original'))}</button><button class="btn st2">${esc(pt('Arrêter'))}</button></div>`);
-      scan = { layer, bar, items: new Map(), queue: [], busy: false, shown: true, n: 0, io: null };
-      bar.querySelector('.tg').onclick = () => { scan.shown = !scan.shown; layer.style.display = scan.shown ? '' : 'none'; bar.querySelector('.tg').textContent = pt(scan.shown ? 'Afficher l\'original' : 'Traduire'); };
-      bar.querySelector('.st2').onclick = scanStop;
-      const loop = () => { if (!scan) return; for (const [img, it] of scan.items) placeScan(img, it); scan.raf = requestAnimationFrame(loop); };
-      loop();
-      scan.io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { scanQueue(e.target); scan.io.unobserve(e.target); } }), { rootMargin: '200px' });
-    }
-    const imgs = [...document.querySelectorAll('img')].filter(i => (onlySrc ? (i.currentSrc || i.src) === onlySrc : i.naturalWidth >= 250 && i.naturalHeight >= 250));
-    if (!imgs.length && !onlySrc) { status(pt('Aucun texte trouvé dans cette image')); return; }
-    for (const i of imgs) { if (onlySrc) scanQueue(i); else scan.io.observe(i); }
+    scanInit();
+    const min = SC.minSize || 250;
+    const imgs = [...document.querySelectorAll('img')].filter(i => (onlySrc ? (i.currentSrc || i.src) === onlySrc : i.naturalWidth >= min && i.naturalHeight >= min * 0.6));
+    if (!imgs.length && !onlySrc) { status(pt('Aucune image à traduire sur cette page')); return; }
+    for (const i of imgs) { if (onlySrc) scanQueue(i, true); else scan.io.observe(i); }
+    // images ajoutées plus tard (défilement infini des webtoons)
+    if (!onlySrc && !scan.mo) { scan.mo = new MutationObserver(() => { clearTimeout(scan.mt); scan.mt = setTimeout(() => { if (!scan) return; document.querySelectorAll('img').forEach(i => { if (!scan.items.has(i) && i.naturalWidth >= min && i.naturalHeight >= min * 0.6) scan.io.observe(i); }); }, 700); }); scan.mo.observe(document.body, { childList: true, subtree: true }); }
   }
   const status = s => { if (scan) scan.bar.querySelector('.st').textContent = s; };
-  function scanQueue(img) { if (!scan || scan.items.has(img)) return; scan.items.set(img, { blocks: null, box: null }); scan.queue.push(img); scanNext(); }
+  function scanQueue(img, first) { if (!scan) return; if (scan.items.has(img)) { const it = scan.items.get(img); if (!first || it.blocks) return; } scan.items.set(img, { blocks: null, box: null }); first ? scan.queue.unshift(img) : scan.queue.push(img); scanNext(); }
   async function scanNext() {
     if (!scan || scan.busy || !scan.queue.length) return;
     scan.busy = true;
@@ -599,28 +742,28 @@ function pageFeatures() {
       const src = img.currentSrc || img.src;
       let data = null;
       if (/^(blob|data):/.test(src)) { try { data = new Uint8Array(await (await fetch(src)).arrayBuffer()); } catch {} }
-      // la partie visible sert de secours si l'image ne peut pas être lue directement
       const vis = { x: Math.max(0, r.left) * dpr, y: Math.max(0, r.top) * dpr, w: (Math.min(innerWidth, r.right) - Math.max(0, r.left)) * dpr, h: (Math.min(innerHeight, r.bottom) - Math.max(0, r.top)) * dpr };
       const res = await ipcRenderer.invoke('scan:image', { src: /^https?:/.test(src) ? src : '', data, page: location.href, rect: r.top >= 0 && r.bottom <= innerHeight ? vis : (vis.h > 60 ? vis : null), natural: { w: img.naturalWidth, h: img.naturalHeight } });
       const it = scan?.items.get(img);
       if (it) {
-        // coordonnées : image entière, ou partie visible au moment de la lecture
         it.blocks = res.blocks; it.w = res.w; it.captured = res.captured ? { left: Math.max(0, r.left) - r.left, top: Math.max(0, r.top) - r.top, w: vis.w / dpr } : null;
-        it.box = drawScan(it);
+        it.box?.remove(); it.box = drawScan(it); it.cmp = 100;
         scan.n += res.blocks.length;
       }
       status(ptf('{0} bulle(s) traduite(s)', scan?.n || 0));
     } catch (e) { status(ptf('Traduction impossible : {0}', String(e.message || e).replace(/^.*Error: /, '').slice(0, 80))); }
     if (scan) { scan.busy = false; scanNext(); }
   }
+  // police et mise en forme des bulles : texte noir sur fond blanc, coins arrondis, centré, sans bordure visible
+  const FONT = SC.font === 'comic' ? '"Comic Sans MS","Comic Neue",cursive' : SC.font === 'serif' ? 'Georgia,serif' : '"Segoe UI","Arial",sans-serif';
   function drawScan(it) {
-    const box = el('<div style="position:fixed;pointer-events:none"></div>', scan.layer);
+    const box = el('<div style="position:fixed;pointer-events:none;overflow:hidden"></div>', scan.layer);
     for (const b of it.blocks) {
       const d = document.createElement('div');
       d.title = b.text;
       d.textContent = b.tr || b.text;
-      d.style.cssText = 'position:absolute;pointer-events:auto;display:flex;align-items:center;justify-content:center;text-align:center;background:#fff;color:#111;border-radius:10px;padding:2px 4px;font:700 12px/1.15 "Segoe UI","Comic Sans MS",sans-serif;overflow:hidden;box-shadow:0 0 0 2px #fff;cursor:default;word-break:break-word';
-      d.onclick = () => { d.textContent = d.textContent === b.text ? (b.tr || b.text) : b.text; };
+      d.style.cssText = `position:absolute;pointer-events:auto;display:flex;align-items:center;justify-content:center;text-align:center;background:#fff;color:#111;border-radius:14px;padding:3px 5px;font:700 12px/1.18 ${FONT};overflow:hidden;cursor:default;word-break:break-word;hyphens:auto;letter-spacing:-.01em;box-shadow:0 0 6px 4px #fff`;
+      d.onclick = () => { d.textContent = d.textContent === b.text ? (b.tr || b.text) : b.text; d._w = 0; };
       d._b = b;
       box.appendChild(d);
     }
@@ -631,24 +774,102 @@ function pageFeatures() {
     if (!img.isConnected) { it.box.remove(); scan.items.delete(img); return; }
     const r = img.getBoundingClientRect();
     if (r.bottom < -50 || r.top > innerHeight + 50) { it.box.style.display = 'none'; return; }
-    it.box.style.display = '';
+    it.box.style.display = it.hidden ? 'none' : '';
     const base = it.captured ? { left: r.left + it.captured.left, top: r.top + it.captured.top, w: it.captured.w } : { left: r.left, top: r.top, w: r.width };
     const k = base.w / (it.w || 1);
-    Object.assign(it.box.style, { left: base.left + 'px', top: base.top + 'px' });
+    // comparer : seule la partie gauche (jusqu'au curseur) montre la traduction
+    Object.assign(it.box.style, { left: base.left + 'px', top: base.top + 'px', width: (r.right - base.left) + 'px', height: (r.bottom - base.top) + 'px', clipPath: it.cmp < 100 ? `inset(0 ${100 - it.cmp}% 0 0)` : '' });
     for (const d of it.box.children) {
-      const b = d._b; const pad = 6;
+      const b = d._b; const pad = 5;
       const w = (b.x1 - b.x0) * k + pad * 2, h = (b.y1 - b.y0) * k + pad * 2;
       if (d._w !== w) {
-        Object.assign(d.style, { left: (b.x0 * k - pad) + 'px', top: (b.y0 * k - pad) + 'px', width: w + 'px', minHeight: h + 'px' });
-        // taille du texte ajustée à la bulle
-        let fs = Math.max(9, Math.min(22, (b.y1 - b.y0) * k / Math.max(1, Math.round(b.text.length / 18)) * 0.9));
+        // bulle verticale étroite (japonais, coréen) : un peu plus large pour un texte traduit horizontal
+        const ww = b.vertical ? Math.max(w, h * 0.55) : w, dx = (ww - w) / 2;
+        Object.assign(d.style, { left: (b.x0 * k - pad - dx) + 'px', top: (b.y0 * k - pad) + 'px', width: ww + 'px', height: h + 'px' });
+        // taille du texte : la plus grande qui tient dans la bulle
+        let lo = 7, hi = Math.min(26, Math.max(9, h * 0.6)), fs = lo;
+        for (let n = 0; n < 7; n++) { const mid = (lo + hi) / 2; d.style.fontSize = mid + 'px'; if (d.scrollHeight <= h + 1 && d.scrollWidth <= ww + 1) { fs = mid; lo = mid; } else hi = mid; }
         d.style.fontSize = fs + 'px';
-        for (let n = 0; n < 8 && d.scrollHeight > h + 4 && fs > 8; n++) { fs -= 1; d.style.fontSize = fs + 'px'; }
         d._w = w;
       }
     }
   }
-  function scanStop() { if (!scan) return; cancelAnimationFrame(scan.raf); scan.io?.disconnect(); scan.layer.remove(); scan.bar.remove(); scan = null; }
+  // icônes d'action sur l'image survolée
+  function drawTools() {
+    if (!scan) return;
+    const img = scan.hover, it = img && scan.items.get(img);
+    if (!it || !it.box || !scIcons) { scan.tools?.remove(); scan.tools = null; return; }
+    if (!scan.tools) {
+      const b = (a, t, svg) => `<button class="btn" data-a="${a}" title="${esc(pt(t))}" style="padding:5px">${svg}</button>`;
+      scan.tools = el(`<div class="card" style="padding:4px;display:flex;gap:3px;border-radius:10px">${b('flip', 'Original / traduction', ICO.tr)}${b('cmp', 'Comparer', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 2v20"/></svg>')}${b('redo', 'Relire cette image', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 11a8 8 0 10-2.3 5.7M20 4v7h-7"/></svg>')}${b('copy', 'Copier le texte traduit', ICO.copy)}${b('del', 'Retirer la traduction', ICO.x)}</div>`);
+      scan.tools.addEventListener('mousedown', e => e.stopPropagation(), true);
+      scan.tools.onclick = e => {
+        const a = e.target.closest('[data-a]')?.dataset.a; const img = scan.hover, it = img && scan.items.get(img); if (!a || !it) return;
+        if (a === 'flip') it.hidden = !it.hidden;
+        else if (a === 'cmp') compare(img, it);
+        else if (a === 'redo') { it.box?.remove(); scan.n -= (it.blocks || []).length; scan.items.delete(img); scanQueue(img, true); }
+        else if (a === 'copy') { try { navigator.clipboard.writeText((it.blocks || []).map(b => b.tr || b.text).join('\n\n')); } catch {} }
+        else if (a === 'del') { it.box?.remove(); it.box = null; scan.hover = null; drawTools(); }
+      };
+    }
+    placeTools();
+  }
+  function placeTools() { if (!scan?.tools || !scan.hover) return; const r = scan.hover.getBoundingClientRect(); scan.tools.style.left = Math.max(4, Math.min(innerWidth - 190, r.right - 186)) + 'px'; scan.tools.style.top = Math.max(4, Math.min(innerHeight - 40, r.top + 6)) + 'px'; }
+  function compare(img, it) {
+    // glisser la souris sur l'image : à gauche la traduction, à droite l'original ; clic pour terminer
+    const r0 = img.getBoundingClientRect();
+    const line = el(`<div style="position:fixed;top:${Math.max(0, r0.top)}px;height:${Math.min(innerHeight, r0.bottom) - Math.max(0, r0.top)}px;width:3px;background:#8b5cf6;box-shadow:0 0 8px #000a;pointer-events:none"></div>`);
+    const cover = el('<div style="position:fixed;inset:0;pointer-events:auto;cursor:ew-resize"></div>');
+    const mv = e => { const r = img.getBoundingClientRect(); it.cmp = Math.max(0, Math.min(100, (e.clientX - r.left) / r.width * 100)); line.style.left = e.clientX + 'px'; };
+    cover.addEventListener('mousemove', mv);
+    cover.addEventListener('click', () => { cover.remove(); line.remove(); it.cmp = 100; });
+    mv({ clientX: (r0.left + r0.right) / 2 });
+  }
+  function scanStop() { if (!scan) return; cancelAnimationFrame(scan.raf); scan.io?.disconnect(); scan.mo?.disconnect(); removeEventListener('mousemove', scan.move, true); scan.layer.remove(); scan.bar.remove(); scan.tools?.remove(); scan = null; }
+  // capture d'une zone de l'écran : on dessine un rectangle, puis « Traduire la zone »
+  let region = null;
+  function scanRegion() {
+    if (!TOP || region) return;
+    const cover = el('<div style="position:fixed;inset:0;pointer-events:auto;cursor:crosshair;background:rgba(0,0,0,.35)"></div>');
+    const sel = el('<div style="position:fixed;pointer-events:none;border:2px solid #8b5cf6;background:rgba(139,92,246,.08);box-shadow:0 0 0 9999px rgba(0,0,0,.25);display:none"></div>');
+    const help = el(`<div class="card" style="left:50%;top:16px;transform:translateX(-50%);padding:8px 12px;font-size:12.5px">${esc(pt('Dessinez un rectangle autour du texte à traduire. Échap : annuler.'))}</div>`);
+    let sx = 0, sy = 0, box = null, bar = null;
+    const end = () => { cover.remove(); sel.remove(); help.remove(); bar?.remove(); region = null; removeEventListener('keydown', key, true); };
+    const key = e => { if (e.key === 'Escape') { e.preventDefault(); end(); } else if (e.key === 'Enter' && box) { e.preventDefault(); go(); } };
+    addEventListener('keydown', key, true);
+    region = { end };
+    cover.onmousedown = e => { e.preventDefault(); bar?.remove(); bar = null; sx = e.clientX; sy = e.clientY; box = null; sel.style.display = ''; Object.assign(sel.style, { left: sx + 'px', top: sy + 'px', width: 0, height: 0 }); cover.onmousemove = m => { const x = Math.min(sx, m.clientX), y = Math.min(sy, m.clientY), w = Math.abs(m.clientX - sx), h = Math.abs(m.clientY - sy); box = { x, y, w, h }; Object.assign(sel.style, { left: x + 'px', top: y + 'px', width: w + 'px', height: h + 'px' }); }; };
+    cover.onmouseup = () => {
+      cover.onmousemove = null;
+      if (!box || box.w < 20 || box.h < 14) { box = null; sel.style.display = 'none'; return; }
+      bar = el(`<div class="card" style="padding:6px;display:flex;gap:6px;--a:#8b5cf6"><button class="btn" data-a="x">${esc(pt('Annuler'))}</button><button class="btn pri" data-a="go">${ICO.tr}${esc(pt('Traduire la zone'))}</button></div>`);
+      bar.style.left = Math.max(8, Math.min(innerWidth - 230, box.x + box.w - 220)) + 'px'; bar.style.top = Math.min(innerHeight - 46, box.y + box.h + 8) + 'px';
+      bar.onclick = e => { const a = e.target.closest('[data-a]')?.dataset.a; if (a === 'x') end(); else if (a === 'go') go(); };
+    };
+    async function go() {
+      const b = box; end(); if (!b) return;
+      let z = 1; try { z = webFrame.getZoomFactor() || 1; } catch {}
+      const wait = el(`<div class="card" style="left:${b.x}px;top:${b.y}px;padding:6px 10px;font-size:12px">${esc(pt('Lecture des images…'))}</div>`);
+      // la zone est lue à l'écran juste après la disparition du cadre
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      try {
+        const res = await ipcRenderer.invoke('scan:image', { region: true, rect: { x: b.x * z, y: b.y * z, w: b.w * z, h: b.h * z }, page: location.href });
+        wait.remove();
+        if (!res.blocks.length) { hint(pt('Aucun texte trouvé dans cette image')); return; }
+        scanInit();
+        // une « image » virtuelle fixée à la page : la zone suit le défilement
+        const anchor = document.createElement('div');
+        anchor.style.cssText = `position:absolute;left:${b.x + scrollX}px;top:${b.y + scrollY}px;width:${b.w}px;height:${b.h}px;pointer-events:none`;
+        anchor.setAttribute('data-dryae-zone', '');
+        document.body.appendChild(anchor);
+        const it = { blocks: res.blocks, w: res.w, captured: null, cmp: 100 };
+        it.box = drawScan(it); scan.items.set(anchor, it); scan.n += res.blocks.length;
+        status(ptf('{0} bulle(s) traduite(s)', scan.n));
+      } catch (e) { wait.remove(); hint(ptf('Traduction impossible : {0}', String(e.message || e).replace(/^.*Error: /, '').slice(0, 80))); }
+    }
+  }
+  // site choisi : les images sont traduites automatiquement
+  if (SC.auto && TOP) { const go = () => setTimeout(() => scanStart(), 1200); if (document.readyState === 'complete') go(); else addEventListener('load', go, { once: true }); }
 
   // ---------- commandes envoyées par le navigateur ----------
   ipcRenderer.on('dryae-cmd', (_e, c = {}) => {
@@ -657,11 +878,19 @@ function pageFeatures() {
       case 'translate-on': return translatePage();
       case 'translate-off': return restorePage();
       case 'translate-selection': return selText() ? translateSelection() : translatePage();
+      case 'translate-text': return c.text && translateSelection(c.text, { left: (c.x || innerWidth / 2) - 20, top: (c.y || 60) - 10, bottom: (c.y || 60) + 10 });
+      case 'translate-enable': trEnabled = !!c.on; if (!c.on) closeTr(); return;
       case 'lights': return lights ? lightsOff() : lightsOn(false);
-      case 'night': return night(!nightKey) || ipcRenderer.invoke('lights:night', !!nightKey).catch(() => {});
+      case 'lights-set': return lightsLook(c);
+      case 'eye': return eye(!!c.on, c.level);
+      case 'video': return videoAct(c.act);
+      case 'night': return night(c.on === undefined ? !nightKey : !!c.on) || ipcRenderer.invoke('lights:night', !!nightKey).catch(() => {});
       case 'picker': return picker(c.x, c.y);
       case 'scan': return scan ? scanStop() : scanStart();
+      case 'scan-auto': return scan || scanStart();
       case 'scan-one': return scanStart(c.src);
+      case 'scan-region': return scanRegion();
+      case 'scan-icons': scIcons = !!c.on; return drawTools();
       case 'hides': CFG.hides = c.list || []; return applyHides(CFG.hides);
       case 'state': return toHost('dryae-state', { translated: !!trOrig, lights: !!lights, night: !!nightKey, scan: !!scan });
     }
