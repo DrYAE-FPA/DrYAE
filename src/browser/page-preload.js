@@ -485,6 +485,7 @@ function pageFeatures() {
     if (!text) return;
     closeTr();
     bubble = el(`<div class="card" style="width:min(400px,92vw);padding:12px 14px 10px;--a:#8b5cf6"><div class="hd" style="display:flex;align-items:center;gap:6px;color:#8f97aa;font-size:11px;margin-bottom:6px">${ICO.tr}<span class="from" style="flex:1">${esc(pt('Traduction…'))}</span><button class="btn x" style="padding:3px;background:none" title="${esc(pt('Fermer'))}">${ICO.x}</button></div><div class="out" style="white-space:pre-wrap;max-height:42vh;overflow:auto;font-size:14.5px;line-height:1.5"></div><div class="src" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid #2c3242;color:#8f97aa;font-size:12px;white-space:pre-wrap;max-height:18vh;overflow:auto"></div><div class="ft" style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap"><button class="btn cp">${ICO.copy}${esc(pt('Copier'))}</button><button class="btn sp">${ICO.spk}${esc(pt('Écouter'))}</button><button class="btn so">${esc(pt('Texte d\'origine'))}</button></div></div>`);
+    bubble.style.zIndex = 5;
     const place = () => { if (!bubble) return; const w = bubble.offsetWidth, h = bubble.offsetHeight; bubble.style.left = Math.max(8, Math.min(innerWidth - w - 8, rect.left)) + 'px'; bubble.style.top = (rect.bottom + 8 + h < innerHeight ? rect.bottom + 8 : Math.max(8, rect.top - h - 8)) + 'px'; };
     place();
     bubble.querySelector('.x').onclick = closeTr;
@@ -494,9 +495,8 @@ function pageFeatures() {
     bubble.querySelector('.so').onclick = () => { const s = bubble.querySelector('.src'); s.textContent = text; s.style.display = s.style.display === 'none' ? '' : 'none'; place(); };
     bubble.addEventListener('mousedown', e => e.stopPropagation());
     try {
-      let r = await ipcRenderer.invoke('tr:text', [text.slice(0, 5000)]);
-      // texte déjà dans la première langue : on passe automatiquement à la deuxième
-      if (TRC && TRC.second && r.from && String(r.from).split('-')[0] === String(r.to).split('-')[0] && TRC.second !== r.to) r = await ipcRenderer.invoke('tr:text', [text.slice(0, 5000)], { to: TRC.second });
+      // langue détectée automatiquement ; texte déjà dans votre langue → traduit dans la 2e langue (ex. français → anglais)
+      const r = await ipcRenderer.invoke('tr:text', [text.slice(0, 5000)], { auto2: true });
       out = r.texts[0] || ''; to = r.to;
       if (!bubble) return;
       bubble.querySelector('.out').textContent = out;
@@ -708,7 +708,7 @@ function pageFeatures() {
   let scIcons = SC.icons !== false;
   function scanInit() {
     if (scan) return;
-    const layer = el('<div style="position:fixed;inset:0;pointer-events:none"></div>');
+    const layer = el('<div style="position:fixed;inset:0;pointer-events:none;z-index:0"></div>');
     const bar = el(`<div class="card" style="right:16px;bottom:16px;padding:8px 10px;display:flex;align-items:center;gap:8px;font-size:12px"><span style="color:#c4b5fd;display:flex">${ICO.tr}</span><b>${esc(pt('Traducteur de scans'))}</b><span class="st" style="color:#8f97aa"></span><button class="btn tg">${esc(pt('Afficher l\'original'))}</button><button class="btn st2">${esc(pt('Arrêter'))}</button></div>`);
     scan = { layer, bar, items: new Map(), queue: [], busy: false, shown: true, n: 0, io: null, tools: null, hover: null };
     bar.querySelector('.tg').onclick = () => { scan.shown = !scan.shown; layer.style.display = scan.shown ? '' : 'none'; bar.querySelector('.tg').textContent = pt(scan.shown ? 'Afficher l\'original' : 'Afficher la traduction'); };

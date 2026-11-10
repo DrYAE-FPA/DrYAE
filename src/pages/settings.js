@@ -103,7 +103,7 @@ function draw() {
       <div id="trDeepl" ${T2.provider === 'deepl' ? '' : 'style="display:none"'}>${row('Clé API DeepL', 'Gratuite jusqu\'à 500 000 caractères par mois sur deepl.com.', `<input type="password" id="trKey" value="${esc(T2.deeplKey || '')}" spellcheck="false">`)}</div>
       <div id="trLibre" ${T2.provider === 'libre' ? '' : 'style="display:none"'}>${row('Adresse du serveur LibreTranslate', '', `<input type="url" id="trUrl" value="${esc(T2.libreUrl || '')}" placeholder="https://…" spellcheck="false">`)}${row('Clé API (si le serveur en demande une)', '', `<input type="password" id="trLKey" value="${esc(T2.libreKey || '')}" spellcheck="false">`)}</div>
       ${row('Langue de traduction', '', sel('trTo2', langOpts(true), T2.target || ''))}
-      ${row('Deuxième langue', 'Si le texte est déjà dans la langue de traduction, il est traduit dans celle-ci.', selk('translate.second', [['', 'Aucune'], ...TLANGS.map(c => [c, lname(c)])], T2.second || ''))}
+      ${row('Deuxième langue', 'Si le texte est déjà dans la langue de traduction, il est traduit dans celle-ci.', selk('translate.second', [['', 'Automatique (anglais ou français)'], ...TLANGS.map(c => [c, lname(c)])], T2.second || ''))}
       ${row('Ne pas afficher le bouton si la traduction n\'est pas nécessaire', 'Le bouton n\'apparaît pas quand le texte sélectionné est déjà dans votre langue.', swk('translate.hideSame', T2.hideSame !== false))}
       ${row('Délai avant l\'apparition du bouton', '', selk('translate.delay', [[0, 'Aucun'], [200, '0,2 s'], [500, '0,5 s'], [1000, '1 s']], T2.delay || 0))}
       ${row('Sites où le traducteur est éteint', 'Fenêtre du traducteur → « Activé sur ce site ».', '')}${sites('translate.offSites', T2.offSites)}

@@ -873,3 +873,7 @@ Hindi	Hindi	Hindi	Hindi	Хинди	الهندية
 trop de demandes, réessayez dans une minute	too many requests, try again in a minute	demasiadas solicitudes, vuelve a intentarlo en un minuto	demasiados pedidos, tente de novo dentro de um minuto	слишком много запросов, повторите через минуту	طلبات كثيرة جداً، أعد المحاولة بعد دقيقة
 pas de connexion au service de traduction	no connection to the translation service	sin conexión con el servicio de traducción	sem ligação ao serviço de tradução	нет связи со службой перевода	لا اتصال بخدمة الترجمة
 URL	URL	URL	URL	URL	URL
+# --- 1.6.6 ---
+Automatique (anglais ou français)	Automatic (English or French)	Automático (inglés o francés)	Automático (inglês ou francês)	Автоматически (английский или французский)	تلقائي (الإنجليزية أو الفرنسية)
+Utilisée si le texte est déjà dans la langue choisie	Used if the text is already in the chosen language	Se usa si el texto ya está en el idioma elegido	Usada se o texto já estiver no idioma escolhido	Используется, если текст уже на выбранном языке	تُستخدم إذا كان النص باللغة المختارة أصلاً
+Automatique (recommandé)	Automatic (recommended)	Automático (recomendado)	Automático (recomendado)	Автоматически (рекомендуется)	تلقائي (موصى به)

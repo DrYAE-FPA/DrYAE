@@ -37,18 +37,18 @@ const ok = (n, v) => console.log((v ? 'OK  ' : 'ÉCHEC ') + n, v === true || v =
   await b.evaluate(() => loadExts()); await b.waitForTimeout(1200);
   const ext = await b.evaluate(() => EXTS.map(x => ({ n: x.name, icon: (x.icon || '').slice(0, 22), pinned: x.pinned })));
   ok('extension listée avec icône', ext.length && ext[0].icon.startsWith('data:image/png') ? JSON.stringify(ext) : JSON.stringify(ext));
-  ok('bouton épinglé dans la barre', await b.evaluate(() => $$('#extPins .ext').length === 1));
+  ok('bouton épinglé dans la barre', await b.evaluate(() => $$('#tbItems .ext').length === 1));
   // menu des extensions
   await b.click('#bExt'); await b.waitForTimeout(400);
   await b.screenshot({ path: OUT + '/ext-menu.png' });
   ok('menu des extensions', await b.evaluate(() => $('#pop').classList.contains('on') && $('#pop').innerText.includes('Hello Popup')));
   // détacher puis épingler
   await b.click('#pop [data-cx] [data-pin]'); await b.waitForTimeout(300);
-  ok('détachée', await b.evaluate(() => $$('#extPins .ext').length === 0));
+  ok('détachée', await b.evaluate(() => $$('#tbItems .ext').length === 0));
   await b.click('#pop [data-cx] [data-pin]'); await b.waitForTimeout(300);
-  ok('épinglée à nouveau', await b.evaluate(() => $$('#extPins .ext').length === 1));
+  ok('épinglée à nouveau', await b.evaluate(() => $$('#tbItems .ext').length === 1));
   // ouvrir la fenêtre de l'extension depuis le menu : position à l'intérieur de l'écran
-  console.log('ancre', await b.evaluate(() => JSON.stringify($('#extPins .ext').getBoundingClientRect())), await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().map(x => [x.webContents.getURL().slice(0, 40), x.getContentBounds()])));
+  console.log('ancre', await b.evaluate(() => JSON.stringify($('#tbItems .ext').getBoundingClientRect())), await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().map(x => [x.webContents.getURL().slice(0, 40), x.getContentBounds()])));
   await b.click('#pop [data-cx] .grow'); await b.waitForTimeout(4000);
   const pop = await app.evaluate(({ BrowserWindow, screen }) => { const all = BrowserWindow.getAllWindows(); const p = all.find(x => /^chrome-extension:/.test(x.webContents.getURL())); if (!p) return null; const r = p.getBounds(); const wa = screen.getDisplayMatching(r).workArea; return { r, wa, inside: r.x >= wa.x && r.x + r.width <= wa.x + wa.width && r.y >= wa.y }; });
   console.log('contenu', await app.evaluate(async ({ BrowserWindow }) => { const p = BrowserWindow.getAllWindows().find(x => /^chrome-extension:/.test(x.webContents.getURL())); return p ? [p.webContents.getURL(), await p.webContents.executeJavaScript('document.body && document.body.innerText').catch(e => String(e)), p.getBounds(), p.isVisible()] : null; }));

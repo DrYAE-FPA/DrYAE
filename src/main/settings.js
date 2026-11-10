@@ -66,9 +66,9 @@ function defaults(app) {
         pip: { installed: true, enabled: true, pinned: false },
       },
       adLists: { privacy: true, cookies: false, annoyances: false, regional: true, malware: true, peterLowe: true },
-      adModes: {}, adDefaultMode: 'optimal', extUnpinned: [],
-      translate: { target: '', provider: 'google', selection: 'button', deeplKey: '', libreUrl: '', libreKey: '', second: '', hideSame: true, delay: 0, offSites: [], autoSites: [] },
-      scan: { source: 'eng', target: '', font: 'auto', icons: true, withEng: false, autoSites: [] },
+      adModes: {}, adDefaultMode: 'optimal', extUnpinned: [], tbOrder: [],
+      translate: { target: '', provider: 'google', selection: 'button', deeplKey: '', libreUrl: '', libreKey: '', second: '', hideSame: false, delay: 0, offSites: [], autoSites: [] },
+      scan: { source: 'auto', target: '', font: 'auto', icons: true, withEng: false, autoSites: [] },
       lights: { opacity: 85, auto: false, color: '#000000', fade: true, clickOff: true, eye: false, eyeLevel: 30, glow: false, wheelVolume: false, stopAutoplay: false, videoTools: true, nightAll: false, nightSchedule: false, nightFrom: '20:00', nightTo: '07:00', nightHosts: [], nightExcept: [] },
       pip: { side: 'right', hidden: [] },
       showBookmarksBar: false, showHome: true, startup: 'restore', startupPages: [],
@@ -110,6 +110,14 @@ class Settings extends EventEmitter {
       if ((b.filterLists || []).includes(FR)) { b.filterLists = b.filterLists.filter(u => u !== FR); b.adLists.regional = true; }
       b.startup = this.data.restoreSession === false ? 'newtab' : 'restore';
       this.data.v164 = true;
+      try { fs.writeFileSync(this.file, JSON.stringify(this.data, null, 2)); } catch {}
+    }
+    // 1.6.6 : le bouton de traduction s'affiche aussi pour un texte déjà dans votre langue (il est traduit dans la 2e langue)
+    if (!saved.v166) {
+      const t = this.data.browser.translate || {}; t.hideSame = false;
+      // lecture automatique de la langue des images (nouveau moteur)
+      if (this.data.browser.scan) this.data.browser.scan.source = 'auto';
+      this.data.v166 = true;
       try { fs.writeFileSync(this.file, JSON.stringify(this.data, null, 2)); } catch {}
     }
   }

@@ -54,13 +54,14 @@ if (BA) {
 }
 function extPinned(x) { return !(CFG.extUnpinned || []).includes(x.id); }
 function drawExtPins() {
-  const box = $('#extPins'); if (!box) return;
+  const box = $('#tbItems'); if (!box) return;
   const want = EXTS.filter(x => x.enabled && extPinned(x) && ACTIONS.has(x.id)).map(x => x.id);
-  [...box.children].forEach(b => { if (!want.includes(b.id)) b.remove(); });
+  [...box.querySelectorAll('.tb.ext')].forEach(b => { if (!want.includes(b.id)) b.remove(); });
   for (const id of want) {
     if (box.querySelector(`[id="${id}"]`)) continue;
     const b = document.createElement('button', { is: 'browser-action' });
     b.className = 'tb ext';
+    b.dataset.key = 'ext:' + id;
     b.setAttribute('partition', PARTITION);
     b.setAttribute('alignment', 'bottom');
     b.id = id;
@@ -69,8 +70,9 @@ function drawExtPins() {
     box.appendChild(b);
   }
   drawExtTab();
+  if (typeof sortToolbar === 'function') sortToolbar();
 }
-function drawExtTab() { const id = cur?.wcId; if (id) $$('#extPins .ext').forEach(b => { if (b.getAttribute('tab') !== String(id)) b.setAttribute('tab', id); }); }
+function drawExtTab() { const id = cur?.wcId; if (id) $$('#tbItems .ext').forEach(b => { if (b.getAttribute('tab') !== String(id)) b.setAttribute('tab', id); }); }
 function activateExt(id, anchor) {
   if (!BA || !cur?.wcId) return toast('Ouvre une page web d\'abord');
   B.call('br:selectTab', cur.wcId);
@@ -87,9 +89,10 @@ const MOD_ACTION = {
 };
 function drawExtPop() {
   const M = CFG.mods || {};
-  const mods = MODS.filter(([id]) => M[id]?.installed !== false);
-  const row = (o) => `<div class="prow clk" data-${o.kind}="${esc(o.id)}">${o.img}<span class="grow"><span class="nm ${o.kind === 'cx' ? 'notr' : ''}">${esc(o.name)}</span><small>${esc(o.sub)}</small></span>${o.extra || ''}<button class="pin ${o.pinned ? 'on' : ''}" data-pin title="${esc(T(o.pinned ? 'Retirer de la barre d\'outils' : 'Épingler dans la barre d\'outils'))}">${ic(o.pinned ? 'pushpin-f' : 'pushpin')}</button>${o.more ? `<button class="pin" data-more title="${esc(T('Plus d\'options'))}">${ic('more')}</button>` : ''}</div>`;
-  const chrome = EXTS;
+  const ord = k => { const i = tbOrder().indexOf(k); return i < 0 ? 1000 : i; };
+  const mods = MODS.filter(([id]) => M[id]?.installed !== false).map((m, i) => [m, i]).sort((a, b) => (ord('mod:' + a[0][0]) - ord('mod:' + b[0][0])) || a[1] - b[1]).map(x => x[0]);
+  const row = (o) => `<div class="prow clk" draggable="true" data-key="${o.kind === 'mod' ? 'mod:' : 'ext:'}${esc(o.id)}" data-${o.kind}="${esc(o.id)}"><span class="grip" title="${esc(T('Glisser pour déplacer'))}">${ic('drag')}</span>${o.img}<span class="grow"><span class="nm ${o.kind === 'cx' ? 'notr' : ''}">${esc(o.name)}</span><small>${esc(o.sub)}</small></span>${o.extra || ''}<button class="pin ${o.pinned ? 'on' : ''}" data-pin title="${esc(T(o.pinned ? 'Retirer de la barre d\'outils' : 'Épingler dans la barre d\'outils'))}">${ic(o.pinned ? 'pushpin-f' : 'pushpin')}</button>${o.more ? `<button class="pin" data-more title="${esc(T('Plus d\'options'))}">${ic('more')}</button>` : ''}</div>`;
+  const chrome = EXTS.map((x, i) => [x, i]).sort((a, b) => (ord('ext:' + a[0].id) - ord('ext:' + b[0].id)) || a[1] - b[1]).map(x => x[0]);
   popEl.innerHTML = `<div class="ph">${ic('ext')}<b>${esc(T('Extensions'))}</b><button class="icon-btn" data-go="manage" title="${esc(T('Gérer les extensions'))}">${ic('gear')}</button></div>
     <div class="psec">${esc(T('Intégrées à DrYAE'))}</div>
     ${mods.map(([id, name, icon]) => row({ kind: 'mod', id, name: T(name), sub: T(modOn(id) ? 'Activée' : 'Désactivée'), img: `<span class="xi">${ic(icon)}</span>`, pinned: M[id]?.pinned !== false, extra: tg('mod:' + id, modOn(id), 'Activer ou désactiver') })).join('')}
@@ -126,9 +129,27 @@ popEl.addEventListener('click', async e => {
   if (mod) { if (!modOn(mod)) return toast('Cette extension est désactivée'); return MOD_ACTION[mod]?.($('#bExt')); }
   const x = EXTS.find(x => x.id === cx); if (!x) return;
   if (!x.enabled) return toast('Cette extension est désactivée');
-  popClose(); activateExt(x.id, $(`#extPins [id="${x.id}"]`) || $('#bExt'));
+  popClose(); activateExt(x.id, $(`#tbItems [id="${x.id}"]`) || $('#bExt'));
 });
 $('#bExt').onclick = e => popOpen('ext', e.currentTarget);
+// glisser-déposer dans le menu des extensions : change aussi l'ordre dans la barre d'outils
+(() => {
+  let drag = null;
+  const clear = () => popEl.querySelectorAll('.drop-t,.drop-b').forEach(x => x.classList.remove('drop-t', 'drop-b'));
+  popEl.addEventListener('dragstart', e => { if (POP.kind !== 'ext') return; const r = e.target.closest('.prow[data-key]'); if (!r) return; drag = r; r.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/x-dryae-ext', r.dataset.key); } catch {} });
+  popEl.addEventListener('dragover', e => { if (!drag) return; const r = e.target.closest('.prow[data-key]'); e.preventDefault(); clear(); if (!r || r === drag || r.parentNode !== drag.parentNode || !!r.dataset.mod !== !!drag.dataset.mod) return; const b = r.getBoundingClientRect(); r.classList.add(e.clientY < b.top + b.height / 2 ? 'drop-t' : 'drop-b'); });
+  popEl.addEventListener('drop', e => {
+    if (!drag) return; e.preventDefault();
+    const r = e.target.closest('.prow[data-key]');
+    if (r && r !== drag && !!r.dataset.mod === !!drag.dataset.mod) { const b = r.getBoundingClientRect(); r.parentNode.insertBefore(drag, e.clientY < b.top + b.height / 2 ? r : r.nextSibling); }
+    clear();
+    // nouvel ordre : extensions intégrées puis Chrome, dans l'ordre du menu
+    const keys = [...popEl.querySelectorAll('.prow[data-key]')].map(x => x.dataset.key);
+    const bar = [...$('#tbItems').children].map(x => x.dataset.key);
+    saveOrder([...keys, ...bar.filter(k => !keys.includes(k))]);
+  });
+  popEl.addEventListener('dragend', () => { drag?.classList.remove('dragging'); drag = null; clear(); });
+})();
 
 // ---------- traducteur ----------
 let trInput = '', trTimer = 0, trSeq = 0;
@@ -141,7 +162,7 @@ function drawTrPop() {
     <div class="pout dim" id="trOut">${esc(T('La traduction s\'affiche ici pendant que vous écrivez.'))}</div>
     <div class="pmeta"><span id="trDet"></span><button class="icon-btn" id="trCopy" title="${esc(T('Copier'))}">${ic('copy')}</button><button class="icon-btn" id="trSpeak" title="${esc(T('Écouter'))}">${ic('sound')}</button></div>
     <div class="prow"><span class="grow">${esc(T('Traduire vers'))}</span><select id="trTo">${langOptions(target)}</select></div>
-    <div class="prow"><span class="grow">${esc(T('Deuxième langue'))}<small>${esc(T('Utilisée si le texte est déjà dans la première'))}</small></span><select id="trSecond">${langOptions(t.second || '', `<option value="">${esc(T('Aucune'))}</option>`)}</select></div>
+    <div class="prow"><span class="grow">${esc(T('Deuxième langue'))}<small>${esc(T('Utilisée si le texte est déjà dans la langue choisie'))}</small></span><select id="trSecond">${langOptions(t.second || '', `<option value="">${esc(T('Automatique (anglais ou français)'))}</option>`)}</select></div>
     ${h ? `<div class="prow"><span class="grow">${esc(T('Traduire automatiquement ce site'))}<small class="notr">${esc(h)}</small></span>${tg('trAuto', auto)}</div>` : ''}
     <div class="pfoot"><button class="btn sm primary" id="trPage" ${h && !off ? '' : 'disabled'}>${ic('translate')}${esc(T(done ? 'Afficher l\'original' : 'Traduire la page'))}</button><button class="btn sm" id="trSel" ${h && !off ? '' : 'disabled'}>${esc(T('Traduire la sélection'))}</button></div>`;
   const inp = $('#trIn'), out = $('#trOut');
@@ -157,6 +178,8 @@ function drawTrPop() {
     } catch (e) { if (my === trSeq) { out.classList.add('dim'); out.textContent = T('Traduction impossible : {0}').replace('{0}', T(String(e.message || e).replace(/^.*Error: /, ''))); } }
   };
   inp.oninput = () => { clearTimeout(trTimer); trTimer = setTimeout(run, Math.max(250, +t.delay || 0)); };
+  // texte sélectionné dans la page : il est repris tout seul dans la fenêtre et traduit
+  if (cur?.wv && h) cur.wv.executeJavaScript('String(getSelection()).trim().slice(0, 5000)').then(sel => { if (sel && POP.kind === 'translate' && $('#trIn') === inp) { inp.value = sel; trInput = sel; run(); inp.select(); } }).catch(() => {});
   if (trInput) run();
   setTimeout(() => inp.focus(), 30);
   $('#trTo').onchange = async e => { await setB({ translate: { target: e.target.value } }); run(); };

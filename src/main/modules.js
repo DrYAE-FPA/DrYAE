@@ -104,7 +104,9 @@ async function translate(texts, to, from, cfg) {
 }
 
 // ---------- lecture du texte des images (traducteur de scans) ----------
-const OCR_LANGS = { eng: 'Anglais', jpn: 'Japonais', jpn_vert: 'Japonais (vertical)', kor: 'Coréen', kor_vert: 'Coréen (vertical)', chi_sim: 'Chinois simplifié', chi_sim_vert: 'Chinois simplifié (vertical)', chi_tra: 'Chinois traditionnel', chi_tra_vert: 'Chinois traditionnel (vertical)', vie: 'Vietnamien', tha: 'Thaï', ind: 'Indonésien', fra: 'Français', spa: 'Espagnol', por: 'Portugais', deu: 'Allemand', ita: 'Italien', tur: 'Turc', pol: 'Polonais', rus: 'Russe', ukr: 'Ukrainien', ara: 'Arabe', hin: 'Hindi' };
+// lues par le modèle multilingue (paddle-ocr.js) ; les autres par Tesseract
+const PADDLE_LANGS = ['auto', 'eng', 'fra', 'spa', 'por', 'deu', 'ita', 'jpn', 'jpn_vert', 'chi_sim', 'chi_tra', 'chi_sim_vert', 'chi_tra_vert'];
+const OCR_LANGS = { auto: 'Automatique (recommandé)', eng: 'Anglais', jpn: 'Japonais', jpn_vert: 'Japonais (vertical)', kor: 'Coréen', kor_vert: 'Coréen (vertical)', chi_sim: 'Chinois simplifié', chi_sim_vert: 'Chinois simplifié (vertical)', chi_tra: 'Chinois traditionnel', chi_tra_vert: 'Chinois traditionnel (vertical)', vie: 'Vietnamien', tha: 'Thaï', ind: 'Indonésien', fra: 'Français', spa: 'Espagnol', por: 'Portugais', deu: 'Allemand', ita: 'Italien', tur: 'Turc', pol: 'Polonais', rus: 'Russe', ukr: 'Ukrainien', ara: 'Arabe', hin: 'Hindi' };
 let ocr = null, ocrLang = '', ocrBusy = Promise.resolve();
 async function ocrWorker(lang) {
   if (ocr && ocrLang === lang) return ocr;
@@ -159,6 +161,9 @@ async function readImage(buf, lang) {
   return p;
 }
 function ocrDownloaded() {
+  return [...PADDLE_LANGS, ...ocrFiles()];
+}
+function ocrFiles() {
   const dir = path.join(app.getPath('userData'), 'ocr');
   try { return fs.readdirSync(dir).filter(f => f.endsWith('.traineddata')).map(f => f.replace('.traineddata', '')); } catch { return []; }
 }
@@ -217,4 +222,4 @@ function generatePassword(n = 16) {
   return out.join('');
 }
 
-module.exports = { MODULES, MOD_DEFAULT, PROVIDERS, translate, setUserAgent, readImage, OCR_LANGS, ocrDownloaded, windowsHello, pwnedCount, weak, generatePassword };
+module.exports = { MODULES, MOD_DEFAULT, PROVIDERS, PADDLE_LANGS, translate, setUserAgent, readImage, OCR_LANGS, ocrDownloaded, windowsHello, pwnedCount, weak, generatePassword };

@@ -1108,19 +1108,56 @@ B.on('bm', ({ tree, flat }) => { BM = tree; STORE.bookmarks = flat; drawBmBar();
 
 // ---------- extensions intégrées : boutons de la barre d'outils ----------
 function drawMods() {
-  const box = $('#modBar'); if (!box) return;
+  const box = $('#tbItems'); if (!box) return;
   const M = CFG.mods || {};
-  const btn = (id, icon, title, act) => (M[id]?.on && M[id]?.pinned !== false ? `<button class="tb mod ${act ? 'act' : ''}" data-mod="${id}" title="${esc(T(title))}"><svg><use href="#i-${icon}"/></svg></button>` : '');
   const t = cur || {};
-  box.innerHTML = btn('translate', 'translate', 'Traduire (Ctrl+Maj+E)', t.tr && ['done', 'working'].includes(t.tr.state)) + btn('scan', 'scan', 'Traducteur de scans', false) + btn('lights', 'bulb', 'Lumières tamisées (Ctrl+Maj+L)', t.lit) + btn('pip', 'pip', "Image dans l'image (Ctrl+Maj+U)", false);
+  const want = [['translate', 'translate', 'Traduire (Ctrl+Maj+E)', t.tr && ['done', 'working'].includes(t.tr.state)], ['scan', 'scan', 'Traducteur de scans', false], ['lights', 'bulb', 'Lumières tamisées (Ctrl+Maj+L)', t.lit], ['pip', 'pip', "Image dans l'image (Ctrl+Maj+U)", false]];
+  for (const [id, icon, title, act] of want) {
+    let b = box.querySelector(`[data-mod="${id}"]`);
+    const show = M[id]?.on && M[id]?.pinned !== false;
+    if (!show) { b?.remove(); continue; }
+    if (!b) { b = document.createElement('button'); b.className = 'tb mod'; b.dataset.mod = id; b.dataset.key = 'mod:' + id; b.innerHTML = `<svg><use href="#i-${icon}"/></svg>`; b.title = T(title); box.appendChild(b); }
+    b.classList.toggle('act', !!act);
+  }
+  sortToolbar();
 }
-$('#modBar').addEventListener('click', e => {
+// ordre des boutons d'extensions (réglage browser.tbOrder) ; les nouveaux vont à la fin
+function tbOrder() { return CFG.tbOrder || []; }
+function sortToolbar() {
+  const box = $('#tbItems'); if (!box) return;
+  const order = tbOrder(), kids = [...box.children];
+  const rank = el => { const k = order.indexOf(el.dataset.key); return k < 0 ? 1000 + kids.indexOf(el) : k; };
+  const sorted = kids.slice().sort((a, b) => rank(a) - rank(b));
+  if (sorted.some((el, i) => el !== kids[i])) sorted.forEach(el => box.appendChild(el));
+  kids.forEach(el => { if (el.getAttribute('draggable') !== 'true') el.setAttribute('draggable', 'true'); });
+}
+async function saveOrder(keys) {
+  const all = [...new Set([...keys, ...tbOrder()])];
+  CFG.tbOrder = all; CFG = { ...CFG, ...(await B.call('br:setSettings', { tbOrder: all })) };
+  sortToolbar(); if (typeof POP !== 'undefined' && POP.kind === 'ext') popRender();
+}
+// glisser-déposer dans la barre d'outils
+(() => {
+  const box = $('#tbItems'); let drag = null;
+  const clear = () => box.querySelectorAll('.drop-l,.drop-r').forEach(x => x.classList.remove('drop-l', 'drop-r'));
+  box.addEventListener('dragstart', e => { const b = e.target.closest('#tbItems > .tb'); if (!b) return; drag = b; b.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/x-dryae-tb', b.dataset.key || ''); } catch {} });
+  box.addEventListener('dragover', e => { if (!drag) return; const b = e.target.closest('#tbItems > .tb'); e.preventDefault(); clear(); if (!b || b === drag) return; const r = b.getBoundingClientRect(); b.classList.add(e.clientX < r.left + r.width / 2 ? 'drop-l' : 'drop-r'); });
+  box.addEventListener('dragleave', e => { if (!box.contains(e.relatedTarget)) clear(); });
+  box.addEventListener('drop', e => {
+    if (!drag) return; e.preventDefault();
+    const b = e.target.closest('#tbItems > .tb');
+    if (b && b !== drag) { const r = b.getBoundingClientRect(); b.parentNode.insertBefore(drag, e.clientX < r.left + r.width / 2 ? b : b.nextSibling); }
+    clear(); saveOrder([...box.children].map(x => x.dataset.key).filter(Boolean));
+  });
+  box.addEventListener('dragend', () => { drag?.classList.remove('dragging'); drag = null; clear(); });
+})();
+$('#tbItems').addEventListener('click', e => {
   const b = e.target.closest('[data-mod]'); if (!b) return;
   const id = b.dataset.mod;
   if (id === 'pip') return cur?.wcId && B.call('br:pip', cur.wcId);
   popOpen(id, b);
 });
-$('#modBar').addEventListener('contextmenu', e => {
+$('#tbItems').addEventListener('contextmenu', e => {
   const b = e.target.closest('[data-mod]'); if (!b) return; e.preventDefault();
   const id = b.dataset.mod;
   menu(e.clientX - 200, e.clientY + 8, [

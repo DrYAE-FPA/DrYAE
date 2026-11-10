@@ -1,7 +1,7 @@
 {
   "name": "dryae",
   "productName": "DrYAE",
-  "version": "1.6.5",
+  "version": "1.6.6",
   "description": "DrYAE - free download manager with built-in browser",
   "author": "DrYAE contributors",
   "main": "src/main/main.js",
@@ -19,7 +19,9 @@
     "electron-chrome-extensions": "^4.10.0",
     "electron-chrome-web-store": "^0.13.0",
     "electron-updater": "^6.8.11",
+    "onnxruntime-web": "^1.31.1",
     "parse-torrent": "^11.0.24",
+    "pdfmarkdown-ppocrv5-models": "^1.0.0",
     "tesseract.js": "^7.0.0",
     "undici": "^6.21.0"
   },

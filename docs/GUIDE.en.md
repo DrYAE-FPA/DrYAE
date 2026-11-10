@@ -86,12 +86,12 @@ DRM-protected videos (Netflix, Disney+…) cannot be downloaded.
   - **Check-up**: breached, reused or weak passwords;
   - **Payment methods** (cards, without the CVC) and **Addresses**, offered in forms;
   - **Settings**: Windows Hello before showing a password, .csv import/export (url, username, password columns), refused sites.
-- **Extensions menu** (button next to the shield): all extensions, built-in and Chrome. Click an extension to open it, the **pin** to show or hide it in the toolbar, ⋮ for its options.
+- **Extensions menu** (3-block button): all extensions, built-in and Chrome. Click an extension to open it, the **pin** to show or hide it in the toolbar, ⋮ for its options. **Drag** a menu row, or a toolbar button, to change the order.
 - **Built-in extensions** (turn on/off, pin, remove, options):
   - **Ad blocker**: the shield opens a window with site protection, the **filtering mode** (None, Basic, Optimal), the number of blocked items and "Hide an element";
   - **Downloads with DrYAE**: when off, the browser saves files itself (downloads button in the toolbar);
-  - **Translator**: select text and click the button that appears; the translator window translates what you type as you type, translates the page (Ctrl+Shift+E) and can translate a site automatically. A **second language** is used when the text is already in the first one. Right-click a link → "Translate link text";
-  - **Image text translator**: toolbar button for all images, **Ctrl+Shift+S** to translate an area (draw a rectangle, then "Translate area"), or right-click an image. When hovering a translated image, icons let you see the original, **compare** by dragging, read again or copy the text;
+  - **Translator**: select text and click the button that appears; the translator window picks up the text selected on the page and translates what you type as you type, translates the page (Ctrl+Shift+E) and can translate a site automatically. A **second language** is used when the text is already in the first one. Right-click a link → "Translate link text";
+  - **Image text translator**: the image language is detected automatically ("Automatic") and the text is translated into French, or into English if it is already French. Toolbar button for all images, **Ctrl+Shift+S** to translate an area (draw a rectangle, then "Translate area"), or right-click an image. When hovering a translated image, icons let you see the original, **compare** by dragging, read again or copy the text;
   - **Dimmed lights** (Ctrl+Shift+L): opacity (Alt+↑ / Alt+↓), color, eye protection (Alt+F10), glow, video tools (speed, loop, zoom, filters, screenshot, fill tab), night mode per site or everywhere (with a schedule);
   - **Picture-in-picture**: button on videos, or Ctrl+Shift+U.
 - **Lists (history, bookmarks, passwords)**: click a row to select it, or hold the click and drag to select several (Ctrl to add).

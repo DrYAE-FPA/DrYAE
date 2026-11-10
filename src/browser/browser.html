@@ -225,6 +225,15 @@ browser-action-list::part(action):hover{background:var(--panel2)}
 .bmdlg .tn svg{width:15px;height:15px}
 .bmdlg .tn input{padding:3px 6px;height:auto}
 .bmdlg .row{display:flex;gap:6px;margin-top:14px}
+
+#tbItems > .tb.dragging{opacity:.35}
+#tbItems > .tb.drop-l{box-shadow:inset 3px 0 0 var(--accent)}
+#tbItems > .tb.drop-r{box-shadow:inset -3px 0 0 var(--accent)}
+.pop .prow.dragging{opacity:.4}
+.pop .prow.drop-t{box-shadow:inset 0 2px 0 var(--accent)}
+.pop .prow.drop-b{box-shadow:inset 0 -2px 0 var(--accent)}
+.pop .grip{color:var(--dim);cursor:grab;display:inline-flex;margin-left:-4px}
+.pop .grip svg{width:14px;height:14px}
 </style>
 </head>
 <body>
@@ -304,10 +313,9 @@ browser-action-list::part(action):hover{background:var(--panel2)}
   <button class="tb" id="bReload" title="Actualiser (F5)"><svg><use href="#i-reload" id="reloadIc"/></svg></button>
   <button class="tb" id="bHome" title="Accueil"><svg><use href="#i-home"/></svg></button>
   <div class="addr"><svg class="lock no" id="lock"><use href="#i-lock" id="lockIc"/></svg><input id="url" placeholder="Rechercher ou saisir une adresse" spellcheck="false"><span class="zoom" id="zoom"></span><button class="tb" id="bStar" title="Ajouter aux favoris"><svg><use href="#i-star" id="starIc"/></svg></button></div>
-  <span id="modBar" style="display:contents"></span>
-  <span id="extPins" style="display:contents"></span>
+  <!-- extensions épinglées (ordre au choix, glisser pour déplacer), toujours à gauche du bouton des extensions -->
+  <span id="tbItems" style="display:contents"><button class="tb shield" id="bShield" data-key="mod:adblock" title="Bloqueur de publicités"><svg><use href="#i-shield"/></svg><span class="n" id="shieldN"></span></button></span>
   <button class="tb" id="bExt" title="Extensions"><svg><use href="#i-ext"/></svg></button>
-  <button class="tb shield" id="bShield" title="Bloqueur de publicités"><svg><use href="#i-shield"/></svg><span class="n" id="shieldN"></span></button>
   <button class="tb dl" id="bDrYAE" title="Fichiers détectés sur cette page"><svg><use href="#i-dl"/></svg><span class="n" id="dlN"></span></button>
   <button class="tb nd" id="bNd" title="Téléchargements du navigateur"><svg><use href="#i-dl"/></svg><i class="ring"></i><span class="n" id="ndN"></span></button>
   <button class="tb upd" id="bUpd" title="Mise à jour de DrYAE disponible"><svg><use href="#i-upd"/></svg><i class="dot"></i></button>

@@ -68,6 +68,11 @@ electron-chrome-extensions 4.10 — MIT — https://github.com/samuelmaddock/ele
 electron-chrome-web-store 0.13 — MIT — https://github.com/samuelmaddock/electron-browser-shell
 electron-updater 6.8 — MIT — https://github.com/electron-userland/electron-builder
 7zip-bin — MIT — https://github.com/develar/7zip-bin
+PP-OCRv5 mobile text detection and recognition models (PaddleOCR) — Apache-2.0
+  — https://github.com/PaddlePaddle/PaddleOCR — ONNX copies from the npm package
+  pdfmarkdown-ppocrv5-models (Apache-2.0). Used by the image text translator.
+ONNX Runtime Web (onnxruntime-web, onnxruntime-common) — MIT —
+  https://github.com/microsoft/onnxruntime
 tesseract.js 7 and tesseract.js-core 6 (text recognition in images, built-in
   image text translator) — Apache-2.0 — https://github.com/naptha/tesseract.js
   (based on Tesseract OCR — Apache-2.0 — https://github.com/tesseract-ocr/tesseract)

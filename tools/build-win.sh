@@ -27,6 +27,12 @@ if [ "$STAGE" != "installer" ]; then
   T=$A/node_modules/tesseract.js-core
   [ -d "$T" ] && find "$T" -maxdepth 1 -name '*.wasm.js' -delete
   rm -rf $A/node_modules/tesseract.js/dist
+  # moteur de lecture des scans : seule la version WebAssembly simple sert sous Node (~125 Mo retirés)
+  O=$A/node_modules/onnxruntime-web
+  if [ -d "$O" ]; then
+    find "$O/dist" -type f ! -name 'ort.node.min.js' ! -name 'ort.node.min.mjs' ! -name 'ort-wasm-simd-threaded.wasm' ! -name 'ort-wasm-simd-threaded.mjs' -delete
+    rm -rf "$O/lib" "$O/docs"
+  fi
   # licences et notes
   mv dist/DrYAE/LICENSE dist/DrYAE/LICENSE.electron.txt
   cp LICENSE dist/DrYAE/LICENSE.txt

@@ -151,6 +151,9 @@ class WebBrowser {
       removeWindow: () => {},
     });
     ElectronChromeExtensions.handleCRXProtocol(session.defaultSession);
+    // après les fonctions des extensions : « browser » = « chrome » (sinon chrome.commands, contextMenus… manquent)
+    const alias = path.join(__dirname, '..', 'browser', 'ext-alias-preload.js');
+    for (const type of ['service-worker', 'frame']) { try { ses.registerPreloadScript({ id: 'dryae-ext-alias-' + type, type, filePath: alias }); } catch {} }
     // fenêtre d'extension (popup) : placée sous son bouton, à l'intérieur de l'écran,
     // même quand la fenêtre est agrandie ou sur un 2e écran
     this.ext.on('browser-action-popup-created', popup => {
@@ -321,6 +324,27 @@ class WebBrowser {
     return k ? M[k] : (this.B().adDefaultMode || 'optimal');
   }
 
+  // décode une image (WebP, AVIF…) avec le moteur de l'interface du navigateur
+  async decodeImage(buf) {
+    if (!this.wc || this.wc.isDestroyed() || buf.length > 25e6) return null;
+    const url = await this.wc.executeJavaScript(`(async () => { try { const b = await (await fetch('data:application/octet-stream;base64,${buf.toString('base64')}')).blob(); const bm = await createImageBitmap(b); const c = new OffscreenCanvas(bm.width, bm.height); c.getContext('2d').drawImage(bm, 0, 0); const o = await c.convertToBlob({ type: 'image/png' }); const r = new FileReader(); return await new Promise(res => { r.onload = () => res(r.result); r.readAsDataURL(o); }); } catch { return ''; } })()`, true);
+    return url ? require('electron').nativeImage.createFromDataURL(url) : null;
+  }
+
+  // préchargement de l'interface du navigateur en un seul fichier (un préchargement « bac à sable »
+  // ne peut charger que le module electron) : notre préchargement + les boutons des extensions
+  uiPreload() {
+    const own = path.join(__dirname, '..', 'browser', 'preload.js');
+    try {
+      const ba = fs.readFileSync(require.resolve('electron-chrome-extensions/browser-action'), 'utf8');
+      const src = fs.readFileSync(own, 'utf8').replace(/^try \{ require\('electron-chrome-extensions\/browser-action'\).*$/m, '');
+      const out = path.join(app.getPath('userData'), 'ui-preload.js');
+      const code = src + `\n;(function () { const module = { exports: {} }; const exports = module.exports;\n${ba}\n;try { module.exports.injectBrowserAction(); } catch (e) { console.error('browser-action', e.message); } })();\n`;
+      if (!fs.existsSync(out) || fs.readFileSync(out, 'utf8') !== code) fs.writeFileSync(out, code);
+      return out;
+    } catch (e) { console.error('ui-preload', e.message); return own; }
+  }
+
   // ---------- sessions ----------
   setupSession(ses) {
     ses.setUserAgent(this.ua());
@@ -457,7 +481,9 @@ class WebBrowser {
     }
     this.win = host;
     this.view = new WebContentsView({
-      webPreferences: { preload: path.join(__dirname, '..', 'browser', 'preload.js'), webviewTag: true, contextIsolation: true, sandbox: false },
+      // fenêtre du navigateur « bac à sable » : indispensable pour que les extensions Chrome récentes (MV3)
+      // reçoivent leurs fonctions (chrome.commands, chrome.tabs…) dans leur script d'arrière-plan
+      webPreferences: { preload: this.uiPreload(), webviewTag: true, contextIsolation: true, sandbox: true },
     });
     this.view.setBackgroundColor('#0d0f14');
     host.contentView.addChildView(this.view);
@@ -1093,10 +1119,17 @@ class WebBrowser {
       };
     });
     const target = () => { const B = this.B(); return (B.translate || {}).target || this.settings.get().lang || 'fr'; };
+    // deuxième langue : celle choisie, sinon l'anglais (ou le français si la première langue est l'anglais)
+    const second = to => { const s = (this.B().translate || {}).second; const base = String(to || '').split('-')[0]; return s && s.split('-')[0] !== base ? s : (base === 'en' ? 'fr' : 'en'); };
+    const same = (a, b) => !!a && !!b && String(a).split('-')[0] === String(b).split('-')[0];
+    this.trSecond = second; this.trSame = same;
     ipcMain.handle('tr:text', async (_e, texts, opts = {}) => {
       if (!this.modOn('translate') && !this.modOn('scan')) throw new Error('Traducteur désactivé');
-      const r = await M.translate([].concat(texts).slice(0, 400), opts.to || target(), opts.from || 'auto', this.B().translate || {});
-      return { ...r, to: opts.to || target() };
+      let to = opts.to || target();
+      let r = await M.translate([].concat(texts).slice(0, 400), to, opts.from || 'auto', this.B().translate || {});
+      // texte déjà dans la langue choisie (ex. français → français) : traduit automatiquement dans la 2e langue
+      if (opts.auto2 && same(r.from, to)) { to = second(to); r = await M.translate([].concat(texts).slice(0, 400), to, r.from, this.B().translate || {}); }
+      return { ...r, to };
     });
     ipcMain.handle('tr:target', () => target());
     // fenêtre du traducteur (barre d'outils) : traduction du texte saisi, avec 2e langue automatique
@@ -1105,7 +1138,7 @@ class WebBrowser {
       text = String(text || '').slice(0, 5000); if (!text.trim()) return { text: '', from: '', to: to || target() };
       const T = this.B().translate || {}; let dest = to || target();
       let r = await M.translate([text], dest, 'auto', T);
-      if (!to && T.second && r.from && r.from.split('-')[0] === dest.split('-')[0] && T.second !== dest) { dest = T.second; r = await M.translate([text], dest, r.from, T); }
+      if (same(r.from, dest)) { dest = second(dest); r = await M.translate([text], dest, r.from, T); }
       return { text: r.texts[0] || '', from: r.from, to: dest };
     });
     // réglages par site (traducteur, traducteur de scans, bloqueur)
@@ -1165,22 +1198,38 @@ class WebBrowser {
       }
       const { nativeImage } = require('electron');
       let img = buf ? nativeImage.createFromBuffer(buf) : null;
+      // WebP, AVIF… : décodés par le moteur du navigateur (l'image entière, pas seulement la partie visible)
+      if (buf && (!img || img.isEmpty())) img = await this.decodeImage(buf).catch(() => null);
       if (!img || img.isEmpty()) {
-        // image illisible directement (format webp/avif, protection) : on lit la partie visible à l'écran
+        // image illisible directement (protection) : on lit la partie visible à l'écran
         if (!o.rect || o.rect.w < 50 || o.rect.h < 30) throw new Error('Image inaccessible');
         img = await wc.capturePage({ x: Math.max(0, Math.round(o.rect.x)), y: Math.max(0, Math.round(o.rect.y)), width: Math.round(o.rect.w), height: Math.round(o.rect.h) });
         if (img.isEmpty()) throw new Error('Image inaccessible');
         scale = 0;
       }
-      // petit texte : l'image est agrandie pour mieux le lire
-      const sz = img.getSize();
-      if (sz.width < 1100) img = img.resize({ width: sz.width * 2, quality: 'best' });
-      const w = img.getSize().width;
-      const lang = (o.lang && /^[a-z_]+$/.test(o.lang) ? o.lang : S.source || 'eng') + (S.withEng && !/^eng/.test(o.lang || S.source || 'eng') ? '+eng' : '');
-      const groups = await M.readImage(img.toPNG(), lang);
+      const src = o.lang && /^[a-z_]+$/.test(o.lang) ? o.lang : (S.source || 'auto');
+      let groups, w;
+      if (M.PADDLE_LANGS.includes(src)) {
+        // lecture « automatique » (modèle multilingue) : la langue n'a pas besoin d'être choisie
+        let sz = img.getSize();
+        if (sz.width < 700) { img = img.resize({ width: sz.width * 2, quality: 'best' }); sz = img.getSize(); }
+        const bm = img.toBitmap(); // BGRA
+        for (let i = 0; i < bm.length; i += 4) { const t = bm[i]; bm[i] = bm[i + 2]; bm[i + 2] = t; }
+        groups = await require('./paddle-ocr').readBubbles({ width: sz.width, height: sz.height, data: bm });
+        w = sz.width;
+      } else {
+        // autres écritures (coréen, thaï, arabe, cyrillique…) : lecture classique
+        const sz = img.getSize();
+        if (sz.width < 1100) img = img.resize({ width: sz.width * 2, quality: 'best' });
+        w = img.getSize().width;
+        groups = await M.readImage(img.toPNG(), src + (S.withEng && !/^eng/.test(src) ? '+eng' : ''));
+      }
       if (!groups.length) return { blocks: [], w };
-      const tr = await M.translate(groups.map(g => g.text), o.to || S.target || target(), 'auto', this.B().translate || {});
-      return { blocks: groups.map((g, i) => ({ x0: g.x0, y0: g.y0, x1: g.x1, y1: g.y1, text: g.text, tr: tr.texts[i], vertical: g.vertical })), w, captured: scale === 0, from: tr.from, to: o.to || S.target || target() };
+      // langue d'arrivée : celle choisie (par défaut celle du traducteur) ; texte déjà dans cette langue → 2e langue
+      let to = o.to || S.target || target();
+      let tr = await M.translate(groups.map(g => g.text), to, 'auto', this.B().translate || {});
+      if (!o.to && same(tr.from, to)) { to = second(to); tr = await M.translate(groups.map(g => g.text), to, tr.from, this.B().translate || {}); }
+      return { blocks: groups.map((g, i) => ({ x0: g.x0, y0: g.y0, x1: g.x1, y1: g.y1, text: g.text, tr: tr.texts[i], vertical: g.vertical })), w, captured: scale === 0, from: tr.from, to };
     });
   }
 }

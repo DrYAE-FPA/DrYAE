@@ -4,15 +4,13 @@
 
 ---
 
-## ✨ Nouveautés de la version 1.6.5 / What's new
+## ✨ Nouveautés de la version 1.6.6 / What's new
 
-- 🧩 **Menu des extensions** : toutes les extensions (intégrées et Chrome) au même endroit, avec une punaise pour les **épingler** dans la barre d'outils. Les fenêtres des extensions Chrome s'ouvrent sous leur bouton, entièrement visibles.
-- 🌐 **Traducteur repensé** : traduction en direct du texte saisi, bouton plus fiable sur la sélection (masqué si le texte est déjà dans votre langue), deuxième langue automatique, sites traduits automatiquement.
-- 🖼️ **Traducteur de scans repensé** : capture d'une zone (Ctrl+Maj+S), traduction automatique par site, bulles plus propres, texte vertical (japonais, coréen, chinois), icônes pour comparer l'original et la traduction.
-- 💡 **Lumières tamisées** : opacité et couleur en direct, protection des yeux, lueur, outils vidéo (vitesse, boucle, zoom, filtres, capture, plein onglet), mode nuit programmé.
-- 🛡️ Bloqueur : fenêtre avec **mode de filtrage par site** (Aucun / Basique / Optimal) et la liste de Peter Lowe par défaut.
-- ⭐ « Choisir un autre dossier… » pour les favoris, sélection à la souris dans les listes, choix du compte enregistré à la connexion.
-- 🔄 **Mises à jour sans fenêtre d'installation** : DrYAE redémarre avec vos réglages et votre langue ; le téléchargement de la mise à jour s'affiche dans le gestionnaire.
+- 🧩 **Extensions Chrome réparées** : leur partie « arrière-plan » démarre enfin (ex. Simple Translate), leurs fenêtres s'ouvrent bien placées.
+- ↔️ **Ordre des extensions au choix** : glissez les boutons dans la barre d'outils ou dans le menu des extensions ; elles restent toujours à gauche du bouton des extensions.
+- 🖼️ **Traducteur de scans : nouveau moteur de lecture** sur votre PC, beaucoup plus précis, qui reconnaît tout seul la langue (français, anglais, espagnol, allemand, japonais, chinois…) et traduit en français par défaut (en anglais si le texte est déjà en français).
+- 🌐 **Traducteur** : langue détectée automatiquement, français → anglais automatiquement ; le texte sélectionné dans la page est repris dans la fenêtre du traducteur.
+- ⚙️ Gestionnaire : les onglets « Extension Chrome » et « Mots de passe » sont retirés des paramètres.
 
 👉 Toutes les nouveautés : [CHANGELOG.md](CHANGELOG.md) · ⬇️ [Télécharger DrYAE](https://github.com/DrYAE-FPA/DrYAE/releases/latest)
 

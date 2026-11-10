@@ -1,5 +1,26 @@
 # Nouveautés / Changelog
 
+## 1.6.6
+
+### 🇫🇷 Français
+- **Extensions Chrome** : leur script d'arrière-plan démarre maintenant correctement (avant, beaucoup s'arrêtaient au lancement, par exemple Simple Translate) ; la fenêtre du navigateur fonctionne en « bac à sable », comme demandé par les extensions récentes.
+- **Ordre des extensions** : glissez un bouton dans la barre d'outils, ou une ligne dans le menu des extensions, pour changer l'ordre. Les extensions épinglées (y compris le bouclier du bloqueur) sont toujours à gauche du bouton des extensions ; seuls les boutons de téléchargements restent à droite.
+- **Traducteur de scans** : nouveau moteur de lecture du texte (modèles PP-OCRv5, sur votre PC, sans compte). Il repère les lignes de texte, ignore beaucoup mieux le dessin, et lit français, anglais, espagnol, portugais, allemand, italien, japonais et chinois sans avoir à choisir la langue (« Automatique »). Le coréen, le thaï, l'arabe, le cyrillique… restent disponibles avec l'ancien moteur.
+- Traducteur de scans : les images WebP / AVIF sont lues en entier ; les longues pages (webtoons) sont lues par morceaux ; les mots coupés en fin de ligne sont recollés.
+- Traduction en **français par défaut** (modifiable), et si le texte est déjà en français il est traduit en **anglais** (« Deuxième langue : automatique »). Valable pour le traducteur de scans, la fenêtre du traducteur et la bulle de sélection.
+- **Fenêtre du traducteur** : le texte sélectionné dans la page est repris tout seul et traduit.
+- Le bouton de traduction apparaît aussi sur un texte déjà en français (il est alors traduit en anglais).
+- Gestionnaire : onglets « Extension Chrome » et « Mots de passe » retirés des paramètres.
+
+### 🇬🇧 English
+- **Chrome extensions**: their background script now starts correctly (many stopped at launch before, e.g. Simple Translate); the browser window now runs sandboxed, as recent extensions require.
+- **Extension order**: drag a toolbar button, or a row in the extensions menu, to reorder. Pinned extensions (including the blocker shield) always sit left of the extensions button.
+- **Image text translator**: new on-device text reading engine (PP-OCRv5 models), far more accurate, ignores artwork better, reads French, English, Spanish, Portuguese, German, Italian, Japanese and Chinese without choosing the language ("Automatic").
+- WebP / AVIF images read in full, long webtoon pages read in parts, words split at line ends rejoined.
+- Translation into **French by default** (changeable); text already in French is translated into **English**.
+- **Translator window** picks up the text selected on the page.
+- Manager settings: "Chrome extension" and "Passwords" tabs removed.
+
 ## 1.6.5
 
 ### 🇫🇷 Français
