@@ -37,7 +37,7 @@ if (CFG.internal) {
 function pageFeatures() {
   // conteneur commun (shadow DOM fermé : invisible pour la page)
   let uiHost = null, uiRoot = null;
-  // Pages protégées par « Trusted Types » (ex. MangaDex) : le HTML de DrYAE passe par une règle à lui,
+  // Pages protégées par « Trusted Types » : le HTML de DrYAE passe par une règle à lui,
   // ou, si la page l'interdit, est construit dans un document à part puis copié.
   let ttPolicy = null;
   try { if (window.trustedTypes) ttPolicy = trustedTypes.createPolicy('dryae-ui', { createHTML: x => x }); } catch {}
@@ -762,7 +762,7 @@ function pageFeatures() {
       const src = img.currentSrc || img.src;
       let data = null;
       if (/^(blob|data):/.test(src)) { try { data = new Uint8Array(await (await fetch(src)).arrayBuffer()); } catch {} }
-      // image déjà affichée mais dont l'adresse n'est plus lisible (adresse « blob: » retirée par le site, ex. MangaDex) :
+      // image déjà affichée mais dont l'adresse n'est plus lisible (adresse « blob: » retirée par le site, ) :
       // on la recopie depuis la page elle-même (possible quand elle vient du même site ou autorise le partage)
       if (!data && !/^https?:/.test(src)) data = await imgBytes(img);
       const vis = { x: Math.max(0, r.left) * dpr, y: Math.max(0, r.top) * dpr, w: (Math.min(innerWidth, r.right) - Math.max(0, r.left)) * dpr, h: (Math.min(innerHeight, r.bottom) - Math.max(0, r.top)) * dpr };

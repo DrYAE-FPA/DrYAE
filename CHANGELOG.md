@@ -3,14 +3,16 @@
 ## 1.6.8
 
 ### 🇫🇷 Français
-- **Traducteur de scans sur MangaDex (vraie cause trouvée)** : MangaDex protège ses pages avec une règle de sécurité (« Trusted Types ») qui bloquait l'affichage de tout ce que DrYAE ajoute dans la page (bulles traduites, barre du traducteur, bouton de traduction, lumières…). DrYAE construit maintenant ces éléments d'une façon acceptée par ces pages. Corrige aussi les autres sites qui utilisent cette protection.
+- **DrYAE s'ouvre sur le navigateur** : un clic sur l'icône de DrYAE (au démarrage, ou quand DrYAE tourne déjà) ouvre directement le navigateur, comme un navigateur normal. Pour retrouver l'ancien comportement : Paramètres du gestionnaire → Général → « Au démarrage de DrYAE, ouvrir : le gestionnaire de téléchargements ». Un lien magnet ou un fichier .torrent ouvre toujours le gestionnaire.
+- **Traducteur de scans sur les sites protégés (vraie cause trouvée)** : certains sites protègent leurs pages avec une règle de sécurité (« Trusted Types ») qui bloquait l'affichage de tout ce que DrYAE ajoute dans la page (bulles traduites, barre du traducteur, bouton de traduction, lumières…). DrYAE construit maintenant ces éléments d'une façon acceptée par ces pages.
 - Traducteur de scans : les petits signes japonais ou chinois isolés (bruitages dessinés) ne sont plus traduits sur une page en français, anglais, portugais…
 - **Lumières tamisées** : elles restent éteintes quand on clique dans la page ou sur la vidéo (les clics passent à travers la zone sombre). On rallume avec Échap, Ctrl+Maj+L ou le bouton. Mettre en pause une vidéo ne rallume plus.
-- **Traducteur de scans : langue reconnue toute seule, même pour le vietnamien, le polonais, le turc, le tchèque…** : DrYAE reconnaît d'abord la langue, puis relit les bulles avec les données de cette langue quand le modèle principal ne connaît pas ses accents (téléchargées la première fois). Pour le coréen, le thaï, le russe ou l'arabe, choisissez la langue dans « Langue des images ». Testé sur un chapitre MangaDex en vietnamien : les accents (CÓ THỂ, TÔI, KHÔNG…) sont maintenant lus.
+- **Traducteur de scans : langue reconnue toute seule, même pour le vietnamien, le polonais, le turc, le tchèque…** : DrYAE reconnaît d'abord la langue, puis relit les bulles avec les données de cette langue quand le modèle principal ne connaît pas ses accents (téléchargées la première fois). Pour le coréen, le thaï, le russe ou l'arabe, choisissez la langue dans « Langue des images ». Les accents vietnamiens (CÓ THỂ, TÔI, KHÔNG…) sont maintenant lus.
 - La fenêtre du traducteur de scans affiche la **langue détectée** et la langue de traduction (ex. vietnamien → français).
 
 ### 🇬🇧 English
-- **Image text translator on MangaDex (real cause found)**: MangaDex protects its pages with a security rule ("Trusted Types") that blocked everything DrYAE adds to the page (translated bubbles, translator bar, translate button, dimmed lights…). DrYAE now builds these elements in a way such pages accept. Also fixes other sites using this protection.
+- **DrYAE opens on the browser**: clicking the DrYAE icon (at startup, or while DrYAE is already running) opens the browser directly, like a normal browser. To get the old behaviour back: manager settings → General → "When DrYAE starts, open: the download manager". A magnet link or .torrent file still opens the manager.
+- **Image text translator on protected sites (real cause found)**: some sites protect their pages with a security rule ("Trusted Types") that blocked everything DrYAE adds to the page (translated bubbles, translator bar, translate button, dimmed lights…). DrYAE now builds these elements in a way such pages accept.
 - Image text translator: small isolated Japanese/Chinese signs (drawn sound effects) are no longer translated on Latin-script pages.
 - **Dimmed lights**: they stay on when you click in the page or on the video (clicks go through the dark area). Turn the lights back on with Esc, Ctrl+Shift+L or the button. Pausing a video no longer turns the lights back on.
 - **Image text translator: language detected by itself, also for Vietnamese, Polish, Turkish, Czech…**: DrYAE first detects the language, then re-reads the bubbles with that language's data when the main model doesn't know its accents (downloaded the first time). For Korean, Thai, Russian or Arabic, choose the language in "Image language".
@@ -20,17 +22,17 @@
 ## 1.6.7
 
 ### 🇫🇷 Français
-- **Traducteur de scans sur MangaDex** (et les sites qui font pareil) : ces sites affichent l'image puis effacent aussitôt sa copie temporaire ; DrYAE recopie maintenant l'image depuis la page. Une image pas encore lisible (hors de l'écran) est retentée quand elle devient visible (3 fois au plus).
-- **Extensions Chrome : connexion à un compte** (fonction « identity ») ajoutée. Les extensions qui demandent de se connecter (ex. « Continue with Google ») ouvrent la page de connexion dans une petite fenêtre, qui se ferme toute seule à la fin.
+- **Traducteur de scans** : certains sites affichent l'image puis effacent aussitôt sa copie temporaire ; DrYAE recopie maintenant l'image depuis la page. Une image pas encore lisible (hors de l'écran) est retentée quand elle devient visible (3 fois au plus).
+- **Extensions Chrome : connexion à un compte** (fonction « identity ») ajoutée. Les extensions qui demandent de se connecter ouvrent la page de connexion dans une petite fenêtre, qui se ferme toute seule à la fin.
 
 ### 🇬🇧 English
-- **Image text translator on MangaDex** (and sites doing the same): these sites show the image then immediately delete its temporary copy; DrYAE now copies the image from the page itself. An image not yet readable (off screen) is retried when it becomes visible (up to 3 times).
-- **Chrome extensions: account sign-in** ("identity" API) added. Extensions asking you to sign in (e.g. "Continue with Google") open the sign-in page in a small window that closes by itself when done.
+- **Image text translator**: some sites show the image then immediately delete its temporary copy; DrYAE now copies the image from the page itself. An image not yet readable (off screen) is retried when it becomes visible (up to 3 times).
+- **Chrome extensions: account sign-in** ("identity" API) added. Extensions asking you to sign in open the sign-in page in a small window that closes by itself when done.
 
 ## 1.6.6
 
 ### 🇫🇷 Français
-- **Extensions Chrome** : leur script d'arrière-plan démarre maintenant correctement (avant, beaucoup s'arrêtaient au lancement, par exemple Simple Translate) ; la fenêtre du navigateur fonctionne en « bac à sable », comme demandé par les extensions récentes.
+- **Extensions Chrome** : leur script d'arrière-plan démarre maintenant correctement (avant, beaucoup s'arrêtaient au lancement) ; la fenêtre du navigateur fonctionne en « bac à sable », comme demandé par les extensions récentes.
 - **Ordre des extensions** : glissez un bouton dans la barre d'outils, ou une ligne dans le menu des extensions, pour changer l'ordre. Les extensions épinglées (y compris le bouclier du bloqueur) sont toujours à gauche du bouton des extensions ; seuls les boutons de téléchargements restent à droite.
 - **Traducteur de scans** : nouveau moteur de lecture du texte (modèles PP-OCRv5, sur votre PC, sans compte). Il repère les lignes de texte, ignore beaucoup mieux le dessin, et lit français, anglais, espagnol, portugais, allemand, italien, japonais et chinois sans avoir à choisir la langue (« Automatique »). Le coréen, le thaï, l'arabe, le cyrillique… restent disponibles avec l'ancien moteur.
 - Traducteur de scans : les images WebP / AVIF sont lues en entier ; les longues pages (webtoons) sont lues par morceaux ; les mots coupés en fin de ligne sont recollés.
@@ -40,7 +42,7 @@
 - Gestionnaire : onglets « Extension Chrome » et « Mots de passe » retirés des paramètres.
 
 ### 🇬🇧 English
-- **Chrome extensions**: their background script now starts correctly (many stopped at launch before, e.g. Simple Translate); the browser window now runs sandboxed, as recent extensions require.
+- **Chrome extensions**: their background script now starts correctly (many stopped at launch before); the browser window now runs sandboxed, as recent extensions require.
 - **Extension order**: drag a toolbar button, or a row in the extensions menu, to reorder. Pinned extensions (including the blocker shield) always sit left of the extensions button.
 - **Image text translator**: new on-device text reading engine (PP-OCRv5 models), far more accurate, ignores artwork better, reads French, English, Spanish, Portuguese, German, Italian, Japanese and Chinese without choosing the language ("Automatic").
 - WebP / AVIF images read in full, long webtoon pages read in parts, words split at line ends rejoined.

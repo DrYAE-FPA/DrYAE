@@ -81,6 +81,7 @@ Les vidéos protégées par DRM (Netflix, Disney+…) ne peuvent pas être tél�
   - **Vérification** : mots de passe compromis (fuites connues), réutilisés ou faibles ;
   - **Modes de paiement** (cartes, sans le code CVC) et **Adresses**, proposés dans les formulaires ;
   - **Paramètres** : Windows Hello avant d'afficher un mot de passe, import / export .csv (colonnes url, username, password), sites refusés.
+- **Au démarrage**, DrYAE ouvre le navigateur. Pour ouvrir plutôt le gestionnaire : Paramètres du gestionnaire → Général → « Au démarrage de DrYAE, ouvrir ».
 - **Menu des extensions** (bouton à 3 blocs) : toutes les extensions, intégrées et Chrome. Cliquez sur une extension pour l'ouvrir, sur la **punaise** pour l'épingler dans la barre d'outils (ou l'en retirer), sur ⋮ pour ses options. **Glissez** une ligne du menu, ou un bouton de la barre d'outils, pour changer l'ordre.
 - **Extensions intégrées** (activer, épingler, retirer, options) :
   - **Bloqueur de publicités** : le bouclier ouvre une fenêtre avec la protection du site, le **mode de filtrage** (Aucun, Basique, Optimal), le nombre d'éléments bloqués et « Masquer un élément » ;

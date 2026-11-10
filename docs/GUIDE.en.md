@@ -86,6 +86,7 @@ DRM-protected videos (Netflix, Disney+…) cannot be downloaded.
   - **Check-up**: breached, reused or weak passwords;
   - **Payment methods** (cards, without the CVC) and **Addresses**, offered in forms;
   - **Settings**: Windows Hello before showing a password, .csv import/export (url, username, password columns), refused sites.
+- **At startup**, DrYAE opens the browser. To open the manager instead: manager settings → General → "When DrYAE starts, open".
 - **Extensions menu** (3-block button): all extensions, built-in and Chrome. Click an extension to open it, the **pin** to show or hide it in the toolbar, ⋮ for its options. **Drag** a menu row, or a toolbar button, to change the order.
 - **Built-in extensions** (turn on/off, pin, remove, options):
   - **Ad blocker**: the shield opens a window with site protection, the **filtering mode** (None, Basic, Optimal), the number of blocked items and "Hide an element";

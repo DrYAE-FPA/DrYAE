@@ -58,6 +58,8 @@ const api = {
   torrentQuick(src) { const d = manager.add({ type: 'torrent', url: src }); return !!d; },
   quit() { quitting = true; app.quit(); },
   openSettings(sec) { api.showMain(); send('open-settings', sec || ''); },
+  // écran d'ouverture choisi (navigateur par défaut, ou gestionnaire)
+  showStart() { if (settings.get().startView === 'manager' || !browser) return api.showMain(); if (!win) createWindow(); browser.open(); },
   showMain() { if (!win) createWindow(); if (win.isMinimized()) win.restore(); win.show(); browser?.hideView(); win.focus(); },
   openFeedback() { const u = updater?.info(); if (u) shell.openExternal(u.feedbackUrl || u.repoUrl || 'https://github.com'); },
   hostWindow() { if (!win) createWindow(); return win; },
@@ -92,7 +94,7 @@ function createWindow() {
   win.setMenu(null);
   win.loadFile(path.join(UI, 'index.html'));
   // lancé avec Windows (--hidden) : DrYAE reste caché dans les icônes de la barre des tâches, sans ouvrir de fenêtre
-  win.once('ready-to-show', () => { if (!process.argv.includes('--hidden')) win.show(); flushArgs(); });
+  win.once('ready-to-show', () => { if (!process.argv.includes('--hidden')) { if (settings.get().startView === 'manager' || !browser || process.argv.some(a => /^magnet:|\.torrent$|^https?:\/\//i.test(a))) win.show(); else browser.open(); } flushArgs(); });
   win.on('focus', () => send('focus'));
   win.on('show', () => send('reload', manager.views()));
   win.on('restore', () => send('reload', manager.views()));
@@ -109,7 +111,8 @@ function createTray() {
   tray = new Tray(nativeImage.createFromPath(path.join(ASSETS, 'tray.png')));
   tray.setToolTip('DrYAE');
   const menu = () => Menu.buildFromTemplate(trMenu([
-    { label: 'Ouvrir DrYAE', click: () => api.showMain() },
+    { label: 'Ouvrir DrYAE', click: () => api.showStart() },
+    { label: 'Gestionnaire de téléchargements', click: () => api.showMain() },
     { label: 'Navigateur DrYAE', click: () => browser.open() },
     { type: 'separator' },
     { label: 'Ajouter depuis le presse-papiers', click: () => { api.showMain(); send('prompt-add', { url: clipboard.readText().trim() }); } },
@@ -145,7 +148,8 @@ function flushArgs() {
     else send('prompt-add', { url: a.url });
   }
 }
-app.on('second-instance', (_e, argv) => { api.showMain(); handleArgs(argv); });
+// clic sur l'icône alors que DrYAE tourne déjà : écran d'ouverture choisi ; un lien ou un torrent ouvre le gestionnaire
+app.on('second-instance', (_e, argv) => { if (argv.slice(1).some(a => /^magnet:|\.torrent$|^https?:\/\//i.test(a))) api.showMain(); else api.showStart(); handleArgs(argv); });
 app.on('open-url', (e, url) => { e.preventDefault(); pendingArgs.push({ torrent: url }); flushArgs(); });
 
 // --- presse-papiers ---

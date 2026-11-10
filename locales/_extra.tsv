@@ -878,3 +878,6 @@ Automatique (anglais ou français)	Automatic (English or French)	Automático (in
 Utilisée si le texte est déjà dans la langue choisie	Used if the text is already in the chosen language	Se usa si el texto ya está en el idioma elegido	Usada se o texto já estiver no idioma escolhido	Используется, если текст уже на выбранном языке	تُستخدم إذا كان النص باللغة المختارة أصلاً
 Automatique (recommandé)	Automatic (recommended)	Automático (recomendado)	Automático (recomendado)	Автоматически (рекомендуется)	تلقائي (موصى به)
 Langue détectée	Detected language	Idioma detectado	Idioma detetado	Определённый язык	اللغة المكتشفة
+Au démarrage de DrYAE, ouvrir	When DrYAE starts, open	Al iniciar DrYAE, abrir	Ao iniciar o DrYAE, abrir	При запуске DrYAE открывать	عند بدء DrYAE، افتح
+Le navigateur (par défaut)	The browser (default)	El navegador (predeterminado)	O navegador (predefinição)	Браузер (по умолчанию)	المتصفح (افتراضي)
+Le gestionnaire de téléchargements	The download manager	El gestor de descargas	O gestor de transferências	Менеджер загрузок	مدير التنزيلات

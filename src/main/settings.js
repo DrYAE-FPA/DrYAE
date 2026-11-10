@@ -34,6 +34,8 @@ function defaults(app) {
     clipboard: true,
     tray: true,
     startWithWindows: false,
+    // 1.6.8 : DrYAE s'ouvre sur le navigateur (ou sur le gestionnaire, au choix)
+    startView: 'browser',
     startMinimized: false,
     shutdownWhenDone: false,
     autoOpenWebpage: true,

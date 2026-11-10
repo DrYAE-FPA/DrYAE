@@ -6,18 +6,19 @@
 
 ## ✨ Nouveautés de la version 1.6.8 / What's new
 
-- 🖼️ **Traducteur de scans sur MangaDex** : la vraie cause est corrigée (protection « Trusted Types » de la page), les bulles traduites s'affichent.
+- 🌐 **DrYAE s'ouvre sur le navigateur**, comme un navigateur normal (le gestionnaire reste au choix dans les paramètres).
+- 🖼️ **Traducteur de scans sur les sites protégés** : la vraie cause est corrigée (protection « Trusted Types » de certaines pages), les bulles traduites s'affichent.
 - 🌍 Traducteur de scans : langue reconnue toute seule, même vietnamien, polonais, turc… ; la langue détectée s'affiche.
 - 💡 **Lumières tamisées** : elles restent éteintes quand on clique dans la page ou sur la vidéo.
 
 ### Version 1.6.7
 
-- 🖼️ Traducteur de scans : fonctionne maintenant sur **MangaDex**.
-- 🔑 Extensions Chrome : **connexion à un compte** possible (ex. « Continue with Google »).
+- 🖼️ Traducteur de scans : lit aussi les images que le site efface aussitôt après les avoir affichées.
+- 🔑 Extensions Chrome : **connexion à un compte** possible.
 
 ### Version 1.6.6
 
-- 🧩 **Extensions Chrome réparées** : leur partie « arrière-plan » démarre enfin (ex. Simple Translate), leurs fenêtres s'ouvrent bien placées.
+- 🧩 **Extensions Chrome réparées** : leur partie « arrière-plan » démarre enfin, leurs fenêtres s'ouvrent bien placées.
 - ↔️ **Ordre des extensions au choix** : glissez les boutons dans la barre d'outils ou dans le menu des extensions ; elles restent toujours à gauche du bouton des extensions.
 - 🖼️ **Traducteur de scans : nouveau moteur de lecture** sur votre PC, beaucoup plus précis, qui reconnaît tout seul la langue (français, anglais, espagnol, allemand, japonais, chinois…) et traduit en français par défaut (en anglais si le texte est déjà en français).
 - 🌐 **Traducteur** : langue détectée automatiquement, français → anglais automatiquement ; le texte sélectionné dans la page est repris dans la fenêtre du traducteur.

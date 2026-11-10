@@ -1,4 +1,4 @@
-// 1.6.6 : diagnostic des extensions Chrome (Simple Translate, Scan Translator)
+// 1.6.6 : diagnostic des extensions Chrome 
 const { _electron } = require('playwright'); const fs = require('fs'); const path = require('path'); const http = require('http');
 const ROOT = path.resolve(__dirname, '..'); const OUT = (process.env.TMPH || '/tmp/claude-0') + '/v166'; fs.mkdirSync(OUT, { recursive: true });
 const EXT = process.env.EXTDIR;

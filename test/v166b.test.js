@@ -1,4 +1,4 @@
-// 1.6.6 : image affichée par une adresse « blob: » retirée aussitôt (cas MangaDex) → le traducteur de scans la lit quand même
+// 1.6.6 : image affichée par une adresse « blob: » retirée aussitôt  → le traducteur de scans la lit quand même
 const { _electron } = require('playwright'); const fs = require('fs'); const path = require('path'); const http = require('http');
 const ROOT = path.resolve(__dirname, '..'); const OUT = '/tmp/claude-0/v166'; fs.mkdirSync(OUT, { recursive: true });
 (async () => {
