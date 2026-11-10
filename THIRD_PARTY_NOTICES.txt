@@ -1,4 +1,4 @@
-DrYAE 1.6.1 — Third-party components / Composants tiers
+DrYAE 1.6.4 — Third-party components / Composants tiers
 ======================================================
 
 DrYAE is free software released under the GNU General Public License v3.0
@@ -68,6 +68,10 @@ electron-chrome-extensions 4.10 — MIT — https://github.com/samuelmaddock/ele
 electron-chrome-web-store 0.13 — MIT — https://github.com/samuelmaddock/electron-browser-shell
 electron-updater 6.8 — MIT — https://github.com/electron-userland/electron-builder
 7zip-bin — MIT — https://github.com/develar/7zip-bin
+tesseract.js 7 and tesseract.js-core 6 (text recognition in images, built-in
+  image text translator) — Apache-2.0 — https://github.com/naptha/tesseract.js
+  (based on Tesseract OCR — Apache-2.0 — https://github.com/tesseract-ocr/tesseract)
+wasm-feature-detect — Apache-2.0 — https://github.com/GoogleChromeLabs/wasm-feature-detect
 argparse — Python-2.0 license
 Other dependencies — MIT, ISC, BSD-2-Clause, BSD-3-Clause, Apache-2.0,
   BlueOak-1.0.0, WTFPL/MIT. Each package keeps its own LICENSE file in
@@ -82,9 +86,20 @@ EasyList and EasyPrivacy — https://easylist.to — GPL v3 / CC BY-SA 3.0
 uBlock Origin filters (ads, privacy, badware, quick fixes, unbreak)
   — https://github.com/uBlockOrigin/uAssets — GPL v3, by Raymond Hill and
   contributors.
+Optional lists chosen in the ad blocker settings: EasyList Cookie,
+  uBlock Origin annoyances (same licenses as above), Liste FR (GPL v3 /
+  CC BY-SA 3.0) and malware-filter URLhaus filter (CC0 / MIT,
+  https://gitlab.com/malware-filter).
 When the filters are updated, DrYAE downloads these lists from the copies
 published by the Ghostery adblocker project
 (https://github.com/ghostery/adblocker). DrYAE does not modify them.
+
+------------------------------------------------------------------------
+Text recognition data (downloaded on first use, not bundled)
+------------------------------------------------------------------------
+
+tessdata_fast language data — Apache-2.0 —
+  https://github.com/tesseract-ocr/tessdata_fast
 
 ------------------------------------------------------------------------
 Trademarks / Marques

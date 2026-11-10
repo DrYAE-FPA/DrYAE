@@ -21,12 +21,12 @@ const QUICK = [
 
 const ONLINE = /(^|\.)(youtube\.com|youtu\.be|vimeo\.com|dailymotion\.com|facebook\.com|instagram\.com|tiktok\.com|twitter\.com|x\.com|twitch\.tv|soundcloud\.com|bilibili\.com|reddit\.com|rumble\.com|odysee\.com|bandcamp\.com|mixcloud\.com|streamable\.com|vk\.com|ok\.ru|archive\.org|ted\.com|arte\.tv|france\.tv)$/i;
 const isOnline = u => { try { const x = new URL(u); return ONLINE.test(x.hostname) && x.pathname.length > 1; } catch { return false; } };
-function isUrlLike(s) { return /^(https?:\/\/|file:\/\/|about:)/i.test(s) || /^[\w-]+(\.[\w-]+)+(:\d+)?(\/.*)?$/.test(s) || /^localhost(:\d+)?/.test(s); }
+function isUrlLike(s) { return /^(https?:\/\/|file:\/\/|about:|dryae:\/\/|chrome-extension:\/\/|view-source:)/i.test(s) || /^[\w-]+(\.[\w-]+)+(:\d+)?(\/.*)?$/.test(s) || /^localhost(:\d+)?/.test(s); }
 async function toUrl(s) {
   s = s.trim();
   if (!s) return '';
   if (/^magnet:/i.test(s)) return s;
-  if (isUrlLike(s)) return /^[a-z]+:\/\//i.test(s) || s.startsWith('about:') ? s : 'https://' + s;
+  if (isUrlLike(s)) return /^[a-z-]+:\/\//i.test(s) || /^(about|view-source):/i.test(s) ? s : 'https://' + s;
   return B.call('br:search', s);
 }
 
@@ -82,16 +82,23 @@ function ensureWebview(tab) {
   wv.addEventListener('did-start-loading', () => { tab.loading = true; updTab(tab); });
   wv.addEventListener('did-stop-loading', () => { tab.loading = false; updTab(tab); });
   
-  wv.addEventListener('did-navigate', e => { tab.url = e.url; updTab(tab); if (!tab.incognito) B.call('br:history', { url: e.url, title: tab.title }); });
+  wv.addEventListener('did-navigate', e => { tab.url = e.url; tab.tr = null; tab.lit = false; updTab(tab); if (!tab.incognito) B.call('br:history', { url: e.url, title: tab.title }); });
   wv.addEventListener('did-navigate-in-page', e => { if (e.isMainFrame) { tab.url = e.url; updTab(tab); } });
   wv.addEventListener('page-title-updated', e => { tab.title = e.title; updTab(tab); if (!tab.incognito) B.call('br:history', { url: tab.url, title: e.title }); });
-  wv.addEventListener('page-favicon-updated', e => { tab.fav = e.favicons[0] || ''; updTab(tab); });
+  wv.addEventListener('page-favicon-updated', e => { tab.fav = e.favicons[0] || ''; updTab(tab); if (!tab.incognito && /^https?:/.test(tab.url)) B.call('br:history', { url: tab.url, title: tab.title, fav: tab.fav, favOnly: true }); });
   wv.addEventListener('did-fail-load', e => {
     if (!e.isMainFrame || e.errorCode === -3) return;
     const msg = { '-105': "Adresse introuvable. Vérifie l'orthographe ou ta connexion.", '-106': 'Pas de connexion internet.', '-102': 'Connexion refusée.', '-118': 'Le site met trop de temps à répondre.', '-200': 'Certificat du site invalide.', '-20': 'Bloqué par le bloqueur de publicités.' }[e.errorCode] || e.errorDescription;
     wv.executeJavaScript(`document.documentElement.innerHTML = ${JSON.stringify(`<body style="font:15px Segoe UI,sans-serif;background:#0d0f14;color:#e7e9ef;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="max-width:520px;text-align:center"><h2>${esc(T("Impossible d'ouvrir la page"))}</h2><p style="color:#8a91a3">${esc(T(msg))}</p><p style="color:#5b6274;font-size:12px;word-break:break-all">${esc(e.validatedURL)}</p><button onclick="location.href=${esc(JSON.stringify(e.validatedURL))}" style="font:600 14px Segoe UI,sans-serif;padding:9px 22px;border-radius:8px;border:0;background:#7c3aed;color:#fff;cursor:pointer">${esc(T('Réessayer'))}</button>${/chromewebstore\.google\.com/.test(e.validatedURL) ? `<p style="color:#8a91a3;font-size:13px;margin-top:18px">${esc(T("Vous pouvez aussi installer une extension avec son lien : menu ⋮ → Extensions → Installer avec un lien."))}</p>` : ''}</div></body>`)}`).catch(() => {});
   });
-  wv.addEventListener('ipc-message', e => { if (e.channel === 'dryae-video') openQuick(tab, e.args[0] || {}); else if (e.channel === 'dryae-nav') navStep(e.args[0]); });
+  wv.addEventListener('ipc-message', e => {
+    const a = e.args[0];
+    if (e.channel === 'dryae-video') openQuick(tab, a || {});
+    else if (e.channel === 'dryae-nav') navStep(a);
+    else if (e.channel === 'dryae-tr') { tab.tr = a; if (tab === cur) drawTrBar(); }
+    else if (e.channel === 'dryae-lights') { tab.lit = !!a; if (tab === cur) drawMods(); }
+    else if (e.channel === 'dryae-night') { tab.night = !!a; }
+  });
   wv.addEventListener('found-in-page', e => { $('#findN').textContent = e.result.matches ? `${e.result.activeMatchOrdinal}/${e.result.matches}` : '0'; });
   wv.addEventListener('enter-html-full-screen', () => document.body.classList.add('fs'));
   return wv;
@@ -109,11 +116,13 @@ async function navigate(tab, input) {
 function showStart(tab) { tab.url = ''; tab.title = 'Nouvel onglet'; if (tab.wv) { tab.wv.remove(); tab.wv = null; tab.wcId = null; } updTab(tab); if (tab === cur) showView(tab); }
 function select(tab) {
   cur = tab;
+  hideBmEdit();
+  if (tab.url && document.activeElement === $('#url')) $('#url').blur();
   if (tab.wcId) B.call('br:selectTab', tab.wcId);
   if (tab.lazy) { tab.lazy = false; navigate(tab, tab.url); }
   tabs.forEach(t => t.el.classList.toggle('on', t === tab));
   showView(tab);
-  updToolbar();
+  updToolbar(); drawTrBar(); drawMods();
   if (panel === 'media') drawMedia();
 }
 function showView(tab) {
@@ -134,7 +143,7 @@ function moveTab(t, ref, after) {
 }
 function closeTab(tab) {
   const i = tabs.indexOf(tab);
-  if (tab.url) { closedTabs.push({ url: tab.url, incognito: tab.incognito }); if (closedTabs.length > 25) closedTabs.shift(); }
+  if (tab.url) { closedTabs.push({ url: tab.url, title: tab.title, fav: tab.fav, incognito: tab.incognito }); if (closedTabs.length > 25) closedTabs.shift(); B.call('br:closed', closedTabs.filter(c => !c.incognito)); }
   saveSession();
   tab.wv?.remove(); tab.el.remove();
   tabs.splice(i, 1);
@@ -158,14 +167,16 @@ function updTab(tab) {
 function updToolbar() {
   const t = cur; if (!t) return;
   if (document.activeElement !== $('#url')) $('#url').value = t.url || '';
-  $('#lock').classList.toggle('no', !/^https:/.test(t.url));
+  const intern = /^dryae:/.test(t.url || '');
+  $('#lock').classList.toggle('no', !/^https:/.test(t.url) && !intern); $('#lock').classList.toggle('int', intern);
+  $('#lockIc').setAttribute('href', intern ? '#i-dryae' : '#i-lock');
   const wv = t.wv;
   let canBack = false, canFwd = false;
   try { canBack = !!(wv && t.wcId && wv.canGoBack()); canFwd = !!(wv && t.wcId && wv.canGoForward()); } catch {}
   $('#bBack').disabled = !canBack && !t.url; $('#bFwd').disabled = !canFwd;
   $('#reloadIc').setAttribute('href', t.loading ? '#i-stop' : '#i-reload');
   $('#loadbar').style.width = t.loading ? '70%' : '0';
-  const bm = STORE.bookmarks.some(b => b.url === t.url);
+  const bm = !!t.url && STORE.bookmarks.some(b => b.url === t.url);
   $('#starIc').setAttribute('href', bm ? '#i-star-f' : '#i-star');
   $('#bStar').classList.toggle('on', bm);
   // médias
@@ -176,8 +187,12 @@ function updToolbar() {
   $('#bDrYAE').classList.toggle('has', nDl > 0);
   // bloqueur
   const wl = CFG.whitelist?.some(w => hostOf(t.url) === w || hostOf(t.url).endsWith('.' + w));
-  $('#bShield').classList.toggle('on', CFG.adblock && !wl);
-  $('#shieldN').textContent = t.blocked > 99 ? '99+' : t.blocked; $('#shieldN').classList.toggle('on', CFG.adblock && !wl && t.blocked > 0);
+  const adOn = modOn('adblock');
+  $('#bShield').style.display = CFG.mods?.adblock?.installed !== false && CFG.mods?.adblock?.pinned !== false ? '' : 'none';
+  $('#bShield').classList.toggle('on', adOn && !wl);
+  $('#shieldN').textContent = t.blocked > 99 ? '99+' : t.blocked; $('#shieldN').classList.toggle('on', adOn && !wl && t.blocked > 0);
+  const cap = modOn('capture');
+  $('#bDrYAE').style.display = cap && CFG.mods?.capture?.pinned !== false ? '' : 'none';
   $('#zoom').textContent = t.zoom ? Math.round(Math.pow(1.2, t.zoom) * 100) + ' %' : '';
 }
 
@@ -213,75 +228,89 @@ $('#bReload').onclick = () => { if (!cur.wv) return; cur.loading ? cur.wv.stop()
 $('#bHome').onclick = () => showStart(cur);
 $('#newTab').onclick = () => newTab();
 $('#bDrYAE').onclick = () => togglePanel('media');
-$('#bStar').onclick = async () => {
-  if (!cur.url) return;
-  const has = STORE.bookmarks.some(b => b.url === cur.url);
-  STORE.bookmarks = await B.call('br:bookmark', { url: cur.url, title: cur.title, remove: has });
-  toast(has ? 'Retiré des favoris' : 'Ajouté aux favoris'); updToolbar();
-  if (panel === 'bookmarks') drawBookmarks();
-};
+$('#bStar').onclick = () => starClick();
 
 $('#bShield').onclick = e => {
   const h = hostOf(cur.url);
-  const wl = CFG.whitelist.some(w => h === w || h.endsWith('.' + w));
+  const wl = (CFG.whitelist || []).some(w => h === w || h.endsWith('.' + w));
   const r = e.currentTarget.getBoundingClientRect();
   menu(r.right - 260, r.bottom + 4, [
     { label: `${cur.blocked} élément(s) bloqué(s) sur cette page`, icon: 'shield', fn: () => {} },
     '-',
-    h && { label: wl ? `Réactiver le bloqueur sur ${h}` : `Désactiver le bloqueur sur ${h}`, icon: 'shield', fn: async () => { CFG.whitelist = await B.call('br:whitelist', { host: h, add: !wl }); cur.wv?.reload(); updToolbar(); } },
-    { label: CFG.adblock ? 'Désactiver le bloqueur partout' : 'Activer le bloqueur', icon: 'shield', fn: async () => { CFG = { ...CFG, ...(await B.call('br:setSettings', { adblock: !CFG.adblock })) }; cur.wv?.reload(); updToolbar(); } },
+    modOn('adblock') && h && { label: wl ? `Réactiver le bloqueur sur ${h}` : `Désactiver le bloqueur sur ${h}`, icon: 'shield', fn: async () => { CFG.whitelist = await B.call('br:whitelist', { host: h, add: !wl }); cur.wv?.reload(); updToolbar(); } },
+    modOn('adblock') && h && { label: 'Masquer un élément de la page…', icon: 'eye', fn: () => pageCmd('picker') },
+    { label: modOn('adblock') ? 'Désactiver le bloqueur partout' : 'Activer le bloqueur', icon: 'shield', fn: async () => { await setModule('adblock', { enabled: !modOn('adblock') }); cur.wv?.reload(); } },
+    '-',
+    { label: 'Paramètres du bloqueur', icon: 'gear', fn: () => openPage('settings', 'adblock') },
   ].filter(Boolean));
 };
 // ---------- menu ⋮ (raccourcis à droite, sous-menus, zoom) ----------
+const modOn = id => !!(CFG.mods && CFG.mods[id] && CFG.mods[id].on);
+const MODS = [['adblock', 'Bloqueur de publicités', 'shield'], ['capture', 'Téléchargements par DrYAE', 'dl'], ['translate', 'Traducteur', 'translate'], ['scan', 'Traducteur de scans', 'scan'], ['lights', 'Lumières tamisées', 'bulb'], ['pip', "Image dans l'image", 'pip']];
+function openPage(name, hash) { B.call('br:openPage', name, hash || ''); }
+function pageCmd(cmd, extra = {}, tab = cur) { if (tab?.wv && tab.wcId && /^https?:/.test(tab.url)) tab.wv.send('dryae-cmd', { cmd, ...extra }); else toast('Ouvre une page web d\'abord'); }
+function openDownloads() { if (modOn('capture')) B.call('br:openMain'); else togglePanel('nd', true); }
 function mainMenu() {
   const zoomPct = cur && cur.zoom ? Math.round(Math.pow(1.2, cur.zoom) * 100) : 100;
+  const web = /^https?:/.test(cur?.url || '');
   return [
     { label: 'Nouvel onglet', icon: 'plus', key: 'Ctrl+T', fn: () => newTab() },
-    { label: 'Nouvel onglet privé', icon: 'mask', key: 'Ctrl+Maj+P', fn: () => newTab('', { incognito: true }) },
+    { label: 'Nouvel onglet privé', icon: 'mask', key: 'Ctrl+Maj+N', fn: () => newTab('', { incognito: true }) },
     '-',
+    { label: 'Mots de passe et saisie automatique', icon: 'key', sub: () => [
+      { label: 'Gestionnaire de mots de passe', icon: 'key', fn: () => openPage('passwords') },
+      { label: 'Modes de paiement', icon: 'card', fn: () => openPage('passwords', 'cards') },
+      { label: 'Adresses et coordonnées', icon: 'pin', fn: () => openPage('passwords', 'addresses') },
+    ] },
     { label: 'Historique', icon: 'clock', sub: () => [
-      { label: "Afficher l'historique", icon: 'clock', key: 'Ctrl+H', fn: () => togglePanel('history', true) },
+      { label: "Ouvrir l'historique", icon: 'clock', key: 'Ctrl+H', fn: () => openPage('history') },
       { label: "Rouvrir l'onglet fermé", icon: 'reload', key: 'Ctrl+Maj+T', fn: reopenClosed, disabled: !closedTabs.length },
-      { label: "Effacer l'historique récent…", icon: 'trash', key: 'Ctrl+Maj+Suppr', fn: clearDataDialog },
-      ...(STORE.history || []).slice(0, 8).map(h => ({ label: h.title || h.url, icon: 'link', fn: () => navigate(cur, h.url) })),
+      closedTabs.length ? '-' : null,
+      closedTabs.length ? { title: 'Onglets fermés récemment' } : null,
+      ...closedTabs.slice(-10).reverse().map(c => ({ label: c.title || c.url, img: c.fav, icon: 'link', fn: () => { closedTabs.splice(closedTabs.indexOf(c), 1); newTab(c.url, { incognito: c.incognito }); } })),
     ] },
-    { label: 'Marque-pages', icon: 'star', sub: () => [
-      { label: cur && STORE.bookmarks.some(b => b.url === cur.url) ? 'Retirer cette page des favoris' : 'Marquer cette page', icon: 'star', key: 'Ctrl+D', fn: () => $('#bStar').click() },
-      { label: 'Afficher les favoris', icon: 'list', key: 'Ctrl+Maj+O', fn: () => togglePanel('bookmarks', true) },
-      ...STORE.bookmarks.slice(0, 12).map(b => ({ label: b.title || b.url, icon: 'link', fn: () => navigate(cur, b.url) })),
+    { label: 'Téléchargements', icon: 'dl', key: 'Ctrl+J', hl: true, fn: openDownloads },
+    { label: 'Favoris', icon: 'star', sub: bmMenu },
+    { label: 'Extensions', icon: 'puzzle', sub: () => [
+      { label: 'Gérer les extensions', icon: 'puzzle', key: 'Ctrl+Maj+A', fn: () => openPage('extensions') },
+      { label: 'Boutique Chrome Web Store', icon: 'store', fn: () => newTab('https://chromewebstore.google.com/') },
+      '-', { title: 'Extensions intégrées' },
+      ...MODS.filter(([id]) => CFG.mods?.[id]?.installed !== false).map(([id, l, icon]) => ({ label: l, icon, check: modOn(id), fn: () => setModule(id, { enabled: !modOn(id) }) })),
     ] },
-    { label: 'Téléchargements', icon: 'dl', key: 'Ctrl+J', hl: true, fn: () => B.call('br:openMain') },
-    { label: 'Mots de passe', icon: 'key', fn: () => togglePanel('passwords', true) },
-    { label: 'Extensions et thèmes', icon: 'puzzle', key: 'Ctrl+Maj+A', fn: () => togglePanel('extensions', true) },
+    { label: 'Effacer les données de navigation…', icon: 'trash', key: 'Ctrl+Maj+Suppr', fn: () => openPage('history', 'clear') },
     '-',
-    { label: 'Imprimer…', icon: 'print', key: 'Ctrl+P', fn: () => cur?.wcId && B.call('br:print', cur.wcId), disabled: !cur?.wcId },
-    { label: 'Enregistrer sous…', icon: 'save', key: 'Ctrl+S', fn: savePage, disabled: !cur?.wcId },
-    { label: 'Traduire la page…', icon: 'globe', fn: translatePage, disabled: !/^https?:/.test(cur?.url || '') },
-    { label: 'Rechercher dans la page…', icon: 'search', key: 'Ctrl+F', fn: () => openFind() },
     { zoom: true, pct: zoomPct },
     '-',
-    { label: 'Paramètres', icon: 'gear', fn: () => openBrowserSettings() },
+    { label: 'Imprimer…', icon: 'print', key: 'Ctrl+P', fn: () => cur?.wcId && B.call('br:print', cur.wcId), disabled: !cur?.wcId },
+    modOn('translate') && { label: cur?.tr && cur.tr.state !== 'restored' ? "Afficher l'original" : 'Traduire la page', icon: 'translate', key: 'Ctrl+Maj+E', fn: () => pageCmd('translate-page'), disabled: !web },
+    { label: 'Rechercher dans la page…', icon: 'search', key: 'Ctrl+F', fn: () => openFind() },
+    { label: 'Enregistrer sous…', icon: 'save', key: 'Ctrl+S', fn: savePage, disabled: !cur?.wcId },
     { label: 'Outils supplémentaires', icon: 'tools', sub: () => [
-      { label: 'Extraire les liens de la page', icon: 'link', fn: () => grabLinks() },
-      { label: 'Enregistrer la page avec DrYAE', icon: 'dl', fn: () => cur.url && B.call('br:download', { url: cur.url, page: cur.url, allowPage: true, incognito: cur.incognito }) },
-      { label: 'Fichiers détectés sur cette page', icon: 'video', key: 'Ctrl+Maj+Y', fn: () => togglePanel('media', true) },
-      { label: 'Saisie automatique', icon: 'user', fn: () => togglePanel('autofill', true) },
+      modOn('capture') && { label: 'Extraire les liens de la page', icon: 'link', fn: () => grabLinks() },
+      modOn('capture') && { label: 'Enregistrer la page avec DrYAE', icon: 'dl', fn: () => cur.url && B.call('br:download', { url: cur.url, page: cur.url, allowPage: true, incognito: cur.incognito }) },
+      modOn('capture') && { label: 'Fichiers détectés sur cette page', icon: 'video', key: 'Ctrl+Maj+Y', fn: () => togglePanel('media', true) },
+      !modOn('capture') && { label: 'Téléchargements du navigateur', icon: 'dl', fn: () => togglePanel('nd', true) },
+      modOn('adblock') && { label: 'Masquer un élément de la page…', icon: 'eye', fn: () => pageCmd('picker'), disabled: !web },
+      modOn('lights') && { label: 'Mode nuit sur ce site', icon: 'moon', check: !!cur?.night, fn: () => pageCmd('night'), disabled: !web },
       { label: CFG.ua === 'mobile' ? 'Passer en mode ordinateur' : 'Passer en mode mobile', icon: 'phone', fn: async () => { CFG = { ...CFG, ...(await B.call('br:setSettings', { ua: CFG.ua === 'mobile' ? 'desktop' : 'mobile' })) }; cur.wv?.reload(); } },
       { label: cur?.muted ? 'Réactiver le son de l\'onglet' : 'Couper le son de l\'onglet', icon: 'sound', key: 'Ctrl+M', fn: toggleMute, disabled: !cur?.wcId },
-      { label: 'Ouvrir cette page dans Chrome', icon: 'link', fn: () => cur.url && B.call('br:openExternal', cur.url) },
+      { label: 'Ouvrir cette page dans Chrome', icon: 'link', fn: () => cur.url && B.call('br:openExternal', cur.url), disabled: !web },
       { label: "Copier l'adresse", icon: 'copy', fn: () => navigator.clipboard.writeText(cur.url) },
-      { label: 'Code source de la page', icon: 'code', key: 'Ctrl+U', fn: viewSource, disabled: !/^https?:/.test(cur?.url || '') },
+      { label: 'Code source de la page', icon: 'code', key: 'Ctrl+U', fn: viewSource, disabled: !web },
       { label: 'Outils de développement', icon: 'code', key: 'F12', fn: () => cur?.wcId && B.call('br:devtools', cur.wcId) },
     ] },
-    { label: 'Aide et signalements', icon: 'help', sub: () => [
+    '-',
+    { label: 'Aide', icon: 'help', sub: () => [
       { label: 'Raccourcis clavier', icon: 'kbd', key: 'F1', fn: showShortcuts },
       { label: "Mode d'emploi", icon: 'help', fn: () => newTab('https://github.com/DrYAE-FPA/DrYAE/blob/main/docs/GUIDE.md') },
       { label: 'Donner mon avis / signaler un problème', icon: 'star', fn: () => B.call('br:feedback') },
+      { label: 'À propos de DrYAE', icon: 'dryae', fn: () => openPage('settings', 'about') },
     ] },
-    '-',
+    { label: 'Paramètres', icon: 'gear', fn: () => openPage('settings') },
     { label: 'Quitter', icon: 'x', key: 'Ctrl+Maj+Q', fn: () => B.call('br:quit') },
   ];
 }
+async function setModule(id, patch) { CFG = { ...CFG, ...(await B.call('br:setModule', id, patch)) }; drawMods(); updToolbar(); if (['adblock', 'capture', 'pip', 'translate', 'lights', 'scan'].includes(id) && patch.enabled !== undefined) toast(patch.enabled ? 'Extension activée (actualisez la page)' : 'Extension désactivée'); }
 $('#bMenu').onclick = e => { const r = e.currentTarget.getBoundingClientRect(); menu(r.right - 300, r.bottom + 4, mainMenu(), true); };
 function zoom(d) { if (!cur.wv) return; cur.zoom = d === 0 ? 0 : Math.max(-5, Math.min(6, cur.zoom + d)); cur.wv.setZoomLevel(cur.zoom); updToolbar(); const z = $('#menu .mzoom b'); if (z) z.textContent = (cur.zoom ? Math.round(Math.pow(1.2, cur.zoom) * 100) : 100) + ' %'; }
 
@@ -293,8 +322,10 @@ function menu(x, y, entries, wide, back) {
   m.innerHTML = (back ? `<button class="mback" data-back>${ic('back')}<span>${esc(back.title)}</span></button><hr>` : '') + list.map((e, i) => {
     if (!e) return '';
     if (e === '-') return '<hr>';
+    if (e.title) return `<div class="mtitle">${esc(T(e.title))}</div>`;
     if (e.zoom) return `<div class="mzoom"><span>${esc(T('Zoom'))}</span><button data-z="-1" title="Ctrl −">−</button><b>${e.pct} %</b><button data-z="1" title="Ctrl +">+</button><button data-z="fs" title="F11">${ic('expand')}</button></div>`;
-    return `<button data-i="${i}" ${e.hl ? 'class="mhl"' : ''} ${e.disabled ? 'disabled' : ''}>${ic(e.icon || 'list')}<span class="ml">${esc(e.label)}</span>${e.key ? `<kbd>${esc(T(e.key))}</kbd>` : ''}${e.sub ? `<span class="mar">${ic('fwd')}</span>` : ''}</button>`;
+    const lead = e.check !== undefined ? `<span class="mck">${e.check ? ic('check') : ''}</span>${ic(e.icon || 'list')}` : e.img ? `<img class="mfav" src="${esc(e.img)}" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'mfavx'}))" alt="">` : ic(e.icon || 'list');
+    return `<button data-i="${i}" ${e.hl ? 'class="mhl"' : ''} ${e.disabled ? 'disabled' : ''}>${lead}<span class="ml">${esc(e.label)}</span>${e.key ? `<kbd>${esc(T(e.key))}</kbd>` : ''}${e.sub ? `<span class="mar">${ic('fwd')}</span>` : ''}</button>`;
   }).join('');
   m.classList.add('on');
   const r = m.getBoundingClientRect();
@@ -327,7 +358,7 @@ function togglePanel(name, force) {
   panel = name; el.classList.add('on');
   if (name !== 'media') $('#pFoot').style.display = 'none';
   if (!wasOpen) { el.classList.add('slide'); requestAnimationFrame(() => requestAnimationFrame(() => el.classList.remove('slide'))); }
-  ({ media: drawMedia, bookmarks: drawBookmarks, history: drawHistory, links: () => {}, passwords: drawPasswords, autofill: drawAutofill, extensions: drawExtensions })[name]?.();
+  ({ media: drawMedia, links: () => {}, nd: drawNd })[name]?.();
 }
 $('#pClose').onclick = closePanel;
 
@@ -426,26 +457,7 @@ $('#pBody').addEventListener('click', e => {
   if (d) { const m = cur.media[+d.dataset.dl]; if (['video', 'audio', 'hls'].includes(m.kind)) return openQuick(cur, { page: cur.url, title: cur.title, src: m.url }); return openQuickFile({ url: m.url, name: m.name, page: cur.url, size: m.size, kind: m.kind, incognito: cur.incognito }); }
   const c = e.target.closest('[data-cp]'); if (c) { navigator.clipboard.writeText(cur.media[+c.dataset.cp].url); return toast('Lien copié'); }
   const o = e.target.closest('[data-open]'); if (o) return navigate(cur, o.dataset.open);
-  const r = e.target.closest('[data-rmb]'); if (r) { e.stopPropagation(); B.call('br:bookmark', { url: r.dataset.rmb, remove: true }).then(b => { STORE.bookmarks = b; drawBookmarks(); updToolbar(); }); }
 });
-function drawBookmarks() {
-  $('#pTitle').textContent = 'Favoris';
-  $('#pBody').innerHTML = STORE.bookmarks.length ? STORE.bookmarks.map(b => `<div class="hrow" data-open="${esc(b.url)}"><div class="t"><b>${esc(b.title || b.url)}</b><span>${esc(b.url)}</span></div><button class="icon-btn" data-rmb="${esc(b.url)}">${ic('x')}</button></div>`).join('') : '<p class="hint">Aucun favori. Clique sur l\'étoile dans la barre d\'adresse.</p>';
-}
-async function drawHistory(q = '') {
-  STORE = await B.call('br:store');
-  $('#pTitle').textContent = 'Historique';
-  const f = q.toLowerCase();
-  const list = STORE.history.filter(h => !f || (h.title + ' ' + h.url).toLowerCase().includes(f)).slice(0, 300);
-  let lastDay = '';
-  $('#pBody').innerHTML = `<input type="text" id="hQ" placeholder="Rechercher dans l'historique" value="${esc(q)}" style="margin-bottom:8px">` + (list.map(h => {
-    const day = new Date(h.t).toLocaleDateString((window.I18N && I18N.locale || 'fr-FR'), { weekday: 'long', day: 'numeric', month: 'long' });
-    const sep = day !== lastDay ? `<div class="sect" style="margin:12px 4px 4px">${day}</div>` : ''; lastDay = day;
-    return sep + `<div class="hrow" data-open="${esc(h.url)}"><div class="t"><b>${esc(h.title || h.url)}</b><span>${new Date(h.t).toLocaleTimeString((window.I18N && I18N.locale || 'fr-FR'), { hour: '2-digit', minute: '2-digit' })} · ${esc(hostOf(h.url))}</span></div></div>`;
-  }).join('') || '<p class="hint">Historique vide.</p>');
-  const inp = $('#hQ'); inp.oninput = () => { clearTimeout(inp.t); inp.t = setTimeout(() => { drawHistory(inp.value); setTimeout(() => { const i = $('#hQ'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }, 0); }, 250); };
-}
-
 // extraction des liens
 async function grabLinks(tab = cur) {
   if (!tab.wv || !tab.url) return toast('Ouvre une page d\'abord');
@@ -509,10 +521,11 @@ const BR_SHORTCUTS = [
   ['Ctrl + Tab  /  Ctrl + Maj + Tab', 'Onglet suivant / précédent'], ['Ctrl + 1 … 8  /  Ctrl + 9', "Aller à l'onglet n° / au dernier"], ['Ctrl + Maj + Page ↑/↓', "Déplacer l'onglet"],
   ['Ctrl + L  /  Alt + D  /  F6', "Aller à la barre d'adresse"], ['Ctrl + K  /  Ctrl + E', 'Rechercher sur le web'], ['Ctrl + F  /  F3', 'Rechercher dans la page'], ['Ctrl + G  /  Ctrl + Maj + G', 'Résultat suivant / précédent'],
   ['F5  /  Ctrl + R', 'Actualiser'], ['Ctrl + F5  /  Ctrl + Maj + R', 'Actualiser sans le cache'], ['Alt + ←  /  Alt + →', 'Précédent / suivant'], ['Alt + Début', "Page d'accueil"],
-  ['Ctrl + D', 'Marquer cette page'], ['Ctrl + Maj + O', 'Afficher les favoris'], ['Ctrl + H', 'Historique'], ['Ctrl + J', 'Gestionnaire de téléchargements'], ['Ctrl + Maj + Y', 'Fichiers détectés sur cette page'],
-  ['Ctrl + Maj + A', 'Extensions'], ['Ctrl + P', 'Imprimer'], ['Ctrl + S', 'Enregistrer sous'], ['Ctrl + U', 'Code source de la page'], ['Ctrl + M', "Couper / réactiver le son de l'onglet"],
+  ['Ctrl + D', 'Ajouter cet onglet aux favoris'], ['Ctrl + Maj + D', 'Ajouter tous les onglets aux favoris'], ['Ctrl + Maj + B', 'Afficher / masquer la barre de favoris'], ['Ctrl + Maj + O', 'Gestionnaire de favoris'],
+  ['Ctrl + H', 'Historique'], ['Ctrl + J', 'Téléchargements'], ['Ctrl + Maj + Y', 'Fichiers détectés sur cette page'],
+  ['Ctrl + Maj + A', 'Extensions'], ['Ctrl + Maj + E', 'Traduire la sélection ou la page'], ['Ctrl + Maj + S', 'Traduire les images de la page (scans)'], ['Ctrl + Maj + L', 'Lumières tamisées'], ['Ctrl + Maj + U', "Image dans l'image"], ['Ctrl + P', 'Imprimer'], ['Ctrl + S', 'Enregistrer sous'], ['Ctrl + U', 'Code source de la page'], ['Ctrl + M', "Couper / réactiver le son de l'onglet"],
   ['Ctrl + +  /  Ctrl + −  /  Ctrl + 0', 'Zoom avant / arrière / normal'], ['F11', 'Plein écran'], ['F12  /  Ctrl + Maj + I', 'Outils de développement'],
-  ['Ctrl + Maj + Suppr', "Effacer l'historique récent"], ['Ctrl + Maj + Q', 'Quitter DrYAE'], ['F1', 'Afficher ces raccourcis'],
+  ['Ctrl + Maj + Suppr', 'Effacer les données de navigation'], ['Ctrl + Maj + Q', 'Quitter DrYAE'], ['F1', 'Afficher ces raccourcis'],
   ['Boutons latéraux de la souris', 'Page précédente / suivante'], ['Clic du milieu ou Ctrl + clic sur un lien', 'Ouvrir dans un nouvel onglet en arrière-plan'],
   ['Clic du milieu sur un onglet', "Fermer l'onglet"], ["Double-clic dans la barre d'onglets", 'Nouvel onglet'], ['Ctrl + molette', 'Zoom avant / arrière'],
 ];
@@ -522,35 +535,30 @@ function showShortcuts() {
 }
 $('#kbModal').addEventListener('click', e => { if (e.target.id === 'kbModal' || e.target.closest('[data-close]')) $('#kbModal').classList.remove('on'); });
 const closedTabs = [];
-function reopenClosed() { const u = closedTabs.pop(); if (u) newTab(u.url, { incognito: u.incognito }); }
+function reopenClosed() { const u = closedTabs.pop(); if (u) { newTab(u.url, { incognito: u.incognito }); B.call('br:closed', closedTabs.filter(c => !c.incognito)); } }
 async function toggleMute() { if (!cur?.wcId) return; cur.muted = await B.call('br:mute', cur.wcId); toast(cur.muted ? 'Son de l\'onglet coupé' : 'Son de l\'onglet réactivé'); updTab(cur); }
 async function savePage() { if (cur?.wcId && await B.call('br:savePage', cur.wcId)) toast('Page enregistrée'); }
-function translatePage() { const l = (window.I18N && I18N.lang) || 'fr'; newTab(`https://translate.google.com/translate?sl=auto&tl=${l}&u=${encodeURIComponent(cur.url)}`); }
 function viewSource() { if (/^https?:/.test(cur?.url || '')) newTab('view-source:' + cur.url); }
-async function clearDataDialog() {
-  $('#cdModal').classList.add('on');
-  $('#cdOk').onclick = async () => {
-    if ($('#cdHist').checked) { await B.call('br:clearHistory'); STORE.history = []; }
-    if ($('#cdCookies').checked) await B.call('br:clearCookies');
-    if ($('#cdCache').checked) await B.call('br:clearCache');
-    $('#cdModal').classList.remove('on'); toast('Données effacées');
-  };
-}
-$('#cdModal').addEventListener('click', e => { if (e.target.id === 'cdModal' || e.target.closest('[data-close]')) $('#cdModal').classList.remove('on'); });
 function onKey(k, ctrl, shift, alt) {
   k = String(k).toLowerCase();
   const go = f => { f(); return true; };
   if (ctrl && shift) {
     if (k === 'n' || k === 'p') return go(() => newTab('', { incognito: true }));
     if (k === 't') return go(reopenClosed);
-    if (k === 'o') return go(() => togglePanel('bookmarks', true));
-    if (k === 'a') return go(() => togglePanel('extensions', true));
-    if (k === 'y') return go(() => togglePanel('media', true));
+    if (k === 'o') return go(() => openPage('bookmarks'));
+    if (k === 'a') return go(() => openPage('extensions'));
+    if (k === 'y') return go(() => (modOn('capture') ? togglePanel('media', true) : togglePanel('nd', true)));
+    if (k === 'b') return go(toggleBar);
+    if (k === 'd') return go(bookmarkAll);
+    if (k === 'e') return go(() => modOn('translate') && pageCmd('translate-selection'));
+    if (k === 's') return go(() => modOn('scan') && pageCmd('scan'));
+    if (k === 'l') return go(() => modOn('lights') && pageCmd('lights'));
+    if (k === 'u') return go(() => modOn('pip') && cur?.wcId && B.call('br:pip', cur.wcId));
     if (k === 'i') return go(() => cur?.wcId && B.call('br:devtools', cur.wcId));
     if (k === 'q') return go(() => B.call('br:quit'));
     if (k === 'r') return go(() => cur.wv?.reloadIgnoringCache());
     if (k === 'g') return go(() => find(false));
-    if (k === 'delete') return go(clearDataDialog);
+    if (k === 'delete') return go(() => openPage('history', 'clear'));
     if (k === 'tab') return go(() => { const i = tabs.indexOf(cur); select(tabs[(i - 1 + tabs.length) % tabs.length]); });
     if (k === 'pageup' || k === 'pagedown') return go(() => { const i = tabs.indexOf(cur), j = i + (k === 'pageup' ? -1 : 1); if (j >= 0 && j < tabs.length) moveTab(cur, tabs[j], k === 'pagedown'); });
     return false;
@@ -562,9 +570,9 @@ function onKey(k, ctrl, shift, alt) {
     if (k === 'k' || k === 'e') return go(() => { $('#url').focus(); $('#url').value = ''; });
     if (k === 'f') return go(openFind);
     if (k === 'g') return go(() => find(true));
-    if (k === 'j') return go(() => B.call('br:openMain'));
-    if (k === 'h') return go(() => togglePanel('history', true));
-    if (k === 'd') return go(() => $('#bStar').click());
+    if (k === 'j') return go(openDownloads);
+    if (k === 'h') return go(() => openPage('history'));
+    if (k === 'd') return go(starClick);
     if (k === 'p') return go(() => cur?.wcId && B.call('br:print', cur.wcId));
     if (k === 's') return go(savePage);
     if (k === 'u') return go(viewSource);
@@ -596,7 +604,7 @@ function onKey(k, ctrl, shift, alt) {
   return false;
 }
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { $('#menu').classList.remove('on'); closeFind(); closeQuick(); $$('.overlay.on').forEach(o => o.classList.remove('on')); return; }
+  if (e.key === 'Escape') { $('#menu').classList.remove('on'); closeFind(); closeQuick(); hideBmEdit(); $$('.overlay.on').forEach(o => o.classList.remove('on')); return; }
   const typing = ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName);
   // dans un champ, on laisse Ctrl+A/C/V/X/Z au champ
   if (typing && (e.ctrlKey || e.metaKey) && !e.shiftKey && ['a', 'c', 'v', 'x', 'z', 'y'].includes(e.key.toLowerCase())) return;
@@ -913,88 +921,6 @@ $('#pwSave').onclick = () => pwReply('save');
 $('#pwNever').onclick = () => pwReply('never');
 $('#pwLater').onclick = () => pwReply('dismiss');
 
-async function drawPasswords(q = '') {
-  const d = await B.call('br:pwList');
-  $('#pTitle').textContent = 'Mots de passe';
-  const f = q.toLowerCase();
-  const list = d.logins.filter(l => !f || (l.origin + ' ' + l.username).toLowerCase().includes(f));
-  $('#pBody').innerHTML = `
-    <label class="check" style="margin:0 0 6px"><input type="checkbox" id="pwOfferOn" ${d.settings.offer !== false ? 'checked' : ''}> Proposer d'enregistrer les mots de passe</label>
-    <label class="check" style="margin:0 0 10px"><input type="checkbox" id="pwFillOn" ${d.settings.autofill !== false ? 'checked' : ''}> Connexion automatique (remplir les identifiants)</label>
-    <input type="text" id="pwQ" placeholder="Rechercher un site ou un identifiant" value="${esc(q)}" style="margin-bottom:8px">
-    ${list.length ? list.map((l, i) => `<div class="hrow" style="cursor:default"><div class="t"><b>${esc(l.origin.replace(/^https?:\/\//, ''))}</b><span>${esc(l.username || '(sans identifiant)')} · <span class="pwv" data-v="${i}">••••••••</span></span></div>
-      <button class="icon-btn" title="Afficher" data-show="${i}">${ic('eye')}</button><button class="icon-btn" title="Copier" data-copy="${i}">${ic('copy')}</button><button class="icon-btn" title="Supprimer" data-del="${i}">${ic('trash')}</button></div>`).join('')
-      : '<p class="hint">Aucun mot de passe. Connecte-toi à un site : DrYAE proposera de l\'enregistrer.</p>'}
-    <div class="sect" style="margin-top:16px">Ajouter</div>
-    <input type="text" id="pwNS" placeholder="site (exemple.com)" style="margin-bottom:6px"><input type="text" id="pwNU" placeholder="identifiant" style="margin-bottom:6px"><input type="password" id="pwNP" placeholder="mot de passe" style="margin-bottom:6px">
-    <button class="btn sm" id="pwAdd">Enregistrer</button>
-    <div class="sect" style="margin-top:16px">Importer / exporter</div>
-    <div class="row" style="gap:6px;flex-wrap:wrap"><button class="btn sm" id="pwImp">${ic('dl')}Importer un fichier .csv…</button><button class="btn sm" id="pwExp">${ic('save')}Exporter en .csv…</button></div>
-    <p class="hint" style="margin-top:6px">Accepte les fichiers .csv exportés par les navigateurs et les gestionnaires de mots de passe (colonnes url, username, password).</p>
-    ${d.never.length ? `<div class="sect" style="margin-top:16px">Jamais enregistrés</div>${d.never.map((o, i) => `<div class="hrow" style="cursor:default"><div class="t"><b>${esc(o.replace(/^https?:\/\//, ''))}</b></div><button class="icon-btn" data-unnever="${i}">${ic('x')}</button></div>`).join('')}` : ''}
-    <p class="hint" style="margin-top:12px">Les mots de passe sont chiffrés par Windows sur ce PC.</p>`;
-  const B2 = $('#pBody');
-  $('#pwImp').onclick = async () => {
-    try { const r = await B.call('br:pwImport'); if (!r) return; toast(T('{0} ajouté(s), {1} mis à jour, {2} ignoré(s)').replace('{0}', r.added).replace('{1}', r.updated).replace('{2}', r.skipped)); drawPasswords(); }
-    catch (e) { toast(String(e.message || e).replace(/^.*Error: /, '')); }
-  };
-  $('#pwExp').onclick = async () => {
-    if (!confirm(T("Le fichier exporté contiendra vos mots de passe en clair : toute personne qui l'ouvre pourra les lire. Continuer ?"))) return;
-    try { const r = await B.call('br:pwExport'); if (r) toast(T('{0} mot(s) de passe exporté(s)').replace('{0}', r.n)); } catch (e) { toast(String(e.message || e)); }
-  };
-  $('#pwOfferOn').onchange = e => B.call('br:pwSettings', { offer: e.target.checked });
-  $('#pwFillOn').onchange = e => B.call('br:pwSettings', { autofill: e.target.checked });
-  const qi = $('#pwQ'); qi.oninput = () => { clearTimeout(qi.t); qi.t = setTimeout(() => { drawPasswords(qi.value).then(() => { const x = $('#pwQ'); x.focus(); x.setSelectionRange(x.value.length, x.value.length); }); }, 250); };
-  B2.onclick = async e => {
-    const g = a => e.target.closest('[data-' + a + ']');
-    let b;
-    if ((b = g('show'))) { const l = list[+b.dataset.show]; const el = B2.querySelector(`.pwv[data-v="${b.dataset.show}"]`); el.textContent = el.textContent.startsWith('•') ? await B.call('br:pwReveal', l) : '••••••••'; }
-    if ((b = g('copy'))) { navigator.clipboard.writeText(await B.call('br:pwReveal', list[+b.dataset.copy])); toast('Mot de passe copié'); }
-    if ((b = g('del'))) { if (confirm('Supprimer ce mot de passe ?')) { await B.call('br:pwDelete', list[+b.dataset.del]); drawPasswords(q); } }
-    if ((b = g('unnever'))) { await B.call('br:pwUnnever', d.never[+b.dataset.unnever]); drawPasswords(q); }
-    if (e.target.id === 'pwAdd') {
-      try { await B.call('br:pwAdd', { origin: $('#pwNS').value.trim(), username: $('#pwNU').value, password: $('#pwNP').value }); toast('Mot de passe enregistré'); drawPasswords(q); } catch (er) { toast(String(er.message || er).replace(/^.*Error: /, '')); }
-    }
-  };
-}
-
-// ---------- saisie automatique ----------
-const AF = [['givenName', 'Prénom'], ['familyName', 'Nom'], ['email', 'E-mail'], ['tel', 'Téléphone'], ['address', 'Adresse'], ['postalCode', 'Code postal'], ['city', 'Ville'], ['country', 'Pays'], ['company', 'Société']];
-async function drawAutofill() {
-  const d = await B.call('br:afGet');
-  const p = d.profile || {};
-  $('#pTitle').textContent = 'Saisie automatique';
-  $('#pBody').innerHTML = `<label class="check" style="margin:0 0 10px"><input type="checkbox" id="afOn" ${d.enabled ? 'checked' : ''}> Proposer de remplir les formulaires avec ces informations</label>
-    ${AF.map(([k, l]) => `<label>${l}</label><input type="text" data-af="${k}" value="${esc(p[k] || '')}">`).join('')}
-    <div class="row" style="margin-top:12px"><button class="btn sm primary" id="afSave">Enregistrer</button><button class="btn sm" id="afClear">Effacer</button></div>
-    <p class="hint" style="margin-top:10px">Quand tu cliques dans un champ « nom », « e-mail », « adresse »… d'un formulaire, DrYAE propose « Remplir avec mon profil ».</p>`;
-  const save = async () => { const prof = {}; $$('#pBody [data-af]').forEach(i => { if (i.value.trim()) prof[i.dataset.af] = i.value.trim(); }); await B.call('br:afSet', { enabled: $('#afOn').checked, profile: prof }); toast('Saisie automatique enregistrée'); };
-  $('#afSave').onclick = save;
-  $('#afOn').onchange = save;
-  $('#afClear').onclick = async () => { await B.call('br:afSet', { enabled: false, profile: {} }); drawAutofill(); };
-}
-
-// ---------- extensions ----------
-async function drawExtensions() {
-  const list = await B.call('br:extList');
-  $('#pTitle').textContent = 'Extensions';
-  $('#pBody').innerHTML = `<div class="row" style="gap:6px;flex-wrap:wrap;margin-bottom:10px"><button class="btn sm primary" id="exStore">${ic('puzzle')}Chrome Web Store</button><button class="btn sm" id="exDir">Charger un dossier…</button></div>
-    <div class="row" style="gap:6px;margin-bottom:12px"><input type="text" id="exId" style="flex:1;min-width:0" placeholder="Lien de la boutique ou identifiant de l'extension" spellcheck="false"><button class="btn sm" id="exGo">Installer avec un lien</button></div>
-    ${list.length ? list.map((x, i) => `<div class="hrow" style="cursor:default">${x.icon ? `<img src="${esc(x.icon)}" style="width:24px;height:24px;border-radius:5px" alt="">` : `<span class="fav" style="width:24px;height:24px">${esc((x.name || '?')[0])}</span>`}<div class="t"><b>${esc(x.name)}</b><span>${esc(x.version)} · ${esc((x.description || '').slice(0, 80))}</span></div><button class="icon-btn" title="Supprimer" data-rmx="${i}">${ic('trash')}</button></div>`).join('')
-      : '<p class="hint">Aucune extension. Ouvre le Chrome Web Store, choisis une extension puis clique sur « Ajouter à Chrome ».</p>'}
-    <p class="hint" style="margin-top:12px">Les icônes des extensions apparaissent à droite de la barre d'adresse. La plupart des extensions courantes fonctionnent (bloqueurs, mode sombre, traducteurs, gestionnaires de mots de passe…) ; certaines fonctions avancées de Chrome peuvent manquer.</p>`;
-  $('#exStore').onclick = () => newTab('https://chromewebstore.google.com/');
-  $('#exGo').onclick = async () => {
-    const v = $('#exId').value.trim(); if (!v) return $('#exId').focus();
-    $('#exGo').disabled = true; toast('Installation de l\'extension…');
-    try { const r = await B.call('br:extInstall', v); toast(`Extension ajoutée : ${r.name}`); drawExtensions(); }
-    catch (e) { toast(String(e.message || e).replace(/^.*Error: /, '')); }
-    finally { const b = $('#exGo'); if (b) b.disabled = false; }
-  };
-  $('#exId').onkeydown = e => { if (e.key === 'Enter') $('#exGo').click(); };
-  $('#exDir').onclick = async () => { try { const r = await B.call('br:extLoadDir'); if (r) { toast('Extension ajoutée'); drawExtensions(); } } catch (e) { toast(String(e.message || e).replace(/^.*Error: /, '')); } };
-  $('#pBody').onclick = async e => { const b = e.target.closest('[data-rmx]'); if (!b) return; const x = list[+b.dataset.rmx]; if (!confirm(`Supprimer l'extension « ${x.name} » ?`)) return; await B.call('br:extRemove', x.id); drawExtensions(); };
-}
 // demandes des extensions (chrome.tabs.create / update / remove)
 B.on('ext-create-tab', async ({ reqId, url, active }) => {
   await ready;
@@ -1007,39 +933,241 @@ B.on('ext-select-tab', ({ wcId }) => { const t = tabByWc(wcId); if (t) select(t)
 B.on('ext-remove-tab', ({ wcId }) => { const t = tabByWc(wcId); if (t) closeTab(t); });
 
 
-// ---------- paramètres propres au navigateur (non visibles dans le gestionnaire) ----------
-let bsWhite = [];
-function bsSec(x) { $$('#bsNav button').forEach(b => b.classList.toggle('on', b.dataset.s === x)); $$('#bsModal .settings section').forEach(e => e.classList.toggle('on', e.dataset.s === x)); }
-$('#bsNav').onclick = e => { const b = e.target.closest('[data-s]'); if (b) bsSec(b.dataset.s); };
-function bsWhiteDraw() { $('#wWhite').innerHTML = bsWhite.map((h, i) => `<div><span>${esc(h)}</span><button class="icon-btn" data-rmw="${i}">${ic('x')}</button></div>`).join('') || `<p class="hint">${esc(T('Aucun site. Ajoute-en depuis le navigateur (bouclier).'))}</p>`; }
-$('#wWhite').onclick = e => { const b = e.target.closest('[data-rmw]'); if (b) { bsWhite.splice(+b.dataset.rmw, 1); bsWhiteDraw(); } };
-async function openBrowserSettings(sec = 'gen') {
-  const C = await B.call('br:settings');
-  const v = (id, x) => { $(id).value = x ?? ''; }, c = (id, x) => { $(id).checked = !!x; };
-  v('#wSearch', C.search); v('#wUA', C.ua); c('#wRestore', C.restoreSession); c('#wPop', C.blockPopups);
-  c('#wClear', C.clearOnExit); c('#wCookies', C.cookies); v('#wDoh', C.doh);
-  c('#wAd', C.adblock); v('#wLists', (C.filterLists || []).join('\n')); v('#wHosts', (C.hostsSources || []).join('\n')); v('#wCustom', C.customFilters);
-  c('#wSub', C.captureSubtitles); v('#wExtra', C.sniffExtra);
-  bsWhite = [...(C.whitelist || [])]; bsWhiteDraw();
-  $('#wUpdSt').textContent = '';
-  bsSec(sec);
-  $('#bsModal').classList.add('on');
+
+// ---------- favoris : barre, menu, bulle de modification ----------
+let BM = { bar: { id: 'bar', children: [] }, other: { id: 'other', children: [] } };
+const favImg = (u, f) => f || '';
+function bmItems(nodes) {
+  return nodes.map(n => n.type === 'folder'
+    ? { label: n.title, icon: 'folder', sub: () => [...bmItems(n.children), ...(n.children.length ? ['-', { label: 'Tout ouvrir', icon: 'link', fn: () => openAll(n) }] : [{ title: 'Dossier vide' }])] }
+    : { label: n.title || n.url, img: n.fav, icon: 'link', fn: () => navigate(cur, n.url) });
 }
-$('#bsModal').addEventListener('click', e => { if (e.target.id === 'bsModal' || e.target.closest('[data-close]')) $('#bsModal').classList.remove('on'); });
-$('#wOk').onclick = async () => {
-  const v = id => $(id).value, c = id => $(id).checked, lines = id => v(id).split(/\r?\n/).map(x => x.trim()).filter(Boolean);
-  const before = { ...CFG };
-  CFG = { ...CFG, ...(await B.call('br:setSettings', { search: v('#wSearch'), ua: v('#wUA'), blockPopups: c('#wPop'), clearOnExit: c('#wClear'), cookies: c('#wCookies'), doh: v('#wDoh'),
-    adblock: c('#wAd'), filterLists: lines('#wLists'), hostsSources: lines('#wHosts'), customFilters: v('#wCustom'), whitelist: bsWhite, captureSubtitles: c('#wSub'), sniffExtra: v('#wExtra') })) };
-  await B.call('br:setRestore', c('#wRestore'));
-  CFG = { ...CFG, ...(await B.call('br:settings')) };
-  $('#bsModal').classList.remove('on');
-  if (before.ua !== CFG.ua || before.adblock !== CFG.adblock) cur.wv?.reload();
-  updToolbar(); toast('Paramètres enregistrés');
+function openAll(folder) { const urls = []; const w = l => l.forEach(n => (n.type === 'folder' ? w(n.children) : urls.push(n.url))); w(folder.children); urls.slice(0, 30).forEach((u, i) => newTab(u, { background: i > 0 })); }
+function bmMenu() {
+  return [
+    { label: 'Ajouter cet onglet aux favoris…', icon: 'star', key: 'Ctrl+D', fn: starClick, disabled: !/^https?:/.test(cur?.url || '') },
+    { label: 'Ajouter tous les onglets aux favoris…', icon: 'stars', key: 'Ctrl+Maj+D', fn: bookmarkAll },
+    '-',
+    { label: 'Afficher la barre de favoris', icon: 'bar', key: 'Ctrl+Maj+B', check: !!CFG.showBookmarksBar, fn: toggleBar },
+    { label: 'Gestionnaire de favoris', icon: 'list', key: 'Ctrl+Maj+O', fn: () => openPage('bookmarks') },
+    { label: 'Importer des favoris (fichier HTML)…', icon: 'import', fn: async () => { try { const n = await B.call('br:bmImport'); if (n) toast(T('{0} favori(s) importé(s)').replace('{0}', n)); } catch (e) { toast(String(e.message || e).replace(/^.*Error: /, '')); } } },
+    '-', { title: 'Barre de favoris' },
+    ...(BM.bar.children.length ? bmItems(BM.bar.children) : [{ title: 'Aucun favori' }]),
+    ...(BM.other.children.length ? ['-', { label: 'Autres favoris', icon: 'folder', sub: () => bmItems(BM.other.children) }] : []),
+  ];
+}
+async function toggleBar() { CFG = { ...CFG, ...(await B.call('br:setSettings', { showBookmarksBar: !CFG.showBookmarksBar })) }; drawBmBar(); }
+async function bookmarkAll() {
+  const list = tabs.filter(t => /^https?:/.test(t.url) && !t.incognito).map(t => ({ url: t.url, title: t.title }));
+  if (!list.length) return toast('Aucun onglet à ajouter');
+  const d = new Date().toLocaleDateString((window.I18N && I18N.locale) || 'fr-FR');
+  await B.call('br:bmAddAll', list, T('Onglets du {0}').replace('{0}', d));
+  toast(T('{0} onglet(s) ajouté(s) aux favoris').replace('{0}', list.length));
+}
+function drawBmBar() {
+  const bar = $('#bmbar');
+  bar.classList.toggle('on', !!CFG.showBookmarksBar);
+  if (!CFG.showBookmarksBar) return;
+  const item = n => `<button class="bi" draggable="true" data-bm="${esc(n.id)}" title="${esc(n.title + (n.url ? '\n' + n.url : ''))}">${n.type === 'folder' ? ic('folder') : n.fav ? `<img src="${esc(n.fav)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('i')))">` : ic('globe')}<span>${esc(n.title || n.url)}</span></button>`;
+  bar.innerHTML = (BM.bar.children.length ? BM.bar.children.map(item).join('') : `<span class="empty">${esc(T('Pour un accès rapide, placez vos favoris ici, dans la barre de favoris.'))}</span>`) +
+    `<span class="sp"></span>${BM.other.children.length ? `<button class="bi" data-bm="other">${ic('folder')}<span>${esc(T('Autres favoris'))}</span></button>` : ''}`;
+}
+const bmNode = id => { let r = null; const w = l => l.forEach(n => { if (n.id === id) r = n; if (n.children) w(n.children); }); w([BM.bar, BM.other]); return r; };
+$('#bmbar').addEventListener('click', e => {
+  const b = e.target.closest('[data-bm]'); if (!b) return;
+  const n = bmNode(b.dataset.bm); if (!n) return;
+  if (n.type === 'folder' || n.id === 'other') { const r = b.getBoundingClientRect(); return menu(r.left, r.bottom + 2, () => [...bmItems(n.children), ...(n.children.length ? ['-', { label: 'Tout ouvrir', icon: 'link', fn: () => openAll(n) }] : [{ title: 'Dossier vide' }])]); }
+  if (e.ctrlKey || e.metaKey) newTab(n.url, { background: true }); else navigate(cur, n.url);
+});
+$('#bmbar').addEventListener('auxclick', e => { const b = e.target.closest('[data-bm]'); if (e.button !== 1 || !b) return; const n = bmNode(b.dataset.bm); if (n && n.url) { e.preventDefault(); newTab(n.url, { background: true }); } });
+$('#bmbar').addEventListener('contextmenu', e => {
+  e.preventDefault();
+  const b = e.target.closest('[data-bm]'); const n = b && bmNode(b.dataset.bm);
+  const items = n && n.url ? [
+    { label: 'Ouvrir dans un nouvel onglet', icon: 'plus', fn: () => newTab(n.url, { background: true }) },
+    { label: 'Ouvrir dans un onglet privé', icon: 'mask', fn: () => newTab(n.url, { incognito: true }) },
+    '-',
+    { label: 'Modifier…', icon: 'star', fn: () => showBmEdit(n, b) },
+    { label: 'Copier le lien', icon: 'copy', fn: () => navigator.clipboard.writeText(n.url) },
+    { label: 'Supprimer', icon: 'trash', fn: () => B.call('br:bmRemove', [n.id]) },
+  ] : n && n.type === 'folder' && n.id !== 'other' ? [
+    { label: 'Tout ouvrir', icon: 'link', fn: () => openAll(n) },
+    { label: 'Renommer…', icon: 'star', fn: () => showBmEdit(n, b) },
+    { label: 'Supprimer le dossier', icon: 'trash', fn: () => { if (confirm(T('Supprimer le dossier « {0} » et son contenu ?').replace('{0}', n.title))) B.call('br:bmRemove', [n.id]); } },
+  ] : [];
+  menu(e.clientX, e.clientY, [...items, ...(items.length ? ['-'] : []),
+    { label: 'Ajouter cet onglet aux favoris…', icon: 'star', fn: starClick, disabled: !/^https?:/.test(cur?.url || '') },
+    { label: 'Nouveau dossier', icon: 'folder', fn: async () => { const f = await B.call('br:bmAdd', { parentId: 'bar', type: 'folder', title: T('Nouveau dossier') }); setTimeout(() => showBmEdit(f, $(`#bmbar [data-bm="${f.id}"]`)), 120); } },
+    { label: 'Gestionnaire de favoris', icon: 'list', fn: () => openPage('bookmarks') },
+    { label: 'Masquer la barre de favoris', icon: 'bar', fn: toggleBar }]);
+});
+// glisser-déposer : réordonner, ou déposer un lien ou un onglet pour l'ajouter
+let bmDrag = null;
+$('#bmbar').addEventListener('dragstart', e => { const b = e.target.closest('[data-bm]'); if (!b || b.dataset.bm === 'other') return; bmDrag = b.dataset.bm; e.dataTransfer.effectAllowed = 'move'; });
+$('#bmbar').addEventListener('dragover', e => { e.preventDefault(); const b = e.target.closest('.bi'); $$('#bmbar .bi').forEach(x => x.classList.remove('drop-l', 'drop-r')); if (b && b.dataset.bm !== 'other') { const r = b.getBoundingClientRect(); b.classList.add(e.clientX > r.left + r.width / 2 ? 'drop-r' : 'drop-l'); } });
+$('#bmbar').addEventListener('dragleave', () => $$('#bmbar .bi').forEach(x => x.classList.remove('drop-l', 'drop-r')));
+$('#bmbar').addEventListener('drop', async e => {
+  e.preventDefault();
+  const b = e.target.closest('.bi'); $$('#bmbar .bi').forEach(x => x.classList.remove('drop-l', 'drop-r'));
+  let idx = BM.bar.children.length;
+  if (b && b.dataset.bm !== 'other') { const r = b.getBoundingClientRect(); idx = BM.bar.children.findIndex(n => n.id === b.dataset.bm) + (e.clientX > r.left + r.width / 2 ? 1 : 0); }
+  if (b && bmNode(b.dataset.bm)?.type === 'folder' && !bmDrag && e.clientX) {}
+  if (bmDrag) { await B.call('br:bmMove', [bmDrag], 'bar', idx); bmDrag = null; return; }
+  const url = (e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain') || '').split('\n')[0].trim();
+  if (/^https?:\/\//.test(url)) { const t = tabs.find(x => x.url === url); await B.call('br:bmAdd', { parentId: 'bar', index: idx, url, title: t?.title || url, fav: t?.fav || '' }); }
+});
+let bmEditing = null;
+function folderOptions(sel) {
+  const out = []; const w = (l, d) => l.forEach(n => { if (n.type === 'folder') { out.push(`<option value="${esc(n.id)}" ${n.id === sel ? 'selected' : ''}>${'  '.repeat(d)}${esc(T(n.title))}</option>`); w(n.children, d + 1); } });
+  w([BM.bar, BM.other], 0); return out.join('');
+}
+const parentOf = id => { let p = null; const w = (l, par) => l.forEach(n => { if (n.id === id) p = par; if (n.children) w(n.children, n); }); w([BM.bar, BM.other], null); return p; };
+function showBmEdit(n, anchor, isNew) {
+  bmEditing = n;
+  $('#bmeH').textContent = T(isNew ? 'Favori ajouté' : n.type === 'folder' ? 'Modifier le dossier' : 'Modifier le favori');
+  $('#bmeName').value = n.title || '';
+  const p = parentOf(n.id);
+  $('#bmeFolder').innerHTML = folderOptions(p?.id || 'bar');
+  $('#bmeFolder').parentElement && ($('#bmeFolder').style.display = n.type === 'folder' ? 'none' : '');
+  $('#bmeFolder').previousElementSibling.style.display = n.type === 'folder' ? 'none' : '';
+  const m = $('#bmEdit'); m.classList.add('on');
+  const r = (anchor || $('#bStar')).getBoundingClientRect();
+  m.style.left = Math.max(8, Math.min(innerWidth - 330, r.right - 320)) + 'px'; m.style.top = (r.bottom + 6) + 'px';
+  setTimeout(() => { $('#bmeName').focus(); $('#bmeName').select(); }, 30);
+}
+function hideBmEdit() { $('#bmEdit').classList.remove('on'); bmEditing = null; }
+async function starClick() {
+  if (!/^https?:/.test(cur?.url || '')) return;
+  const ex = (() => { let r = null; const w = l => l.forEach(n => { if (!r && n.url === cur.url) r = n; if (n.children) w(n.children); }); w([BM.bar, BM.other]); return r; })();
+  if (ex) return showBmEdit(ex);
+  const n = await B.call('br:bmAdd', { parentId: 'bar', url: cur.url, title: cur.title, fav: cur.fav || '' });
+  showBmEdit(n, null, true);
+}
+$('#bmeOk').onclick = async () => {
+  const n = bmEditing; if (!n) return hideBmEdit();
+  await B.call('br:bmUpdate', n.id, { title: $('#bmeName').value.trim() || n.title });
+  const p = parentOf(n.id); const f = $('#bmeFolder').value;
+  if (n.type !== 'folder' && p && f && f !== p.id) await B.call('br:bmMove', [n.id], f, -1);
+  hideBmEdit();
 };
-$('#wUpdate').onclick = async () => { $('#wUpdSt').textContent = T('Mise à jour…'); const ok = await B.call('br:updateAdblock').catch(() => null); $('#wUpdSt').textContent = T(ok ? 'Filtres à jour ✔' : 'Impossible de mettre à jour (connexion ?)'); };
-$('#wDlSet').onclick = () => { $('#bsModal').classList.remove('on'); B.call('br:openSettingsMain', 'dl'); };
-$('#wClearNow').onclick = () => { $('#bsModal').classList.remove('on'); clearDataDialog(); };
-$('#wPwOpen').onclick = () => { $('#bsModal').classList.remove('on'); togglePanel('passwords', true); };
-$('#wAfOpen').onclick = () => { $('#bsModal').classList.remove('on'); togglePanel('autofill', true); };
-$('#wExtOpen').onclick = () => { $('#bsModal').classList.remove('on'); togglePanel('extensions', true); };
+$('#bmeName').onkeydown = e => { if (e.key === 'Enter') $('#bmeOk').click(); };
+$('#bmeDel').onclick = async () => { const n = bmEditing; hideBmEdit(); if (n) { await B.call('br:bmRemove', [n.id]); toast('Retiré des favoris'); } };
+$('#bmeMgr').onclick = () => { hideBmEdit(); openPage('bookmarks'); };
+document.addEventListener('mousedown', e => { if (bmEditing && !e.target.closest('#bmEdit') && !e.target.closest('#bStar')) $('#bmeOk').click(); });
+B.on('bm', ({ tree, flat }) => { BM = tree; STORE.bookmarks = flat; drawBmBar(); updToolbar(); if ($('#start').classList.contains('on')) drawTiles(); });
+
+// ---------- extensions intégrées : boutons de la barre d'outils ----------
+function drawMods() {
+  const box = $('#modBar'); if (!box) return;
+  const M = CFG.mods || {};
+  const btn = (id, icon, title, act) => (M[id]?.on && M[id]?.pinned !== false ? `<button class="tb mod ${act ? 'act' : ''}" data-mod="${id}" title="${esc(T(title))}"><svg><use href="#i-${icon}"/></svg></button>` : '');
+  const t = cur || {};
+  box.innerHTML = btn('translate', 'translate', 'Traduire (Ctrl+Maj+E)', t.tr && ['done', 'working'].includes(t.tr.state)) + btn('scan', 'scan', 'Traducteur de scans (Ctrl+Maj+S)', false) + btn('lights', 'bulb', 'Lumières tamisées (Ctrl+Maj+L)', t.lit) + btn('pip', 'pip', "Image dans l'image (Ctrl+Maj+U)", false);
+}
+$('#modBar').addEventListener('click', e => {
+  const b = e.target.closest('[data-mod]'); if (!b) return;
+  const id = b.dataset.mod, r = b.getBoundingClientRect();
+  const web = /^https?:/.test(cur?.url || '');
+  if (id === 'translate') return menu(r.right - 280, r.bottom + 4, [
+    { label: cur?.tr && cur.tr.state !== 'restored' ? "Afficher l'original" : 'Traduire la page', icon: 'translate', key: 'Ctrl+Maj+E', fn: () => pageCmd('translate-page'), disabled: !web },
+    { label: 'Traduire le texte sélectionné', icon: 'translate', fn: () => pageCmd('translate-selection'), disabled: !web },
+    '-',
+    { label: 'Paramètres du traducteur', icon: 'gear', fn: () => openPage('settings', 'translate') },
+  ]);
+  if (id === 'scan') return menu(r.right - 280, r.bottom + 4, [
+    { label: 'Traduire les images de la page', icon: 'scan', key: 'Ctrl+Maj+S', fn: () => pageCmd('scan'), disabled: !web },
+    { title: 'Astuce : clic droit sur une image → « Traduire le texte de l\'image »' },
+    '-',
+    { label: 'Paramètres du traducteur de scans', icon: 'gear', fn: () => openPage('settings', 'scan') },
+  ]);
+  if (id === 'lights') return pageCmd('lights');
+  if (id === 'pip') return cur?.wcId && B.call('br:pip', cur.wcId);
+});
+$('#modBar').addEventListener('contextmenu', e => {
+  const b = e.target.closest('[data-mod]'); if (!b) return; e.preventDefault();
+  const id = b.dataset.mod;
+  menu(e.clientX - 200, e.clientY + 8, [
+    id === 'lights' && { label: 'Mode nuit sur ce site', icon: 'moon', check: !!cur?.night, fn: () => pageCmd('night') },
+    { label: 'Paramètres', icon: 'gear', fn: () => openPage('settings', id) },
+    { label: 'Retirer de la barre d\'outils', icon: 'x', fn: () => setModule(id, { pinned: false }) },
+    { label: 'Gérer les extensions', icon: 'puzzle', fn: () => openPage('extensions') },
+  ].filter(Boolean));
+});
+// barre de traduction de la page
+function drawTrBar() {
+  const t = cur, tr = t && t.tr, bar = $('#trBar');
+  const show = tr && ['working', 'done', 'error'].includes(tr.state);
+  bar.classList.toggle('on', !!show);
+  if (!show) return;
+  const ln = c => { try { return new Intl.DisplayNames([(window.I18N && I18N.lang) || 'fr'], { type: 'language' }).of(c) || c; } catch { return c || ''; } };
+  $('#trTxt').textContent = tr.state === 'working' ? T('Traduction de la page…') + (tr.total ? ` ${Math.min(100, Math.round(100 * (tr.done || 0) / tr.total))} %` : '')
+    : tr.state === 'error' ? T('Traduction impossible : {0}').replace('{0}', tr.msg || '') : T('Page traduite : {0} → {1}').replace('{0}', ln(tr.from)).replace('{1}', ln(tr.to));
+  $('#trOrig').style.display = tr.state === 'error' ? 'none' : '';
+}
+$('#trOrig').onclick = () => pageCmd('translate-off');
+$('#trX').onclick = () => { if (cur) { cur.tr = null; drawTrBar(); drawMods(); } };
+B.on('page-cmd', ({ wcId, cmd, ...x }) => { const t = tabByWc(wcId); if (t) pageCmd(cmd, x, t); });
+B.on('toast', m => toast(m));
+
+// ---------- téléchargements faits par le navigateur (sans DrYAE) ----------
+let ND = [];
+function drawNdBtn() {
+  const act = ND.filter(d => d.state === 'progressing');
+  $('#bNd').classList.toggle('on', !modOn('capture') && (ND.length > 0 || panel === 'nd'));
+  $('#bNd').classList.toggle('busy', act.length > 0);
+  $('#ndN').textContent = act.length; $('#ndN').classList.toggle('on', act.length > 0);
+}
+function drawNd() {
+  $('#pTitle').textContent = T('Téléchargements du navigateur');
+  const st = d => d.state === 'completed' ? fmt(d.total || d.received) : d.state === 'cancelled' ? T('Annulé') : d.state === 'interrupted' ? T('Échec') : d.paused ? T('En pause') + ' · ' + fmt(d.received) + (d.total > 0 ? ' / ' + fmt(d.total) : '') : fmt(d.received) + (d.total > 0 ? ' / ' + fmt(d.total) : '');
+  $('#pBody').innerHTML = ND.length ? ND.map((d, i) => `<div class="nditem"><div class="n">${esc(d.name || d.url)}</div><div class="s">${esc(st(d))}</div>${d.state === 'progressing' && d.total > 0 ? `<div class="bar"><i style="width:${Math.round(100 * d.received / d.total)}%"></i></div>` : ''}
+    <div class="row">${d.state === 'completed' ? `<button class="btn sm" data-nd="open" data-i="${i}">${esc(T('Ouvrir'))}</button><button class="btn sm" data-nd="show" data-i="${i}">${esc(T('Afficher dans le dossier'))}</button>` : ''}
+    ${d.state === 'progressing' ? `<button class="btn sm" data-nd="${d.paused ? 'resume' : 'pause'}" data-i="${i}">${ic(d.paused ? 'play' : 'pause')}${esc(T(d.paused ? 'Reprendre' : 'Pause'))}</button><button class="btn sm" data-nd="cancel" data-i="${i}">${esc(T('Annuler'))}</button>` : `<button class="btn sm" data-nd="remove" data-i="${i}">${esc(T('Retirer de la liste'))}</button>`}</div></div>`).join('')
+    : `<p class="hint">${esc(T('Aucun téléchargement. Les fichiers sont enregistrés par le navigateur, sans passer par DrYAE (extension « Téléchargements par DrYAE » désactivée).'))}</p>`;
+  const f = $('#pFoot'); f.style.display = 'flex';
+  f.innerHTML = `<button class="btn sm" id="ndDir">${ic('folder')}${esc(T('Ouvrir le dossier'))}</button><button class="btn sm" id="ndClr">${ic('trash')}${esc(T('Effacer la liste'))}</button><span class="sp"></span><button class="btn sm" id="ndMgr">${esc(T('Gestionnaire DrYAE'))}</button>`;
+  $('#ndDir').onclick = () => B.call('br:ndFolder'); $('#ndClr').onclick = () => B.call('br:ndClear'); $('#ndMgr').onclick = () => B.call('br:openMain');
+  $('#pBody').onclick = e => { const b = e.target.closest('[data-nd]'); if (b) B.call('br:ndAct', ND[+b.dataset.i].id, b.dataset.nd); };
+}
+$('#bNd').onclick = () => togglePanel('nd');
+B.on('nd', list => { ND = list; drawNdBtn(); if (panel === 'nd') drawNd(); });
+B.on('nd-start', () => { togglePanel('nd', true); });
+
+// ---------- icône de mise à jour : visible dès l'ouverture, jusqu'à l'installation ----------
+let UPD = null;
+function drawUpd(u) {
+  if (u && u.ok !== undefined) u = u.v;
+  UPD = u || UPD;
+  const on = !!(UPD && ['available', 'downloading', 'ready'].includes(UPD.status));
+  $('#bUpd').classList.toggle('on', on);
+  if (on) $('#bUpd').title = UPD.status === 'ready' ? T('La mise à jour {0} est prête.').replace('{0}', UPD.version || '') : UPD.status === 'downloading' ? T('Téléchargement de la mise à jour… {0} %').replace('{0}', Math.round(UPD.progress || 0)) : T('DrYAE {0} est disponible.').replace('{0}', UPD.version || '');
+}
+$('#bUpd').onclick = e => {
+  const r = e.currentTarget.getBoundingClientRect();
+  const u = UPD || {};
+  menu(r.right - 300, r.bottom + 4, [
+    { title: u.status === 'ready' ? T('La mise à jour {0} est prête.').replace('{0}', u.version || '') : T('DrYAE {0} est disponible.').replace('{0}', u.version || '') },
+    u.status === 'downloading' ? { label: T('Téléchargement de la mise à jour… {0} %').replace('{0}', Math.round(u.progress || 0)), icon: 'upd', fn: () => {}, disabled: true }
+      : { label: u.status === 'ready' ? 'Redémarrer et installer' : 'Mettre à jour', icon: 'upd', hl: true, fn: () => B.call('upd:install') },
+    { label: 'Nouveautés de cette version', icon: 'help', fn: () => newTab((u.releasesUrl || 'https://github.com/DrYAE-FPA/DrYAE/releases') + '/latest') },
+  ]);
+};
+B.on('update-state', drawUpd);
+
+// ---------- pages internes et réglages ----------
+B.on('open-page', async ({ url }) => {
+  await ready;
+  const base = url.replace(/#.*$/, '');
+  const t = tabs.find(x => (x.url || '').replace(/#.*$/, '') === base);
+  if (t) { select(t); if (url !== t.url) navigate(t, url); }
+  else newTab(url);
+});
+B.on('nav-tab', ({ wcId, url }) => { const t = tabByWc(wcId); if (t) navigate(t, url); });
+B.on('cfg', c => { CFG = { ...CFG, ...c }; applyTheme(CFG.theme || {}); drawBmBar(); drawMods(); drawNdBtn(); updToolbar(); });
+B.on('ext-changed', () => {});
+ready.then(async () => {
+  BM = await B.call('br:bmTree');
+  drawBmBar(); drawMods(); drawNdBtn();
+  B.call('upd:info').then(drawUpd).catch(() => {});
+  ND = await B.call('br:nd'); drawNdBtn();
+});

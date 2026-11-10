@@ -77,14 +77,23 @@ DRM-protected videos (Netflix, Disney+…) cannot be downloaded.
   - middle-click a tab to close it;
   - double-click the tab bar to open a new tab;
   - Ctrl+wheel zooms.
-- **⋮ menu:** new tab, history, bookmarks, Downloads (the download manager), passwords, extensions, print, save as, translate page, find, zoom, **Browser settings** (search engine, privacy, ad blocker…, kept separate from the download manager's settings), more tools, help.
-- **Detected file(s):** the download button lists everything the page plays, with the size (estimated "~" for streams), the number of pieces, the resolution and the duration. **Clear all** empties the list, **Reset** shows it again, **Sort** changes the order, and "Select the files" lets you download several at once.
-- **Ad blocker:** click the shield to turn it off for a site.
-- **Passwords:** after you sign in, DrYAE offers to save the password. Passwords are encrypted by Windows on your PC. In the Passwords panel:
-  - **Import a .csv file…** brings in passwords exported from another browser or a password manager (url, username, password columns);
-  - **Export to .csv…** makes a copy. The file isn't encrypted, so keep it somewhere safe.
-- **Autofill:** fill in your profile (name, email, address…). DrYAE then offers "Fill in with my profile" in forms.
-- **Chrome extensions:** open the Chrome Web Store from the Extensions panel, then click "Add to Chrome". If the store doesn't load, paste the extension's page link (or its ID) into **Install from a link**.
+- **⋮ menu:** new tab, private tab, **Passwords and autofill**, **History** (with recently closed tabs), **Downloads**, **Bookmarks**, **Extensions**, clear browsing data, zoom, print, translate page, find, save as, more tools, help, **Settings**.
+- **Management pages:** History (Ctrl+H), Bookmarks (Ctrl+Shift+O), Passwords, Extensions (Ctrl+Shift+A) and Settings open in a tab. They work with the keyboard like the download manager: ↑ ↓ to move, Shift+↑↓ or Ctrl+click to select, Ctrl+A select all, Enter open, Ctrl+Enter new tab, Del delete, F2 edit, Ctrl+Z undo, Ctrl+F search.
+- **History:** by date or by site; "Clear browsing data" (Ctrl+Shift+Del) with a time range (15 minutes, 1 hour, 24 hours, 7 days, 4 weeks, all time).
+- **Bookmarks:** the star (Ctrl+D) adds the page and lets you choose its name and folder; Ctrl+Shift+D bookmarks all tabs; Ctrl+Shift+B shows the **bookmarks bar** (drag and drop, right-click, folders). The bookmark manager organizes, sorts, imports and exports (HTML file).
+- **Detected file(s):** the download button lists everything the page plays, with the size (estimated "~" for streams), the number of pieces, the resolution and the duration.
+- **Passwords:** after you sign in, DrYAE offers to save the password; on a sign-up page it suggests a strong password. Passwords are encrypted by Windows on your PC. The Passwords page groups them by site and offers:
+  - **Check-up**: breached, reused or weak passwords;
+  - **Payment methods** (cards, without the CVC) and **Addresses**, offered in forms;
+  - **Settings**: Windows Hello before showing a password, .csv import/export (url, username, password columns), refused sites.
+- **Built-in extensions** (Extensions page: turn on/off, show in the toolbar, remove, options):
+  - **Ad blocker**: shield to turn it off on a site, filter lists, right-click → "Hide this element…";
+  - **Downloads with DrYAE**: when off, the browser saves files itself (downloads button in the toolbar);
+  - **Translator**: select text and click "Translate", or translate the page (Ctrl+Shift+E);
+  - **Image text translator**: Ctrl+Shift+S or right-click an image → "Translate image text"; choose the image language in Settings (downloaded the first time);
+  - **Dimmed lights** (Ctrl+Shift+L) and per-site night mode;
+  - **Picture-in-picture**: button on videos, or Ctrl+Shift+U.
+- **Chrome extensions:** open the Chrome Web Store from the Extensions page, then click "Add to Chrome". If the store does not show, paste the extension's link (or ID) into **Install from a link**.
 - If a "Are you human?" check doesn't pass, use **⋮ → Open this page in Chrome** with the DrYAE extension (see section 7).
 
 ## 6. Scheduler and limits

@@ -72,12 +72,23 @@ Les vidéos protégées par DRM (Netflix, Disney+…) ne peuvent pas être tél�
 ## 5. Le navigateur intégré
 - **Onglets :** Ctrl+T pour un nouvel onglet, Ctrl+Maj+N pour un onglet privé, Ctrl+W pour fermer. Faites glisser les onglets pour les réorganiser. Un onglet ne se charge que lorsque vous l'ouvrez.
 - **Souris :** boutons latéraux pour page précédente / suivante ; clic du milieu ou Ctrl+clic sur un lien pour l'ouvrir dans un onglet en arrière-plan ; clic du milieu sur un onglet pour le fermer ; double-clic dans la barre d'onglets pour en ouvrir un ; Ctrl+molette pour le zoom.
-- **Menu ⋮ :** nouvel onglet, historique, marque-pages, Téléchargements (le gestionnaire), mots de passe, extensions, imprimer, enregistrer sous, traduire la page, rechercher, zoom, **Paramètres du navigateur** (moteur de recherche, vie privée, bloqueur de publicités…, séparés de ceux du gestionnaire), outils supplémentaires, aide.
+- **Menu ⋮ :** nouvel onglet, onglet privé, **Mots de passe et saisie automatique**, **Historique** (avec les onglets fermés récemment), **Téléchargements**, **Favoris**, **Extensions**, effacer les données de navigation, zoom, imprimer, traduire la page, rechercher, enregistrer sous, outils supplémentaires, aide, **Paramètres**.
+- **Pages de gestion :** Historique (Ctrl+H), Favoris (Ctrl+Maj+O), Mots de passe, Extensions (Ctrl+Maj+A) et Paramètres s'ouvrent dans un onglet. Elles se pilotent au clavier comme le gestionnaire : ↑ ↓ pour se déplacer, Maj+↑↓ ou Ctrl+clic pour sélectionner, Ctrl+A tout sélectionner, Entrée ouvrir, Ctrl+Entrée nouvel onglet, Suppr supprimer, F2 modifier, Ctrl+Z annuler, Ctrl+F rechercher.
+- **Historique :** par date ou par site ; « Effacer les données de navigation » (Ctrl+Maj+Suppr) avec la période (15 minutes, 1 heure, 24 heures, 7 jours, 4 semaines, depuis le début).
+- **Favoris :** l'étoile (Ctrl+D) ajoute la page et permet de choisir son nom et son dossier ; Ctrl+Maj+D ajoute tous les onglets ; Ctrl+Maj+B affiche la **barre de favoris** (glisser-déposer, clic droit, dossiers). Le gestionnaire de favoris range, trie, importe et exporte (fichier HTML).
 - **Fichier(s) détecté(s) :** le bouton de téléchargement liste tout ce que la page lit, avec la taille (estimée « ~ » pour les flux), le nombre de morceaux, la résolution et la durée. **Tout effacer** vide la liste, **Réinitialiser** la réaffiche, **Trier** change l'ordre, et « Sélectionner les fichiers » permet d'en télécharger plusieurs d'un coup.
-- **Bloqueur de publicités :** cliquez sur le bouclier pour le désactiver sur un site.
-- **Mots de passe :** après une connexion, DrYAE propose de l'enregistrer. Les mots de passe sont chiffrés par Windows sur votre PC. Dans le panneau Mots de passe, **Importer un fichier .csv…** reprend les mots de passe exportés depuis un autre navigateur ou un gestionnaire de mots de passe (colonnes url, username, password) ; **Exporter en .csv…** en fait une copie (le fichier n'est pas chiffré : gardez-le en lieu sûr).
-- **Saisie automatique :** remplissez votre profil (nom, e-mail, adresse…). DrYAE propose ensuite « Remplir avec mon profil » dans les formulaires.
-- **Extensions Chrome :** ouvrez le Chrome Web Store depuis le panneau Extensions, puis cliquez sur « Ajouter à Chrome ». Si la boutique ne s'affiche pas, copiez le lien de la page de l'extension (ou son identifiant) dans **Installer avec un lien**.
+- **Mots de passe :** après une connexion, DrYAE propose de l'enregistrer ; sur une page d'inscription, il propose un mot de passe fort. Les mots de passe sont chiffrés par Windows sur votre PC. La page Mots de passe les range par site et propose :
+  - **Vérification** : mots de passe compromis (fuites connues), réutilisés ou faibles ;
+  - **Modes de paiement** (cartes, sans le code CVC) et **Adresses**, proposés dans les formulaires ;
+  - **Paramètres** : Windows Hello avant d'afficher un mot de passe, import / export .csv (colonnes url, username, password), sites refusés.
+- **Extensions intégrées** (page Extensions : activer, afficher dans la barre d'outils, retirer, options) :
+  - **Bloqueur de publicités** : bouclier pour le désactiver sur un site, listes au choix, clic droit → « Masquer cet élément… » pour cacher un élément gênant ;
+  - **Téléchargements par DrYAE** : désactivée, le navigateur enregistre lui-même les fichiers (bouton de téléchargements dans la barre d'outils) ;
+  - **Traducteur** : sélectionnez un texte puis cliquez sur le bouton « Traduire », ou traduisez la page (Ctrl+Maj+E) ;
+  - **Traducteur de scans** : Ctrl+Maj+S ou clic droit sur une image → « Traduire le texte de l'image » ; la langue des images se choisit dans les paramètres (téléchargée la première fois) ;
+  - **Lumières tamisées** (Ctrl+Maj+L) et mode nuit par site ;
+  - **Image dans l'image** : bouton sur les vidéos, ou Ctrl+Maj+U.
+- **Extensions Chrome :** ouvrez le Chrome Web Store depuis la page Extensions, puis cliquez sur « Ajouter à Chrome ». Si la boutique ne s'affiche pas, copiez le lien de la page de l'extension (ou son identifiant) dans **Installer avec un lien**.
 - Si une vérification « Êtes-vous un humain ? » ne passe pas, utilisez **⋮ → Ouvrir cette page dans Chrome** avec l'extension DrYAE (voir section 7).
 
 ## 6. Planificateur et limites

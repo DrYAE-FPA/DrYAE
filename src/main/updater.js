@@ -48,7 +48,7 @@ class Updater {
       autoUpdater.on('error', e => this.set({ status: 'error', error: String(e && e.message || e).split('\n')[0] }));
       this.au = autoUpdater;
       // vérification automatique (désactivable dans Paramètres → À propos)
-      setTimeout(() => this.auto() && this.check(), 15000);
+      setTimeout(() => this.auto() && this.check(), 4000); // tôt : l'icône de mise à jour s'affiche dès l'ouverture
       setInterval(() => this.auto() && this.check(), 6 * 3600 * 1000);
     } catch (e) { console.error('updater', e.message); }
   }

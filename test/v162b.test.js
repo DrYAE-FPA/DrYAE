@@ -29,16 +29,14 @@ const OUT = '/tmp/claude-0/shots162b'; fs.rmSync(OUT, { recursive: true, force: 
   await b.evaluate(() => cur.wv.loadURL('data:text/html,<h1>page2</h1>')); await b.waitForTimeout(1200);
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].emit('app-command', {}, 'browser-backward')); await b.waitForTimeout(1000);
   console.log('bouton précédent :', await b.evaluate(() => cur.wv.getURL().slice(0, 40)));
-  // panneau mots de passe
-  await b.click('#bMenu'); await b.waitForTimeout(300); await b.screenshot({ path: OUT + '/menu.png' }); await b.keyboard.press('Escape'); await b.evaluate(() => togglePanel('passwords', true));
-  await b.waitForTimeout(500);
-  console.log('import csv :', !!(await b.$('#pwImp')), 'export :', !!(await b.$('#pwExp')));
-  await b.screenshot({ path: OUT + '/pw.png' });
-  await b.evaluate(() => togglePanel('extensions', true)); await b.waitForTimeout(600);
-  console.log('installer avec un lien :', !!(await b.$('#exGo')));
-  await b.fill('#exId', 'pas-un-id'); await b.click('#exGo'); await b.waitForTimeout(500);
-  console.log('toast :', await b.evaluate(() => document.querySelector('.toast')?.textContent || ''));
-  await b.screenshot({ path: OUT + '/ext.png' });
+  // 1.6.4 : mots de passe et extensions sont des pages (dryae://passwords, dryae://extensions)
+  const page = async n => { await b.evaluate(x => B.call('br:openPage', x), n); let pg; for (let i = 0; i < 30 && !pg; i++) { pg = app.windows().find(x => x.url().startsWith('dryae://' + n)); await new Promise(r => setTimeout(r, 200)); } await pg.waitForTimeout(800); return pg; };
+  const pw = await page('passwords'); await pw.evaluate(() => go('settings')); await pw.waitForTimeout(300);
+  console.log('import csv :', !!(await pw.$('#imp')), 'export :', !!(await pw.$('#exp')));
+  const ex = await page('extensions');
+  console.log('installer avec un lien :', !!(await ex.$('#lnkGo')));
+  await ex.fill('#lnk', 'pas-un-id'); await ex.click('#lnkGo'); await ex.waitForTimeout(500);
+  console.log('message :', await ex.evaluate(() => document.querySelector('.ptoast')?.textContent || ''));
   console.log('userAgentFallback :', await app.evaluate(({ app }) => app.userAgentFallback.replace(/\d+\.0\.0\.0/, 'N')));
   await app.close(); process.exit(0);
 })().catch(e => { console.error(e); process.exit(1); });

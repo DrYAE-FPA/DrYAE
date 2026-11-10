@@ -17,6 +17,8 @@ const { isOnlineVideo } = require('./engine/ytdl');
 const http = require('http');
 const EXT_ID = 'pbgpfnhoilokfcjmfamemnjaddkpmmhf';
 const { expandBatch, hostOf, nameFromUrl } = require('./util');
+const pages = require('./pages');
+pages.registerScheme(); // pages internes dryae:// (à déclarer avant le démarrage)
 
 app.setName('DrYAE');
 app.setAppUserModelId('com.dryae.app');
@@ -60,6 +62,11 @@ const api = {
   openFeedback() { const u = updater?.info(); if (u) shell.openExternal(u.feedbackUrl || u.repoUrl || 'https://github.com'); },
   hostWindow() { if (!win) createWindow(); return win; },
   onModeChange(m) { send('mode', m); if (m === 'manager') send('reload', manager.views()); },
+  setLang(l) { return setLang(l); },
+  languages() { return Object.entries(I18N.LANGS).map(([code, v]) => ({ code, name: v.name })); },
+  updateInfo() { return updater?.info(); },
+  updateCheck() { return updater?.check(); },
+  updateInstall() { return updater?.install(); },
   savePassword(host, user, pass) {
     const list = settings.get().passwords.filter(p => p.host !== host);
     list.push({ host, user, pass: enc(pass) });
@@ -72,6 +79,8 @@ const api = {
 };
 
 function send(ch, v) { if (win && !win.isDestroyed()) win.webContents.send(ch, v); }
+// état de la mise à jour : envoyé au gestionnaire, au navigateur et aux pages internes (icône visible partout)
+function sendUpd(ch, v) { send(ch, v); try { browser?.wc?.send(ch, v); } catch {} pages.broadcast(ch, v); }
 
 function createWindow() {
   const b = settings.get().restoreSession ? settings.get().winBounds : null;
@@ -122,6 +131,7 @@ function handleArgs(argv) {
     if (/^magnet:/i.test(a)) pendingArgs.push({ torrent: a });
     else if (/\.torrent$/i.test(a) && fs.existsSync(a)) pendingArgs.push({ torrent: a });
     else if (/^https?:\/\//i.test(a)) pendingArgs.push({ url: a });
+    else if (/^--open=dryae:\/\/\w+/i.test(a)) pendingArgs.push({ page: a.slice(7) });
   }
   flushArgs();
 }
@@ -129,6 +139,7 @@ function flushArgs() {
   if (!win || win.webContents.isLoading()) return;
   while (pendingArgs.length) {
     const a = pendingArgs.shift();
+    if (a.page) { const m = /^dryae:\/\/(\w+)/i.exec(a.page); if (m) browser?.openPage(m[1].toLowerCase()); continue; }
     api.showMain();
     if (a.torrent) send('prompt-torrent', { src: a.torrent });
     else send('prompt-add', { url: a.url });
@@ -187,7 +198,7 @@ app.whenReady().then(async () => {
   await browser.init();
   manager.cookieFileFor = url => browser.cookieFile(url);
   startExtensionServer();
-  updater = new Updater({ send, notify: api.notify, T, beforeInstall: () => { browser?.saveStoreSync(); manager?.saveSync(); settings?.save?.(); backupData(); }, auto: () => settings.get().autoUpdateCheck !== false });
+  updater = new Updater({ send: sendUpd, notify: api.notify, T, beforeInstall: () => { browser?.saveStoreSync(); manager?.saveSync(); settings?.save?.(); backupData(); }, auto: () => settings.get().autoUpdateCheck !== false });
   updater.init();
   settings.on('change', (_d, patch) => { if (patch.theme) browser.sendTheme(); });
 
@@ -219,7 +230,10 @@ app.whenReady().then(async () => {
     else if (!busy && psb !== null) { powerSaveBlocker.stop(psb); psb = null; }
   }, 5000);
 
-  app.on('web-contents-created', (_e, wc) => { if (wc.getType() === 'webview') browser.attachWebview(wc); });
+  app.on('web-contents-created', (_e, wc) => {
+    if (wc.getType() === 'webview') browser.attachWebview(wc);
+    else if (wc.getType() === 'window') setImmediate(() => { try { if (!wc.isDestroyed() && browser.isWebSession(wc.session)) browser.attachPopup(wc); } catch {} });
+  });
   app.on('login', (e, wc, details, authInfo, cb) => {
     if (wc && wc.getType && wc.getType() === 'webview') { e.preventDefault(); browser.handleLogin(wc, details, authInfo, cb); }
   });
@@ -359,7 +373,7 @@ H('clipboard', () => clipboard.readText());
 H('copy', t => clipboard.writeText(String(t)));
 H('version', () => app.getVersion());
 H('languages', () => Object.entries(I18N.LANGS).map(([code, v]) => ({ code, name: v.name })));
-H('setLang', lang => {
+function setLang(lang) {
   lang = I18N.normalize(lang);
   settings.set({ lang, langChosen: true });
   i18n = I18N.create(lang, LOCALES);
@@ -367,7 +381,8 @@ H('setLang', lang => {
   win?.webContents.reload();
   if (browser?.wc) browser.wc.reload();
   return lang;
-});
+}
+H('setLang', setLang);
 H('upd:info', () => updater.info());
 H('upd:check', () => updater.check());
 H('upd:install', () => updater.install());

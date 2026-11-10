@@ -125,6 +125,40 @@ browser-action-list::part(action):hover{background:var(--panel2)}
 .tfr .s{color:var(--muted);font-variant-numeric:tabular-nums}
 .qopt b{font-size:13px}.qopt span{color:var(--muted);font-size:11px}
 .qopt.best{border-color:var(--accent-line)}
+.bmbar{display:none;align-items:center;gap:2px;padding:3px 8px;background:var(--bg);border-bottom:1px solid var(--line);flex:none;min-height:30px;overflow:hidden}
+.bmbar.on{display:flex}
+.bmbar .bi{display:inline-flex;align-items:center;gap:6px;max-width:170px;padding:4px 8px;border-radius:7px;color:var(--muted);font-size:12px;white-space:nowrap}
+.bmbar .bi:hover{background:var(--panel2);color:var(--text)}
+.bmbar .bi span{overflow:hidden;text-overflow:ellipsis}
+.bmbar .bi img,.bmbar .bi svg{width:14px;height:14px;flex:none;border-radius:3px}
+.bmbar .bi.drop-l{box-shadow:inset 2px 0 0 var(--accent)}.bmbar .bi.drop-r{box-shadow:inset -2px 0 0 var(--accent)}
+.bmbar .sp{flex:1}
+.bmbar .empty{color:var(--dim);font-size:11.5px;padding:0 6px}
+.trbar{display:none;align-items:center;gap:10px;padding:6px 14px;background:var(--panel2);border-bottom:1px solid var(--line);flex:none;font-size:12.5px}
+.trbar.on{display:flex}
+.trbar svg{color:var(--accent)}
+.trbar span{flex:1}
+.tb.upd{color:#fff;background:var(--ok);display:none}.tb.upd.on{display:inline-flex}.tb.upd:hover{filter:brightness(1.1);background:var(--ok);color:#fff}
+.tb.upd .dot{position:absolute;top:3px;right:3px;width:7px;height:7px;border-radius:50%;background:#fff;animation:pulse 1.6s infinite}
+@keyframes pulse{50%{opacity:.25}}
+.tb.mod.act{color:var(--accent);background:var(--accent-soft)}
+.tb.nd{display:none}.tb.nd.on{display:inline-flex}
+.tb.nd .ring{position:absolute;inset:3px;border-radius:50%;border:2px solid transparent;border-top-color:var(--accent);animation:spin 1s linear infinite;display:none}.tb.nd.busy .ring{display:block}
+.menu .mtitle{padding:8px 12px 3px;font-size:10.5px;text-transform:uppercase;letter-spacing:.8px;color:var(--dim);font-weight:600}
+.menu button .mck{width:16px;color:var(--accent)}
+.menu button img.mfav{width:16px;height:16px;border-radius:3px;flex:none}
+.bmedit{position:fixed;z-index:30;width:320px;display:none;background:var(--panel);border:1px solid var(--line2);border-radius:12px;box-shadow:var(--shadow);padding:14px}
+.bmedit.on{display:block}
+.bmedit h4{margin:0 0 10px;font-size:14px}
+.bmedit label{display:block;font-size:11.5px;color:var(--muted);margin:8px 0 4px}
+.bmedit input,.bmedit select{width:100%}
+.bmedit .row{display:flex;gap:6px;justify-content:flex-end;margin-top:14px}
+.nditem{padding:10px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;background:var(--panel2)}
+.nditem .n{font-weight:600;word-break:break-all;font-size:12.5px}
+.nditem .s{color:var(--muted);font-size:11.5px;margin:3px 0 6px}
+.nditem .bar{height:4px;border-radius:9px;background:var(--line);overflow:hidden;margin-bottom:6px}.nditem .bar i{display:block;height:100%;background:var(--accent)}
+.nditem .row{display:flex;gap:4px;flex-wrap:wrap}
+.lock.int{color:var(--accent)!important}
 .spin{width:22px;height:22px;border:3px solid var(--line2);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;margin:18px auto}
 </style>
 </head>
@@ -172,6 +206,23 @@ browser-action-list::part(action):hover{background:var(--panel2)}
   <symbol id="i-sort" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4"/></symbol>
   <symbol id="i-film" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16M3 8h4M3 12h4M3 16h4M17 8h4M17 12h4M17 16h4"/></symbol>
   <symbol id="i-music" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></symbol>
+  <symbol id="i-translate" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 5h9M8.5 3v2M6 5c.6 3 2.6 5.6 5 7M11 5c-.8 3.6-3.2 6.8-7 8.5"/><path d="M13 20l4-9 4 9M14.5 17h5"/></symbol>
+  <symbol id="i-scan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8V5a1 1 0 011-1h3M16 4h3a1 1 0 011 1v3M20 16v3a1 1 0 01-1 1h-3M8 20H5a1 1 0 01-1-1v-3"/><path d="M8 10.5c0-1.4 1.8-2.5 4-2.5s4 1.1 4 2.5-1.8 2.5-4 2.5l-2 2v-2.2c-1.2-.4-2-1.3-2-2.3z"/></symbol>
+  <symbol id="i-bulb" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 00-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0012 3z"/></symbol>
+  <symbol id="i-pip" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><rect x="12" y="11" width="7" height="6" rx="1" fill="currentColor"/></symbol>
+  <symbol id="i-card" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0114 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></symbol>
+  <symbol id="i-store" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9l1.5-5h13L20 9M4 9h16v10a1 1 0 01-1 1H5a1 1 0 01-1-1zM4 9a2.7 2.7 0 005.3 0 2.7 2.7 0 005.4 0A2.7 2.7 0 0020 9"/></symbol>
+  <symbol id="i-bar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M7 6.5h.01M10 6.5h.01"/></symbol>
+  <symbol id="i-upd" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 15V4m0 0l-4 4m4-4l4 4"/><path d="M5 14v4a2 2 0 002 2h10a2 2 0 002-2v-4"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></symbol>
+  <symbol id="i-import" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></symbol>
+  <symbol id="i-stars" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 4l1.8 3.7 4 .6-2.9 2.8.7 4L9 13.2 5.4 15.1l.7-4L3.2 8.3l4-.6zM17 12l1 2 2.2.3-1.6 1.6.4 2.2-2-1-2 1 .4-2.2-1.6-1.6L16 14z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5v14l12-7z"/></symbol>
+  <symbol id="i-dryae" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9 8h3.5a4 4 0 010 8H9z"/></symbol>
   <symbol id="i-file" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H6a1 1 0 00-1 1v16a1 1 0 001 1h12a1 1 0 001-1V8z"/><path d="M14 3v5h5"/></symbol>
 </svg>
 
@@ -181,13 +232,18 @@ browser-action-list::part(action):hover{background:var(--panel2)}
   <button class="tb" id="bFwd" title="Suivant (Alt+→)"><svg><use href="#i-fwd"/></svg></button>
   <button class="tb" id="bReload" title="Actualiser (F5)"><svg><use href="#i-reload" id="reloadIc"/></svg></button>
   <button class="tb" id="bHome" title="Accueil"><svg><use href="#i-home"/></svg></button>
-  <div class="addr"><svg class="lock no" id="lock"><use href="#i-lock"/></svg><input id="url" placeholder="Rechercher ou saisir une adresse" spellcheck="false"><span class="zoom" id="zoom"></span><button class="tb" id="bStar" title="Ajouter aux favoris"><svg><use href="#i-star" id="starIc"/></svg></button></div>
+  <div class="addr"><svg class="lock no" id="lock"><use href="#i-lock" id="lockIc"/></svg><input id="url" placeholder="Rechercher ou saisir une adresse" spellcheck="false"><span class="zoom" id="zoom"></span><button class="tb" id="bStar" title="Ajouter aux favoris"><svg><use href="#i-star" id="starIc"/></svg></button></div>
+  <span id="modBar" style="display:contents"></span>
  <browser-action-list id="extBar" partition="persist:dryae-web" alignment="bottom right"></browser-action-list>
   <button class="tb shield" id="bShield" title="Bloqueur de publicités"><svg><use href="#i-shield"/></svg><span class="n" id="shieldN"></span></button>
-  <button class="tb dl" id="bDrYAE" title="Téléchargements de cette page"><svg><use href="#i-dl"/></svg><span class="n" id="dlN"></span></button>
+  <button class="tb dl" id="bDrYAE" title="Fichiers détectés sur cette page"><svg><use href="#i-dl"/></svg><span class="n" id="dlN"></span></button>
+  <button class="tb nd" id="bNd" title="Téléchargements du navigateur"><svg><use href="#i-dl"/></svg><i class="ring"></i><span class="n" id="ndN"></span></button>
+  <button class="tb upd" id="bUpd" title="Mise à jour de DrYAE disponible"><svg><use href="#i-upd"/></svg><i class="dot"></i></button>
   <button class="tb" id="bMenu" title="Menu"><svg><use href="#i-menu"/></svg></button>
 </div>
+<div class="bmbar" id="bmbar"></div>
 <div class="loadbar"><i id="loadbar"></i></div>
+<div class="trbar" id="trBar"><svg><use href="#i-translate"/></svg><span id="trTxt"></span><button class="btn sm" id="trOrig">Afficher l'original</button><button class="icon-btn" id="trX" title="Fermer"><svg><use href="#i-x"/></svg></button></div>
 <div class="pwbar" id="pwBar"><svg><use href="#i-key"/></svg><span></span><button class="btn sm primary" id="pwSave">Enregistrer</button><button class="btn sm" id="pwNever">Jamais pour ce site</button><button class="icon-btn" id="pwLater" title="Plus tard"><svg><use href="#i-x"/></svg></button></div>
 <div class="stage">
   <div class="views" id="views">
@@ -228,71 +284,11 @@ browser-action-list::part(action):hover{background:var(--panel2)}
   <h3>Raccourcis clavier du navigateur<button class="icon-btn x" data-close><svg><use href="#i-x"/></svg></button></h3>
   <div class="kbd-list"></div>
 </div></div>
-<!-- effacer les données -->
-<div class="overlay" id="cdModal"><div class="modal" style="width:min(420px,100%)">
-  <h3>Effacer l'historique récent<button class="icon-btn x" data-close><svg><use href="#i-x"/></svg></button></h3>
-  <label class="check"><input type="checkbox" id="cdHist" checked> Historique de navigation</label>
-  <label class="check"><input type="checkbox" id="cdCookies"> Cookies et connexions aux sites</label>
-  <label class="check"><input type="checkbox" id="cdCache" checked> Fichiers en cache</label>
-  <div class="modal-foot"><button class="btn" data-close>Annuler</button><button class="btn primary" id="cdOk">Effacer</button></div>
-</div></div>
-<!-- paramètres propres au navigateur -->
-<div class="overlay" id="bsModal"><div class="modal wide">
-  <h3>Paramètres du navigateur<button class="icon-btn x" data-close><svg><use href="#i-x"/></svg></button></h3>
-  <div class="settings">
-    <nav id="bsNav">
-      <button data-s="gen" class="on">Général</button><button data-s="priv">Vie privée et sécurité</button><button data-s="ads">Bloqueur de publicités</button>
-      <button data-s="pw">Mots de passe et saisie</button><button data-s="ext">Extensions</button><button data-s="adv">Avancé</button>
-    </nav>
-    <div>
-      <section data-s="gen" class="on">
-        <h4>Général</h4>
-        <div class="grid2">
-          <div><label>Moteur de recherche</label><select id="wSearch"><option value="google">Google</option><option value="bing">Bing</option><option value="duckduckgo">DuckDuckGo</option><option value="qwant">Qwant</option><option value="brave">Brave</option><option value="yahoo">Yahoo</option></select></div>
-          <div><label>Mode d'affichage</label><select id="wUA"><option value="desktop">Ordinateur</option><option value="mobile">Mobile</option></select></div>
-        </div>
-        <label class="check"><input type="checkbox" id="wRestore"> Rouvrir au prochain lancement les onglets laissés ouverts</label>
-        <label class="check"><input type="checkbox" id="wPop"> Bloquer les fenêtres pop-up</label>
-        <div class="sect">Téléchargements</div>
-        <p class="hint">Les téléchargements ont leurs propres réglages dans le gestionnaire.</p>
-        <div class="row" style="margin-top:8px"><button class="btn" id="wDlSet">Ouvrir les paramètres de téléchargement</button></div>
-      </section>
-      <section data-s="priv">
-        <h4>Vie privée et sécurité</h4>
-        <label class="check"><input type="checkbox" id="wClear"> Effacer l'historique et les cookies en fermant le navigateur</label>
-        <label class="check"><input type="checkbox" id="wCookies"> Transmettre les cookies du navigateur aux téléchargements</label>
-        <label>DNS sécurisé (DNS-over-HTTPS, appliqué au redémarrage)</label>
-        <select id="wDoh"><option value="">Désactivé (DNS du système)</option><option value="https://cloudflare-dns.com/dns-query">Cloudflare</option><option value="https://dns.google/dns-query">Google</option><option value="https://dns.quad9.net/dns-query">Quad9</option><option value="https://dns.adguard-dns.com/dns-query">AdGuard (bloque les pubs)</option></select>
-        <div class="row" style="margin-top:14px;gap:8px"><button class="btn" id="wClearNow">Effacer l'historique récent…</button></div>
-      </section>
-      <section data-s="ads">
-        <h4>Bloqueur de publicités</h4>
-        <label class="check"><input type="checkbox" id="wAd"> Bloquer les publicités et les traqueurs</label>
-        <label>Listes de filtres supplémentaires (une adresse par ligne)</label><textarea id="wLists" style="min-height:60px"></textarea>
-        <label>Sources de fichiers hosts (une adresse par ligne)</label><textarea id="wHosts" style="min-height:50px"></textarea>
-        <label>Filtres personnalisés (syntaxe Adblock)</label><textarea id="wCustom" style="min-height:50px" placeholder="||pub.exemple.com^"></textarea>
-        <label>Sites autorisés (bloqueur désactivé)</label><div class="list-edit" id="wWhite"></div>
-        <div class="row" style="margin-top:10px"><button class="btn" id="wUpdate">Mettre à jour les filtres maintenant</button><span class="hint" id="wUpdSt"></span></div>
-      </section>
-      <section data-s="pw">
-        <h4>Mots de passe et saisie automatique</h4>
-        <p class="hint">Les mots de passe sont chiffrés par Windows sur ce PC.</p>
-        <div class="row" style="margin-top:10px;gap:8px"><button class="btn" id="wPwOpen">Mots de passe enregistrés</button><button class="btn" id="wAfOpen">Saisie automatique</button></div>
-      </section>
-      <section data-s="ext">
-        <h4>Extensions</h4>
-        <p class="hint">Ouvre le Chrome Web Store, choisis une extension, puis clique « Ajouter à Chrome ».</p>
-        <div class="row" style="margin-top:10px;gap:8px"><button class="btn" id="wExtOpen">Gérer les extensions</button></div>
-      </section>
-      <section data-s="adv">
-        <h4>Avancé</h4>
-        <label class="check"><input type="checkbox" id="wSub"> Détecter les sous-titres</label>
-        <label>Types de fichiers supplémentaires à détecter</label><input type="text" id="wExtra" placeholder="zip,rar,apk,pdf">
-      </section>
-    </div>
-  </div>
-  <div class="modal-foot"><button class="btn" data-close>Annuler</button><button class="btn primary" id="wOk">Enregistrer</button></div>
-</div></div>
+<div class="bmedit" id="bmEdit"><h4 id="bmeH">Favori ajouté</h4>
+  <label>Nom</label><input type="text" id="bmeName" spellcheck="false">
+  <label>Dossier</label><select id="bmeFolder"></select>
+  <div class="row"><button class="btn sm" id="bmeDel">Supprimer</button><button class="btn sm" id="bmeMgr">Gérer…</button><span style="flex:1"></span><button class="btn sm primary" id="bmeOk">Terminé</button></div>
+</div>
 <div class="toast" id="toast"></div>
 <script src="../shared/locales.js"></script>
 <script src="../shared/i18n.js"></script>

@@ -51,7 +51,7 @@ http.createServer((q,r)=>{
  console.log('Ctrl+T depuis la page :', n0, '->', await b.evaluate(()=>tabs.length)); await b.keyboard.press('Control+w'); await b.waitForTimeout(400); console.log('Ctrl+W :', await b.evaluate(()=>tabs.length));
  await b.keyboard.press('F1'); await b.waitForTimeout(300); console.log('F1 navigateur :', await b.evaluate(()=>document.querySelectorAll('#kbModal .kbd-list div').length)); await b.screenshot({path:OUT+'/b2-raccourcis.png'}); await b.keyboard.press('Escape');
  // paramètres du navigateur
- await b.evaluate(()=>openBrowserSettings()); await b.waitForTimeout(500); await b.screenshot({path:OUT+'/b3-parametres.png'}); console.log('paramètres navigateur :', (await b.$$eval('#bsNav button',x=>x.map(e=>e.textContent))).join(' | ')); await b.click('#bsModal [data-close]');
+ await b.evaluate(()=>B.call('br:openPage','settings')); let sp; for(let i=0;i<30&&!sp;i++){ sp=app.windows().find(x=>x.url().startsWith('dryae://settings')); await new Promise(r=>setTimeout(r,200)); } await sp.waitForTimeout(800); console.log('paramètres navigateur :', (await sp.$$eval('#nav button',x=>x.map(e=>e.textContent))).join(' | ')); await b.evaluate(()=>{ const t=tabs.find(x=>/^dryae:/.test(x.url)); if(t) closeTab(t); select(tabs[0]); }); await b.waitForTimeout(400);
  // fichiers détectés
  await b.click('#bDrYAE'); await b.waitForTimeout(3500); await b.screenshot({path:OUT+'/b4-detectes.png'});
  console.log('détectés :', (await b.textContent('#pBody')).replace(/\s+/g,' ').slice(0,260));

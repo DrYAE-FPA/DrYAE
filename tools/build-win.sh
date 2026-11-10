@@ -23,6 +23,10 @@ if [ "$STAGE" != "installer" ]; then
   # retirer les binaires des autres systèmes
   find $A/node_modules -type d -path "*/prebuilds/*" ! -name "win32-x64" -prune -exec rm -rf {} + 2>/dev/null || true
   rm -rf $A/node_modules/7zip-bin/linux $A/node_modules/7zip-bin/mac
+  # lecture du texte des images : les copies « .wasm.js » (version navigateur) ne servent pas ici (~25 Mo)
+  T=$A/node_modules/tesseract.js-core
+  [ -d "$T" ] && find "$T" -maxdepth 1 -name '*.wasm.js' -delete
+  rm -rf $A/node_modules/tesseract.js/dist
   # licences et notes
   mv dist/DrYAE/LICENSE dist/DrYAE/LICENSE.electron.txt
   cp LICENSE dist/DrYAE/LICENSE.txt

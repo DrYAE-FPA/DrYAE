@@ -4,14 +4,13 @@
 
 ---
 
-## ✨ Nouveautés de la version 1.6.3 / What's new
+## ✨ Nouveautés de la version 1.6.4 / What's new
 
-- 🛠️ **1.6.3** : correctifs (bouton Paramètres, démarrage caché), entrée Téléchargements mise en avant dans le menu du navigateur, copie de sécurité des données avant chaque mise à jour.
-
-- 🪟 **Le gestionnaire fonctionne comme un dossier Windows** : affichages (icônes, liste, détails, contenu), barre de commandes, sélection au rectangle, glisser-déposer, raccourcis de Windows (Ctrl+C, Ctrl+Z, F2, Alt+Entrée…).
-- 🚀 **Démarrage discret** : avec Windows, DrYAE reste caché dans les icônes de la barre des tâches. Un clic ouvre le navigateur.
-- 🖱️ **Navigateur** : boutons latéraux de la souris, clic du milieu, Ctrl+molette ; vérification « Je ne suis pas un robot » améliorée.
-- 🔑 **Mots de passe** : import et export en .csv. 🧩 **Extensions** : installation par lien.
+- 🗂️ **Pages de gestion dans un onglet** : Historique, Favoris, Mots de passe, Extensions et Paramètres, avec recherche et raccourcis clavier (comme le gestionnaire de téléchargements).
+- ⭐ **Barre de favoris** (Ctrl+Maj+B), gestionnaire de favoris avec dossiers, import / export.
+- 🔑 **Mots de passe** : liste par site, vérification (compromis, réutilisés, faibles), Windows Hello, mots de passe forts proposés, **cartes de paiement** et **adresses**.
+- 🧩 **Extensions intégrées** activables / masquables / retirables : bloqueur amélioré (masquer un élément), téléchargements par DrYAE ou par le navigateur, **traducteur**, **traducteur de scans** (mangas, webtoons), **lumières tamisées** et mode nuit, **image dans l'image**.
+- 🔐 Connexion aux comptes Google plus fiable ; 🔔 icône de mise à jour visible dès l'ouverture.
 
 👉 Toutes les nouveautés : [CHANGELOG.md](CHANGELOG.md) · ⬇️ [Télécharger DrYAE](https://github.com/DrYAE-FPA/DrYAE/releases/latest)
 
@@ -25,7 +24,7 @@ DrYAE télécharge vos fichiers plus vite en plusieurs morceaux, gère les torre
 - Téléchargements HTTP multi-connexions, avec reprise, file d'attente, planificateur et limite de vitesse
 - Torrents et liens magnet
 - Flux vidéo HLS (m3u8) et vidéos de sites en ligne, en MP4 (choix de la qualité) ou MP3, avec la taille affichée avant le téléchargement
-- Navigateur intégré : onglets, favoris, historique, mots de passe chiffrés, saisie automatique, extensions Chrome, bloqueur de publicités
+- Navigateur intégré : onglets, favoris (barre et gestionnaire), historique, mots de passe chiffrés avec vérification, cartes et adresses, extensions Chrome, bloqueur de publicités, traducteur de pages et de scans, lumières tamisées, image dans l'image
 - Extension pour Google Chrome (dossier `extension`)
 - Interface en anglais, espagnol, français, arabe, portugais et russe
 

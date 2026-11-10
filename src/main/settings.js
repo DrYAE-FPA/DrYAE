@@ -54,8 +54,25 @@ function defaults(app) {
       hostsSources: [], customFilters: '',
       ua: 'desktop', clearOnExit: false, sniffExtra: 'zip,rar,7z,apk,exe,pdf', captureSubtitles: true,
       doh: '', extractLinks: true, cookies: true,
-      vault: { offer: true, autofill: true },
+      vault: { offer: true, autofill: true, hello: false, payments: true, paymentsHello: true, addresses: true, suggest: true },
       autofillProfile: { enabled: false, profile: {} },
+      // 1.6.4 : extensions intégrées (activables, masquables dans la barre d'outils, retirables)
+      modules: {
+        adblock: { installed: true, enabled: true, pinned: true },
+        capture: { installed: true, enabled: true, pinned: true },
+        translate: { installed: true, enabled: true, pinned: true },
+        scan: { installed: true, enabled: true, pinned: true },
+        lights: { installed: true, enabled: true, pinned: false },
+        pip: { installed: true, enabled: true, pinned: false },
+      },
+      adLists: { privacy: true, cookies: false, annoyances: false, regional: true, malware: true },
+      translate: { target: '', provider: 'google', selection: 'button', deeplKey: '', libreUrl: '', libreKey: '' },
+      scan: { source: 'eng', target: '', font: 'auto' },
+      lights: { opacity: 85, auto: false, color: '#000000' },
+      pip: { side: 'right', hidden: [] },
+      showBookmarksBar: false, showHome: true, startup: 'restore', startupPages: [],
+      nativeDl: { ask: false, dir: '' },
+      zoomDefault: 0,
     },
     scheduler: { enabled: false, start: '02:00', stop: '', days: [0, 1, 2, 3, 4, 5, 6], addNew: false, shutdown: false },
     dataLimit: { enabled: false, mb: 0, used: 0, day: '' },
@@ -84,6 +101,16 @@ class Settings extends EventEmitter {
     this.data = deepMerge(this.def, saved);
     // 1.6.1 : on demande désormais quoi faire en cas de doublon (l'ancien réglage par défaut était « renommer »)
     if (!saved.v161) { this.data.duplicate = 'ask'; this.data.v161 = true; }
+    // 1.6.4 : le bloqueur devient une extension intégrée ; la liste française passe dans les listes proposées
+    if (!saved.v164) {
+      const b = this.data.browser;
+      b.modules.adblock.enabled = b.adblock !== false;
+      const FR = 'https://easylist-downloads.adblockplus.org/liste_fr.txt';
+      if ((b.filterLists || []).includes(FR)) { b.filterLists = b.filterLists.filter(u => u !== FR); b.adLists.regional = true; }
+      b.startup = this.data.restoreSession === false ? 'newtab' : 'restore';
+      this.data.v164 = true;
+      try { fs.writeFileSync(this.file, JSON.stringify(this.data, null, 2)); } catch {}
+    }
   }
   get() { return this.data; }
   set(patch) {

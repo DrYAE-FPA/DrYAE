@@ -26,10 +26,9 @@ const scan = () => { const out=new Set(); const w=document.createTreeWalker(docu
   (await b.evaluate(scan)).forEach(x=>left.add('B:'+x));
   await b.click('#bMenu'); await b.waitForTimeout(300); (await b.evaluate(scan)).forEach(x=>left.add('B:'+x));
   for (const sm of ['Outils','Aide','Historique','Marque']) { await b.evaluate(()=>{ $('#menu').classList.remove('on'); }); await b.click('#bMenu'); await b.waitForTimeout(150); const btns=await b.$$('#menu button'); for (const bt of btns) { const t=await bt.textContent(); if (/›|>/.test(t)||true) {} } }
-  await b.evaluate(()=>{ menu(10,10,mainMenu()[mainMenu().findIndex(e=>e&&e.sub&&/Outils|Tools|Herram|Ferram|Инстр|أدوات/.test(T(e.label))||e&&e.sub&&e.icon==='tools')].sub()); }); await b.waitForTimeout(150); (await b.evaluate(scan)).forEach(x=>left.add('B:'+x));
-  await b.evaluate(()=>{ menu(10,10,mainMenu().find(e=>e&&e.icon==='help').sub()); }); await b.waitForTimeout(150); (await b.evaluate(scan)).forEach(x=>left.add('B:'+x));
-  await b.evaluate(()=>{ $('#menu').classList.remove('on'); openBrowserSettings(); }); await b.waitForTimeout(400); (await b.evaluate(scan)).forEach(x=>left.add('B:'+x)); await b.screenshot({path:`${OUT}/${lang}-4-bset.png`});
-  await b.evaluate(()=>{ $('#bsModal').classList.remove('on'); showShortcuts(); }); await b.waitForTimeout(300); (await b.evaluate(scan)).forEach(x=>left.add('B:'+x)); await b.screenshot({path:`${OUT}/${lang}-5-keys.png`});
+  await b.evaluate(()=>{ menu(10,10,mainMenu().find(e=>e&&typeof e==='object'&&e.icon==='tools').sub()); }); await b.waitForTimeout(150); (await b.evaluate(scan)).forEach(x=>left.add('B:'+x));
+  await b.evaluate(()=>{ menu(10,10,mainMenu().find(e=>e&&typeof e==='object'&&e.icon==='help').sub()); }); await b.waitForTimeout(150); (await b.evaluate(scan)).forEach(x=>left.add('B:'+x));
+  await b.evaluate(()=>{ $('#menu').classList.remove('on'); showShortcuts(); }); await b.waitForTimeout(300); (await b.evaluate(scan)).forEach(x=>left.add('B:'+x)); await b.screenshot({path:`${OUT}/${lang}-5-keys.png`});
   await b.evaluate(()=>{ $('#kbModal').classList.remove('on'); togglePanel('media', true); }); await b.waitForTimeout(300); (await b.evaluate(scan)).forEach(x=>left.add('B:'+x));
   await b.screenshot({path:`${OUT}/${lang}-3-menu.png`});
   const tray = await app.evaluate(()=>global.DRYAE_T('Ouvrir DrYAE'));

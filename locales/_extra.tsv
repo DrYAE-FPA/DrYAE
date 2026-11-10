@@ -278,3 +278,456 @@ Zoom avant / arrière	Zoom in / out	Ampliar / reducir	Aumentar / diminuir	Уве
 Supprimer définitivement ces {0} éléments et leurs fichiers ?	Permanently delete these {0} items and their files?	¿Eliminar definitivamente estos {0} elementos y sus archivos?	Excluir permanentemente estes {0} itens e os seus arquivos?	Удалить безвозвратно эти элементы ({0}) вместе с файлами?	هل تريد حذف هذه العناصر ({0}) وملفاتها نهائيًا؟
 Supprimer définitivement « {0} » et son fichier ?	Permanently delete "{0}" and its file?	¿Eliminar definitivamente «{0}» y su archivo?	Excluir permanentemente "{0}" e o seu arquivo?	Удалить безвозвратно «{0}» вместе с файлом?	هل تريد حذف «{0}» وملفه نهائيًا؟
 {0} téléchargement(s) lancé(s)	{0} download(s) started	{0} descarga(s) iniciada(s)	{0} download(s) iniciado(s)	Запущено загрузок: {0}	تم بدء {0} تنزيل
+15 dernières minutes	Last 15 minutes	Últimos 15 minutos	Últimos 15 minutos	Последние 15 минут	آخر 15 دقيقة
+4 dernières semaines	Last 4 weeks	Últimas 4 semanas	Últimas 4 semanas	Последние 4 недели	آخر 4 أسابيع
+7 derniers jours	Last 7 days	Últimos 7 días	Últimos 7 dias	Последние 7 дней	آخر 7 أيام
+Activer	Turn on	Activar	Ativar	Включить	تفعيل
+Activé	On	Activado	Ativado	Включено	مفعّل
+Activé : les fichiers passent par le gestionnaire DrYAE (reprise, vitesse, formats des vidéos). Désactivé : le navigateur télécharge lui-même, comme un navigateur ordinaire.	On: files go through the DrYAE manager (resume, speed, video formats). Off: the browser downloads files itself, like an ordinary browser.	Activado: los archivos pasan por el gestor DrYAE (reanudar, velocidad, formatos de vídeo). Desactivado: el navegador descarga por sí mismo, como un navegador normal.	Ativado: os ficheiros passam pelo gestor DrYAE (retoma, velocidade, formatos de vídeo). Desativado: o navegador transfere sozinho, como um navegador normal.	Включено: файлы проходят через менеджер DrYAE (докачка, скорость, форматы видео). Выключено: браузер скачивает сам, как обычный браузер.	مفعّل: تمر الملفات عبر مدير DrYAE (الاستئناف، السرعة، صيغ الفيديو). معطّل: يقوم المتصفح بالتنزيل بنفسه مثل أي متصفح عادي.
+Adresse du serveur LibreTranslate	LibreTranslate server address	Dirección del servidor LibreTranslate	Endereço do servidor LibreTranslate	Адрес сервера LibreTranslate	عنوان خادم LibreTranslate
+Adresse du serveur LibreTranslate manquante (Paramètres → Traduction).	LibreTranslate server address missing (Settings → Translation).	Falta la dirección del servidor LibreTranslate (Ajustes → Traducción).	Falta o endereço do servidor LibreTranslate (Definições → Tradução).	Не указан адрес сервера LibreTranslate (Настройки → Перевод).	عنوان خادم LibreTranslate مفقود (الإعدادات ← الترجمة).
+Adresse enregistrée	Address saved	Dirección guardada	Endereço guardado	Адрес сохранён	تم حفظ العنوان
+Adresse invalide	Invalid address	Dirección no válida	Endereço inválido	Неверный адрес	عنوان غير صالح
+Adresses et cartes de saisie automatique	Autofill addresses and cards	Direcciones y tarjetas de autocompletado	Endereços e cartões de preenchimento automático	Адреса и карты для автозаполнения	العناوين والبطاقات للملء التلقائي
+Adresses et coordonnées	Addresses and contact info	Direcciones y datos de contacto	Endereços e contactos	Адреса и контактные данные	العناوين وبيانات الاتصال
+Afficher / masquer la barre de favoris	Show / hide the bookmarks bar	Mostrar / ocultar la barra de marcadores	Mostrar / ocultar a barra de marcadores	Показать / скрыть панель закладок	إظهار / إخفاء شريط المفضلة
+Afficher dans son dossier	Show in its folder	Mostrar en su carpeta	Mostrar na sua pasta	Показать в папке	إظهار في مجلده
+Afficher l'original	Show original	Mostrar el original	Mostrar o original	Показать оригинал	إظهار النص الأصلي
+Afficher la barre de favoris	Show bookmarks bar	Mostrar la barra de marcadores	Mostrar a barra de marcadores	Показывать панель закладок	إظهار شريط المفضلة
+Afficher le bouton Accueil	Show Home button	Mostrar el botón Inicio	Mostrar o botão Início	Показывать кнопку «Главная»	إظهار زر الصفحة الرئيسية
+Afficher le numéro	Show number	Mostrar el número	Mostrar o número	Показать номер	إظهار الرقم
+Afficher ou masquer le bouton dans la barre d'outils du navigateur	Show or hide the button in the browser toolbar	Mostrar u ocultar el botón en la barra de herramientas	Mostrar ou ocultar o botão na barra de ferramentas	Показать или скрыть кнопку на панели инструментов	إظهار الزر في شريط الأدوات أو إخفاؤه
+Afficher plus	Show more	Mostrar más	Mostrar mais	Показать ещё	عرض المزيد
+Afficher un bouton « Traduire »	Show a "Translate" button	Mostrar un botón «Traducir»	Mostrar um botão «Traduzir»	Показывать кнопку «Перевести»	إظهار زر «ترجمة»
+Aide	Help	Ayuda	Ajuda	Справка	مساعدة
+Ajoute un bouton sur les vidéos pour les détacher dans une petite fenêtre qui reste au premier plan.	Adds a button on videos to pop them out into a small window that stays on top.	Añade un botón en los vídeos para sacarlos a una ventana pequeña que queda encima.	Adiciona um botão nos vídeos para os destacar numa pequena janela que fica por cima.	Добавляет на видео кнопку, чтобы открыть его в маленьком окне поверх остальных.	يضيف زرًا على الفيديوهات لفصلها في نافذة صغيرة تبقى في المقدمة.
+Ajouter cet onglet aux favoris	Bookmark this tab	Añadir esta pestaña a marcadores	Adicionar este separador aos marcadores	Добавить вкладку в закладки	إضافة علامة التبويب إلى المفضلة
+Ajouter cet onglet aux favoris…	Bookmark this tab…	Añadir esta pestaña a marcadores…	Adicionar este separador aos marcadores…	Добавить вкладку в закладки…	إضافة علامة التبويب إلى المفضلة…
+Ajouter tous les onglets aux favoris	Bookmark all tabs	Añadir todas las pestañas a marcadores	Adicionar todos os separadores aos marcadores	Добавить все вкладки в закладки	إضافة كل علامات التبويب إلى المفضلة
+Ajouter tous les onglets aux favoris…	Bookmark all tabs…	Añadir todas las pestañas a marcadores…	Adicionar todos os separadores aos marcadores…	Добавить все вкладки в закладки…	إضافة كل علامات التبويب إلى المفضلة…
+Ajouter un compte	Add an account	Añadir una cuenta	Adicionar uma conta	Добавить учётную запись	إضافة حساب
+Ajouter un favori	Add bookmark	Añadir marcador	Adicionar marcador	Добавить закладку	إضافة مفضلة
+Ajouter un mot de passe	Add a password	Añadir una contraseña	Adicionar uma palavra-passe	Добавить пароль	إضافة كلمة مرور
+Ajouter un raccourci sur le Bureau	Add a desktop shortcut	Añadir un acceso directo en el escritorio	Adicionar um atalho no ambiente de trabalho	Добавить ярлык на рабочий стол	إضافة اختصار على سطح المكتب
+Ajouter une adresse	Add an address	Añadir una dirección	Adicionar um endereço	Добавить адрес	إضافة عنوان
+Ajouter une carte	Add a card	Añadir una tarjeta	Adicionar um cartão	Добавить карту	إضافة بطاقة
+Anglais	English	Inglés	Inglês	Английский	الإنجليزية
+Annulé	Cancelled	Cancelado	Cancelado	Отменено	أُلغي
+Apparus dans une fuite de données : changez-les dès maintenant	Found in a data breach: change them now	Aparecen en una filtración de datos: cámbialas ya	Apareceram numa fuga de dados: altere-as já	Найдены в утечке данных: смените их сейчас	ظهرت في تسريب بيانات: غيّرها الآن
+Appliqué au prochain démarrage.	Applied on next start.	Se aplica en el próximo inicio.	Aplicado no próximo arranque.	Применяется при следующем запуске.	يُطبَّق عند التشغيل التالي.
+Après une connexion, DrYAE propose de garder l'identifiant et le mot de passe.	After you sign in, DrYAE offers to keep the username and password.	Tras iniciar sesión, DrYAE propone guardar el usuario y la contraseña.	Depois de iniciar sessão, o DrYAE propõe guardar o utilizador e a palavra-passe.	После входа DrYAE предлагает сохранить логин и пароль.	بعد تسجيل الدخول، يعرض DrYAE حفظ اسم المستخدم وكلمة المرور.
+Arabe	Arabic	Árabe	Árabe	Арабский	العربية
+Arrêter	Stop	Detener	Parar	Остановить	إيقاف
+Assombrir la page autour de la vidéo	Dim the page around the video	Oscurecer la página alrededor del vídeo	Escurecer a página à volta do vídeo	Затемнить страницу вокруг видео	تعتيم الصفحة حول الفيديو
+Assombrit la page autour de la vidéo. Cliquez à côté de la vidéo ou appuyez sur Échap pour rallumer.	Dims the page around the video. Click beside the video or press Esc to turn the lights back on.	Oscurece la página alrededor del vídeo. Haz clic fuera del vídeo o pulsa Esc para volver a encender.	Escurece a página à volta do vídeo. Clique ao lado do vídeo ou prima Esc para voltar a acender.	Затемняет страницу вокруг видео. Щёлкните рядом с видео или нажмите Esc, чтобы включить свет.	يعتّم الصفحة حول الفيديو. انقر بجانب الفيديو أو اضغط Esc لإعادة الإضاءة.
+Assombrit toute la page autour de la vidéo pour la regarder comme au cinéma. Comprend aussi un mode nuit qui fonce les pages claires.	Dims the whole page around the video so you can watch it like at the cinema. Also includes a night mode that darkens bright pages.	Oscurece toda la página alrededor del vídeo para verlo como en el cine. Incluye también un modo noche que oscurece las páginas claras.	Escurece toda a página à volta do vídeo para o ver como no cinema. Inclui também um modo noturno que escurece as páginas claras.	Затемняет всю страницу вокруг видео, как в кинотеатре. Есть и ночной режим, затемняющий светлые страницы.	يعتّم الصفحة كلها حول الفيديو لمشاهدته كما في السينما. ويتضمن وضعًا ليليًا يُغمّق الصفحات الفاتحة.
+Astuce : clic droit sur une image → « Traduire le texte de l'image »	Tip: right-click an image → "Translate image text"	Consejo: clic derecho en una imagen → «Traducir el texto de la imagen»	Dica: clique direito numa imagem → «Traduzir o texto da imagem»	Совет: щелчок правой кнопкой по изображению → «Перевести текст изображения»	نصيحة: انقر بزر الفأرة الأيمن على صورة ← «ترجمة نص الصورة»
+Au démarrage	On startup	Al iniciar	Ao iniciar	При запуске	عند بدء التشغيل
+Aucun favori	No bookmarks	Ningún marcador	Nenhum marcador	Нет закладок	لا توجد مفضلة
+Aucun favori trouvé dans ce fichier.	No bookmarks found in this file.	No se encontraron marcadores en este archivo.	Nenhum marcador encontrado neste ficheiro.	В этом файле не найдено закладок.	لم يُعثر على مفضلة في هذا الملف.
+Aucun mot de passe enregistré. Connectez-vous à un site : DrYAE proposera de l'enregistrer.	No saved passwords. Sign in to a site: DrYAE will offer to save it.	No hay contraseñas guardadas. Inicia sesión en un sitio: DrYAE propondrá guardarla.	Nenhuma palavra-passe guardada. Inicie sessão num site: o DrYAE propõe guardá-la.	Нет сохранённых паролей. Войдите на сайт — DrYAE предложит сохранить пароль.	لا توجد كلمات مرور محفوظة. سجّل الدخول إلى موقع وسيعرض DrYAE حفظها.
+Aucun onglet fermé	No closed tabs	Ninguna pestaña cerrada	Nenhum separador fechado	Нет закрытых вкладок	لا توجد علامات تبويب مغلقة
+Aucun onglet à ajouter	No tabs to add	No hay pestañas que añadir	Nenhum separador para adicionar	Нет вкладок для добавления	لا توجد علامات تبويب لإضافتها
+Aucun problème	No issues	Ningún problema	Nenhum problema	Проблем нет	لا توجد مشكلات
+Aucun résultat	No results	Sin resultados	Sem resultados	Ничего не найдено	لا توجد نتائج
+Aucun site refusé.	No refused sites.	Ningún sitio rechazado.	Nenhum site recusado.	Нет отклонённых сайтов.	لا توجد مواقع مرفوضة.
+Aucun texte trouvé dans cette image	No text found in this image	No se encontró texto en esta imagen	Nenhum texto encontrado nesta imagem	В этом изображении текст не найден	لم يُعثر على نص في هذه الصورة
+Aucun téléchargement. Les fichiers sont enregistrés par le navigateur, sans passer par DrYAE (extension « Téléchargements par DrYAE » désactivée).	No downloads. Files are saved by the browser without going through DrYAE (the "Downloads with DrYAE" extension is off).	No hay descargas. Los archivos los guarda el navegador sin pasar por DrYAE (extensión «Descargas con DrYAE» desactivada).	Nenhuma transferência. Os ficheiros são guardados pelo navegador sem passar pelo DrYAE (extensão «Transferências com o DrYAE» desativada).	Загрузок нет. Файлы сохраняет браузер, без DrYAE (расширение «Загрузки через DrYAE» выключено).	لا توجد تنزيلات. يحفظ المتصفح الملفات دون المرور عبر DrYAE (إضافة «التنزيلات عبر DrYAE» معطّلة).
+Aucune	None	Ninguna	Nenhuma	Нет	لا شيء
+Aucune adresse enregistrée.	No saved addresses.	No hay direcciones guardadas.	Nenhum endereço guardado.	Нет сохранённых адресов.	لا توجد عناوين محفوظة.
+Aucune carte enregistrée.	No saved cards.	No hay tarjetas guardadas.	Nenhum cartão guardado.	Нет сохранённых карт.	لا توجد بطاقات محفوظة.
+Aucune extension. Ouvrez la boutique Chrome Web Store, choisissez une extension puis cliquez sur « Ajouter à Chrome ».	No extensions. Open the Chrome Web Store, choose an extension, then click "Add to Chrome".	No hay extensiones. Abre la Chrome Web Store, elige una extensión y haz clic en «Añadir a Chrome».	Nenhuma extensão. Abra a Chrome Web Store, escolha uma extensão e clique em «Adicionar ao Chrome».	Расширений нет. Откройте Chrome Web Store, выберите расширение и нажмите «Установить».	لا توجد إضافات. افتح متجر Chrome Web Store واختر إضافة ثم انقر «إضافة إلى Chrome».
+Aucune vidéo sur cette page	No video on this page	No hay ningún vídeo en esta página	Nenhum vídeo nesta página	На этой странице нет видео	لا يوجد فيديو في هذه الصفحة
+Aujourd'hui	Today	Hoy	Hoje	Сегодня	اليوم
+Autorisations	Permissions	Permisos	Permissões	Разрешения	الأذونات
+Autres favoris	Other bookmarks	Otros marcadores	Outros marcadores	Другие закладки	مفضلة أخرى
+Bannières de cookies	Cookie banners	Avisos de cookies	Avisos de cookies	Баннеры о cookie	لافتات ملفات تعريف الارتباط
+Barre de favoris	Bookmarks bar	Barra de marcadores	Barra de marcadores	Панель закладок	شريط المفضلة
+Bloque les adresses connues pour diffuser des logiciels malveillants.	Blocks addresses known to spread malware.	Bloquea direcciones conocidas por difundir malware.	Bloqueia endereços conhecidos por espalhar malware.	Блокирует адреса, известные распространением вредоносных программ.	يحظر العناوين المعروفة بنشر البرامج الضارة.
+Bloque les publicités et les traqueurs. Vous pouvez le retirer pour utiliser votre propre extension de blocage.	Blocks ads and trackers. You can remove it to use your own blocking extension.	Bloquea anuncios y rastreadores. Puedes quitarlo para usar tu propia extensión de bloqueo.	Bloqueia anúncios e rastreadores. Pode removê-lo para usar a sua própria extensão de bloqueio.	Блокирует рекламу и трекеры. Его можно удалить и использовать своё расширение-блокировщик.	يحظر الإعلانات وأدوات التتبع. يمكنك إزالته لاستخدام إضافة الحظر الخاصة بك.
+Bloque les publicités, les traqueurs et, si vous le souhaitez, les bannières de cookies et les éléments gênants. Permet aussi de masquer un élément de la page à la main.	Blocks ads, trackers and, if you wish, cookie banners and annoyances. Also lets you hide a page element by hand.	Bloquea anuncios, rastreadores y, si quieres, avisos de cookies y elementos molestos. También permite ocultar a mano un elemento de la página.	Bloqueia anúncios, rastreadores e, se quiser, avisos de cookies e elementos incómodos. Também permite ocultar à mão um elemento da página.	Блокирует рекламу, трекеры и по желанию баннеры cookie и раздражающие элементы. Также позволяет вручную скрыть элемент страницы.	يحظر الإعلانات وأدوات التتبع، وإن شئت لافتات ملفات تعريف الارتباط والعناصر المزعجة. ويتيح أيضًا إخفاء عنصر من الصفحة يدويًا.
+Boutique Chrome Web Store	Chrome Web Store	Chrome Web Store	Chrome Web Store	Chrome Web Store	متجر Chrome Web Store
+Bouton dans la barre d'outils	Toolbar button	Botón en la barra de herramientas	Botão na barra de ferramentas	Кнопка на панели инструментов	زر في شريط الأدوات
+Carte	Card	Tarjeta	Cartão	Карта	بطاقة
+Carte enregistrée	Card saved	Tarjeta guardada	Cartão guardado	Карта сохранена	تم حفظ البطاقة
+Carte prépayée, carte du travail…	Prepaid card, work card…	Tarjeta prepago, tarjeta del trabajo…	Cartão pré-pago, cartão do trabalho…	Предоплаченная, рабочая карта…	بطاقة مسبقة الدفع، بطاقة العمل…
+Cartes enregistrées	Saved cards	Tarjetas guardadas	Cartões guardados	Сохранённые карты	البطاقات المحفوظة
+Cartes enregistrées et confirmation par Windows Hello	Saved cards and Windows Hello confirmation	Tarjetas guardadas y confirmación con Windows Hello	Cartões guardados e confirmação com Windows Hello	Сохранённые карты и подтверждение Windows Hello	البطاقات المحفوظة والتأكيد عبر Windows Hello
+Ce dossier est vide	This folder is empty	Esta carpeta está vacía	Esta pasta está vazia	Папка пуста	هذا المجلد فارغ
+Ce qui se passe quand vous sélectionnez du texte sur une page.	What happens when you select text on a page.	Lo que ocurre al seleccionar texto en una página.	O que acontece quando seleciona texto numa página.	Что происходит при выделении текста на странице.	ما يحدث عند تحديد نص في صفحة.
+Changer le mot de passe	Change password	Cambiar la contraseña	Alterar a palavra-passe	Сменить пароль	تغيير كلمة المرور
+Charger une extension non empaquetée	Load unpacked extension	Cargar extensión sin empaquetar	Carregar extensão não empacotada	Загрузить распакованное расширение	تحميل إضافة غير مضغوطة
+Chiffrement sur cet appareil	On-device encryption	Cifrado en este dispositivo	Encriptação neste dispositivo	Шифрование на устройстве	التشفير على هذا الجهاز
+Chinois simplifié	Chinese (Simplified)	Chino simplificado	Chinês simplificado	Китайский (упрощённый)	الصينية المبسطة
+Chinois traditionnel	Chinese (Traditional)	Chino tradicional	Chinês tradicional	Китайский (традиционный)	الصينية التقليدية
+Choisissez des mots de passe plus longs et plus variés	Choose longer, more varied passwords	Elige contraseñas más largas y variadas	Escolha palavras-passe mais longas e variadas	Выбирайте более длинные и разнообразные пароли	اختر كلمات مرور أطول وأكثر تنوعًا
+Clic droit sur un élément → « Masquer cet élément… ».	Right-click an element → "Hide this element…".	Clic derecho en un elemento → «Ocultar este elemento…».	Clique direito num elemento → «Ocultar este elemento…».	Щёлкните правой кнопкой по элементу → «Скрыть этот элемент…».	انقر بزر الفأرة الأيمن على عنصر ← «إخفاء هذا العنصر…».
+Cliquez sur un onglet pour le rouvrir.	Click a tab to reopen it.	Haz clic en una pestaña para volver a abrirla.	Clique num separador para o reabrir.	Щёлкните по вкладке, чтобы открыть её снова.	انقر على علامة تبويب لإعادة فتحها.
+Cliquez sur un élément à masquer. Molette ou ↑ ↓ : agrandir / réduire. Échap : annuler.	Click an element to hide. Wheel or ↑ ↓: enlarge / shrink. Esc: cancel.	Haz clic en el elemento que ocultar. Rueda o ↑ ↓: ampliar / reducir. Esc: cancelar.	Clique no elemento a ocultar. Roda ou ↑ ↓: aumentar / reduzir. Esc: cancelar.	Щёлкните по элементу, который нужно скрыть. Колесо или ↑ ↓: шире / уже. Esc: отмена.	انقر على العنصر المراد إخفاؤه. العجلة أو ↑ ↓: تكبير / تصغير. Esc: إلغاء.
+Cliquez à côté pour rallumer	Click outside to turn the lights back on	Haz clic fuera para volver a encender	Clique ao lado para voltar a acender	Щёлкните рядом, чтобы включить свет	انقر بالجانب لإعادة الإضاءة
+Clé API (si le serveur en demande une)	API key (if the server requires one)	Clave API (si el servidor la pide)	Chave API (se o servidor a pedir)	Ключ API (если сервер его требует)	مفتاح API (إن طلبه الخادم)
+Clé API DeepL	DeepL API key	Clave API de DeepL	Chave API DeepL	Ключ API DeepL	مفتاح DeepL API
+Clé DeepL manquante (Paramètres → Traduction).	DeepL key missing (Settings → Translation).	Falta la clave de DeepL (Ajustes → Traducción).	Falta a chave DeepL (Definições → Tradução).	Не указан ключ DeepL (Настройки → Перевод).	مفتاح DeepL مفقود (الإعدادات ← الترجمة).
+Code source et nouveautés	Source code and what's new	Código fuente y novedades	Código-fonte e novidades	Исходный код и новое	الشيفرة المصدرية والجديد
+Coller ici	Paste here	Pegar aquí	Colar aqui	Вставить сюда	لصق هنا
+Comme Windows	Same as Windows	Como Windows	Como o Windows	Как в Windows	مثل Windows
+Confidentialité et sécurité	Privacy and security	Privacidad y seguridad	Privacidade e segurança	Конфиденциальность и безопасность	الخصوصية والأمان
+Confirmer	Confirm	Confirmar	Confirmar	Подтвердить	تأكيد
+Confirmer mon identité avant de remplir une carte	Confirm my identity before filling in a card	Confirmar mi identidad antes de rellenar una tarjeta	Confirmar a minha identidade antes de preencher um cartão	Подтверждать личность перед заполнением карты	تأكيد هويتي قبل ملء بطاقة
+Connexion automatique	Auto sign-in	Inicio de sesión automático	Início de sessão automático	Автоматический вход	تسجيل الدخول التلقائي
+Cookies et autres données des sites	Cookies and other site data	Cookies y otros datos de sitios	Cookies e outros dados de sites	Файлы cookie и другие данные сайтов	ملفات تعريف الارتباط وبيانات المواقع الأخرى
+Copier l'identifiant	Copy username	Copiar el usuario	Copiar o utilizador	Копировать логин	نسخ اسم المستخدم
+Copier le mot de passe	Copy password	Copiar la contraseña	Copiar a palavra-passe	Копировать пароль	نسخ كلمة المرور
+Coréen	Korean	Coreano	Coreano	Корейский	الكورية
+Couleur	Color	Color	Cor	Цвет	اللون
+Créer le raccourci	Create shortcut	Crear el acceso directo	Criar o atalho	Создать ярлык	إنشاء الاختصار
+Créez, enregistrez et gérez vos mots de passe pour vous connecter facilement aux sites.	Create, save and manage your passwords to sign in to sites easily.	Crea, guarda y gestiona tus contraseñas para iniciar sesión fácilmente en los sitios.	Crie, guarde e gira as suas palavras-passe para iniciar sessão facilmente nos sites.	Создавайте, сохраняйте и управляйте паролями, чтобы легко входить на сайты.	أنشئ كلمات مرورك واحفظها وأدِرها لتسجيل الدخول إلى المواقع بسهولة.
+DNS sécurisé	Secure DNS	DNS seguro	DNS seguro	Безопасный DNS	DNS آمن
+Dans la barre d'outils	In the toolbar	En la barra de herramientas	Na barra de ferramentas	На панели инструментов	في شريط الأدوات
+Dans le panneau des fichiers détectés.	In the detected files panel.	En el panel de archivos detectados.	No painel de ficheiros detetados.	В панели найденных файлов.	في لوحة الملفات المكتشفة.
+Date d'expiration	Expiry date	Fecha de caducidad	Data de validade	Срок действия	تاريخ الانتهاء
+DeepL (clé API personnelle)	DeepL (personal API key)	DeepL (clave API personal)	DeepL (chave API pessoal)	DeepL (личный ключ API)	DeepL (مفتاح API شخصي)
+Depuis le début	All time	Desde siempre	Desde sempre	За всё время	منذ البداية
+Dernière heure	Last hour	Última hora	Última hora	Последний час	الساعة الأخيرة
+Dernières 24 heures	Last 24 hours	Últimas 24 horas	Últimas 24 horas	Последние 24 часа	آخر 24 ساعة
+Données enregistrées pour remplir les formulaires	Data saved to fill in forms	Datos guardados para rellenar formularios	Dados guardados para preencher formulários	Данные для заполнения форм	بيانات محفوظة لملء النماذج
+Données supprimées	Data deleted	Datos eliminados	Dados eliminados	Данные удалены	تم حذف البيانات
+Dossier des téléchargements du navigateur	Browser download folder	Carpeta de descargas del navegador	Pasta de transferências do navegador	Папка загрузок браузера	مجلد تنزيلات المتصفح
+Dossier introuvable	Folder not found	Carpeta no encontrada	Pasta não encontrada	Папка не найдена	المجلد غير موجود
+Dossier vide	Empty folder	Carpeta vacía	Pasta vazia	Пустая папка	مجلد فارغ
+Dossier « Téléchargements » de Windows	Windows "Downloads" folder	Carpeta «Descargas» de Windows	Pasta «Transferências» do Windows	Папка «Загрузки» Windows	مجلد «التنزيلات» في Windows
+Dossier, connexions, vitesse, vidéos, torrents…	Folder, connections, speed, videos, torrents…	Carpeta, conexiones, velocidad, vídeos, torrents…	Pasta, ligações, velocidade, vídeos, torrents…	Папка, соединения, скорость, видео, торренты…	المجلد، الاتصالات، السرعة، الفيديوهات، التورنت…
+DrYAE est à jour.	DrYAE is up to date.	DrYAE está actualizado.	O DrYAE está atualizado.	DrYAE обновлён.	DrYAE محدَّث.
+DrYAE propose vos cartes quand un site demande un numéro de carte.	DrYAE offers your cards when a site asks for a card number.	DrYAE propone tus tarjetas cuando un sitio pide un número de tarjeta.	O DrYAE propõe os seus cartões quando um site pede um número de cartão.	DrYAE предлагает ваши карты, когда сайт просит номер карты.	يعرض DrYAE بطاقاتك عندما يطلب موقع رقم بطاقة.
+DrYAE repère les mots de passe trop faibles, utilisés sur plusieurs sites, ou apparus dans des fuites de données connues.	DrYAE spots passwords that are too weak, used on several sites, or found in known data breaches.	DrYAE detecta contraseñas demasiado débiles, usadas en varios sitios o aparecidas en filtraciones conocidas.	O DrYAE deteta palavras-passe demasiado fracas, usadas em vários sites ou surgidas em fugas de dados conhecidas.	DrYAE находит слишком слабые пароли, повторяющиеся на разных сайтах или попавшие в известные утечки.	يكشف DrYAE كلمات المرور الضعيفة أو المستخدمة في عدة مواقع أو التي ظهرت في تسريبات بيانات معروفة.
+DrYAE veut afficher le numéro de votre carte	DrYAE wants to show your card number	DrYAE quiere mostrar el número de tu tarjeta	O DrYAE quer mostrar o número do seu cartão	DrYAE хочет показать номер вашей карты	يريد DrYAE إظهار رقم بطاقتك
+DrYAE veut afficher un mot de passe enregistré	DrYAE wants to show a saved password	DrYAE quiere mostrar una contraseña guardada	O DrYAE quer mostrar uma palavra-passe guardada	DrYAE хочет показать сохранённый пароль	يريد DrYAE إظهار كلمة مرور محفوظة
+DrYAE veut exporter vos mots de passe	DrYAE wants to export your passwords	DrYAE quiere exportar tus contraseñas	O DrYAE quer exportar as suas palavras-passe	DrYAE хочет экспортировать ваши пароли	يريد DrYAE تصدير كلمات مرورك
+DrYAE veut remplir votre carte de paiement	DrYAE wants to fill in your payment card	DrYAE quiere rellenar tu tarjeta de pago	O DrYAE quer preencher o seu cartão de pagamento	DrYAE хочет заполнить данные вашей карты	يريد DrYAE ملء بطاقة الدفع الخاصة بك
+DrYAE veut supprimer tous les mots de passe	DrYAE wants to delete all passwords	DrYAE quiere eliminar todas las contraseñas	O DrYAE quer eliminar todas as palavras-passe	DrYAE хочет удалить все пароли	يريد DrYAE حذف كل كلمات المرور
+Désactivé (DNS de Windows)	Off (Windows DNS)	Desactivado (DNS de Windows)	Desativado (DNS do Windows)	Выключено (DNS Windows)	معطّل (DNS الخاص بـ Windows)
+Détacher la vidéo dans une petite fenêtre	Pop the video out into a small window	Sacar el vídeo a una ventana pequeña	Destacar o vídeo numa pequena janela	Открыть видео в маленьком окне	فصل الفيديو في نافذة صغيرة
+Effacer l'historique et les cookies en fermant DrYAE	Clear history and cookies when closing DrYAE	Borrar el historial y las cookies al cerrar DrYAE	Limpar o histórico e os cookies ao fechar o DrYAE	Очищать историю и cookie при закрытии DrYAE	مسح السجل وملفات تعريف الارتباط عند إغلاق DrYAE
+Effacer la liste	Clear list	Borrar la lista	Limpar a lista	Очистить список	مسح القائمة
+Effacer les données	Clear data	Borrar los datos	Limpar os dados	Очистить данные	مسح البيانات
+Effacer les données de navigation	Clear browsing data	Borrar datos de navegación	Limpar dados de navegação	Очистить историю браузера	مسح بيانات التصفح
+Effacer les données de navigation…	Clear browsing data…	Borrar datos de navegación…	Limpar dados de navegação…	Очистить историю браузера…	مسح بيانات التصفح…
+Empreinte, visage ou code PIN demandé avant d'afficher, de copier ou d'exporter un mot de passe.	Fingerprint, face or PIN required before showing, copying or exporting a password.	Huella, rostro o PIN antes de mostrar, copiar o exportar una contraseña.	Impressão digital, rosto ou PIN pedidos antes de mostrar, copiar ou exportar uma palavra-passe.	Отпечаток, лицо или PIN-код перед показом, копированием или экспортом пароля.	بصمة أو وجه أو رمز PIN قبل إظهار كلمة مرور أو نسخها أو تصديرها.
+Empêche le suivi d'un site à l'autre.	Prevents tracking from one site to another.	Impide el seguimiento de un sitio a otro.	Impede o seguimento de um site para outro.	Мешает отслеживанию между сайтами.	يمنع التتبع من موقع إلى آخر.
+En haut à droite	Top right	Arriba a la derecha	Em cima à direita	Вверху справа	أعلى اليمين
+En haut à gauche	Top left	Arriba a la izquierda	Em cima à esquerda	Вверху слева	أعلى اليسار
+Enregistrer et remplir les adresses	Save and fill in addresses	Guardar y rellenar direcciones	Guardar e preencher endereços	Сохранять и заполнять адреса	حفظ العناوين وملؤها
+Enregistrer et remplir les cartes de paiement	Save and fill in payment cards	Guardar y rellenar tarjetas de pago	Guardar e preencher cartões de pagamento	Сохранять и заполнять платёжные карты	حفظ بطاقات الدفع وملؤها
+Enregistrer le lien sous…	Save link as…	Guardar enlace como…	Guardar ligação como…	Сохранить ссылку как…	حفظ الرابط باسم…
+Enregistrer les listes et les filtres	Save lists and filters	Guardar listas y filtros	Guardar listas e filtros	Сохранить списки и фильтры	حفظ القوائم والمرشحات
+Enregistrer {0} sous…	Save {0} as…	Guardar {0} como…	Guardar {0} como…	Сохранить {0} как…	حفظ {0} باسم…
+Envoie les fichiers téléchargés dans le gestionnaire DrYAE (reprise, accélération, choix du format des vidéos). Désactivé, le navigateur télécharge les fichiers lui-même, comme un navigateur ordinaire.	Sends downloaded files to the DrYAE manager (resume, acceleration, video format choice). When off, the browser downloads files itself, like an ordinary browser.	Envía los archivos descargados al gestor DrYAE (reanudar, aceleración, formato de vídeo). Desactivado, el navegador descarga los archivos por sí mismo, como un navegador normal.	Envia os ficheiros transferidos para o gestor DrYAE (retoma, aceleração, formato dos vídeos). Desativado, o navegador transfere os ficheiros sozinho, como um navegador normal.	Отправляет загружаемые файлы в менеджер DrYAE (докачка, ускорение, выбор формата видео). Если выключено, браузер скачивает сам, как обычный браузер.	يرسل الملفات المنزّلة إلى مدير DrYAE (الاستئناف، التسريع، اختيار صيغة الفيديو). عند تعطيله، يقوم المتصفح بتنزيل الملفات بنفسه مثل أي متصفح عادي.
+Espagnol	Spanish	Español	Espanhol	Испанский	الإسبانية
+Et rallumer à la pause.	And turn back on when paused.	Y volver a encender en pausa.	E voltar a acender na pausa.	И включать свет при паузе.	وإعادة الإضاءة عند الإيقاف المؤقت.
+Exporter	Export	Exportar	Exportar	Экспорт	تصدير
+Exporter les favoris	Export bookmarks	Exportar marcadores	Exportar marcadores	Экспортировать закладки	تصدير المفضلة
+Extension activée (actualisez la page)	Extension on (reload the page)	Extensión activada (recarga la página)	Extensão ativada (atualize a página)	Расширение включено (обновите страницу)	تم تفعيل الإضافة (حدّث الصفحة)
+Extension activée : actualisez les pages ouvertes	Extension on: reload open pages	Extensión activada: recarga las páginas abiertas	Extensão ativada: atualize as páginas abertas	Расширение включено: обновите открытые страницы	تم تفعيل الإضافة: حدّث الصفحات المفتوحة
+Extension désactivée	Extension off	Extensión desactivada	Extensão desativada	Расширение выключено	تم تعطيل الإضافة
+Extension retirée	Extension removed	Extensión quitada	Extensão removida	Расширение удалено	تمت إزالة الإضافة
+Extensions Chrome installées	Installed Chrome extensions	Extensiones de Chrome instaladas	Extensões Chrome instaladas	Установленные расширения Chrome	إضافات Chrome المثبتة
+Extensions intégrées	Built-in extensions	Extensiones integradas	Extensões integradas	Встроенные расширения	الإضافات المدمجة
+Extensions intégrées retirées	Removed built-in extensions	Extensiones integradas quitadas	Extensões integradas removidas	Удалённые встроенные расширения	الإضافات المدمجة المُزالة
+Extensions intégrées à DrYAE	Extensions built into DrYAE	Extensiones integradas en DrYAE	Extensões integradas no DrYAE	Расширения, встроенные в DrYAE	إضافات مدمجة في DrYAE
+Extensions à jour	Extensions up to date	Extensiones actualizadas	Extensões atualizadas	Расширения обновлены	الإضافات محدَّثة
+Faible	Weak	Débil	Fraca	Слабый	ضعيفة
+Favori ajouté	Bookmark added	Marcador añadido	Marcador adicionado	Закладка добавлена	تمت إضافة المفضلة
+Favoris exportés	Bookmarks exported	Marcadores exportados	Marcadores exportados	Закладки экспортированы	تم تصدير المفضلة
+Fenêtres d'inscription, bulles de discussion, incitations à installer une appli…	Sign-up pop-ups, chat bubbles, prompts to install an app…	Ventanas de registro, burbujas de chat, invitaciones a instalar una app…	Janelas de registo, bolhas de conversa, convites para instalar uma app…	Окна подписки, чаты, призывы установить приложение…	نوافذ التسجيل، فقاعات الدردشة، دعوات تثبيت التطبيقات…
+Fichier .csv exporté par un navigateur ou un gestionnaire de mots de passe (colonnes url, username, password).	.csv file exported by a browser or password manager (url, username, password columns).	Archivo .csv exportado por un navegador o gestor de contraseñas (columnas url, username, password).	Ficheiro .csv exportado por um navegador ou gestor de palavras-passe (colunas url, username, password).	Файл .csv, экспортированный браузером или менеджером паролей (столбцы url, username, password).	ملف ‎.csv مُصدَّر من متصفح أو مدير كلمات مرور (أعمدة url وusername وpassword).
+Filtres personnalisés	Custom filters	Filtros personalizados	Filtros personalizados	Свои фильтры	مرشحات مخصصة
+Fort	Strong	Fuerte	Forte	Надёжный	قوية
+Français	French	Francés	Francês	Французский	الفرنسية
+Gestionnaire DrYAE	DrYAE manager	Gestor DrYAE	Gestor DrYAE	Менеджер DrYAE	مدير DrYAE
+Gestionnaire de favoris	Bookmark manager	Administrador de marcadores	Gestor de marcadores	Диспетчер закладок	مدير المفضلة
+Gestionnaire de mots de passe	Password manager	Gestor de contraseñas	Gestor de palavras-passe	Менеджер паролей	مدير كلمات المرور
+Glissez un favori sur un dossier pour l'y ranger.	Drag a bookmark onto a folder to put it there.	Arrastra un marcador a una carpeta para guardarlo ahí.	Arraste um marcador para uma pasta para o arrumar lá.	Перетащите закладку на папку, чтобы положить её туда.	اسحب مفضلة إلى مجلد لترتيبها فيه.
+Google Traduction (gratuit, sans compte)	Google Translate (free, no account)	Google Traductor (gratis, sin cuenta)	Google Tradutor (grátis, sem conta)	Google Переводчик (бесплатно, без учётной записи)	ترجمة Google (مجانية، دون حساب)
+Gratuite jusqu'à 500 000 caractères par mois sur deepl.com.	Free up to 500,000 characters per month on deepl.com.	Gratis hasta 500 000 caracteres al mes en deepl.com.	Grátis até 500 000 caracteres por mês em deepl.com.	Бесплатно до 500 000 символов в месяц на deepl.com.	مجاني حتى 500 000 حرف شهريًا على deepl.com.
+Générer un mot de passe fort	Generate a strong password	Generar una contraseña fuerte	Gerar uma palavra-passe forte	Создать надёжный пароль	إنشاء كلمة مرور قوية
+Gérer…	Manage…	Gestionar…	Gerir…	Управлять…	إدارة…
+Hier	Yesterday	Ayer	Ontem	Вчера	أمس
+Historique, cookies, cache… (Ctrl+Maj+Suppr)	History, cookies, cache… (Ctrl+Shift+Del)	Historial, cookies, caché… (Ctrl+Mayús+Supr)	Histórico, cookies, cache… (Ctrl+Shift+Del)	История, cookie, кэш… (Ctrl+Shift+Del)	السجل، ملفات تعريف الارتباط، ذاكرة التخزين… (Ctrl+Shift+Del)
+Identifiant copié	Username copied	Usuario copiado	Utilizador copiado	Логин скопирован	تم نسخ اسم المستخدم
+Identité confirmée	Identity confirmed	Identidad confirmada	Identidade confirmada	Личность подтверждена	تم تأكيد الهوية
+Identité non confirmée	Identity not confirmed	Identidad no confirmada	Identidade não confirmada	Личность не подтверждена	لم يتم تأكيد الهوية
+Image dans l'image	Picture-in-picture	Imagen en imagen	Imagem na imagem	Картинка в картинке	صورة داخل صورة
+Image dans l'image (Ctrl+Maj+U)	Picture-in-picture (Ctrl+Shift+U)	Imagen en imagen (Ctrl+Mayús+U)	Imagem na imagem (Ctrl+Shift+U)	Картинка в картинке (Ctrl+Shift+U)	صورة داخل صورة (Ctrl+Shift+U)
+Image inaccessible	Image unavailable	Imagen inaccesible	Imagem inacessível	Изображение недоступно	الصورة غير متاحة
+Images et fichiers en cache	Cached images and files	Imágenes y archivos en caché	Imagens e ficheiros em cache	Изображения и файлы в кэше	الصور والملفات المخزنة مؤقتًا
+Importer des favoris	Import bookmarks	Importar marcadores	Importar marcadores	Импортировать закладки	استيراد المفضلة
+Importer des favoris (fichier HTML)…	Import bookmarks (HTML file)…	Importar marcadores (archivo HTML)…	Importar marcadores (ficheiro HTML)…	Импорт закладок (файл HTML)…	استيراد المفضلة (ملف HTML)…
+Importés	Imported	Importados	Importados	Импортированные	المستوردة
+Impossible de créer le raccourci	Could not create the shortcut	No se pudo crear el acceso directo	Não foi possível criar o atalho	Не удалось создать ярлык	تعذّر إنشاء الاختصار
+Japonais	Japanese	Japonés	Japonês	Японский	اليابانية
+Japonais (vertical)	Japanese (vertical)	Japonés (vertical)	Japonês (vertical)	Японский (вертикальный)	اليابانية (عمودية)
+L'historique est vide	History is empty	El historial está vacío	O histórico está vazio	История пуста	السجل فارغ
+La couleur choisie dans Windows, ou la vôtre.	The color chosen in Windows, or your own.	El color elegido en Windows, o el tuyo.	A cor escolhida no Windows, ou a sua.	Цвет из Windows или ваш собственный.	اللون المختار في Windows أو لونك الخاص.
+Lancez une vérification pour voir les mots de passe à changer.	Run a check to see which passwords to change.	Ejecuta una comprobación para ver qué contraseñas cambiar.	Faça uma verificação para ver as palavras-passe a alterar.	Запустите проверку, чтобы увидеть, какие пароли сменить.	شغّل فحصًا لمعرفة كلمات المرور الواجب تغييرها.
+Langue dans laquelle les pages, les textes et les scans sont traduits.	Language into which pages, texts and scans are translated.	Idioma al que se traducen las páginas, textos y escaneos.	Idioma para o qual as páginas, textos e digitalizações são traduzidos.	Язык, на который переводятся страницы, тексты и сканы.	اللغة التي تُترجم إليها الصفحات والنصوص والمسوحات.
+Langue de DrYAE	DrYAE language	Idioma de DrYAE	Idioma do DrYAE	Язык DrYAE	لغة DrYAE
+Langue de traduction	Translation language	Idioma de traducción	Idioma de tradução	Язык перевода	لغة الترجمة
+Langue du texte dans les images	Language of the text in images	Idioma del texto en las imágenes	Idioma do texto nas imagens	Язык текста на изображениях	لغة النص في الصور
+Langues	Languages	Idiomas	Idiomas	Языки	اللغات
+Le bloqueur est désactivé sur ces sites (bouclier → « Désactiver le bloqueur sur ce site »).	The blocker is off on these sites (shield → "Turn off the blocker on this site").	El bloqueador está desactivado en estos sitios (escudo → «Desactivar el bloqueador en este sitio»).	O bloqueador está desativado nestes sites (escudo → «Desativar o bloqueador neste site»).	Блокировщик выключен на этих сайтах (щит → «Отключить блокировщик на этом сайте»).	المانع معطّل في هذه المواقع (الدرع ← «تعطيل المانع في هذا الموقع»).
+Le code de sécurité (CVC) n'est jamais enregistré : le site vous le demandera à chaque paiement.	The security code (CVC) is never saved: the site will ask for it at each payment.	El código de seguridad (CVC) nunca se guarda: el sitio te lo pedirá en cada pago.	O código de segurança (CVC) nunca é guardado: o site pede-o em cada pagamento.	Код безопасности (CVC) никогда не сохраняется: сайт будет запрашивать его при каждой оплате.	لا يُحفظ رمز الأمان (CVC) أبدًا: سيطلبه الموقع في كل عملية دفع.
+Le navigateur et le gestionnaire se rechargent.	The browser and the manager reload.	El navegador y el gestor se recargan.	O navegador e o gestor recarregam.	Браузер и менеджер перезагрузятся.	يُعاد تحميل المتصفح والمدير.
+Le site et le mot de passe sont obligatoires	The site and password are required	El sitio y la contraseña son obligatorios	O site e a palavra-passe são obrigatórios	Сайт и пароль обязательны	الموقع وكلمة المرور مطلوبان
+Le thème s'applique au navigateur et au gestionnaire.	The theme applies to the browser and the manager.	El tema se aplica al navegador y al gestor.	O tema aplica-se ao navegador e ao gestor.	Тема применяется к браузеру и менеджеру.	يُطبَّق المظهر على المتصفح والمدير.
+Lecture des images…	Reading images…	Leyendo imágenes…	A ler as imagens…	Чтение изображений…	جارٍ قراءة الصور…
+Les extensions intégrées font partie de DrYAE : elles se désactivent, se masquent ou se retirent ici. Les autres viennent de la boutique Chrome Web Store ou d'un dossier.	Built-in extensions are part of DrYAE: turn them off, hide or remove them here. Others come from the Chrome Web Store or a folder.	Las extensiones integradas forman parte de DrYAE: se desactivan, ocultan o quitan aquí. Las demás vienen de la Chrome Web Store o de una carpeta.	As extensões integradas fazem parte do DrYAE: desative-as, oculte-as ou remova-as aqui. As outras vêm da Chrome Web Store ou de uma pasta.	Встроенные расширения — часть DrYAE: здесь их можно выключить, скрыть или удалить. Остальные — из Chrome Web Store или из папки.	الإضافات المدمجة جزء من DrYAE: يمكنك تعطيلها أو إخفاؤها أو إزالتها هنا. أما غيرها فمصدرها متجر Chrome Web Store أو مجلد.
+Les favoris, l'historique, les mots de passe et les extensions sont conservés.	Bookmarks, history, passwords and extensions are kept.	Se conservan los marcadores, el historial, las contraseñas y las extensiones.	Os marcadores, o histórico, as palavras-passe e as extensões são mantidos.	Закладки, история, пароли и расширения сохраняются.	تُحفظ المفضلة والسجل وكلمات المرور والإضافات.
+Les identifiants enregistrés sont remplis tout seuls quand il n'y en a qu'un pour le site.	Saved credentials are filled in automatically when there is only one for the site.	Los datos guardados se rellenan solos cuando solo hay uno para el sitio.	As credenciais guardadas são preenchidas sozinhas quando há apenas uma para o site.	Сохранённые данные подставляются сами, если для сайта он один.	تُملأ بيانات الدخول المحفوظة تلقائيًا عندما يكون للموقع حساب واحد فقط.
+Les listes sont mises à jour tous les 4 jours.	Lists are updated every 4 days.	Las listas se actualizan cada 4 días.	As listas são atualizadas a cada 4 dias.	Списки обновляются каждые 4 дня.	تُحدَّث القوائم كل 4 أيام.
+Les mots de passe et les numéros de carte sont chiffrés par Windows sur ce PC. Ils ne sont envoyés nulle part.	Passwords and card numbers are encrypted by Windows on this PC. They are not sent anywhere.	Las contraseñas y los números de tarjeta los cifra Windows en este PC. No se envían a ningún sitio.	As palavras-passe e os números de cartão são encriptados pelo Windows neste PC. Não são enviados para lado nenhum.	Пароли и номера карт шифруются Windows на этом ПК. Они никуда не отправляются.	يشفّر Windows كلمات المرور وأرقام البطاقات على هذا الكمبيوتر. ولا تُرسل إلى أي مكان.
+Les onglets ouverts sont rouverts (chargés au moment où vous les affichez).	Open tabs are reopened (loaded when you show them).	Las pestañas abiertas se vuelven a abrir (se cargan al mostrarlas).	Os separadores abertos são reabertos (carregados quando os mostra).	Открытые вкладки восстанавливаются (загружаются при показе).	تُعاد فتح علامات التبويب (تُحمَّل عند عرضها).
+LibreTranslate (serveur au choix)	LibreTranslate (server of your choice)	LibreTranslate (servidor a elegir)	LibreTranslate (servidor à escolha)	LibreTranslate (любой сервер)	LibreTranslate (خادم من اختيارك)
+Liste des téléchargements terminés	List of finished downloads	Lista de descargas terminadas	Lista de transferências concluídas	Список завершённых загрузок	قائمة التنزيلات المكتملة
+Liste française	French list	Lista francesa	Lista francesa	Французский список	القائمة الفرنسية
+Listes de filtres	Filter lists	Listas de filtros	Listas de filtros	Списки фильтров	قوائم المرشحات
+Listes supplémentaires	Additional lists	Listas adicionales	Listas adicionais	Дополнительные списки	قوائم إضافية
+Lit le texte des images (mangas, manhwas, webtoons, captures) et affiche la traduction par-dessus chaque bulle.	Reads the text in images (manga, manhwa, webtoons, screenshots) and shows the translation over each speech bubble.	Lee el texto de las imágenes (mangas, manhwas, webtoons, capturas) y muestra la traducción sobre cada bocadillo.	Lê o texto das imagens (mangás, manhwas, webtoons, capturas) e mostra a tradução por cima de cada balão.	Читает текст на изображениях (манга, манхва, вебтуны, скриншоты) и показывает перевод поверх каждого облачка.	يقرأ النص في الصور (مانغا، مانهوا، ويبتون، لقطات شاشة) ويعرض الترجمة فوق كل فقاعة.
+Logiciel libre (GPL-3.0)	Free software (GPL-3.0)	Software libre (GPL-3.0)	Software livre (GPL-3.0)	Свободное ПО (GPL-3.0)	برنامج حر (GPL-3.0)
+Lumières tamisées	Dimmed lights	Luces atenuadas	Luzes atenuadas	Приглушённый свет	إضاءة خافتة
+Lumières tamisées (Ctrl+Maj+L)	Dimmed lights (Ctrl+Shift+L)	Luces atenuadas (Ctrl+Mayús+L)	Luzes atenuadas (Ctrl+Shift+L)	Приглушённый свет (Ctrl+Shift+L)	إضاءة خافتة (Ctrl+Shift+L)
+Masque les demandes de consentement aux cookies.	Hides cookie consent requests.	Oculta las solicitudes de consentimiento de cookies.	Oculta os pedidos de consentimento de cookies.	Скрывает запросы согласия на cookie.	يخفي طلبات الموافقة على ملفات تعريف الارتباط.
+Masquer cet élément	Hide this element	Ocultar este elemento	Ocultar este elemento	Скрыть этот элемент	إخفاء هذا العنصر
+Masquer cet élément…	Hide this element…	Ocultar este elemento…	Ocultar este elemento…	Скрыть этот элемент…	إخفاء هذا العنصر…
+Masquer la barre de favoris	Hide bookmarks bar	Ocultar la barra de marcadores	Ocultar a barra de marcadores	Скрыть панель закладок	إخفاء شريط المفضلة
+Masquer le bouton sur ce site	Hide the button on this site	Ocultar el botón en este sitio	Ocultar o botão neste site	Скрыть кнопку на этом сайте	إخفاء الزر في هذا الموقع
+Masquer les détails	Hide details	Ocultar detalles	Ocultar detalhes	Скрыть подробности	إخفاء التفاصيل
+Masquer les traductions	Hide translations	Ocultar las traducciones	Ocultar as traduções	Скрыть переводы	إخفاء الترجمات
+Masquer un élément de la page…	Hide a page element…	Ocultar un elemento de la página…	Ocultar um elemento da página…	Скрыть элемент страницы…	إخفاء عنصر من الصفحة…
+Masquée de la barre	Hidden from toolbar	Oculta de la barra	Oculta da barra	Скрыто с панели	مخفية من الشريط
+Menu ⋮ → Outils supplémentaires → « Mode nuit sur ce site ».	Menu ⋮ → More tools → "Night mode on this site".	Menú ⋮ → Más herramientas → «Modo noche en este sitio».	Menu ⋮ → Mais ferramentas → «Modo noturno neste site».	Меню ⋮ → Дополнительные инструменты → «Ночной режим на этом сайте».	القائمة ⋮ ← أدوات إضافية ← «الوضع الليلي في هذا الموقع».
+Mes extensions	My extensions	Mis extensiones	As minhas extensões	Мои расширения	إضافاتي
+Mise à jour de DrYAE	DrYAE update	Actualización de DrYAE	Atualização do DrYAE	Обновление DrYAE	تحديث DrYAE
+Mise à jour de DrYAE disponible	DrYAE update available	Actualización de DrYAE disponible	Atualização do DrYAE disponível	Доступно обновление DrYAE	تحديث DrYAE متاح
+Mise à jour des extensions…	Updating extensions…	Actualizando extensiones…	A atualizar extensões…	Обновление расширений…	جارٍ تحديث الإضافات…
+Mode d'affichage des sites	Site display mode	Modo de visualización de los sitios	Modo de apresentação dos sites	Режим отображения сайтов	وضع عرض المواقع
+Mode nuit sur ce site	Night mode on this site	Modo noche en este sitio	Modo noturno neste site	Ночной режим на этом сайте	الوضع الليلي في هذا الموقع
+Modes de paiement	Payment methods	Métodos de pago	Métodos de pagamento	Способы оплаты	طرق الدفع
+Modifier	Edit	Editar	Editar	Изменить	تعديل
+Modifier l'adresse	Edit address	Editar la dirección	Editar o endereço	Изменить адрес	تعديل العنوان
+Modifier la carte	Edit card	Editar la tarjeta	Editar o cartão	Изменить карту	تعديل البطاقة
+Modifier le dossier	Edit folder	Editar la carpeta	Editar a pasta	Изменить папку	تعديل المجلد
+Modifier le favori	Edit bookmark	Editar el marcador	Editar o marcador	Изменить закладку	تعديل المفضلة
+Modifier le mot de passe	Edit password	Editar la contraseña	Editar a palavra-passe	Изменить пароль	تعديل كلمة المرور
+Moins	Less	Menos	Menos	Меньше	أقل
+Mot de passe supprimé	Password deleted	Contraseña eliminada	Palavra-passe eliminada	Пароль удалён	تم حذف كلمة المرور
+Mot de passe vide	Empty password	Contraseña vacía	Palavra-passe vazia	Пустой пароль	كلمة مرور فارغة
+Moteur de recherche utilisé dans la barre d'adresse	Search engine used in the address bar	Motor de búsqueda usado en la barra de direcciones	Motor de pesquisa usado na barra de endereço	Поисковая система в адресной строке	محرك البحث المستخدم في شريط العنوان
+Mots de passe enregistrés, vérification, sites refusés	Saved passwords, check-up, refused sites	Contraseñas guardadas, comprobación, sitios rechazados	Palavras-passe guardadas, verificação, sites recusados	Сохранённые пароли, проверка, отклонённые сайты	كلمات المرور المحفوظة، الفحص، المواقع المرفوضة
+Moyen	Medium	Media	Média	Средний	متوسطة
+Ne jamais enregistrer pour ce site	Never save for this site	No guardar nunca para este sitio	Nunca guardar para este site	Никогда не сохранять для этого сайта	عدم الحفظ أبدًا لهذا الموقع
+Ne téléchargez que ce que vous avez le droit de copier.	Only download what you are allowed to copy.	Descarga solo lo que tienes derecho a copiar.	Transfira apenas o que tem o direito de copiar.	Скачивайте только то, что вам разрешено копировать.	لا تنزّل إلا ما يحق لك نسخه.
+Nom du titulaire	Cardholder name	Nombre del titular	Nome do titular	Имя владельца	اسم حامل البطاقة
+Note	Note	Nota	Nota	Заметка	ملاحظة
+Note (facultatif)	Note (optional)	Nota (opcional)	Nota (opcional)	Заметка (необязательно)	ملاحظة (اختيارية)
+Nouveau dossier	New folder	Nueva carpeta	Nova pasta	Новая папка	مجلد جديد
+Nouveautés de cette version	What's new in this version	Novedades de esta versión	Novidades desta versão	Что нового в этой версии	الجديد في هذا الإصدار
+Numéro de carte	Card number	Número de tarjeta	Número do cartão	Номер карты	رقم البطاقة
+Numéro de carte invalide	Invalid card number	Número de tarjeta no válido	Número de cartão inválido	Неверный номер карты	رقم بطاقة غير صالح
+Numéro de carte manquant	Card number missing	Falta el número de tarjeta	Falta o número do cartão	Не указан номер карты	رقم البطاقة مفقود
+Nécessaire pour les sites où il faut être connecté.	Needed for sites where you must be signed in.	Necesario para sitios donde hay que iniciar sesión.	Necessário para sites onde tem de ter sessão iniciada.	Нужно для сайтов, где требуется вход.	ضروري للمواقع التي تتطلب تسجيل الدخول.
+Onglets fermés récemment	Recently closed tabs	Pestañas cerradas recientemente	Separadores fechados recentemente	Недавно закрытые вкладки	علامات التبويب المغلقة مؤخرًا
+Opacité de l'assombrissement	Dimming opacity	Opacidad del oscurecimiento	Opacidade do escurecimento	Степень затемнения	درجة التعتيم
+Options	Options	Opciones	Opções	Параметры	خيارات
+Options de l'extension	Extension options	Opciones de la extensión	Opções da extensão	Параметры расширения	خيارات الإضافة
+Ouvre une page web d'abord	Open a web page first	Abre primero una página web	Abra primeiro uma página web	Сначала откройте веб-страницу	افتح صفحة ويب أولًا
+Ouvrir cette page	Open this page	Abrir esta página	Abrir esta página	Открыть эту страницу	فتح هذه الصفحة
+Ouvrir des pages précises	Open specific pages	Abrir páginas concretas	Abrir páginas específicas	Открывать заданные страницы	فتح صفحات محددة
+Ouvrir l'historique	Open history	Abrir el historial	Abrir o histórico	Открыть историю	فتح السجل
+Ouvrir la boutique	Open the store	Abrir la tienda	Abrir a loja	Открыть магазин	فتح المتجر
+Ouvrir la page d'accueil de DrYAE	Open the DrYAE start page	Abrir la página de inicio de DrYAE	Abrir a página inicial do DrYAE	Открывать стартовую страницу DrYAE	فتح صفحة بدء DrYAE
+Ouvrir le dossier	Open folder	Abrir la carpeta	Abrir a pasta	Открыть папку	فتح المجلد
+Page introuvable	Page not found	Página no encontrada	Página não encontrada	Страница не найдена	الصفحة غير موجودة
+Par date	By date	Por fecha	Por data	По дате	حسب التاريخ
+Par site	By site	Por sitio	Por site	По сайту	حسب الموقع
+Paramètre enregistré	Setting saved	Ajuste guardado	Definição guardada	Настройка сохранена	تم حفظ الإعداد
+Paramètres du bloqueur	Blocker settings	Ajustes del bloqueador	Definições do bloqueador	Настройки блокировщика	إعدادات المانع
+Paramètres du gestionnaire de téléchargements	Download manager settings	Ajustes del gestor de descargas	Definições do gestor de transferências	Настройки менеджера загрузок	إعدادات مدير التنزيلات
+Paramètres du traducteur	Translator settings	Ajustes del traductor	Definições do tradutor	Настройки переводчика	إعدادات المترجم
+Paramètres du traducteur de scans	Image text translator settings	Ajustes del traductor de escaneos	Definições do tradutor de digitalizações	Настройки переводчика сканов	إعدادات مترجم المسوحات
+Pas encore vérifié	Not checked yet	Aún no comprobado	Ainda não verificado	Ещё не проверено	لم يُفحص بعد
+Placer le bouton à droite	Move the button to the right	Colocar el botón a la derecha	Colocar o botão à direita	Переместить кнопку вправо	نقل الزر إلى اليمين
+Placer le bouton à gauche	Move the button to the left	Colocar el botón a la izquierda	Colocar o botão à esquerda	Переместить кнопку влево	نقل الزر إلى اليسار
+Plus de ce site	More from this site	Más de este sitio	Mais deste site	Ещё с этого сайта	المزيد من هذا الموقع
+Portugais	Portuguese	Portugués	Português	Португальский	البرتغالية
+Position du bouton sur les vidéos	Button position on videos	Posición del botón en los vídeos	Posição do botão nos vídeos	Положение кнопки на видео	موضع الزر على الفيديوهات
+Pour les fuites, seuls les 5 premiers caractères d'une empreinte de chaque mot de passe sont envoyés au service public « Pwned Passwords » : vos mots de passe ne quittent jamais ce PC.	For breaches, only the first 5 characters of a hash of each password are sent to the public "Pwned Passwords" service: your passwords never leave this PC.	Para las filtraciones, solo se envían los 5 primeros caracteres de una huella de cada contraseña al servicio público «Pwned Passwords»: tus contraseñas nunca salen de este PC.	Para as fugas, apenas os 5 primeiros caracteres de uma impressão de cada palavra-passe são enviados ao serviço público «Pwned Passwords»: as suas palavras-passe nunca saem deste PC.	Для проверки утечек в публичный сервис «Pwned Passwords» отправляются только первые 5 символов хеша каждого пароля: сами пароли не покидают этот ПК.	لفحص التسريبات، تُرسل أول 5 أحرف فقط من بصمة كل كلمة مرور إلى الخدمة العامة «Pwned Passwords»: لا تغادر كلمات مرورك هذا الكمبيوتر أبدًا.
+Pour ouvrir directement cette page.	To open this page directly.	Para abrir directamente esta página.	Para abrir diretamente esta página.	Чтобы сразу открывать эту страницу.	لفتح هذه الصفحة مباشرة.
+Pour remplir les formulaires en un clic	To fill in forms in one click	Para rellenar formularios con un clic	Para preencher formulários com um clique	Чтобы заполнять формы в один клик	لملء النماذج بنقرة واحدة
+Pour un accès rapide, placez vos favoris ici, dans la barre de favoris.	For quick access, put your bookmarks here, in the bookmarks bar.	Para un acceso rápido, coloca tus marcadores aquí, en la barra de marcadores.	Para acesso rápido, coloque os seus marcadores aqui, na barra de marcadores.	Для быстрого доступа размещайте закладки здесь, на панели закладок.	للوصول السريع، ضع مفضلتك هنا في شريط المفضلة.
+Proposer des mots de passe forts	Suggest strong passwords	Proponer contraseñas fuertes	Sugerir palavras-passe fortes	Предлагать надёжные пароли	اقتراح كلمات مرور قوية
+Publicités	Ads	Anuncios	Anúncios	Реклама	الإعلانات
+Publicités des sites en français.	Ads on French-language sites.	Anuncios de sitios en francés.	Anúncios de sites em francês.	Реклама на франкоязычных сайтах.	إعلانات المواقع الناطقة بالفرنسية.
+Quand vous cliquez dans un champ « nom », « e-mail », « adresse »… DrYAE propose vos coordonnées.	When you click a "name", "email", "address"… field, DrYAE offers your details.	Al hacer clic en un campo «nombre», «correo», «dirección»…, DrYAE propone tus datos.	Quando clica num campo «nome», «e-mail», «endereço»…, o DrYAE propõe os seus dados.	Когда вы щёлкаете поле «имя», «e-mail», «адрес»…, DrYAE предлагает ваши данные.	عند النقر في حقل «الاسم» أو «البريد» أو «العنوان»… يعرض DrYAE بياناتك.
+Quand vous n'avez plus besoin du fichier, supprimez-le : il contient vos mots de passe en clair.	When you no longer need the file, delete it: it contains your passwords in plain text.	Cuando ya no necesites el archivo, elimínalo: contiene tus contraseñas en texto claro.	Quando já não precisar do ficheiro, elimine-o: contém as suas palavras-passe em texto simples.	Когда файл больше не нужен, удалите его: в нём пароли в открытом виде.	عندما لا تعود بحاجة إلى الملف احذفه: فهو يحتوي على كلمات مرورك بنص واضح.
+Raccourci : Ctrl+Maj+B	Shortcut: Ctrl+Shift+B	Atajo: Ctrl+Mayús+B	Atalho: Ctrl+Shift+B	Сочетание: Ctrl+Shift+B	الاختصار: Ctrl+Shift+B
+Raccourci créé sur le Bureau	Shortcut created on the desktop	Acceso directo creado en el escritorio	Atalho criado no ambiente de trabalho	Ярлык создан на рабочем столе	تم إنشاء الاختصار على سطح المكتب
+Raccourcis des extensions intégrées. Les extensions Chrome gardent les leurs.	Shortcuts for built-in extensions. Chrome extensions keep their own.	Atajos de las extensiones integradas. Las extensiones de Chrome mantienen los suyos.	Atalhos das extensões integradas. As extensões Chrome mantêm os seus.	Сочетания встроенных расширений. У расширений Chrome — свои.	اختصارات الإضافات المدمجة. تحتفظ إضافات Chrome باختصاراتها.
+Rajoutez-la depuis la page des extensions.	Add it back from the extensions page.	Vuelve a añadirla desde la página de extensiones.	Volte a adicioná-la na página de extensões.	Верните его на странице расширений.	أعد إضافتها من صفحة الإضافات.
+Recherche de mises à jour…	Checking for updates…	Buscando actualizaciones…	A procurar atualizações…	Поиск обновлений…	جارٍ البحث عن تحديثات…
+Rechercher dans les extensions	Search extensions	Buscar en las extensiones	Pesquisar nas extensões	Поиск расширений	البحث في الإضافات
+Rechercher dans les favoris	Search bookmarks	Buscar en los marcadores	Pesquisar nos marcadores	Поиск в закладках	البحث في المفضلة
+Rechercher dans les paramètres	Search settings	Buscar en los ajustes	Pesquisar nas definições	Поиск в настройках	البحث في الإعدادات
+Rechercher des mises à jour	Check for updates	Buscar actualizaciones	Procurar atualizações	Проверить обновления	البحث عن تحديثات
+Rechercher des mots de passe	Search passwords	Buscar contraseñas	Pesquisar palavras-passe	Поиск паролей	البحث في كلمات المرور
+Remplir avec la carte	Fill in with card	Rellenar con la tarjeta	Preencher com o cartão	Заполнить картой	الملء بالبطاقة
+Reprendre là où je m'étais arrêté	Continue where I left off	Continuar donde lo dejé	Continuar onde parei	Продолжить с места остановки	المتابعة من حيث توقفت
+Retirer de la barre d'outils	Remove from toolbar	Quitar de la barra de herramientas	Remover da barra de ferramentas	Убрать с панели инструментов	إزالة من شريط الأدوات
+Retour arrière	Backspace	Retroceso	Retrocesso	Backspace	Backspace
+Rien (clic droit ou Ctrl+Maj+E)	Nothing (right-click or Ctrl+Shift+E)	Nada (clic derecho o Ctrl+Mayús+E)	Nada (clique direito ou Ctrl+Shift+E)	Ничего (правый щелчок или Ctrl+Shift+E)	لا شيء (نقر بالزر الأيمن أو Ctrl+Shift+E)
+Rouvrir	Reopen	Volver a abrir	Reabrir	Открыть снова	إعادة الفتح
+Russe	Russian	Ruso	Russo	Русский	الروسية
+Réglages des sites et éléments masqués	Site settings and hidden elements	Ajustes de sitios y elementos ocultos	Definições de sites e elementos ocultos	Настройки сайтов и скрытые элементы	إعدادات المواقع والعناصر المخفية
+Résultats de la recherche	Search results	Resultados de la búsqueda	Resultados da pesquisa	Результаты поиска	نتائج البحث
+Rétablir les paramètres du navigateur par défaut	Restore default browser settings	Restablecer los ajustes predeterminados del navegador	Repor as definições predefinidas do navegador	Восстановить настройки браузера по умолчанию	استعادة إعدادات المتصفح الافتراضية
+Rétablir les paramètres du navigateur par défaut ?	Restore default browser settings?	¿Restablecer los ajustes predeterminados del navegador?	Repor as definições predefinidas do navegador?	Восстановить настройки браузера по умолчанию?	استعادة إعدادات المتصفح الافتراضية؟
+Saisie automatique et mots de passe	Autofill and passwords	Autocompletar y contraseñas	Preenchimento automático e palavras-passe	Автозаполнение и пароли	الملء التلقائي وكلمات المرور
+Sans le code CVC.	Without the CVC code.	Sin el código CVC.	Sem o código CVC.	Без кода CVC.	بدون رمز CVC.
+Service de traduction	Translation service	Servicio de traducción	Serviço de tradução	Служба перевода	خدمة الترجمة
+Site	Site	Sitio	Site	Сайт	الموقع
+Sites autorisés	Allowed sites	Sitios permitidos	Sites permitidos	Разрешённые сайты	المواقع المسموح بها
+Sites en mode nuit	Sites in night mode	Sitios en modo noche	Sites em modo noturno	Сайты в ночном режиме	المواقع في الوضع الليلي
+Sites malveillants	Malicious sites	Sitios maliciosos	Sites maliciosos	Вредоносные сайты	المواقع الضارة
+Sites où le bouton est masqué	Sites where the button is hidden	Sitios donde el botón está oculto	Sites onde o botão está oculto	Сайты, где кнопка скрыта	المواقع التي يُخفى فيها الزر
+Sites refusés	Refused sites	Sitios rechazados	Sites recusados	Отклонённые сайты	المواقع المرفوضة
+Suggérer un mot de passe fort	Suggest a strong password	Sugerir una contraseña fuerte	Sugerir uma palavra-passe forte	Предложить надёжный пароль	اقتراح كلمة مرور قوية
+Suppression annulée	Deletion undone	Eliminación deshecha	Eliminação anulada	Удаление отменено	تم التراجع عن الحذف
+Supprimer cette adresse ?	Delete this address?	¿Eliminar esta dirección?	Eliminar este endereço?	Удалить этот адрес?	حذف هذا العنوان؟
+Supprimer cette carte ?	Delete this card?	¿Eliminar esta tarjeta?	Eliminar este cartão?	Удалить эту карту?	حذف هذه البطاقة؟
+Supprimer de l'historique	Remove from history	Eliminar del historial	Remover do histórico	Удалить из истории	إزالة من السجل
+Supprimer définitivement tous les mots de passe enregistrés ?	Permanently delete all saved passwords?	¿Eliminar definitivamente todas las contraseñas guardadas?	Eliminar definitivamente todas as palavras-passe guardadas?	Удалить все сохранённые пароли без возможности восстановления?	حذف كل كلمات المرور المحفوظة نهائيًا؟
+Supprimer le dossier	Delete folder	Eliminar la carpeta	Eliminar a pasta	Удалить папку	حذف المجلد
+Supprimer les données	Delete data	Eliminar los datos	Eliminar os dados	Удалить данные	حذف البيانات
+Supprimer les dossiers sélectionnés et tout leur contenu ?	Delete the selected folders and all their contents?	¿Eliminar las carpetas seleccionadas y todo su contenido?	Eliminar as pastas selecionadas e todo o seu conteúdo?	Удалить выбранные папки со всем содержимым?	حذف المجلدات المحددة وكل محتوياتها؟
+Supprimer tous les comptes de ce site	Delete all accounts for this site	Eliminar todas las cuentas de este sitio	Eliminar todas as contas deste site	Удалить все учётные записи этого сайта	حذف كل حسابات هذا الموقع
+Supprimer toutes les données	Delete all data	Eliminar todos los datos	Eliminar todos os dados	Удалить все данные	حذف كل البيانات
+Sur les pages d'inscription, DrYAE suggère un mot de passe solide et unique.	On sign-up pages, DrYAE suggests a strong, unique password.	En las páginas de registro, DrYAE sugiere una contraseña sólida y única.	Nas páginas de registo, o DrYAE sugere uma palavra-passe forte e única.	На страницах регистрации DrYAE предлагает надёжный уникальный пароль.	في صفحات التسجيل، يقترح DrYAE كلمة مرور قوية وفريدة.
+Surnom de la carte (facultatif)	Card nickname (optional)	Alias de la tarjeta (opcional)	Alcunha do cartão (opcional)	Название карты (необязательно)	اسم مستعار للبطاقة (اختياري)
+Syntaxe Adblock, un filtre par ligne. Exemple : ||pub.exemple.com^	Adblock syntax, one filter per line. Example: ||ads.example.com^	Sintaxis Adblock, un filtro por línea. Ejemplo: ||anuncios.ejemplo.com^	Sintaxe Adblock, um filtro por linha. Exemplo: ||anuncios.exemplo.com^	Синтаксис Adblock, по одному фильтру в строке. Пример: ||ads.example.com^	صيغة Adblock، مرشح واحد في كل سطر. مثال: ||ads.example.com^
+Système	System	Sistema	Sistema	Система	النظام
+Test de Windows Hello pour DrYAE	Windows Hello test for DrYAE	Prueba de Windows Hello para DrYAE	Teste do Windows Hello para o DrYAE	Проверка Windows Hello для DrYAE	اختبار Windows Hello لـ DrYAE
+Tester	Test	Probar	Testar	Проверить	اختبار
+Texte sélectionné	Selected text	Texto seleccionado	Texto selecionado	Выделенный текст	النص المحدد
+Toujours active	Always on	Siempre activa	Sempre ativa	Всегда включено	مفعّلة دائمًا
+Toujours demander où enregistrer chaque fichier	Always ask where to save each file	Preguntar siempre dónde guardar cada archivo	Perguntar sempre onde guardar cada ficheiro	Всегда спрашивать, куда сохранить файл	السؤال دائمًا عن مكان حفظ كل ملف
+Tous les mots de passe enregistrés et la liste des sites refusés seront définitivement supprimés.	All saved passwords and the list of refused sites will be permanently deleted.	Se eliminarán definitivamente todas las contraseñas guardadas y la lista de sitios rechazados.	Todas as palavras-passe guardadas e a lista de sites recusados serão eliminadas definitivamente.	Все сохранённые пароли и список отклонённых сайтов будут удалены без возможности восстановления.	ستُحذف نهائيًا كل كلمات المرور المحفوظة وقائمة المواقع المرفوضة.
+Tout ouvrir	Open all	Abrir todo	Abrir tudo	Открыть все	فتح الكل
+Tout réafficher	Show all again	Volver a mostrar todo	Voltar a mostrar tudo	Показать всё снова	إظهار الكل مجددًا
+Tout supprimer pour ce site	Delete all for this site	Eliminar todo de este sitio	Eliminar tudo deste site	Удалить всё для этого сайта	حذف الكل لهذا الموقع
+Traducteur	Translator	Traductor	Tradutor	Переводчик	المترجم
+Traducteur de scans	Image text translator	Traductor de escaneos	Tradutor de digitalizações	Переводчик сканов	مترجم المسوحات
+Traducteur de scans (Ctrl+Maj+S)	Image text translator (Ctrl+Shift+S)	Traductor de escaneos (Ctrl+Mayús+S)	Tradutor de digitalizações (Ctrl+Shift+S)	Переводчик сканов (Ctrl+Shift+S)	مترجم المسوحات (Ctrl+Shift+S)
+Traducteur de scans désactivé	Image text translator off	Traductor de escaneos desactivado	Tradutor de digitalizações desativado	Переводчик сканов выключен	مترجم المسوحات معطّل
+Traducteur désactivé	Translator off	Traductor desactivado	Tradutor desativado	Переводчик выключен	المترجم معطّل
+Traduction de la page…	Translating page…	Traduciendo la página…	A traduzir a página…	Перевод страницы…	جارٍ ترجمة الصفحة…
+Traduction…	Translating…	Traduciendo…	A traduzir…	Перевод…	جارٍ الترجمة…
+Traduire	Translate	Traducir	Traduzir	Перевести	ترجمة
+Traduire (Ctrl+Maj+E)	Translate (Ctrl+Shift+E)	Traducir (Ctrl+Mayús+E)	Traduzir (Ctrl+Shift+E)	Перевести (Ctrl+Shift+E)	ترجمة (Ctrl+Shift+E)
+Traduire la page	Translate page	Traducir la página	Traduzir a página	Перевести страницу	ترجمة الصفحة
+Traduire la sélection ou la page	Translate selection or page	Traducir la selección o la página	Traduzir a seleção ou a página	Перевести выделенное или страницу	ترجمة التحديد أو الصفحة
+Traduire le texte de l'image	Translate image text	Traducir el texto de la imagen	Traduzir o texto da imagem	Перевести текст изображения	ترجمة نص الصورة
+Traduire le texte sélectionné	Translate selected text	Traducir el texto seleccionado	Traduzir o texto selecionado	Перевести выделенный текст	ترجمة النص المحدد
+Traduire les images de la page	Translate the images on the page	Traducir las imágenes de la página	Traduzir as imagens da página	Перевести изображения на странице	ترجمة صور الصفحة
+Traduire les images de la page (scans)	Translate the images on the page (scans)	Traducir las imágenes de la página (escaneos)	Traduzir as imagens da página (digitalizações)	Перевести изображения на странице (сканы)	ترجمة صور الصفحة (المسوحات)
+Traduire tout de suite	Translate right away	Traducir enseguida	Traduzir de imediato	Переводить сразу	الترجمة فورًا
+Traduire vers	Translate into	Traducir a	Traduzir para	Переводить на	الترجمة إلى
+Traduire « {0}{1} »	Translate "{0}{1}"	Traducir «{0}{1}»	Traduzir «{0}{1}»	Перевести «{0}{1}»	ترجمة «{0}{1}»
+Traduit le texte sélectionné dans une bulle, ou la page entière, dans votre langue.	Translates selected text in a bubble, or the whole page, into your language.	Traduce el texto seleccionado en una burbuja, o la página entera, a tu idioma.	Traduz o texto selecionado numa bolha, ou a página inteira, para o seu idioma.	Переводит выделенный текст во всплывающем окне или всю страницу на ваш язык.	يترجم النص المحدد في فقاعة، أو الصفحة كلها، إلى لغتك.
+Traduit le texte sélectionné ou la page entière. Le texte est envoyé au service choisi.	Translates selected text or the whole page. The text is sent to the chosen service.	Traduce el texto seleccionado o la página entera. El texto se envía al servicio elegido.	Traduz o texto selecionado ou a página inteira. O texto é enviado ao serviço escolhido.	Переводит выделенный текст или всю страницу. Текст отправляется в выбранную службу.	يترجم النص المحدد أو الصفحة كلها. يُرسل النص إلى الخدمة المختارة.
+Traqueurs et statistiques	Trackers and analytics	Rastreadores y estadísticas	Rastreadores e estatísticas	Трекеры и аналитика	أدوات التتبع والإحصاءات
+Trier par nom	Sort by name	Ordenar por nombre	Ordenar por nome	Сортировать по имени	الترتيب حسب الاسم
+Téléchargements du navigateur	Browser downloads	Descargas del navegador	Transferências do navegador	Загрузки браузера	تنزيلات المتصفح
+Téléchargements par DrYAE	Downloads with DrYAE	Descargas con DrYAE	Transferências com o DrYAE	Загрузки через DrYAE	التنزيلات عبر DrYAE
+Télécharger le fichier	Download file	Descargar el archivo	Transferir o ficheiro	Скачать файл	تنزيل الملف
+Un bouton apparaît quand la souris passe sur une vidéo : la vidéo continue dans une petite fenêtre au-dessus des autres.	A button appears when the mouse is over a video: the video continues in a small window on top of the others.	Aparece un botón al pasar el ratón sobre un vídeo: el vídeo sigue en una ventana pequeña encima de las demás.	Aparece um botão quando o rato passa sobre um vídeo: o vídeo continua numa pequena janela por cima das outras.	При наведении на видео появляется кнопка: видео продолжается в маленьком окне поверх других.	يظهر زر عند تمرير الفأرة فوق فيديو: يستمر الفيديو في نافذة صغيرة فوق النوافذ الأخرى.
+Un message propose de les ouvrir quand même.	A message offers to open them anyway.	Un mensaje propone abrirlas de todos modos.	Uma mensagem propõe abri-las mesmo assim.	Появится предложение всё равно их открыть.	تعرض رسالة فتحها على أي حال.
+Une adresse de liste par ligne.	One list address per line.	Una dirección de lista por línea.	Um endereço de lista por linha.	По одному адресу списка в строке.	عنوان قائمة واحد في كل سطر.
+Une adresse par ligne.	One address per line.	Una dirección por línea.	Um endereço por linha.	По одному адресу в строке.	عنوان واحد في كل سطر.
+Utilisation : bouton du traducteur de scans dans la barre d'outils (ou Ctrl+Maj+S) pour toutes les images de la page, ou clic droit sur une image → « Traduire le texte de l'image ». Cliquez sur une bulle traduite pour revoir le texte d'origine.	How to use: image text translator button in the toolbar (or Ctrl+Shift+S) for all images on the page, or right-click an image → "Translate image text". Click a translated bubble to see the original text again.	Uso: botón del traductor de escaneos en la barra de herramientas (o Ctrl+Mayús+S) para todas las imágenes de la página, o clic derecho en una imagen → «Traducir el texto de la imagen». Haz clic en un bocadillo traducido para ver el texto original.	Utilização: botão do tradutor de digitalizações na barra de ferramentas (ou Ctrl+Shift+S) para todas as imagens da página, ou clique direito numa imagem → «Traduzir o texto da imagem». Clique num balão traduzido para rever o texto original.	Как пользоваться: кнопка переводчика сканов на панели (или Ctrl+Shift+S) — для всех изображений страницы, либо правый щелчок по изображению → «Перевести текст изображения». Щёлкните по переведённому облачку, чтобы увидеть оригинал.	طريقة الاستخدام: زر مترجم المسوحات في شريط الأدوات (أو Ctrl+Shift+S) لكل صور الصفحة، أو انقر بالزر الأيمن على صورة ← «ترجمة نص الصورة». انقر على فقاعة مترجمة لرؤية النص الأصلي.
+Utiliser Windows Hello pour afficher les mots de passe	Use Windows Hello to show passwords	Usar Windows Hello para mostrar las contraseñas	Usar o Windows Hello para mostrar as palavras-passe	Использовать Windows Hello для показа паролей	استخدام Windows Hello لإظهار كلمات المرور
+Utiliser ce mot de passe	Use this password	Usar esta contraseña	Usar esta palavra-passe	Использовать этот пароль	استخدام كلمة المرور هذه
+Utilisez un mot de passe différent pour chaque site	Use a different password for each site	Usa una contraseña distinta para cada sitio	Use uma palavra-passe diferente para cada site	Используйте разные пароли для разных сайтов	استخدم كلمة مرور مختلفة لكل موقع
+Voir dans la boutique	View in store	Ver en la tienda	Ver na loja	Открыть в магазине	عرض في المتجر
+Vos mots de passe sont chiffrés par Windows avant d'être enregistrés sur ce PC.	Your passwords are encrypted by Windows before being saved on this PC.	Windows cifra tus contraseñas antes de guardarlas en este PC.	As suas palavras-passe são encriptadas pelo Windows antes de serem guardadas neste PC.	Ваши пароли шифруются Windows перед сохранением на этом ПК.	يشفّر Windows كلمات مرورك قبل حفظها على هذا الكمبيوتر.
+Vous avez choisi de ne jamais enregistrer les mots de passe de ces sites.	You chose never to save passwords for these sites.	Elegiste no guardar nunca las contraseñas de estos sitios.	Escolheu nunca guardar as palavras-passe destes sites.	Вы решили никогда не сохранять пароли для этих сайтов.	اخترت عدم حفظ كلمات مرور هذه المواقع أبدًا.
+Vérification	Check-up	Comprobación	Verificação	Проверка	الفحص
+Vérification des fuites impossible (connexion ?)	Breach check impossible (connection?)	No se pudo comprobar las filtraciones (¿conexión?)	Impossível verificar as fugas (ligação?)	Не удалось проверить утечки (соединение?)	تعذّر فحص التسريبات (الاتصال؟)
+Vérification des mots de passe	Password check-up	Comprobación de contraseñas	Verificação das palavras-passe	Проверка паролей	فحص كلمات المرور
+Vérification impossible.	Check failed.	No se pudo comprobar.	Verificação impossível.	Проверка не удалась.	تعذّر الفحص.
+Vérification…	Checking…	Comprobando…	A verificar…	Проверка…	جارٍ الفحص…
+Vérifier maintenant	Check now	Comprobar ahora	Verificar agora	Проверить сейчас	افحص الآن
+Windows Hello (empreinte, visage ou code PIN) est demandé avant chaque utilisation.	Windows Hello (fingerprint, face or PIN) is required before each use.	Se pide Windows Hello (huella, rostro o PIN) antes de cada uso.	O Windows Hello (impressão digital, rosto ou PIN) é pedido antes de cada utilização.	Перед каждым использованием запрашивается Windows Hello (отпечаток, лицо или PIN-код).	يُطلب Windows Hello (بصمة أو وجه أو رمز PIN) قبل كل استخدام.
+Windows Hello n'est pas configuré sur ce PC	Windows Hello is not set up on this PC	Windows Hello no está configurado en este PC	O Windows Hello não está configurado neste PC	Windows Hello не настроен на этом ПК	لم يتم إعداد Windows Hello على هذا الكمبيوتر
+À l'instant	Just now	Ahora mismo	Agora mesmo	Только что	الآن
+À propos de DrYAE	About DrYAE	Acerca de DrYAE	Acerca do DrYAE	О DrYAE	حول DrYAE
+Écouter	Listen	Escuchar	Ouvir	Прослушать	استماع
+Éléments bloqués depuis l'ouverture	Items blocked since opening	Elementos bloqueados desde la apertura	Elementos bloqueados desde a abertura	Заблокировано с момента запуска	العناصر المحظورة منذ الفتح
+Éléments gênants	Annoyances	Elementos molestos	Elementos incómodos	Раздражающие элементы	العناصر المزعجة
+Éléments masqués avec le bloqueur, autorisations	Elements hidden with the blocker, permissions	Elementos ocultos con el bloqueador, permisos	Elementos ocultos com o bloqueador, permissões	Скрытые блокировщиком элементы, разрешения	العناصر المخفية بالمانع، الأذونات
+Éléments masqués à la main	Elements hidden by hand	Elementos ocultados a mano	Elementos ocultados à mão	Скрытые вручную элементы	العناصر المخفية يدويًا
+Éteindre automatiquement quand une vidéo démarre	Dim automatically when a video starts	Atenuar automáticamente al empezar un vídeo	Escurecer automaticamente quando um vídeo começa	Затемнять автоматически при запуске видео	التعتيم تلقائيًا عند بدء فيديو
+laisser vide pour garder	leave empty to keep	dejar vacío para conservar	deixar vazio para manter	оставьте пустым, чтобы сохранить	اتركه فارغًا للإبقاء عليه
+monter / descendre	move up / down	subir / bajar	subir / descer	вверх / вниз	تحريك لأعلى / لأسفل
+dossier parent	parent folder	carpeta superior	pasta superior	родительская папка	المجلد الأصل
+déplacer	move	mover	mover	переместить	نقل
+nouvel onglet	new tab	nueva pestaña	novo separador	новая вкладка	علامة تبويب جديدة
+se déplacer	move around	desplazarse	deslocar-se	перемещение	التنقل
+sélectionner	select	seleccionar	selecionar	выделить	تحديد
+tout sélectionner	select all	seleccionar todo	selecionar tudo	выделить всё	تحديد الكل
+toutes périodes	all time	todo el período	todo o período	за всё время	كل الفترات
+ouvrir	open	abrir	abrir	открыть	فتح
+supprimer	delete	eliminar	eliminar	удалить	حذف
+annuler	undo	deshacer	anular	отменить	تراجع
+rechercher	search	buscar	pesquisar	поиск	بحث
+modifier	edit	editar	editar	изменить	تعديل
+clic	click	clic	clique	щелчок	نقرة
+Supprimer les {0} éléments	Delete the {0} items	Eliminar los {0} elementos	Eliminar os {0} elementos	Удалить элементы ({0})	حذف العناصر ({0})
+{0} élément(s) supprimé(s) de l'historique	{0} item(s) removed from history	{0} elemento(s) eliminado(s) del historial	{0} elemento(s) removido(s) do histórico	Удалено из истории: {0}	تمت إزالة {0} عنصر من السجل
+Supprimer les {0} pages de « {1} » de l'historique ?	Remove the {0} pages from "{1}" from history?	¿Eliminar del historial las {0} páginas de «{1}»?	Remover do histórico as {0} páginas de «{1}»?	Удалить из истории страницы сайта «{1}» ({0})?	إزالة صفحات «{1}» ({0}) من السجل؟
+{0} page(s) pour cette période	{0} page(s) for this period	{0} página(s) en este período	{0} página(s) neste período	Страниц за этот период: {0}	{0} صفحة في هذه الفترة
+{0} site(s). Vous serez déconnecté de la plupart des sites.	{0} site(s). You will be signed out of most sites.	{0} sitio(s). Se cerrará la sesión en la mayoría de los sitios.	{0} site(s). Terá a sessão terminada na maioria dos sites.	Сайтов: {0}. Вы выйдете из большинства сайтов.	{0} موقع. سيتم تسجيل خروجك من معظم المواقع.
+{0} au total	{0} in total	{0} en total	{0} no total	Всего: {0}	{0} إجمالًا
+{0} élément(s) — les fichiers restent sur le disque	{0} item(s) — files stay on the disk	{0} elemento(s): los archivos se quedan en el disco	{0} elemento(s) — os ficheiros ficam no disco	Элементов: {0} — файлы останутся на диске	{0} عنصر — تبقى الملفات على القرص
+{0} mot(s) de passe	{0} password(s)	{0} contraseña(s)	{0} palavra(s)-passe	Паролей: {0}	{0} كلمة مرور
+{0} élément(s) supprimé(s)	{0} item(s) deleted	{0} elemento(s) eliminado(s)	{0} elemento(s) eliminado(s)	Удалено элементов: {0}	تم حذف {0} عنصر
+{0} élément(s) prêt(s) à déplacer : ouvrez un dossier puis Ctrl+V	{0} item(s) ready to move: open a folder then press Ctrl+V	{0} elemento(s) listo(s) para mover: abre una carpeta y pulsa Ctrl+V	{0} elemento(s) pronto(s) a mover: abra uma pasta e prima Ctrl+V	Готово к перемещению: {0}. Откройте папку и нажмите Ctrl+V	{0} عنصر جاهز للنقل: افتح مجلدًا ثم اضغط Ctrl+V
+Ouvrir {0} onglets ?	Open {0} tabs?	¿Abrir {0} pestañas?	Abrir {0} separadores?	Открыть вкладки ({0})?	فتح {0} علامة تبويب؟
+{0} favori(s) importé(s) dans « Autres favoris »	{0} bookmark(s) imported into "Other bookmarks"	{0} marcador(es) importado(s) en «Otros marcadores»	{0} marcador(es) importado(s) em «Outros marcadores»	Импортировано закладок в «Другие закладки»: {0}	تم استيراد {0} مفضلة إلى «مفضلة أخرى»
+{0} favori(s) importé(s)	{0} bookmark(s) imported	{0} marcador(es) importado(s)	{0} marcador(es) importado(s)	Импортировано закладок: {0}	تم استيراد {0} مفضلة
+{0} site(s) refusé(s) : voir Paramètres.	{0} refused site(s): see Settings.	{0} sitio(s) rechazado(s): ver Ajustes.	{0} site(s) recusado(s): ver Definições.	Отклонённых сайтов: {0} — см. Параметры.	{0} موقع مرفوض: راجع الإعدادات.
+Supprimer {0} mot(s) de passe ?	Delete {0} password(s)?	¿Eliminar {0} contraseña(s)?	Eliminar {0} palavra(s)-passe?	Удалить пароли ({0})?	حذف {0} كلمة مرور؟
+{0} mot(s) de passe supprimé(s)	{0} password(s) deleted	{0} contraseña(s) eliminada(s)	{0} palavra(s)-passe eliminada(s)	Удалено паролей: {0}	تم حذف {0} كلمة مرور
+il y a {0} min	{0} min ago	hace {0} min	há {0} min	{0} мин назад	منذ {0} دقيقة
+il y a {0} h	{0} h ago	hace {0} h	há {0} h	{0} ч назад	منذ {0} ساعة
+{0} mot(s) de passe vérifié(s)	{0} password(s) checked	{0} contraseña(s) comprobada(s)	{0} palavra(s)-passe verificada(s)	Проверено паролей: {0}	تم فحص {0} كلمة مرور
+{0} mot(s) de passe compromis	{0} compromised password(s)	{0} contraseña(s) comprometida(s)	{0} palavra(s)-passe comprometida(s)	Скомпрометированных паролей: {0}	{0} كلمة مرور مخترقة
+{0} mot(s) de passe réutilisé(s)	{0} reused password(s)	{0} contraseña(s) reutilizada(s)	{0} palavra(s)-passe reutilizada(s)	Повторяющихся паролей: {0}	{0} كلمة مرور مكررة
+{0} mot(s) de passe faible(s)	{0} weak password(s)	{0} contraseña(s) débil(es)	{0} palavra(s)-passe fraca(s)	Слабых паролей: {0}	{0} كلمة مرور ضعيفة
+Retirer « {0} » ? Vous pourrez la rajouter à tout moment depuis cette page.	Remove "{0}"? You can add it back at any time from this page.	¿Quitar «{0}»? Podrás volver a añadirla en cualquier momento desde esta página.	Remover «{0}»? Pode voltar a adicioná-la a qualquer momento nesta página.	Удалить «{0}»? Его можно вернуть в любой момент на этой странице.	إزالة «{0}»؟ يمكنك إعادة إضافتها في أي وقت من هذه الصفحة.
+Téléchargement de la mise à jour… {0} %	Downloading update… {0}%	Descargando la actualización… {0} %	A transferir a atualização… {0} %	Загрузка обновления… {0} %	جارٍ تنزيل التحديث… {0}%
+Dernière mise à jour : {0}	Last update: {0}	Última actualización: {0}	Última atualização: {0}	Последнее обновление: {0}	آخر تحديث: {0}
+Onglets du {0}	Tabs from {0}	Pestañas del {0}	Separadores de {0}	Вкладки от {0}	علامات تبويب {0}
+{0} onglet(s) ajouté(s) aux favoris	{0} tab(s) bookmarked	{0} pestaña(s) añadida(s) a marcadores	{0} separador(es) adicionado(s) aos marcadores	Добавлено вкладок в закладки: {0}	تمت إضافة {0} علامة تبويب إلى المفضلة
+Supprimer le dossier « {0} » et son contenu ?	Delete the folder "{0}" and its contents?	¿Eliminar la carpeta «{0}» y su contenido?	Eliminar a pasta «{0}» e o seu conteúdo?	Удалить папку «{0}» со всем содержимым?	حذف المجلد «{0}» ومحتواه؟
+Traduction impossible : {0}	Translation failed: {0}	No se pudo traducir: {0}	Tradução impossível: {0}	Перевод не удался: {0}	تعذّرت الترجمة: {0}
+Page traduite : {0} → {1}	Page translated: {0} → {1}	Página traducida: {0} → {1}	Página traduzida: {0} → {1}	Страница переведена: {0} → {1}	تمت ترجمة الصفحة: {0} ← {1}
+Traduit de {0}	Translated from {0}	Traducido del {0}	Traduzido de {0}	Переведено с языка: {0}	مترجم من {0}
+{0} bulle(s) traduite(s)	{0} bubble(s) translated	{0} bocadillo(s) traducido(s)	{0} balão(ões) traduzido(s)	Переведено облачков: {0}	تمت ترجمة {0} فقاعة
+{0} comptes	{0} accounts	{0} cuentas	{0} contas	Учётных записей: {0}	{0} حسابات
+Enregistré le {0}	Saved on {0}	Guardado el {0}	Guardado em {0}	Сохранено {0}	حُفظ في {0}
+utilisé le {0}	used on {0}	usado el {0}	usado em {0}	использовано {0}	استُخدم في {0}
+expire {0}	expires {0}	caduca {0}	expira {0}	действует до {0}	تنتهي {0}
+Onglets	Tabs	Pestañas	Separadores	Вкладки	علامات التبويب
+La plupart des extensions courantes fonctionnent ; certaines fonctions avancées de Chrome peuvent manquer. Après un changement, actualisez les pages ouvertes.	Most common extensions work; some advanced Chrome features may be missing. After a change, reload open pages.	La mayoría de las extensiones comunes funcionan; pueden faltar algunas funciones avanzadas de Chrome. Tras un cambio, recarga las páginas abiertas.	A maioria das extensões comuns funciona; podem faltar algumas funções avançadas do Chrome. Após uma alteração, atualize as páginas abertas.	Большинство распространённых расширений работает; некоторых продвинутых функций Chrome может не быть. После изменения обновите открытые страницы.	تعمل معظم الإضافات الشائعة؛ وقد تنقص بعض ميزات Chrome المتقدمة. بعد أي تغيير، حدّث الصفحات المفتوحة.
+Aucune.	None.	Ninguna.	Nenhuma.	Нет.	لا شيء.
+Lit le texte des images (mangas, manhwas, webtoons…) et place la traduction sur chaque bulle. La lecture se fait sur ce PC ; seul le texte trouvé est envoyé au service de traduction.	Reads the text in images (manga, manhwa, webtoons…) and places the translation on each speech bubble. Reading happens on this PC; only the text found is sent to the translation service.	Lee el texto de las imágenes (mangas, manhwas, webtoons…) y coloca la traducción en cada bocadillo. La lectura se hace en este PC; solo se envía el texto encontrado al servicio de traducción.	Lê o texto das imagens (mangás, manhwas, webtoons…) e coloca a tradução em cada balão. A leitura é feita neste PC; só o texto encontrado é enviado ao serviço de tradução.	Читает текст на изображениях (манга, манхва, вебтуны…) и размещает перевод на каждом облачке. Чтение выполняется на этом ПК; в службу перевода отправляется только найденный текст.	يقرأ النص في الصور (مانغا، مانهوا، ويبتون…) ويضع الترجمة على كل فقاعة. تتم القراءة على هذا الكمبيوتر؛ ولا يُرسل إلى خدمة الترجمة إلا النص المعثور عليه.
+La première fois, les données de lecture de cette langue sont téléchargées (2 à 15 Mo).	The first time, the reading data for this language is downloaded (2 to 15 MB).	La primera vez se descargan los datos de lectura de este idioma (de 2 a 15 MB).	Da primeira vez, os dados de leitura deste idioma são transferidos (2 a 15 MB).	В первый раз загружаются данные распознавания для этого языка (от 2 до 15 МБ).	في المرة الأولى، تُنزَّل بيانات القراءة لهذه اللغة (من 2 إلى 15 ميغابايت).

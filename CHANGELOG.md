@@ -1,5 +1,61 @@
 # Nouveautés / Changelog
 
+## 1.6.4
+
+### 🇫🇷 Français
+
+**Pages de gestion du navigateur (dans un onglet, au lieu des petites fenêtres)**
+- Historique, Favoris, Mots de passe, Extensions et Paramètres s'ouvrent maintenant dans un **onglet**, avec une barre de recherche (Ctrl+F) et une navigation à gauche.
+- Les listes se gèrent **au clavier**, comme le gestionnaire de téléchargements : ↑ ↓, Maj+↑↓, Ctrl+clic, Ctrl+A, Entrée (ouvrir), Ctrl+Entrée (nouvel onglet), Suppr, F2, Ctrl+Z (annuler), Échap.
+
+**Menu ⋮ réorganisé**
+- Sous-menus **Mots de passe et saisie automatique**, **Historique** (avec les onglets fermés récemment), **Favoris**, **Extensions** ; **Effacer les données de navigation** ; **Traduire la page** ; **Aide**.
+
+**Historique**
+- Affichage **par date** ou **par site**, sélection multiple, suppression avec **Annuler**, « Plus de ce site », onglets fermés récemment.
+- **Effacer les données de navigation** : période au choix (15 dernières minutes, dernière heure, 24 heures, 7 jours, 4 semaines, depuis le début) ; historique, cookies, cache, liste des téléchargements terminés, et plus.
+
+**Favoris**
+- **Barre de favoris** sous la barre d'adresse (Ctrl+Maj+B), avec dossiers, glisser-déposer et clic droit.
+- Ctrl+D ouvre une petite fenêtre pour renommer le favori et choisir son dossier ; Ctrl+Maj+D ajoute tous les onglets.
+- **Gestionnaire de favoris** (Ctrl+Maj+O) : dossiers, glisser-déposer, couper / coller, monter / descendre (Alt+↑↓), tri par nom, **import et export** au format HTML.
+
+**Mots de passe et saisie automatique**
+- Liste **par site** (« 2 comptes »…), fiche de chaque compte : identifiant, mot de passe, note, modifier, supprimer.
+- **Vérification** : mots de passe **compromis** (fuites connues), **réutilisés** et **faibles**. Seuls 5 caractères d'une empreinte sont envoyés : le mot de passe ne quitte jamais le PC.
+- **Windows Hello** (empreinte, visage ou code PIN) avant d'afficher, copier ou exporter un mot de passe (au choix).
+- **Mot de passe fort proposé** sur les pages d'inscription.
+- **Modes de paiement** : cartes enregistrées (chiffrées par Windows, sans le code CVC), remplies dans les formulaires après confirmation Windows Hello.
+- **Adresses** : plusieurs adresses au lieu d'un seul profil.
+- Paramètres : import / export .csv, raccourci sur le Bureau, suppression de toutes les données, **sites refusés**.
+
+**Extensions intégrées** (activables, masquables de la barre d'outils, retirables)
+- **Bloqueur de publicités** amélioré : listes au choix (traqueurs, bannières de cookies, éléments gênants, liste française, sites malveillants), **masquer un élément de la page** à la main (clic droit → « Masquer cet élément… »). Il peut être retiré pour utiliser sa propre extension de blocage.
+- **Téléchargements par DrYAE** : désactivée, le navigateur télécharge lui-même les fichiers, comme un navigateur ordinaire (panneau de téléchargements, dossier au choix).
+- **Traducteur** : bouton « Traduire » sur le texte sélectionné, traduction de la page entière avec « Afficher l'original », écoute du texte. Google Traduction, DeepL (clé personnelle) ou LibreTranslate.
+- **Traducteur de scans** : lit le texte des images (mangas, manhwas, webtoons) sur le PC et place la traduction sur chaque bulle. Clic droit sur une image → « Traduire le texte de l'image ».
+- **Lumières tamisées** : assombrit la page autour de la vidéo (Ctrl+Maj+L), automatique au démarrage d'une vidéo si souhaité, et **mode nuit** par site.
+- **Image dans l'image** : bouton sur les vidéos (YouTube compris) pour les détacher dans une petite fenêtre (Ctrl+Maj+U).
+
+**Paramètres du navigateur** (page complète, avec recherche) : démarrage, apparence, moteur de recherche, confidentialité, téléchargements, langues, extensions intégrées, système, réinitialisation, à propos.
+
+**Connexion aux comptes**
+- Pendant une connexion Google, l'onglet garde la même identité du début à la fin : la page ne se recharge plus en boucle et ne revient plus sur l'écran de l'adresse Gmail.
+- Les fenêtres « Se connecter avec Google / Microsoft / Apple / Facebook… » s'ouvrent dans une vraie petite fenêtre reliée au site.
+
+**Mises à jour** : l'icône de mise à jour s'affiche dès l'ouverture de DrYAE (navigateur et gestionnaire) et reste visible jusqu'à l'installation.
+
+### 🇬🇧 English
+- Browser management pages now open in a **tab**: History, Bookmarks, Passwords, Extensions and Settings, with search and full keyboard control (arrows, Shift/Ctrl selection, Ctrl+A, Enter, Del, F2, Ctrl+Z).
+- Reorganized ⋮ menu with submenus (Passwords and autofill, History, Bookmarks, Extensions), Clear browsing data, Translate page and Help.
+- History by date or by site; **Clear browsing data** with a time range.
+- **Bookmarks bar** (Ctrl+Shift+B), bookmark edit bubble (Ctrl+D), bookmark all tabs (Ctrl+Shift+D), bookmark manager with folders, drag and drop, HTML import/export.
+- Passwords grouped by site, **password check-up** (breached, reused, weak), optional **Windows Hello**, strong password suggestions, **payment cards** (without CVC) and multiple **addresses**, refused sites.
+- **Built-in extensions** that can be turned off, hidden or removed: improved ad blocker (filter lists, hide an element by hand), Downloads with DrYAE (off = normal browser downloads), Translator, **Image text translator** for manga and webtoons, Dimmed lights with night mode, Picture-in-picture button on videos.
+- Full browser **Settings** page with search.
+- Google sign-in keeps the same identity for the whole sign-in; sign-in pop-ups open in a real small window linked to the site.
+- The update icon is shown as soon as DrYAE opens and stays until the update is installed.
+
 ## 1.6.3 (correctif de la 1.6.2)
 
 ### 🇫🇷 Français

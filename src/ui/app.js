@@ -1014,7 +1014,12 @@ function drawUpd(u) {
   $('#abInstall').textContent = u.status === 'ready' ? T('Redémarrer et installer') : T('Mettre à jour maintenant');
   if (can && !updDismissed) { $('#updTxt').textContent = u.status === 'ready' ? T('La mise à jour {0} est prête.').replace('{0}', u.version || '') : T('DrYAE {0} est disponible.').replace('{0}', u.version || ''); $('#updGo').textContent = u.status === 'ready' ? T('Redémarrer et installer') : T('Mettre à jour'); $('#updBanner').classList.add('on'); }
   else if (!can) $('#updBanner').classList.remove('on');
+  // icône toujours visible (dès l'ouverture) tant que la mise à jour n'est pas installée
+  const pill = ['available', 'downloading', 'ready'].includes(u.status);
+  $('#updPill').style.display = pill ? '' : 'none';
+  if (pill) { $('#updPillTxt').textContent = u.status === 'downloading' ? T('Téléchargement de la mise à jour : {0} %').replace('{0}', Math.round(u.progress || 0)) : u.status === 'ready' ? T('Redémarrer et installer') : T('Mettre à jour') + ' (' + (u.version || '') + ')'; $('#updPill').disabled = u.status === 'downloading'; }
 }
+$('#updPill').onclick = () => call('upd:install');
 let updDismissed = false;
 D.on('update-state', drawUpd);
 $('#abCheck').onclick = async () => drawUpd(await call('upd:check'));
