@@ -30,7 +30,7 @@ function popPlace() {
 }
 function popClose() { POP.kind = null; popEl.classList.remove('on'); popEl.innerHTML = ''; }
 function popRender() {
-  const f = { ext: drawExtPop, translate: drawTrPop, scan: drawScanPop, lights: drawLightsPop, adblock: drawAdPop }[POP.kind];
+  const f = { site: drawSitePop, ext: drawExtPop, translate: drawTrPop, scan: drawScanPop, lights: drawLightsPop, adblock: drawAdPop }[POP.kind];
   if (!f) return popClose();
   f(); if (window.I18N?.translateDom) try { I18N.translateDom(popEl); } catch {}
   popPlace();
@@ -198,6 +198,27 @@ function drawTrPop() {
   popEl.querySelector('[data-set]').onclick = () => { popClose(); openPage('settings', 'translate'); };
   TOGGLES.trOn = async on => { await setSite('trOff', !on); pageCmd('translate-enable', { on }); drawTrPop(); popPlace(); };
   TOGGLES.trAuto = async on => { await setSite('trAuto', on); if (on && !(cur?.tr && cur.tr.state === 'done')) pageCmd('translate-on'); };
+}
+
+// ---------- informations sur le site et autorisations (cadenas) ----------
+const PERM_LABELS = { camera: 'Caméra', microphone: 'Micro', geolocation: 'Position', notifications: 'Notifications', clipboard: 'Lire le presse-papiers', popups: 'Fenêtres pop-up' };
+async function drawSitePop() {
+  const h = curHost(); const url = cur?.url || '';
+  if (!h) { popEl.innerHTML = `<div class="ph">${ic('lock')}<b>${esc(T('Page de DrYAE'))}</b></div><small style="color:var(--dim)">${esc(T('Les pages de DrYAE n\'ont besoin d\'aucune autorisation.'))}</small>`; return popPlace(); }
+  const r = await B.call('br:sitePerms', h).catch(() => ({ perms: {} }));
+  const secure = /^https:/.test(url);
+  const opt = (k, v) => `<select data-perm="${k}" aria-label="${esc(T(PERM_LABELS[k]))}">${(k === 'popups' ? [['allow', 'Autoriser'], ['block', 'Bloquer']] : [['ask', 'Demander'], ['allow', 'Autoriser'], ['block', 'Bloquer']]).map(([o, l]) => `<option value="${o}" ${o === v ? 'selected' : ''}>${esc(T(l))}</option>`).join('')}</select>`;
+  popEl.innerHTML = `<div class="ph">${ic('lock')}<b class="notr">${esc(h)}</b></div>
+    <div class="prow"><span class="grow">${esc(T(secure ? 'Connexion sécurisée' : 'Connexion non sécurisée'))}<small>${esc(T(secure ? 'Les informations envoyées à ce site (mots de passe, cartes) sont chiffrées.' : 'N\'entrez ni mot de passe ni carte bancaire sur ce site.'))}</small></span></div>
+    <div style="margin:6px 0 2px;font-weight:600">${esc(T('Autorisations'))}</div>
+    ${Object.keys(PERM_LABELS).map(k => `<div class="perm"><span>${esc(T(PERM_LABELS[k]))}</span>${opt(k, r.perms[k])}</div>`).join('')}
+    <div class="prow"><span class="grow">${esc(T('Refuser les bandeaux de cookies'))}<small>${esc(T('DrYAE clique sur « Refuser » à votre place.'))}</small></span>${tg('siteCk', r.cookieRefuse !== false)}</div>
+    <div class="tools" style="grid-template-columns:1fr;margin-top:6px"><button id="siteClr">${ic('trash')}<span>${esc(T('Effacer les cookies et données de ce site'))}</span></button></div>`;
+  popEl.onchange = async e => { const s = e.target.closest('[data-perm]'); if (!s) return; await B.call('br:setSitePerm', h, s.dataset.perm, s.value); toast(T('Autorisation enregistrée : actualise la page si besoin')); };
+  TOGGLES.siteCk = on => B.call('br:setSitePerm', h, 'cookieRefuse', on);
+  $('#siteClr').onclick = async () => { await B.call('br:clearSiteData', h, !!cur?.incognito); popClose(); toast(T('Données du site effacées')); cur?.wv?.reload(); };
+  if (window.I18N?.translateDom) try { I18N.translateDom(popEl); } catch {}
+  popPlace();
 }
 
 // ---------- traducteur de scans ----------

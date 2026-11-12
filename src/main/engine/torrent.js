@@ -96,7 +96,7 @@ class TorrentHub {
   }
   async refreshTrackerList(fetchFn) {
     const T = this.ctx.settings.get().torrent;
-    if (!T.trackersUrl) return;
+    if (!T.trackersUrl || T.fetchTrackers === false) return;
     try { const r = await fetchFn(T.trackersUrl); if (r.ok) this.extraTrackers = (await r.text()).split(/\s+/).filter(x => /^(udp|https?):\/\//.test(x)).slice(0, 80); } catch {}
   }
   // ---- suivi des téléchargements actifs (une seule requête groupée par seconde, seulement s'il y en a) ----

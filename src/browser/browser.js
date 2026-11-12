@@ -142,6 +142,7 @@ function ensureWebview(tab) {
   wv.addEventListener('ipc-message', e => {
     const a = e.args[0];
     if (e.channel === 'dryae-pagedown') return closeFloating();
+    if (e.channel === 'dryae-cookie') { tab.cookieRefused = a; return; }
     if (e.channel === 'dryae-reader') { tab.reader = !!a; if (tab === cur) updToolbar(); return; }
     if (e.channel === 'dryae-scanmodel') return offerScanModel(a);
     if (e.channel === 'dryae-video') openQuick(tab, a || {});
@@ -351,6 +352,7 @@ function mainMenu() {
       { label: 'Signaler un problème…', icon: 'help', fn: reportProblem },
       { label: 'À propos de DrYAE', icon: 'dryae', fn: () => openPage('settings', 'about') },
     ] },
+    { label: 'Profils', icon: 'user', adv: true, sub: profileMenu },
     { label: 'Paramètres', icon: 'gear', fn: () => openPage('settings') },
     { label: 'Quitter', icon: 'x', key: 'Ctrl+Maj+Q', fn: () => B.call('br:quit') },
   ];
@@ -370,6 +372,19 @@ async function readAloud(tab = cur) {
   const a = await B.call('br:article', tab.wcId);
   pageCmd('speak', { text: a?.text || await tab.wv.executeJavaScript('document.body.innerText').catch(() => ''), lang: a?.lang }, tab);
 }
+// profils : chacun a ses favoris, mots de passe, cookies, historique et téléchargements (fenêtre DrYAE séparée)
+async function profileMenu() {
+  const r = await B.call('br:profiles').catch(() => ({ list: [], current: '' }));
+  return [{ title: 'Profils' }, ...r.list.map(p => ({ label: T(p.name), icon: 'user', check: p.id === r.current, fn: () => { if (p.id !== r.current) { B.call('br:profileOpen', p.id); toast(T('Ouverture du profil « {0} »…').replace('{0}', T(p.name))); } } })), '-',
+    { label: 'Nouveau profil…', icon: 'plus', fn: async () => { const n = await askName(); if (n) { const id = await B.call('br:profileAdd', n); B.call('br:profileOpen', id); toast(T('Profil « {0} » créé').replace('{0}', n)); } } },
+    ...(r.list.length > 1 ? [{ label: 'Supprimer un profil…', icon: 'trash', sub: () => r.list.filter(p => p.id && p.id !== r.current).map(p => ({ label: p.name, icon: 'trash', fn: async () => { const ok = await askBox({ title: 'Supprimer un profil', text: T('Supprimer le profil « {0} » et toutes ses données (favoris, mots de passe, historique, téléchargements de la liste) ? Les fichiers téléchargés restent sur l\'ordinateur.').replace('{0}', p.name), ok: 'Supprimer', danger: true }); if (ok) { await B.call('br:profileDelete', p.id); toast('Profil supprimé'); } } })) }] : [])];
+}
+function askName() {
+  return new Promise(res => {
+    askBox({ title: 'Nouveau profil', text: T('Nom du profil (par exemple « Travail »), puis OK :'), ok: 'Créer' }).then(r => res(r ? ($('#askNm')?.value || '').trim() : null));
+    setTimeout(() => { const p = $('#askP'); if (!p.querySelector('#askNm')) { const i = document.createElement('input'); i.id = 'askNm'; i.type = 'text'; i.style.cssText = 'width:100%;margin-top:8px'; p.appendChild(i); } $('#askNm').focus(); }, 40);
+  });
+}
 async function reportProblem() {
   const r = await askBox({ title: 'Signaler un problème', text: T("DrYAE va créer un petit rapport sur ton Bureau (versions, Windows, dernières erreurs — sans mots de passe, sans historique, sans adresses complètes) et ouvrir la page des signalements sur GitHub. Décris ce qui s'est passé et joins le fichier. Rien n'est envoyé sans toi."), ok: 'Créer le rapport' });
   if (r) { await B.call('br:report'); toast('Rapport créé sur le Bureau'); }
@@ -382,7 +397,9 @@ function zoom(d) { if (!cur.wv) return; cur.zoom = d === 0 ? 0 : Math.max(-5, Ma
 function menu(x, y, entries, wide, back) {
   const m = $('#menu');
   // mode simple : les entrées avancées sont cachées
-  const list = (typeof entries === 'function' ? entries() : entries).map(e => (e && e.adv && CFG.a11y?.simple ? null : e));
+  const raw = typeof entries === 'function' ? entries() : entries;
+  if (raw && typeof raw.then === 'function') { raw.then(l => menu(x, y, l, wide, back)); return; } // sous-menu préparé à la demande
+  const list = raw.map(e => (e && e.adv && CFG.a11y?.simple ? null : e));
   const opener = m.classList.contains('on') ? menu.opener : document.activeElement;
   menu.opener = opener;
   m.setAttribute('role', 'menu');
@@ -1009,6 +1026,14 @@ B.on('restore-session', async sess => {
 });
 B.on('theme', t => applyTheme(t));
 B.on('show-shortcuts', () => showShortcuts());
+$('#lockB').onclick = e => popOpen('site', e.currentTarget);
+// un site demande la caméra, le micro, la position… : on pose la question
+const PERM_Q = { camera: 'utiliser votre caméra', microphone: 'utiliser votre micro', geolocation: 'connaître votre position', notifications: 'vous envoyer des notifications', clipboard: 'lire votre presse-papiers', midi: 'utiliser vos appareils MIDI', idle: 'savoir si vous utilisez l\'ordinateur' };
+B.on('perm-ask', async p => {
+  const t = tabByWc(p.wcId); if (t && t !== cur) select(t);
+  const r = await askBox({ title: 'Autorisation demandée', text: `« ${p.host} » ` + T('veut') + ' ' + p.kinds.map(k => T(PERM_Q[k] || k)).join(', ') + '.', check: 'Se souvenir pour ce site', checked: true, cancel: 'Bloquer', buttons: [{ v: 'allow', label: 'Autoriser', primary: true }] });
+  B.call('br:permReply', p.id, !!r, $('#askC').checked);
+});
 B.on('a11y', e => { CFG.a11y = e; window.A11Y?.apply(e); drawMods(); });
 B.on('media-reset', ({ wcId }) => {
   pending.delete(wcId);

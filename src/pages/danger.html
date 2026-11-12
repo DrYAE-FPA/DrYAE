@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>DrYAE</title>
+<link rel="icon" href="/_assets/logo.png">
+<link rel="stylesheet" href="/_ui/style.css">
+<link rel="stylesheet" href="common.css">
+<style>
+body{display:flex;align-items:center;justify-content:center;min-height:100vh;background:#7f1d1d;color:#fff}
+.box{max-width:620px;padding:32px;text-align:left}
+.box h1{font-size:28px;margin:0 0 12px;display:flex;gap:12px;align-items:center}
+.box h1 svg{width:42px;height:42px;flex:none}
+.box p{line-height:1.6;font-size:15px;color:#fde8e8}
+.box .site{font:600 14px Consolas,monospace;background:#0003;padding:6px 10px;border-radius:6px;word-break:break-all;display:inline-block;margin:4px 0 12px}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+.row button{font:600 14px "Segoe UI",sans-serif;padding:10px 18px;border-radius:8px;border:0;cursor:pointer}
+#back{background:#fff;color:#7f1d1d}
+#more{background:transparent;color:#fde8e8;text-decoration:underline}
+#go{display:none;background:#0004;color:#fff;border:1px solid #fff8}
+</style>
+</head>
+<body>
+<main class="box" role="alert">
+  <h1><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18h.01"/></svg><span id="t">Site dangereux</span></h1>
+  <p id="p1">Ce site figure sur une liste de sites connus pour voler des mots de passe ou des numéros de carte (hameçonnage), ou pour installer des virus.</p>
+  <div class="site notr" id="site"></div>
+  <p id="p2">Ne saisissez aucun mot de passe et ne téléchargez rien sur ce site. Cette vérification est faite sur votre ordinateur : l'adresse n'a été envoyée à personne.</p>
+  <div class="row"><button id="back">Revenir en sécurité</button><button id="more">Détails</button><button id="go">Continuer quand même (déconseillé)</button></div>
+</main>
+<script src="/_shared/locales.js"></script>
+<script src="/_shared/i18n.js"></script>
+<script src="/_shared/a11y.js"></script>
+<script src="common.js"></script>
+<script src="danger.js"></script>
+</body>
+</html>

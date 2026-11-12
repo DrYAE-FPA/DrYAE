@@ -23,6 +23,11 @@ pages.registerScheme(); // pages internes dryae:// (à déclarer avant le démar
 
 app.setName('DrYAE');
 app.setAppUserModelId('com.dryae.app');
+// profils : « --profile=travail » = DrYAE avec ses propres favoris, mots de passe, cookies, historique et téléchargements
+// (dossier %APPDATA%\DrYAE\profiles\travail). Le profil principal reste %APPDATA%\DrYAE.
+const BASE_DIR = app.getPath('userData');
+const PROFILE = (process.argv.find(a => /^--profile=/.test(a)) || '').slice(10).toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 40);
+if (PROFILE) app.setPath('userData', path.join(BASE_DIR, 'profiles', PROFILE));
 if (!app.requestSingleInstanceLock()) { app.quit(); process.exit(0); }
 
 const ASSETS = path.join(__dirname, '..', '..', 'assets');
@@ -64,6 +69,9 @@ const api = {
   showMain() { if (!win) createWindow(); if (win.isMinimized()) win.restore(); win.show(); browser?.hideView(); win.focus(); },
   report() { return report(); },
   a11y() { return a11yEff(); },
+  ipc(name, ...a) { return IPCF[name]?.(...a); },
+  profile() { return PROFILE ? (readProfiles().find(p => p.id === PROFILE) || { id: PROFILE, name: PROFILE }) : null; },
+  updateInfo() { try { return updater?.state || {}; } catch { return {}; } },
   openFeedback() { const u = updater?.info(); if (u) shell.openExternal(u.feedbackUrl || u.repoUrl || 'https://github.com'); },
   hostWindow() { if (!win) createWindow(); return win; },
   onModeChange(m) { send('mode', m); if (m === 'manager') send('reload', manager.views()); },
@@ -300,7 +308,9 @@ async function report() {
   const u = updater?.info(); if (u?.repoUrl) shell.openExternal(u.repoUrl + '/issues/new?template=bug.yml');
   return f;
 }
-const H = (ch, fn) => ipcMain.handle(ch, async (_e, ...a) => { try { return { ok: true, v: await fn(...a) }; } catch (e) { return { ok: false, error: e.message || String(e) }; } });
+const IPCF = {}; // fonctions IPC appelables aussi depuis le navigateur
+const H = (ch, fn) => { IPCF[ch] = fn; return H0(ch, fn); };
+const H0 = (ch, fn) => ipcMain.handle(ch, async (_e, ...a) => { try { return { ok: true, v: await fn(...a) }; } catch (e) { return { ok: false, error: e.message || String(e) }; } });
 
 H('list', () => manager.views());
 H('undoRemove', () => manager.undoRemove());
@@ -442,6 +452,22 @@ H('upd:install', () => updater.install());
 // « Signaler un problème » : rapport texte sur le Bureau (rien n'est envoyé), puis la page GitHub des signalements
 H('report', async () => report());
 H('a11y', () => a11yEff());
+// ---- profils ----
+const PROFILES_FILE = path.join(BASE_DIR, 'profiles.json');
+const readProfiles = () => { let l = []; try { l = JSON.parse(fs.readFileSync(PROFILES_FILE, 'utf8')); } catch {} return [{ id: '', name: 'Principal' }, ...l.filter(p => p && /^[a-z0-9_-]{1,40}$/.test(p.id))]; };
+H('profiles', () => ({ list: readProfiles(), current: PROFILE }));
+H('profileAdd', name => {
+  name = String(name || '').trim().slice(0, 40); if (!name) throw new Error('Nom vide');
+  const id = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'profil';
+  const l = readProfiles().slice(1); let k = id, n = 2; while (l.some(p => p.id === k)) k = id + '-' + n++;
+  l.push({ id: k, name }); fs.writeFileSync(PROFILES_FILE, JSON.stringify(l)); return k;
+});
+H('profileOpen', id => { const args = [...(process.defaultApp ? [path.resolve(process.argv[1])] : []), ...(id ? ['--profile=' + id] : [])]; require('child_process').spawn(process.execPath, args, { detached: true, stdio: 'ignore' }).unref(); });
+H('profileDelete', async id => {
+  if (!id || id === PROFILE) throw new Error('Impossible de supprimer le profil ouvert');
+  const l = readProfiles().slice(1).filter(p => p.id !== id); fs.writeFileSync(PROFILES_FILE, JSON.stringify(l));
+  await fsp.rm(path.join(BASE_DIR, 'profiles', id), { recursive: true, force: true }).catch(() => {}); return true;
+});
 H('openPage', (name, hash) => { if (/^\w+$/.test(name || '')) browser?.openPage(name, hash || ''); });
 H('openFeedback', () => { const u = updater.info(); shell.openExternal(u.feedbackUrl || u.repoUrl || 'https://github.com'); });
 H('openRepo', () => { const u = updater.info(); if (u.repoUrl) shell.openExternal(u.repoUrl); });

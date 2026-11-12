@@ -78,6 +78,8 @@ function dialog({ title, html = '', ok = 'OK', cancel = 'Annuler', danger = fals
   });
 }
 const confirmBox = (msg, ok = 'Confirmer', danger = true) => dialog({ title: msg, ok, danger }).then(Boolean);
+// petite question avec un champ (texte ou mot de passe) ; null si annulé
+const promptBox = (title, value = '', type = 'text') => dialog({ title, html: `<input type="${type === 'password' ? 'password' : 'text'}" id="pbIn" style="width:100%" value="${esc(value)}">`, read: d => d.querySelector('#pbIn').value });
 // menu contextuel : { label, icon, key, fn, danger, disabled } ; '-' = séparateur
 function pmenu(x, y, items) {
   let m = $('#pmenu'); if (!m) { m = document.createElement('div'); m.id = 'pmenu'; m.className = 'pmenu'; document.body.appendChild(m); }

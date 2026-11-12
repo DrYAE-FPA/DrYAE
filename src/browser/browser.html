@@ -164,6 +164,8 @@ browser-action-list::part(action):hover{background:var(--panel2)}
 /* 1.6.5 : fenêtres de la barre d'outils (extensions, traducteur, scans, lumières, bloqueur) */
 .pop{position:fixed;z-index:45;display:none;width:350px;max-height:calc(100vh - 100px);overflow:auto;background:var(--panel3);border:1px solid var(--line2);border-radius:14px;box-shadow:var(--shadow);padding:12px;font-size:13px}
 .pop.on{display:block}
+.lockb{all:unset;display:flex;align-items:center;cursor:pointer;border-radius:6px;padding:2px}.lockb:hover{background:var(--panel3)}.lockb:focus-visible{outline:2px solid var(--accent)}
+.pop .perm{display:flex;align-items:center;gap:8px;padding:5px 0}.pop .perm span{flex:1}.pop .perm select{width:auto}
 .pop details.pdet{margin:6px 0;border-top:1px solid var(--line,#262c3b);padding-top:6px}.pop details.pdet summary{cursor:pointer;font-weight:600;font-size:12.5px;padding:3px 0}.pop details.pdet .prow{padding:4px 0}
 .pop .ph{display:flex;align-items:center;gap:8px;margin:-2px 0 10px}
 .pop .ph b{flex:1;font-size:14px}
@@ -313,7 +315,7 @@ browser-action-list::part(action):hover{background:var(--panel2)}
   <button class="tb" id="bFwd" title="Suivant (Alt+→)"><svg><use href="#i-fwd"/></svg></button>
   <button class="tb" id="bReload" title="Actualiser (F5)"><svg><use href="#i-reload" id="reloadIc"/></svg></button>
   <button class="tb" id="bHome" title="Accueil"><svg><use href="#i-home"/></svg></button>
-  <div class="addr"><svg class="lock no" id="lock"><use href="#i-lock" id="lockIc"/></svg><input id="url" placeholder="Rechercher ou saisir une adresse" spellcheck="false"><span class="zoom" id="zoom"></span><button class="tb" id="bStar" title="Ajouter aux favoris"><svg><use href="#i-star" id="starIc"/></svg></button></div>
+  <div class="addr"><button class="lockb" id="lockB" title="Informations sur le site et autorisations" aria-label="Informations sur le site et autorisations"><svg class="lock no" id="lock"><use href="#i-lock" id="lockIc"/></svg></button><input id="url" placeholder="Rechercher ou saisir une adresse" spellcheck="false"><span class="zoom" id="zoom"></span><button class="tb" id="bStar" title="Ajouter aux favoris"><svg><use href="#i-star" id="starIc"/></svg></button></div>
   <!-- extensions épinglées (ordre au choix, glisser pour déplacer), toujours à gauche du bouton des extensions -->
   <span id="tbItems" class="adv" style="display:contents"><button class="tb shield" id="bShield" data-key="mod:adblock" title="Bloqueur de publicités"><svg><use href="#i-shield"/></svg><span class="n" id="shieldN"></span></button></span>
   <button class="tb adv" id="bExt" title="Extensions"><svg><use href="#i-ext"/></svg></button>

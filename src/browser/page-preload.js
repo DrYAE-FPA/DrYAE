@@ -597,6 +597,28 @@ function pageFeatures() {
     if (document.readyState === 'complete') go(); else addEventListener('load', go, { once: true });
   }
 
+  // ---------- bandeaux de cookies : DrYAE clique sur « Refuser » quand c'est possible ----------
+  // (boutons connus des outils de consentement les plus courants, sinon un bouton « Tout refuser » dans un bandeau qui parle de cookies)
+  if (CFG.cookieRefuse && !CFG.internal) {
+    const KNOWN = ['#onetrust-reject-all-handler', '#didomi-notice-disagree-button', '.didomi-continue-without-agreeing', '#CybotCookiebotDialogBodyButtonDecline', '#axeptio_btn_dismiss', '.cky-btn-reject', '.cmplz-deny', '.osano-cm-denyAll', '.iubenda-cs-reject-btn', '[data-testid="uc-deny-all-button"]', '#truste-consent-required', '.sp_choice_type_13', 'button[data-cookiebanner="reject_button"]', '.fc-cta-do-not-consent', '#tarteaucitronAllDenied2', '.cc-deny', '#cookie-reject', '#reject-all', '[aria-label="Tout refuser"]', '[aria-label="Reject all"]'];
+    const WORDS = /^(tout refuser|refuser tout|refuser|je refuse|continuer sans accepter|refuser les cookies|reject all|reject|decline all|decline|deny all|only necessary|only essential|necessary only|use necessary cookies only|rechazar todo|rechazar|rejeitar tudo|rejeitar|recusar|отклонить все|отклонить|رفض الكل|رفض|alle ablehnen|nur notwendige|rifiuta tutto|rifiuta)$/i;
+    let done = false, tries = 0;
+    const look = () => {
+      if (done || ++tries > 40) return;
+      let b = null;
+      for (const s of KNOWN) { const x = document.querySelector(s); if (x && x.offsetParent !== null) { b = x; break; } }
+      if (!b) for (const x of document.querySelectorAll('button,[role=button],a[role=button],input[type=button]')) {
+        const t = (x.innerText || x.value || x.getAttribute('aria-label') || '').trim().replace(/\s+/g, ' ');
+        if (t.length > 40 || !WORDS.test(t) || x.offsetParent === null) continue;
+        let p = x, ok = false; for (let i = 0; i < 8 && p; i++, p = p.parentElement) if (/cookie|consent|gdpr|rgpd|privacy|confidentialit/i.test((p.id || '') + ' ' + (p.className || '') + ' ' + (i > 2 ? (p.innerText || '').slice(0, 600) : ''))) { ok = true; break; }
+        if (ok) { b = x; break; }
+      }
+      if (b) { done = true; try { b.click(); } catch {} toHost('dryae-cookie', location.hostname); }
+    };
+    const start = () => { look(); const mo = new MutationObserver(() => { clearTimeout(mo.t); mo.t = setTimeout(look, 250); }); mo.observe(document.documentElement, { childList: true, subtree: true }); setTimeout(() => mo.disconnect(), 15000); };
+    if (TOP) { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true }); else start(); }
+  }
+
   // ---------- mode lecture : seulement le texte de l'article (préparé par Readability, Mozilla, Apache-2.0) ----------
   let reader = null;
   const RD = { size: 19, theme: 'light', width: 720, font: 'sans', ...(CFG.reader || {}) };

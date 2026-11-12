@@ -7,7 +7,7 @@ const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
 const DIRS = { '': path.join(ROOT, 'pages'), _shared: path.join(ROOT, 'shared'), _ui: path.join(ROOT, 'ui'), _assets: path.join(ROOT, '..', 'assets') };
-const PAGES = ['history', 'bookmarks', 'passwords', 'extensions', 'settings', 'downloads'];
+const PAGES = ['history', 'bookmarks', 'passwords', 'extensions', 'settings', 'downloads', 'danger', 'tasks', 'reading', 'shortcuts'];
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.json': 'application/json' };
 
 function registerScheme() {

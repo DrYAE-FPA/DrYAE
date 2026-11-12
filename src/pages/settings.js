@@ -1,5 +1,5 @@
 /* dryae://settings — paramètres du navigateur */
-let C = null, STATS = null, OCR = null, ABOUT = null, LANGS = [];
+let SAFE = {}, C = null, STATS = null, OCR = null, ABOUT = null, LANGS = [];
 shell('Paramètres', null, 'Rechercher dans les paramètres');
 const search = $('#q');
 const SECS = [
@@ -35,7 +35,7 @@ const lname = c => { try { const n = new Intl.DisplayNames([(window.I18N && I18N
 const langOpts = (withAuto) => [...(withAuto ? [['', 'Langue de DrYAE']] : []), ...TLANGS.map(c => [c, lname(c)])];
 
 async function load() {
-  C = await call('cfg'); STATS = await call('adStats'); OCR = await call('ocrLangs'); ABOUT = await call('about'); LANGS = await call('languages');
+  C = await call('cfg'); STATS = await call('adStats'); SAFE = await call('safeInfo').catch(() => ({})); OCR = await call('ocrLangs'); ABOUT = await call('about'); LANGS = await call('languages');
   draw();
   const h = location.hash.replace('#', ''); if (h) setTimeout(() => show(h), 50); else mark('startup');
 }
@@ -44,6 +44,18 @@ function draw() {
   const theme = b.rawTheme || {};
   const startPages = (b.startupPages || []);
   const AX = b.a11yRaw || {};
+  const R = b.root || {};
+  const NET = () => [
+    ['Recherche des nouvelles versions de DrYAE', 'Au démarrage puis toutes les quelques heures, vers github.com. Rien d\'autre n\'est envoyé que la demande de la dernière version.', `<label class="sw"><input type="checkbox" data-root="autoUpdateCheck" ${R.autoUpdateCheck !== false ? 'checked' : ''}><i></i></label>`],
+    ['Listes du bloqueur de publicités', 'Tous les 4 jours, depuis les sites des listes choisies.', swk('adAutoUpdate', b.adAutoUpdate !== false)],
+    ['Liste des sites dangereux', 'Une fois par semaine, depuis github.com (environ 10 Mo).', swk('safeBrowsing', b.safeBrowsing !== false)],
+    ['Mises à jour des extensions Chrome', 'Depuis le Chrome Web Store, pour les extensions installées.', swk('extAutoUpdate', b.extAutoUpdate !== false)],
+    ['Trackers supplémentaires pour les torrents', 'Au démarrage, une liste publique de serveurs de contact (rend les torrents plus rapides).', `<label class="sw"><input type="checkbox" data-root="torrent.fetchTrackers" ${R.fetchTrackers !== false ? 'checked' : ''}><i></i></label>`],
+    ['Traduction', 'Seulement quand vous traduisez : le texte choisi est envoyé au service de traduction choisi (Paramètres → Traducteur).', ''],
+    ['Lecture des images et modèles de lecture', 'Seulement la première fois qu\'une langue est utilisée ou téléchargée : les données de lecture sont téléchargées puis gardées sur ce PC. Les images, elles, ne quittent jamais ce PC.', ''],
+    ['Vérification des mots de passe divulgués', 'Seulement quand vous la lancez : 5 caractères de l\'empreinte de chaque mot de passe (jamais le mot de passe lui-même).', ''],
+    ['Icônes des sites', 'Demandées au site que vous visitez, comme le ferait la page elle-même.', ''],
+  ];
   const hides = STATS.hides || {};
   const upd = ABOUT.update || {};
   const updTxt = { checking: 'Recherche de mises à jour…', available: 'DrYAE {0} est disponible.', downloading: 'Téléchargement de la mise à jour… {0} %', ready: 'La mise à jour {0} est prête.', latest: 'DrYAE est à jour.', error: 'Vérification impossible.' }[upd.status] || '';
@@ -76,6 +88,12 @@ function draw() {
       <div class="prow click" data-page="history#clear"><span>${ic('trash')}</span><div class="tx"><b>${esc(TR('Effacer les données de navigation'))}</b><span>${esc(TR('Historique, cookies, cache… (Ctrl+Maj+Suppr)'))}</span></div><span class="chev">${ic('open')}</span></div>
       ${row('Effacer l\'historique et les cookies en fermant DrYAE', '', sw('clrExit', b.clearOnExit))}
       ${row('Bloquer les fenêtres pop-up', 'Un message propose de les ouvrir quand même.', sw('pop', b.blockPopups))}
+      ${row('Refuser automatiquement les bandeaux de cookies', 'DrYAE clique sur « Refuser » à votre place quand c\'est possible. Réglable site par site avec le cadenas.', swk('cookieRefuse', b.cookieRefuse !== false))}
+      ${row('Avertir avant d\'ouvrir un site dangereux', 'Sites connus pour les arnaques (hameçonnage) ou les virus. La liste est gardée sur ce PC : les adresses visitées ne sont envoyées à personne.' + (SAFE.count ? ' ' + TRF('{0} sites dans la liste, mise à jour du {1}.', SAFE.count.toLocaleString(LOC()), SAFE.updated ? new Date(SAFE.updated).toLocaleDateString(LOC()) : '—') : ''), swk('safeBrowsing', b.safeBrowsing !== false) + ` <button class="btn sm" id="safeUpd">${esc(TR('Mettre à jour'))}</button>`)}
+      ${row('Les notifications des sites', 'Bloquées par défaut (souvent utilisées pour la publicité). Pour un site précis : cadenas de la barre d\'adresse → Notifications.', '')}
+      <div class="prow" style="flex-direction:column;align-items:stretch"><div style="display:flex;align-items:center;gap:10px"><div class="tx" style="flex:1"><b>${esc(TR('Contrôle de sécurité'))}</b><span>${esc(TR('Vérifie en un clic : version de DrYAE, mots de passe faibles ou réutilisés, extensions qui demandent beaucoup d\'accès, protections actives.'))}</span></div><button class="btn sm primary" id="safety">${esc(TR('Lancer le contrôle'))}</button></div><div id="safetyRes"></div></div>
+      <div class="prow" style="flex-direction:column;align-items:stretch"><div class="tx"><b>${esc(TR('Ce que DrYAE envoie sur internet'))}</b><span>${esc(TR('DrYAE ne contient aucune publicité, ne demande aucun compte et ne collecte aucune statistique. Voici tout ce qu\'il envoie ou télécharge de lui-même, et quand :'))}</span></div>
+        ${NET().map(([t, d, ctl]) => `<div class="prow" style="padding:8px 0 8px 14px;border:0"><div class="tx"><b>${esc(TR(t))}</b><span>${esc(TR(d))}</span></div>${ctl}</div>`).join('')}</div>
       ${row('Transmettre les cookies du navigateur aux téléchargements', 'Nécessaire pour les sites où il faut être connecté.', sw('cook', b.cookies))}
       ${row('DNS sécurisé', 'Appliqué au prochain démarrage.', sel('doh', [['', 'Désactivé (DNS de Windows)'], ['https://cloudflare-dns.com/dns-query', 'Cloudflare'], ['https://dns.google/dns-query', 'Google'], ['https://dns.quad9.net/dns-query', 'Quad9'], ['https://dns.adguard-dns.com/dns-query', 'AdGuard (bloque les pubs)']], b.doh))}`) +
     sec('downloads', 'Téléchargements', `
@@ -152,7 +170,10 @@ function draw() {
     sec('system', 'Système', `
       ${row('Mode d\'affichage des sites', '', sel('ua', [['desktop', 'Ordinateur'], ['mobile', 'Mobile']], b.ua))}
       ${row('Détecter les sous-titres', 'Dans le panneau des fichiers détectés.', sw('subs', b.captureSubtitles))}
-      ${row('Types de fichiers supplémentaires à détecter', '', `<input type="text" id="extra" value="${esc(b.sniffExtra || '')}" placeholder="zip,rar,apk,pdf">`)}`) +
+      ${row('Types de fichiers supplémentaires à détecter', '', `<input type="text" id="extra" value="${esc(b.sniffExtra || '')}" placeholder="zip,rar,apk,pdf">`)}
+      <div class="prow" style="flex-direction:column;align-items:stretch"><div class="tx"><b>${esc(TR('Exporter / importer toutes mes données'))}</b><span>${esc(TR('Un seul fichier avec vos réglages, favoris, liste des téléchargements et extensions — pour changer de PC librement, sans compte en ligne.'))}</span></div>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:8px"><label class="hint" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="exHist"> ${esc(TR('Avec l\'historique'))}</label><label class="hint" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="exPw"> ${esc(TR('Avec les mots de passe'))}</label><input type="password" id="exPass" placeholder="${esc(TR('Mot de passe du fichier'))}" style="width:200px;display:none" autocomplete="new-password"></div>
+        <div style="display:flex;gap:8px;margin-top:8px"><button class="btn sm primary" id="exGo">${ic('dl')}${esc(TR('Exporter…'))}</button><button class="btn sm" id="imGo">${ic('import')}${esc(TR('Importer…'))}</button></div></div>`) +
     sec('reset', 'Réinitialiser', `
       ${row('Rétablir les paramètres du navigateur par défaut', 'Les favoris, l\'historique, les mots de passe et les extensions sont conservés.', `<button class="btn sm danger" id="reset">${esc(TR('Réinitialiser'))}</button>`)}`) +
     sec('about', 'À propos de DrYAE', `
@@ -160,6 +181,7 @@ function draw() {
       <div class="prow"><div class="tx"><b id="updTxt">${esc(TRF(updTxt, upd.status === 'downloading' ? Math.round(upd.progress || 0) : upd.version || ''))}</b><span>${upd.error ? esc(upd.error) : ''}</span></div><button class="btn sm" id="updChk">${esc(TR('Rechercher des mises à jour'))}</button>${['available', 'ready'].includes(upd.status) ? `<button class="btn sm primary" id="updGo">${esc(TR(upd.status === 'ready' ? 'Redémarrer et installer' : 'Mettre à jour'))}</button>` : ''}</div>
       <div class="prow click" data-url="https://github.com/DrYAE-FPA/DrYAE"><div class="tx"><b>${esc(TR('Code source et nouveautés'))}</b><span>github.com/DrYAE-FPA/DrYAE</span></div><span class="chev">${ic('open')}</span></div>
       <div class="prow click" data-url="https://github.com/DrYAE-FPA/DrYAE/blob/main/docs/GUIDE.md"><div class="tx"><b>${esc(TR('Mode d\'emploi'))}</b></div><span class="chev">${ic('open')}</span></div>
+      <div class="prow"><div class="tx"><b>${esc(TR('Gratuit et libre, sans publicité, sans compte, sans collecte de données.'))}</b><span>${esc(TR('DrYAE ne vend rien et ne vous suit pas. Détail de ce qu\'il envoie sur internet : Confidentialité et sécurité.'))}</span></div></div>
       <div class="prow"><div class="tx"><span>${esc(TR('Ne téléchargez que ce que vous avez le droit de copier.'))}</span></div></div>`);
   bind();
   search.oninput();
@@ -205,6 +227,9 @@ function bind() {
     else if (id === 'ua') await setB({ ua: t.value });
     else if (id === 'subs') await setB({ captureSubtitles: t.checked });
     else if (id === 'extra') await setB({ sniffExtra: t.value });
+    else if (t.dataset.root) { const [a, k] = t.dataset.root.split('.'); await setRoot(k ? { [a]: { [k]: t.checked } } : { [a]: t.checked }); }
+    else if (id === 'exPw') { v('exPass').style.display = t.checked ? '' : 'none'; return; }
+    else if (id === 'exHist' || id === 'exPass') return;
     else if (t.dataset.al) await setB({ adLists: { ...(C.adLists || {}), [t.dataset.al]: t.checked } });
     else if (id.startsWith('mod_')) { await setMod(id.slice(4), { enabled: t.checked }); if (id === 'mod_capture') draw(); toast(t.checked ? 'Extension activée : actualisez les pages ouvertes' : 'Extension désactivée'); return; }
     else if (id.startsWith('pin_')) await setMod(id.slice(4), { pinned: t.checked });
@@ -233,7 +258,35 @@ function bind() {
     if (id === 'updChk') { v('updTxt').textContent = TR('Recherche de mises à jour…'); await call('updateCheck'); ABOUT = await call('about'); draw(); }
     if (id === 'updGo') call('updateInstall');
     if (id === 'a11yKeys') D.call('showShortcuts');
+    if (id === 'safeUpd') { toast('Mise à jour de la liste…'); const ok = await call('safeUpdate').catch(() => false); SAFE = await call('safeInfo').catch(() => ({})); toast(ok ? 'Liste des sites dangereux à jour' : 'Mise à jour impossible (connexion ?)'); draw(); }
+    if (id === 'safety') runSafety();
+    if (id === 'exGo') { const f = await call('exportAll', { history: v('exHist').checked, passwords: v('exPw').checked, password: v('exPass').value }).catch(() => null); if (f) toast(TRF('Données exportées : {0}', f.split(/[\\/]/).pop())); }
+    if (id === 'imGo') importAll();
   };
+}
+// import : le mot de passe du fichier est demandé s'il est protégé
+async function importAll(file, bad) {
+  let pw = '';
+  if (file) { pw = await promptBox(TR(bad ? 'Mot de passe incorrect. Mot de passe du fichier :' : 'Ce fichier est protégé. Mot de passe du fichier :'), '', 'password'); if (pw === null) return; }
+  const r = await call('importAll', pw, file ? { file } : {}).catch(() => null);
+  if (!r) return;
+  if (r.needPassword) return importAll(r.file, r.bad);
+  const d = r.done; toast(TRF('Importé : {0} favori(s), {1} téléchargement(s), {2} extension(s), {3} mot(s) de passe', d.bookmarks, d.downloads, d.extensions, d.passwords));
+  C = await call('cfg'); draw();
+}
+// contrôle de sécurité : résultats lisibles, avec quoi faire
+async function runSafety() {
+  const box = $('#safetyRes'); box.innerHTML = `<p class="hint">${esc(TR('Vérification…'))}</p>`;
+  const r = await call('safetyCheck').catch(e => ({ error: e.message }));
+  if (r.error) { box.innerHTML = `<p class="hint">${esc(r.error)}</p>`; return; }
+  const it = (ok, t, d, act = '') => `<div class="prow" style="padding:8px 0 8px 14px;border:0"><span style="font-size:18px">${ok ? '✅' : '⚠️'}</span><div class="tx"><b>${esc(t)}</b>${d ? `<span>${esc(d)}</span>` : ''}</div>${act}</div>`;
+  const V = r.version, P = r.passwords;
+  const upToDate = V.status === 'latest' || (!V.status || V.status === 'idle');
+  box.innerHTML = it(V.status !== 'available' && V.status !== 'ready', TRF('DrYAE {0}', V.current), V.status === 'available' || V.status === 'ready' ? TRF('La version {0} est disponible.', V.latest) : TR(V.status === 'latest' ? 'À jour.' : V.status === 'checking' ? 'Vérification en cours.' : 'Pas encore vérifié : « À propos de DrYAE » → « Rechercher des mises à jour ».'), V.status === 'available' || V.status === 'ready' ? `<button class="btn sm" data-page="settings#about">${esc(TR('Mettre à jour'))}</button>` : '')
+    + it(!P.weak.length && !P.reused.length, TRF('{0} mot(s) de passe enregistré(s)', P.total), [P.weak.length ? TRF('Faibles : {0}', P.weak.join(', ')) : '', P.reused.length ? TRF('Utilisés sur plusieurs sites : {0}', P.reused.join(', ')) : '', P.breached ? TRF('Trouvés dans des fuites : {0}', P.breached) : ''].filter(Boolean).join(' · ') || TR('Aucun mot de passe faible ou réutilisé.'), `<button class="btn sm" data-page="passwords">${esc(TR('Gérer'))}</button>`)
+    + it(!r.extensions.some(e => e.risky.length), TRF('{0} extension(s) installée(s)', r.extensions.length), r.extensions.filter(e => e.risky.length).map(e => `${e.name} (${TR('accès étendu')})`).join(', ') || TR('Aucune extension avec des accès étendus.'), r.extensions.length ? `<button class="btn sm" data-goext>${esc(TR('Voir'))}</button>` : '')
+    + it(r.safe.on && r.safe.loaded, TR('Protection contre les sites dangereux'), r.safe.on ? (r.safe.loaded ? TRF('{0} sites dans la liste', (r.safe.count || 0).toLocaleString(LOC())) : TR('Liste pas encore téléchargée')) : TR('Désactivée'))
+    + it(r.adblock.on, TR('Bloqueur de publicités et de traqueurs'), r.adblock.on ? (r.adblock.updated ? TRF('Listes mises à jour le {0}', new Date(r.adblock.updated).toLocaleDateString(LOC())) : '') : TR('Désactivé'));
 }
 D.on('update-state', async () => { ABOUT = await call('about'); if ($('#s-about')) draw(); });
 addEventListener('hashchange', () => { const h = location.hash.replace('#', ''); if (h) show(h); });

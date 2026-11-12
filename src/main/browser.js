@@ -7,6 +7,8 @@ const { ElectronBlocker, adsLists } = require('@ghostery/adblocker-electron');
 const PRELOAD_PATH = path.resolve(require.resolve('@ghostery/adblocker-electron-preload'));
 const { extOf, hostOf, uniquePath, sanitize } = require('./util');
 const crypto = require('crypto');
+const SAFE = require('./safe');
+const LOGW = (...a) => { try { require('./log').write('info', ...a); } catch {} };
 const pages = require('./pages');
 const M = require('./modules');
 
@@ -60,6 +62,7 @@ class WebBrowser {
     this.blockedTotal = 0;
     this.nd = []; // téléchargements faits par le navigateur lui-même (quand « Téléchargements par DrYAE » est désactivé)
     this.storeFile = path.join(userDir, 'browser.json');
+    this.safeAllow = new Set();
     this.store = { bookmarks: [], history: [], typed: [], session: null, browserOpen: false, perms: {}, closed: [], hides: {}, extDisabled: [] };
     try { this.store = { ...this.store, ...JSON.parse(fs.readFileSync(this.storeFile, 'utf8')) }; } catch {}
     this.bmInit();
@@ -121,6 +124,9 @@ class WebBrowser {
 
   async init() {
     const B = this.B();
+    // liste des sites dangereux : lue sur le disque un peu après le démarrage, mise à jour une fois par semaine
+    setTimeout(() => { SAFE.init(this.userDir, LOGW); if (this.B().safeBrowsing !== false && !this.B().dataSaver) SAFE.update().catch(() => {}); }, 8000);
+    setInterval(() => { if (this.B().safeBrowsing !== false && !this.B().dataSaver) SAFE.update().catch(() => {}); }, 6 * 3600 * 1000);
     // même identité partout (pages, workers, service workers) : sinon les vérifications anti-robot recommencent sans fin
     try { app.userAgentFallback = this.ua(); } catch {}
     if (B.doh) { try { app.configureHostResolver({ secureDnsMode: 'secure', secureDnsServers: [B.doh] }); } catch {} }
@@ -139,7 +145,7 @@ class WebBrowser {
     ipcMain.handle('@ghostery/adblocker/is-mutation-observer-enabled', e => this.blocker?.onIsMutationObserverEnabled(e));
   }
   // réglages envoyés à l'interface du navigateur
-  cfg() { return { ...this.B(), theme: this.theme(), rawTheme: this.settings.get().theme || {}, restoreSession: this.settings.get().restoreSession, searchUrl: SEARCH[this.B().search] || SEARCH.google, ua: this.B().ua, partitions: { normal: PART, incognito: PART_PRIV }, mods: Object.fromEntries(M.MODULES.map(m => [m.id, { ...M.MOD_DEFAULT, ...(this.B().modules || {})[m.id], on: this.modOn(m.id) }])), lang: this.settings.get().lang, a11y: this.main.a11y?.() || {}, a11yRaw: this.settings.get().a11y || {} }; }
+  cfg() { return { ...this.B(), theme: this.theme(), rawTheme: this.settings.get().theme || {}, restoreSession: this.settings.get().restoreSession, searchUrl: SEARCH[this.B().search] || SEARCH.google, ua: this.B().ua, partitions: { normal: PART, incognito: PART_PRIV }, mods: Object.fromEntries(M.MODULES.map(m => [m.id, { ...M.MOD_DEFAULT, ...(this.B().modules || {})[m.id], on: this.modOn(m.id) }])), lang: this.settings.get().lang, a11y: this.main.a11y?.() || {}, a11yRaw: this.settings.get().a11y || {}, root: { autoUpdateCheck: this.settings.get().autoUpdateCheck !== false, fetchTrackers: (this.settings.get().torrent || {}).fetchTrackers !== false, trackersUrl: (this.settings.get().torrent || {}).trackersUrl || '' } }; }
   pushCfg() { clearTimeout(this._pc); this._pc = setTimeout(() => { this.wc?.send('cfg', this.cfg()); pages.broadcast('cfg', this.cfg()); }, 50); }
 
   // ---------- extensions Chrome (Chrome Web Store + dossiers) ----------
@@ -194,7 +200,7 @@ class WebBrowser {
         } catch {}
       }, 350));
     });
-    await installChromeWebStore({ session: ses, extensionsPath: this.extDir, allowUnpackedExtensions: true, minimumManifestVersion: 2, autoUpdate: true });
+    await installChromeWebStore({ session: ses, extensionsPath: this.extDir, allowUnpackedExtensions: true, minimumManifestVersion: 2, autoUpdate: this.B().extAutoUpdate !== false });
     // extensions désactivées par l'utilisateur : fichiers gardés, extension non chargée
     const X = ses.extensions || ses;
     for (const d of this.store.extDisabled || []) { try { if (X.getExtension(d.id)) X.removeExtension(d.id); } catch {} }
@@ -290,7 +296,7 @@ class WebBrowser {
   }
   async updateBlocker(force) {
     const B = this.B();
-    if (!force && Date.now() - (B.adblockUpdated || 0) < 4 * 864e5) return;
+    if (!force && (B.adAutoUpdate === false || B.dataSaver || Date.now() - (B.adblockUpdated || 0) < 4 * 864e5)) return;
     if (this._updating) return this._updating;
     this._updating = (async () => {
       try {
@@ -397,10 +403,29 @@ class WebBrowser {
       }
     } else ses.setPreloads([PAGE_PRELOAD, PRELOAD_PATH]);
     const allowed = ['fullscreen', 'clipboard-sanitized-write', 'pointerLock', 'media', 'storage-access', 'top-level-storage-access', 'speaker-selection', 'window-management'];
-    ses.setPermissionRequestHandler((wc, perm, cb, det) => cb(allowed.includes(perm) && (perm !== 'media' || !(det?.mediaTypes || []).length)));
-    // les notifications et la position sont « à demander », pas accordées d'office
-    ses.setPermissionCheckHandler((wc, perm) => perm === 'notifications' || perm === 'geolocation' || perm === 'midi-sysex' ? false : true);
+    // autorisations par site (cadenas de la barre d'adresse) : caméra, micro, position, notifications, presse-papiers
+    // « Demander » (par défaut) : DrYAE pose la question ; les notifications sont bloquées par défaut
+    ses.setPermissionRequestHandler((wc, perm, cb, det) => {
+      if (allowed.includes(perm) && (perm !== 'media' || !(det?.mediaTypes || []).length)) return cb(true);
+      const kinds = perm === 'media' ? (det?.mediaTypes || []).map(t => (t === 'video' ? 'camera' : 'microphone')) : PERM_OF[perm] ? [PERM_OF[perm]] : [];
+      if (!kinds.length) return cb(false);
+      let host = ''; try { host = new URL(det?.requestingUrl || wc.getURL()).hostname; } catch {}
+      const st = kinds.map(k => this.permOf(host, k));
+      if (st.includes('block')) return cb(false);
+      if (st.every(s => s === 'allow')) return cb(true);
+      this.askPermission(wc, host, kinds).then(cb, () => cb(false));
+    });
+    ses.setPermissionCheckHandler((wc, perm, origin) => {
+      const k = PERM_OF[perm]; if (!k) return perm !== 'midi-sysex';
+      let host = ''; try { host = new URL(origin || wc?.getURL() || '').hostname; } catch {}
+      return this.permOf(host, k) === 'allow';
+    });
     ses.webRequest.onBeforeRequest({ urls: ['<all_urls>'] }, (details, cb) => {
+      // site connu pour les arnaques ou les virus : page d'avertissement de DrYAE (liste gardée sur le PC)
+      if (details.resourceType === 'mainFrame' && this.B().safeBrowsing !== false && /^https?:/.test(details.url)) {
+        const h = hostOf(details.url);
+        if (!this.safeAllow.has(h) && SAFE.isBad(h)) { LOGW('sites dangereux', 'bloqué : ' + h); return cb({ redirectURL: 'dryae://danger/?u=' + encodeURIComponent(details.url) }); }
+      }
       if (!this.blocker || details.resourceType === 'mainFrame' || CHALLENGE.test(hostOf(details.url)) || NO_BLOCK_URL.test(details.url) || this.cfPass.has(details.webContentsId) || this.loginTabs.has(details.webContentsId)) return cb({});
       const page = details.referrer || (details.webContents && !details.webContents.isDestroyed() ? details.webContents.getURL() : '');
       if (!this.adblockActiveFor(page)) return cb({});
@@ -575,7 +600,7 @@ class WebBrowser {
     host.show();
     this.layout();
     this.view.setVisible(true);
-    host.setTitle((global.DRYAE_T || (s => s))('DrYAE — Navigateur'));
+    host.setTitle((global.DRYAE_T || (s => s))('DrYAE — Navigateur') + (this.main.profile?.() ? ' — ' + this.main.profile().name : ''));
     host.focus();
     this.view.webContents.focus();
     this.main.onModeChange?.('browser');
@@ -583,7 +608,7 @@ class WebBrowser {
   hideView() {
     if (!this.view) return;
     this.view.setVisible(false);
-    if (this.win && !this.win.isDestroyed()) { this.win.setTitle('DrYAE'); this.win.webContents.focus(); }
+    if (this.win && !this.win.isDestroyed()) { this.win.setTitle('DrYAE' + (this.main.profile?.() ? ' — ' + this.main.profile().name : '')); this.win.webContents.focus(); }
     this.main.onModeChange?.('manager');
   }
 
@@ -608,7 +633,7 @@ class WebBrowser {
       if (pages.isPageUrl(url) && !pages.isPageUrl(wc.getURL())) return { action: 'deny' };
       // fenêtre de connexion (« Se connecter avec Google », etc.) : vraie petite fenêtre, reliée au site qui l'a ouverte
       if (disposition === 'new-window' && (LOGIN_POPUP.test(url) || /width=|height=/i.test(features || ''))) return this.popupWindow(url, features);
-      if (disposition === 'new-window' && this.B().blockPopups && !this.loginTabs.has(wc.id)) { this.wc?.send('popup-blocked', { wcId: wc.id, url }); return { action: 'deny' }; }
+      if (disposition === 'new-window' && this.B().blockPopups && !this.loginTabs.has(wc.id) && !(this.B().popupsAllowed || []).includes(hostOf(wc.getURL()))) { this.wc?.send('popup-blocked', { wcId: wc.id, url }); return { action: 'deny' }; }
       this.wc?.send('open-url', { url, background: disposition === 'background-tab', from: wc.id });
       return { action: 'deny' };
     });
@@ -829,6 +854,26 @@ class WebBrowser {
   }
 
   // ---------- historique ----------
+  // ---------- autorisations par site ----------
+  permOf(host, kind) { const p = (this.store.perms || {})[host] || {}; return p[kind] || (kind === 'notifications' ? 'block' : 'ask'); }
+  setPerm(host, kind, v) {
+    if (!host || !PERM_KINDS.includes(kind)) return;
+    const P = this.store.perms || (this.store.perms = {}); const p = P[host] || (P[host] = {});
+    if (!v || v === 'default') delete p[kind]; else p[kind] = v;
+    if (!Object.keys(p).length) delete P[host];
+    this.saveStore();
+  }
+  // question posée dans la barre du navigateur (« Autoriser » / « Bloquer », se souvenir pour ce site)
+  askPermission(wc, host, kinds) {
+    return new Promise(res => {
+      const id = Math.random().toString(36).slice(2);
+      this.permWaiters = this.permWaiters || new Map();
+      const t = setTimeout(() => { this.permWaiters.delete(id); res(false); }, 120000);
+      this.permWaiters.set(id, (allow, remember) => { clearTimeout(t); this.permWaiters.delete(id); if (remember) kinds.forEach(k => this.setPerm(host, k, allow ? 'allow' : 'block')); res(!!allow); });
+      if (!this.wc) return this.permWaiters.get(id)(false);
+      this.wc.send('perm-ask', { id, wcId: wc.id, host, kinds });
+    });
+  }
   // mémoire des images traduites (300 dernières), gardée sur le disque
   scanCache() {
     if (this._sc) return this._sc;
@@ -889,6 +934,48 @@ class WebBrowser {
     P('cfg', () => this.cfg());
     P('theme', () => this.theme());
     P('a11y', () => this.main.a11y?.() || {});
+    P('safeInfo', () => SAFE.info());
+    // exporter / importer toutes ses données (un seul fichier, sans compte en ligne)
+    P('exportAll', async (o = {}) => {
+      const TX = require('./transfer');
+      if (o.passwords) { if (!o.password || String(o.password).length < 6) throw new Error('Choisissez un mot de passe d\'au moins 6 caractères pour protéger le fichier'); await this.vault.confirm('pw', 'DrYAE veut exporter vos mots de passe'); }
+      const d = new Date(), pad = n => String(n).padStart(2, '0');
+      const r = await dialog.showSaveDialog(this.win, { title: 'Exporter mes données DrYAE', defaultPath: path.join(app.getPath('documents'), `DrYAE-donnees-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}.dryae`), filters: [{ name: 'DrYAE', extensions: ['dryae'] }] });
+      if (r.canceled || !r.filePath) return null;
+      const data = TX.build({ settings: this.settings, browser: this, manager: this.main.manager, vault: this.vault, version: app.getVersion() }, o);
+      await fsp.writeFile(r.filePath, JSON.stringify(o.passwords || o.password ? TX.seal(data, o.password) : data));
+      return r.filePath;
+    });
+    P('importAll', async (password, o = {}) => {
+      const TX = require('./transfer');
+      let file = o.file;
+      if (!file) { const r = await dialog.showOpenDialog(this.win, { title: 'Importer des données DrYAE', properties: ['openFile'], filters: [{ name: 'DrYAE', extensions: ['dryae', 'json'] }] }); if (r.canceled || !r.filePaths[0]) return null; file = r.filePaths[0]; }
+      let d; try { d = TX.open(file, password); } catch (e) { if (e.code === 'needpw' || e.code === 'badpw') return { needPassword: true, file, bad: e.code === 'badpw' }; throw e; }
+      const done = await TX.apply({ settings: this.settings, browser: this, manager: this.main.manager, vault: this.vault }, d, o);
+      this.pushCfg();
+      return { done };
+    });
+    // contrôle de sécurité en un clic
+    P('safetyCheck', async () => {
+      const upd = this.main.updateInfo?.() || {};
+      const logins = this.vault.data.logins.map(l => ({ site: hostOf(l.origin) || l.origin, pw: this.vault.dec(l.password) || '' }));
+      const byPw = new Map(); for (const l of logins) if (l.pw) byPw.set(l.pw, [...(byPw.get(l.pw) || []), l.site]);
+      const weak = logins.filter(l => l.pw && M.weak(l.pw)).map(l => l.site);
+      const reused = [...byPw.values()].filter(s => s.length > 1).flat();
+      const RISKY = ['<all_urls>', 'http://*/*', 'https://*/*', '*://*/*', 'webRequest', 'webRequestBlocking', 'debugger', 'nativeMessaging', 'proxy', 'cookies', 'history', 'management', 'clipboardRead', 'downloads'];
+      const ses = session.fromPartition(PART); const X = ses.extensions || ses;
+      const exts = (X.getAllExtensions?.() || []).map(e => { const m = e.manifest || {}; const perms = [...(m.permissions || []), ...(m.host_permissions || []), ...(m.optional_permissions || [])].map(String); const r = perms.filter(p => RISKY.includes(p)); return { id: e.id, name: m.name && !/^__MSG_/.test(m.name) ? m.name : e.name, risky: r, store: !!m.update_url && /google\.com/.test(m.update_url) }; });
+      return {
+        version: { current: app.getVersion(), status: upd.status || '', latest: upd.version || '' },
+        passwords: { total: logins.length, weak: [...new Set(weak)].slice(0, 30), reused: [...new Set(reused)].slice(0, 30), breached: this.vault.data.check ? (this.vault.data.check.compromised || []).length : null, checked: this.vault.data.check?.t || 0 },
+        extensions: exts,
+        safe: { on: this.B().safeBrowsing !== false, ...SAFE.info() },
+        adblock: { on: this.modOn('adblock'), updated: this.B().adblockUpdated || 0 },
+      };
+    });
+    P('safeUpdate', () => SAFE.update(true));
+    // « Continuer quand même » : le site est autorisé jusqu'à la fermeture de DrYAE
+    P('safeAllow', url => { const h = hostOf(url); if (h && /^https?:/.test(url)) { this.safeAllow.add(h); LOGW('sites dangereux', 'autorisé par l\'utilisateur : ' + h); } return true; });
     P('open', (url, o = {}) => {
       if (typeof url !== 'string' || !/^(https?|dryae|chrome-extension):/i.test(url)) return;
       const me = pages.sender;
@@ -899,7 +986,7 @@ class WebBrowser {
     P('openManager', () => this.main.showMain());
     P('setBrowser', patch => { this.settings.set({ browser: patch }); if (patch && 'adblock' in patch) { this.settings.set({ browser: { modules: { adblock: { enabled: !!patch.adblock } } } }); } return this.cfg(); });
     P('showShortcuts', () => this.wc?.send('show-shortcuts'));
-    P('setRoot', patch => { const ok = ['restoreSession', 'theme', 'lang', 'a11y']; const p = {}; for (const k of ok) if (k in (patch || {})) p[k] = patch[k]; this.settings.set(p); if (p.lang) this.main.setLang?.(p.lang); return this.cfg(); });
+    P('setRoot', patch => { const ok = ['restoreSession', 'theme', 'lang', 'a11y', 'autoUpdateCheck', 'torrent']; const p = {}; for (const k of ok) if (k in (patch || {})) p[k] = patch[k]; this.settings.set(p); if (p.lang) this.main.setLang?.(p.lang); return this.cfg(); });
     P('resetBrowser', () => { const def = this.settings.def.browser; const keep = { modules: this.B().modules, filterLists: this.B().filterLists, customFilters: this.B().customFilters }; this.settings.set({ browser: { ...JSON.parse(JSON.stringify(def)), ...keep } }); return this.cfg(); });
     P('about', () => ({ version: app.getVersion(), chrome: process.versions.chrome, electron: process.versions.electron, update: this.main.updateInfo?.() }));
     P('updateCheck', () => this.main.updateCheck?.());
@@ -1178,6 +1265,7 @@ class WebBrowser {
     ipcMain.handle('br:feedback', () => this.main.openFeedback?.());
     ipcMain.handle('br:closeExtPopups', () => { try { if (this.extPopup && !this.extPopup.isDestroyed()) this.extPopup.destroy(); } catch {} this.extPopup = null; });
     ipcMain.handle('br:report', () => this.main.report?.());
+    for (const k of ['profiles', 'profileAdd', 'profileOpen', 'profileDelete']) ipcMain.handle('br:' + k, (_e, ...a) => this.main.ipc?.(k, ...a));
     ipcMain.handle('br:search', (_e, q) => this.searchUrl(q));
     ipcMain.handle('br:updateAdblock', () => this.updateBlocker(true));
     ipcMain.handle('br:setModule', (_e, id, patch) => { this.settings.set({ browser: { modules: { [id]: patch } } }); if (id === 'adblock' && 'enabled' in patch) this.settings.set({ browser: { adblock: !!patch.enabled } }); return this.cfg(); });
@@ -1215,6 +1303,7 @@ class WebBrowser {
         hides: this.modOn('adblock') && !this.loginTabs.has(e.sender.id) ? ((this.store.hides || {})[host] || []) : [],
         a11y: this.main.a11y?.() || {},
         reader: B.reader || {},
+        cookieRefuse: B.cookieRefuse !== false && !(B.cookieRefuseOff || []).includes(host),
       };
     });
     const target = () => { const B = this.B(); return (B.translate || {}).target || this.settings.get().lang || 'fr'; };
@@ -1280,6 +1369,20 @@ class WebBrowser {
       this.settings.set({ browser: { lights: L } }); this.pushCfg(); return true;
     });
     // « Lumières éteintes » pour toute l'application (tous les onglets, nouvelles pages) jusqu'à ce qu'on rallume
+    ipcMain.handle('br:permReply', (_e, id, allow, remember) => { this.permWaiters?.get(id)?.(allow, remember); });
+    ipcMain.handle('br:sitePerms', (_e, host) => ({ host, perms: Object.fromEntries(PERM_KINDS.map(k => [k, k === 'popups' ? ((this.B().popupsAllowed || []).includes(host) ? 'allow' : this.B().blockPopups ? 'block' : 'allow') : this.permOf(host, k)])), cookieRefuse: !(this.B().cookieRefuseOff || []).includes(host) }));
+    ipcMain.handle('br:setSitePerm', (_e, host, kind, v) => {
+      if (kind === 'popups') { const s = new Set(this.B().popupsAllowed || []); v === 'allow' ? s.add(host) : s.delete(host); this.settings.set({ browser: { popupsAllowed: [...s] } }); return true; }
+      if (kind === 'cookieRefuse') { const s = new Set(this.B().cookieRefuseOff || []); v ? s.delete(host) : s.add(host); this.settings.set({ browser: { cookieRefuseOff: [...s] } }); return true; }
+      this.setPerm(host, kind, v); return true;
+    });
+    ipcMain.handle('br:clearSiteData', async (_e, host, incognito) => {
+      const ses = session.fromPartition(incognito ? PART_PRIV : PART);
+      for (const o of [`https://${host}`, `http://${host}`]) await ses.clearStorageData({ origin: o }).catch(() => {});
+      const cks = await ses.cookies.get({}).catch(() => []);
+      for (const c of cks) if (c.domain && (host === c.domain.replace(/^\./, '') || host.endsWith(c.domain.startsWith('.') ? c.domain : '.' + c.domain))) await ses.cookies.remove(`http${c.secure ? 's' : ''}://${c.domain.replace(/^\./, '')}${c.path}`, c.name).catch(() => {});
+      return true;
+    });
     ipcMain.handle('reader:pref', (_e, p = {}) => { const R = { size: Math.max(13, Math.min(34, +p.size || 19)), theme: ['light', 'sepia', 'dark'].includes(p.theme) ? p.theme : 'light', width: Math.max(480, Math.min(1100, +p.width || 720)), font: ['sans', 'serif', 'easy'].includes(p.font) ? p.font : 'sans', rate: Math.max(0.5, Math.min(2.5, +p.rate || 1)) }; this.settings.set({ browser: { reader: R } }); return R; });
     // article de la page (mode lecture, lecture à voix haute) : Readability (Mozilla, Apache-2.0) exécuté à part de la page
     ipcMain.handle('br:article', async (_e, wcId) => {
@@ -1426,6 +1529,8 @@ function readingOrder(gs) {
   return rows.flatMap(r => r.items.sort((a, b) => rtl ? b.x1 - a.x1 : a.x0 - b.x0));
 }
 
+const PERM_OF = { geolocation: 'geolocation', notifications: 'notifications', 'clipboard-read': 'clipboard', midi: 'midi', 'idle-detection': 'idle' };
+const PERM_KINDS = ['camera', 'microphone', 'geolocation', 'notifications', 'clipboard', 'popups', 'midi', 'idle'];
 function isUrlLike(s) { return /^(https?:\/\/|file:\/\/)/i.test(s) || /^[\w-]+(\.[\w-]+)+(:\d+)?(\/.*)?$/.test(s); }
 
 module.exports = { WebBrowser, PART, PART_PRIV, UA_DESKTOP, UA_MOBILE };
