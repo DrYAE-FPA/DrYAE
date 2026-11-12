@@ -1,7 +1,15 @@
-name: Avis, idée ou critique / Feedback or idea
-description: Donner mon avis — Give feedback
+name: Idée ou avis / Idea or feedback
+description: Proposer une idée ou donner mon avis — Suggest an idea or give feedback
 labels: [feedback]
 body:
+  - type: markdown
+    attributes:
+      value: "Merci ! Toutes les idées sont lues. — Thank you! Every idea is read."
+  - type: dropdown
+    attributes:
+      label: "C'est… / This is…"
+      options: ["Une idée de nouvelle fonction / A new feature idea", "Une amélioration / An improvement", "Un avis général / General feedback"]
+    validations: { required: true }
   - type: textarea
-    attributes: { label: "Votre avis / Your feedback" }
+    attributes: { label: "Votre idée ou votre avis / Your idea or feedback", description: "Qu'aimeriez-vous, et pourquoi ? Une capture d'écran aide beaucoup." }
     validations: { required: true }

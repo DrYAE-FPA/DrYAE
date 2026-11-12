@@ -904,7 +904,7 @@ const SHORTCUTS = [
   ['Alt + Entrée', 'Propriétés (informations)'], ['Alt + Maj + P', 'Volet des détails'], ['F5', 'Actualiser'], ['Ctrl + F  /  F3', 'Rechercher'],
   ['Ctrl + molette', "Changer l'affichage (icônes, liste, détails)"], ['Ctrl + Maj + 2 … 8', 'Grandes icônes … Contenu'], ['Espace', 'Pause / reprendre'],
   ['Ctrl + N', 'Nouveau lien'], ['Ctrl + T', 'Nouveau torrent'], ['Ctrl + O', 'Ouvrir un fichier .torrent'], ['Ctrl + B', 'Ouvrir le navigateur'], ['Ctrl + ,', 'Paramètres'],
-  ['Échap', 'Fermer / tout désélectionner'], ['F1', 'Afficher ces raccourcis'],
+  ['Échap', 'Fermer / tout désélectionner'], ['F1', 'Mode d\'emploi'], ['Ctrl + /', 'Afficher ces raccourcis'],
 ];
 function showShortcuts() {
   prompt2('Raccourcis clavier', [{ html: `<div class="kbd-list">${SHORTCUTS.map(([k, l]) => `<div><kbd>${esc(T(k))}</kbd><span>${esc(T(l))}</span></div>`).join('')}</div>` }], 'OK');
@@ -937,7 +937,8 @@ document.addEventListener('keydown', async e => {
     if (selected.size) { selected.clear(); kCursor = null; render(); }
     return;
   }
-  if (k === 'F1' || (ctrl && (k === '/' || k === ':'))) { e.preventDefault(); return showShortcuts(); }
+  if (k === 'F1') { e.preventDefault(); return call('openPage', 'guide'); }
+  if (ctrl && (k === '/' || k === ':')) { e.preventDefault(); return showShortcuts(); }
   if (ctrl && !e.shiftKey && K === 'n') { e.preventDefault(); return showAdd(); }
   if (ctrl && !e.shiftKey && K === 't') { e.preventDefault(); return showTorrent(); }
   if (ctrl && !e.shiftKey && K === 'o') { e.preventDefault(); showTorrent(); return setTimeout(() => $('#tPick').click(), 80); }

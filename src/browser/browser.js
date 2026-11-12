@@ -358,8 +358,8 @@ function mainMenu() {
     ] },
     '-',
     { label: 'Aide', icon: 'help', sub: () => [
-      { label: 'Raccourcis clavier', icon: 'kbd', key: 'F1', fn: showShortcuts },
-      { label: "Mode d'emploi", icon: 'help', fn: () => newTab('https://github.com/DrYAE-FPA/DrYAE/blob/main/docs/GUIDE.md') },
+      { label: "Mode d'emploi", icon: 'help', key: 'F1', fn: () => openPage('guide') },
+      { label: 'Raccourcis clavier', icon: 'kbd', fn: showShortcuts },
       { label: 'Donner mon avis', icon: 'star', fn: () => B.call('br:feedback') },
       { label: 'Signaler un problème…', icon: 'help', fn: reportProblem },
       { label: 'À propos de DrYAE', icon: 'dryae', fn: () => openPage('settings', 'about') },
@@ -751,7 +751,7 @@ function onKey(k, ctrl, shift, alt) {
   }
   if (k === 'escape' && shift) return go(() => openPage('tasks'));
   if (k === 'f5') return go(() => cur.wv?.reload());
-  if (k === 'f1') return go(showShortcuts);
+  if (k === 'f1') return go(() => openPage('guide'));
   if (k === 'f3') return go(() => ($('#findbar').classList.contains('on') ? find(!shift) : openFind()));
   // F6 : barre d'adresse → boutons de la barre d'outils → page (comme Chrome) ; Maj+F6 dans l'autre sens
   if (k === 'f6') return go(() => cycleFocus(shift ? -1 : 1));

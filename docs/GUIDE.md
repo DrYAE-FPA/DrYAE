@@ -29,8 +29,8 @@ Le gestionnaire s'utilise comme un dossier de Windows :
 - **Glisser un fichier terminé** vers un dossier, le Bureau ou une autre application pour le copier.
 
 ### Supprimer
-- **Suppr** retire l'élément de la liste (le fichier reste sur le disque). Un bouton **Annuler** apparaît quelques secondes ; **Ctrl+Z** fait la même chose.
-- **Maj+Suppr** supprime aussi le fichier, après confirmation.
+- **Suppr** ou **Maj+Suppr** ouvre une petite fenêtre « Retirer de la liste ». La case **Supprimer aussi le fichier de l'ordinateur** envoie le fichier dans la **Corbeille de Windows** (vous pouvez encore le récupérer). Elle est cochée d'office avec Maj+Suppr ; sinon, DrYAE se souvient de votre dernier choix.
+- Sans la case, seul l'élément quitte la liste : un bouton **Annuler** apparaît quelques secondes ; **Ctrl+Z** fait la même chose.
 
 ### Ajouter un téléchargement
 - **Ajouter → Lien :** collez une ou plusieurs adresses (une par ligne). Vous pouvez choisir le dossier, le nom, le nombre de connexions et une limite de vitesse.
@@ -39,7 +39,13 @@ Le gestionnaire s'utilise comme un dossier de Windows :
 - **Lot :** une adresse contenant `[1-50]` est remplacée par 1, 2, 3… jusqu'à 50.
 
 ### Doublons
-Si vous ajoutez un fichier déjà présent (même lien ou même titre), DrYAE demande : **Remplacer**, **Garder les deux (numéroter)** ou **Annuler**. Cochez « Toujours faire ce choix » pour ne plus être interrogé (modifiable dans Paramètres → Téléchargements).
+Si un fichier est déjà dans la liste ou déjà téléchargé (même lien ou même titre), DrYAE le dit toujours, que vous l'ajoutiez depuis le gestionnaire ou depuis le navigateur : **Ouvrir le fichier**, **Télécharger quand même**, **Remplacer** ou **Annuler**. Si le fichier a été effacé de l'ordinateur, DrYAE propose **Télécharger à nouveau**. Cochez « Toujours faire ce choix » pour ne plus être interrogé. Avec plusieurs liens, une seule question regroupe tous les doublons.
+
+### Quand un téléchargement échoue
+DrYAE explique le problème en clair (dans votre langue) et propose un bouton pour le réparer : **Choisir un autre dossier** (disque plein, dossier interdit ou clé USB retirée), **Libérer de la place**, **Retrouver le lien sur la page** (lien expiré), **Autoriser DrYAE dans le pare-feu** (torrents), **Réessayer**. Si internet est coupé ou si le site a un souci passager, DrYAE **reprend tout seul** quand la connexion revient (l'attente entre deux essais grandit peu à peu). Avant un gros téléchargement, DrYAE vérifie qu'il reste assez de place sur le disque.
+
+### Analyser un programme téléchargé
+Pour un fichier .exe, .msi, .zip, .rar… : clic droit → **Analyser avec l'antivirus de Windows** (ou le bouton dans les Détails). DrYAE affiche le résultat de Microsoft Defender.
 
 ### Vider la liste
 La **corbeille** en haut retire les téléchargements terminés de la liste (les fichiers restent sur le disque). Une confirmation s'affiche ; cochez « Ne plus prévenir » pour la supprimer (réactivable dans Paramètres → Général).
@@ -65,7 +71,8 @@ Les vidéos protégées par DRM (Netflix, Disney+…) ne peuvent pas être tél�
 ## 4. Torrents
 - **Ajouter → Torrent**, ou cliquez sur un lien `magnet:` / `.torrent` dans le navigateur DrYAE (le choix des fichiers s'ouvre sur la page, sans la quitter), ou déposez un fichier `.torrent`.
 - Le moteur torrent (aria2) est natif et très léger : il ne tourne que pendant les téléchargements de torrents.
-- DrYAE lit la liste des fichiers. Cochez ceux que vous voulez.
+- DrYAE lit la liste des fichiers. Cochez ceux que vous voulez. Pour un lien magnet, un compteur indique la recherche des pairs (« Recherche de pairs… 12 s ») avec un bouton **Annuler**. Si personne n'est trouvé après 30 secondes, DrYAE explique comment autoriser son moteur de torrents (aria2c) dans le pare-feu de Windows.
+- Si vous ajoutez un torrent déjà présent, DrYAE le signale et propose d'**ajouter ses trackers** au téléchargement existant (souvent plus rapide).
 - **Téléchargement séquentiel** : permet de regarder une vidéo pendant qu'elle se télécharge.
 - Le **partage** (seeding) après la fin et le ratio se règlent dans Paramètres → Torrents.
 
@@ -73,7 +80,7 @@ Les vidéos protégées par DRM (Netflix, Disney+…) ne peuvent pas être tél�
 - **Onglets :** Ctrl+T pour un nouvel onglet, Ctrl+Maj+N pour un onglet privé, Ctrl+W pour fermer. Faites glisser les onglets pour les réorganiser. Un onglet ne se charge que lorsque vous l'ouvrez.
 - **Souris :** boutons latéraux pour page précédente / suivante ; clic du milieu ou Ctrl+clic sur un lien pour l'ouvrir dans un onglet en arrière-plan ; clic du milieu sur un onglet pour le fermer ; double-clic dans la barre d'onglets pour en ouvrir un ; Ctrl+molette pour le zoom.
 - **Menu ⋮ :** nouvel onglet, onglet privé, **Mots de passe et saisie automatique**, **Historique** (avec les onglets fermés récemment), **Téléchargements**, **Favoris**, **Extensions**, effacer les données de navigation, zoom, imprimer, traduire la page, rechercher, enregistrer sous, outils supplémentaires, aide, **Paramètres**.
-- **Pages de gestion :** Historique (Ctrl+H), Favoris (Ctrl+Maj+O), Mots de passe, Extensions (Ctrl+Maj+A) et Paramètres s'ouvrent dans un onglet. Elles se pilotent au clavier comme le gestionnaire : ↑ ↓ pour se déplacer, Maj+↑↓ ou Ctrl+clic pour sélectionner, Ctrl+A tout sélectionner, Entrée ouvrir, Ctrl+Entrée nouvel onglet, Suppr supprimer, F2 modifier, Ctrl+Z annuler, Ctrl+F rechercher.
+- **Pages de gestion :** Historique (Ctrl+H), Favoris (Ctrl+Maj+O), Mots de passe, Extensions (Ctrl+Maj+X) et Paramètres s'ouvrent dans un onglet. Elles se pilotent au clavier comme le gestionnaire : ↑ ↓ pour se déplacer, Maj+↑↓ ou Ctrl+clic pour sélectionner, Ctrl+A tout sélectionner, Entrée ouvrir, Ctrl+Entrée nouvel onglet, Suppr supprimer, F2 modifier, Ctrl+Z annuler, Ctrl+F rechercher.
 - **Historique :** par date ou par site ; « Effacer les données de navigation » (Ctrl+Maj+Suppr) avec la période (15 minutes, 1 heure, 24 heures, 7 jours, 4 semaines, depuis le début).
 - **Favoris :** l'étoile (Ctrl+D) ajoute la page et permet de choisir son nom et son dossier ; Ctrl+Maj+D ajoute tous les onglets ; Ctrl+Maj+B affiche la **barre de favoris** (glisser-déposer, clic droit, dossiers). Le gestionnaire de favoris range, trie, importe et exporte (fichier HTML).
 - **Fichier(s) détecté(s) :** le bouton de téléchargement liste tout ce que la page lit, avec la taille (estimée « ~ » pour les flux), le nombre de morceaux, la résolution et la durée. **Tout effacer** vide la liste, **Réinitialiser** la réaffiche, **Trier** change l'ordre, et « Sélectionner les fichiers » permet d'en télécharger plusieurs d'un coup.
@@ -96,6 +103,53 @@ Les vidéos protégées par DRM (Netflix, Disney+…) ne peuvent pas être tél�
 - **Extensions Chrome :** ouvrez le Chrome Web Store depuis la page Extensions, puis cliquez sur « Ajouter à Chrome ». Si la boutique ne s'affiche pas, copiez le lien de la page de l'extension (ou son identifiant) dans **Installer avec un lien**.
 - Si une vérification « Êtes-vous un humain ? » ne passe pas, utilisez **⋮ → Ouvrir cette page dans Chrome** avec l'extension DrYAE (voir section 7).
 
+- **Clic dans la page :** les fenêtres des extensions et les menus se ferment, comme dans Chrome.
+- **Barre de favoris :** faites glisser un favori ou un dossier pour le déplacer (ou clic droit → Déplacer vers la gauche / la droite).
+- **Lumières tamisées :** « Lumières éteintes » reste actif sur toutes les pages et tous les onglets jusqu'à ce que vous rallumiez ; la **protection des yeux** s'applique sans gêner l'affichage des pages.
+
+## 5 bis. Onglets, lecture et outils (nouveautés 1.6.9)
+- **Clic droit sur un onglet :** nouvel onglet à droite, dupliquer, couper le son, **afficher côte à côte**, **ajouter à un groupe**, regrouper les onglets par site, fermer les autres…
+- **Groupes d'onglets :** un nom et une couleur ; un clic sur le nom du groupe le replie.
+- **Vue côte à côte :** deux onglets dans la même fenêtre ; faites glisser la barre du milieu pour régler la largeur (double-clic : moitié-moitié).
+
+![Vue côte à côte](images/cote-a-cote.jpg)
+
+- **Rechercher dans les onglets :** Ctrl+Maj+A (tapez quelques lettres, Entrée).
+- **Aperçu au survol d'un onglet :** image de la page, adresse et mémoire utilisée.
+- **Panneau latéral** (bouton à droite de la barre d'outils) : favoris, historique, pages hors ligne, **notes** liées à chaque page, traducteur.
+- **Mode lecture** (F9) : seulement le texte de l'article, sans publicités, avec la taille, les couleurs et la police au choix. **Lire à voix haute** (F8) utilise les voix de Windows.
+
+![Mode lecture](images/mode-lecture.jpg)
+
+- **Lecteur PDF :** surligner, écrire, dessiner, ajouter une image ou une **signature**, puis **Enregistrer** le PDF modifié.
+
+![Lecteur PDF](images/lecteur-pdf.jpg)
+
+- **Outils supplémentaires** (menu ⋮) : capture de la page entière, garder une page pour la lire hors ligne, code QR de la page (pour l'ouvrir sur un téléphone), gestionnaire des tâches (Maj+Échap).
+- **Copier le texte d'une image :** clic droit sur l'image.
+- **Mots-clés de recherche :** tapez « yt chat » dans la barre d'adresse pour chercher « chat » sur YouTube (à régler dans Paramètres → Moteur de recherche).
+- **Page Nouvel onglet :** bouton **Personnaliser** (image de fond, taille et choix des raccourcis ; glisser pour les déplacer).
+- **Performances** (Paramètres → Onglets et performances) : économiseur de mémoire (onglets en veille), économiseur d'énergie sur batterie, économiseur de données, onglets verticaux.
+- **Profils** (menu ⋮ → Profils) : chaque profil a ses favoris, mots de passe, cookies, historique et téléchargements, dans sa propre fenêtre.
+- **Traducteur de scans :** les bulles sont repérées une à une (le texte traduit prend la couleur de la bulle), traduites ensemble dans l'ordre de lecture, et une image déjà traduite s'affiche tout de suite. **Clic droit sur une bulle** pour corriger le texte ou la traduction, ou ajouter un mot au **lexique** (noms des personnages…). Pour le coréen, le russe, l'arabe, le thaï ou le hindi, téléchargez une fois le **modèle de lecture** dans la fenêtre du traducteur de scans.
+
+## 5 ter. Accessibilité
+Paramètres → **Accessibilité** : taille du texte de DrYAE (jusqu'à 200 %), **contraste élevé** (ou comme Windows), **lecture facilitée** (police simple et lettres plus espacées, utile pour la dyslexie), **réduire les animations**, **mode simple** (seulement les boutons essentiels). Tout se fait aussi au clavier : Tab, flèches, Échap, F6 (barre d'adresse → boutons → page), Alt+F (menu). DrYAE fonctionne avec les lecteurs d'écran (NVDA, Narrateur). Vos propres raccourcis : Paramètres → **Raccourcis clavier**.
+
+## 5 quater. Vie privée et sécurité
+- **Aucune publicité, aucun compte, aucune collecte.** Paramètres → Confidentialité et sécurité → **Ce que DrYAE envoie sur internet** liste tout ce qui sort, avec un interrupteur pour chaque chose.
+- **Sites dangereux :** DrYAE vous avertit avant d'ouvrir un site connu pour les arnaques ou les virus. La liste est gardée sur votre PC : les adresses visitées ne sont envoyées à personne.
+
+![Site dangereux](images/site-dangereux.jpg)
+
+- **Cadenas de la barre d'adresse :** caméra, micro, position, notifications (bloquées par défaut), presse-papiers, fenêtres pop-up, refus des cookies, effacer les données du site.
+- **Bandeaux de cookies :** DrYAE clique sur « Refuser » à votre place quand c'est possible.
+- **Contrôle de sécurité** en un clic : version, mots de passe faibles ou réutilisés, extensions aux accès étendus, protections actives.
+
+![Contrôle de sécurité](images/controle-securite.jpg)
+
+- **Exporter / importer toutes mes données** (Paramètres → Système) : un seul fichier, protégé par un mot de passe si vous y mettez vos mots de passe. **Importer depuis un autre navigateur** : favoris et historique de Chrome, Edge, Brave, Opera, Vivaldi ou Firefox.
+
 ## 6. Planificateur et limites
 - **Planificateur :** choisissez une heure de début et une heure de fin, ainsi que les jours. Vous pouvez aussi éteindre le PC à la fin.
 - **Limite de vitesse :** le compteur en bas à gauche, ou Paramètres → Vitesse & réseau. Il existe aussi un quota quotidien en Mo.
@@ -114,12 +168,13 @@ Elle envoie à DrYAE les téléchargements de Google Chrome, les vidéos et les 
 - **Apparence :** thème clair, sombre ou noir (AMOLED), et couleur d'accent (par défaut, celle de Windows).
 - **À propos :** version, **Rechercher les mises à jour**, **Donner mon avis**, licences.
 
-## 9. Mises à jour et avis
+## 9. Mises à jour, avis et problèmes
 - Quand une nouvelle version sort, un bandeau **Mettre à jour** apparaît. Cliquez dessus : le téléchargement s'affiche dans le gestionnaire. Puis cliquez sur **Redémarrer et installer** : DrYAE s'installe sans fenêtre et se rouvre avec vos réglages et votre langue.
-- Le bouton **Donner mon avis** ouvre la page [Issues](https://github.com/DrYAE-FPA/dryae/issues) pour signaler un problème ou proposer une idée.
+- Le bouton **Donner mon avis** ouvre la page [Issues](https://github.com/DrYAE-FPA/dryae/issues) pour proposer une idée.
+- **Signaler un problème…** (menu ⋮ → Aide, ou Paramètres du gestionnaire → À propos) crée un petit rapport sur votre Bureau (versions, Windows, dernières erreurs — sans mots de passe, sans historique, sans adresses complètes) et ouvre la page des signalements. Joignez le fichier à votre message.
 
 ## 10. Raccourcis clavier
-Appuyez sur **F1** dans le gestionnaire ou dans le navigateur pour afficher la liste complète.
+Appuyez sur **F1** pour ouvrir ce guide dans DrYAE ; la liste complète des raccourcis est en haut du guide. Vous pouvez choisir vos propres raccourcis : Paramètres → Raccourcis clavier.
 
 **Gestionnaire (raccourcis de Windows) :** Ctrl+A (tout sélectionner) · Ctrl+clic / Maj+clic · flèches et Maj+flèches · Début / Fin · Entrée (ouvrir) · Espace (pause / reprendre) · F2 (renommer) · Suppr (retirer de la liste) · Maj+Suppr (supprimer définitivement) · Ctrl+Z (annuler le retrait) · Ctrl+C (copier le fichier) · Ctrl+Maj+C (copier le chemin) · Ctrl+V (coller un lien) · Alt+Entrée (propriétés) · Alt+Maj+P (volet des détails) · Ctrl+Maj+2…8 (affichages) · F3 / Ctrl+F (rechercher) · F5 (actualiser) · Ctrl+E (dossier) · Ctrl+N (ajouter un lien) · Ctrl+T (torrent) · Ctrl+O (fichier .torrent) · Ctrl+B (navigateur) · Échap.
 

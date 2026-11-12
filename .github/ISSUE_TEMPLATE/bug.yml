@@ -2,12 +2,25 @@ name: Problème / Bug
 description: Signaler un problème — Report a problem
 labels: [bug]
 body:
-  - type: textarea
-    attributes: { label: "Que s'est-il passé ? / What happened?" }
+  - type: markdown
+    attributes:
+      value: |
+        Merci de prendre le temps de signaler un problème ! Écrivez simplement, en français ou dans votre langue.
+        Astuce : dans DrYAE, menu ⋮ → Aide → **Signaler un problème…** crée un petit rapport sur votre Bureau (sans mots de passe ni historique). Glissez-le dans la dernière case.
+        Thank you! Tip: in DrYAE, ⋮ menu → Help → **Report a problem…** creates a small report on your Desktop. Drag it into the last box.
+  - type: dropdown
+    attributes:
+      label: "Où ? / Where?"
+      options: ["Gestionnaire de téléchargements / Download manager", "Navigateur / Browser", "Torrents", "Vidéos (MP4/MP3)", "Traducteur de scans / Scan translator", "Installation / mise à jour", "Autre / Other"]
     validations: { required: true }
   - type: textarea
-    attributes: { label: "Étapes pour reproduire / Steps to reproduce" }
+    attributes: { label: "Que s'est-il passé ? / What happened?", description: "Ce que vous avez vu, et ce que vous attendiez." }
+    validations: { required: true }
+  - type: textarea
+    attributes: { label: "Comment le refaire ? / Steps to reproduce", placeholder: "1. J'ai cliqué sur…\n2. Puis…\n3. Alors…" }
   - type: input
-    attributes: { label: "Version de DrYAE (Paramètres → À propos) / DrYAE version" }
+    attributes: { label: "Version de DrYAE (Paramètres → À propos) / DrYAE version", placeholder: "1.6.9" }
   - type: input
-    attributes: { label: "Version de Windows / Windows version" }
+    attributes: { label: "Version de Windows / Windows version", placeholder: "Windows 11" }
+  - type: textarea
+    attributes: { label: "Rapport et captures d'écran / Report and screenshots", description: "Glissez ici le fichier DrYAE-rapport-….txt et vos captures." }

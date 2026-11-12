@@ -1002,6 +1002,7 @@ class WebBrowser {
     P('theme', () => this.theme());
     P('a11y', () => this.main.a11y?.() || {});
     P('safeInfo', () => SAFE.info());
+    P('report', () => this.main.report?.());
     P('importSources', () => { try { return require('./importer').detect().map(({ key, name, kind }) => ({ key, name, kind })); } catch { return []; } });
     P('importFrom', (key, o) => this.importFrom(key, o));
     // gestionnaire des tâches

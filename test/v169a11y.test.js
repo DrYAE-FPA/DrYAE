@@ -46,5 +46,11 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
   // lecture à voix haute : la carte de contrôle apparaît
   const art = await b.evaluate(() => B.call('br:article', cur.wcId));
   ok('article extrait sans le menu ni la publicité', art && /bibliothèques publiques/.test(art.text) && !/PUBLICITÉ|Pied de page/.test(art.text), art && art.title);
+  // mode d'emploi intégré (F1)
+  await b.evaluate(() => onKey('F1', false, false, false)); await wait(2500);
+  const gp = app.windows().find(x => x.url().startsWith('dryae://guide'));
+  const gd = gp && await gp.evaluate(() => ({ h2: document.querySelectorAll('#doc h2').length, img: [...document.querySelectorAll('#doc img')].filter(i => i.naturalWidth > 0).length, nav: document.querySelectorAll('#nav button').length }));
+  ok('F1 : mode d\'emploi intégré, avec sommaire et images', gd && gd.h2 >= 10 && gd.img >= 4 && gd.nav >= 10, gd);
+  if (gp) await gp.screenshot({ path: OUT + '/guide.png' });
   await Promise.race([app.close(), wait(5000)]); srv.close(); process.exit(0);
 })().catch(e => { console.error(e); process.exit(1); });

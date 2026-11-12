@@ -1,0 +1,34 @@
+# Tests automatiques de DrYAE à chaque envoi de code : un bug corrigé ne doit pas revenir.
+# (Electron sous Linux avec un écran virtuel ; les fonctions propres à Windows sont testées sur le PC.)
+name: Tests
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['docs/notes/**', '**.md']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Outils (écran virtuel, moteur torrent)
+        run: sudo apt-get update && sudo apt-get install -y xvfb aria2 fonts-noto-cjk
+      - run: npm ci
+      - run: npm i --no-save playwright@1.63.0
+      - name: Moteur torrent pour les tests
+        run: mkdir -p bin/linux && ln -sf "$(command -v aria2c)" bin/linux/aria2c
+      - name: Textes traduits
+        run: node tools/build-locales.js
+      - name: Tests
+        run: ./tools/run-tests.sh

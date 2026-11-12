@@ -3,8 +3,18 @@ const { _electron } = require('playwright'); const fs = require('fs'); const pat
 const ROOT = path.resolve(__dirname, '..'); const OUT = '/tmp/claude-0/v169'; fs.mkdirSync(OUT, { recursive: true });
 const ok = (n, v, x) => console.log((v ? 'OK  ' : 'ÉCHEC ') + n, x !== undefined ? JSON.stringify(x).slice(0, 300) : '');
 const wait = ms => new Promise(r => setTimeout(r, ms));
+// petit PDF d'une page fabriqué ici (pas de fichier externe)
+function makePdf() {
+  const st = 'BT /F1 24 Tf 72 760 Td (Document PDF de test DrYAE) Tj ET';
+  const objs = ['<< /Type /Catalog /Pages 2 0 R >>', '<< /Type /Pages /Kids [3 0 R] /Count 1 >>', '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>', `<< /Length ${st.length} >>\nstream\n${st}\nendstream`, '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'];
+  let out = '%PDF-1.4\n'; const offs = [];
+  objs.forEach((o, i) => { offs.push(out.length); out += `${i + 1} 0 obj\n${o}\nendobj\n`; });
+  const x = out.length; out += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n` + offs.map(o => String(o).padStart(10, '0') + ' 00000 n \n').join('') + `trailer\n<< /Size ${objs.length + 1} /Root 1 0 R >>\nstartxref\n${x}\n%%EOF\n`;
+  return Buffer.from(out, 'latin1');
+}
 (async () => {
-  const srv = http.createServer((q, r) => { if (q.url === '/doc.pdf') { r.setHeader('Content-Type', 'application/pdf'); return r.end(fs.readFileSync('/tmp/claude-0/test.pdf')); } r.end('ok'); }).listen(0);
+  const PDF = makePdf();
+  const srv = http.createServer((q, r) => { if (q.url === '/doc.pdf') { r.setHeader('Content-Type', 'application/pdf'); return r.end(PDF); } r.end('ok'); }).listen(0);
   const base = `http://127.0.0.1:${srv.address().port}`;
   const HOME = '/tmp/claude-0/uihome-v169pdf'; fs.rmSync(HOME, { recursive: true, force: true }); fs.mkdirSync(HOME + '/.config/DrYAE', { recursive: true });
   fs.writeFileSync(HOME + '/.config/DrYAE/settings.json', JSON.stringify({ lang: 'fr', langChosen: true }));
