@@ -13,6 +13,44 @@ function toast(t, action) {
   el.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('on'), action ? 6000 : 2600);
 }
 
+// petite fenêtre de question (même rôle que dans le Gestionnaire) : { title, text, check, checked, buttons:[{v,label,primary,danger}] }
+function askBox(o) {
+  return new Promise(res => {
+    const m = $('#askDlg');
+    $('#askH').textContent = o.title || ''; $('#askP').textContent = o.text || '';
+    $('#askCk').style.display = o.check ? '' : 'none'; $('#askCt').textContent = o.check || ''; $('#askC').checked = !!o.checked;
+    const btns = o.buttons || [{ v: 'ok', label: o.ok || 'OK', primary: true, danger: o.danger }];
+    $('#askF').innerHTML = `<button class="btn" data-v="">${esc(o.cancel || 'Annuler')}</button>` + btns.map(b => `<button class="btn ${b.primary ? 'primary' : ''} ${b.danger ? 'danger' : ''}" data-v="${b.v}">${esc(b.label)}</button>`).join('');
+    const done = v => { m.classList.remove('on'); m.onkeydown = null; $('#askF').onclick = null; res(v ? { value: v, checked: $('#askC').checked } : null); };
+    $('#askF').onclick = e => { const b = e.target.closest('[data-v]'); if (b) done(b.dataset.v); };
+    m.onkeydown = e => { if (e.key === 'Escape') { e.stopPropagation(); done(''); } };
+    m.classList.add('on');
+    setTimeout(() => $('#askF .primary')?.focus(), 30);
+  });
+}
+// doublon détecté par le Gestionnaire : même fenêtre que dans le Gestionnaire
+async function askDup(d) {
+  const gone = d.status === 'done' && !d.file;
+  const st = gone ? "le fichier n'existe plus sur l'ordinateur" : d.status === 'done' ? 'déjà téléchargé' : 'déjà dans la liste';
+  const buttons = gone ? [{ v: 'overwrite', label: 'Télécharger à nouveau', primary: true }]
+    : [...(d.file ? [{ v: 'open', label: 'Ouvrir le fichier' }] : []), { v: 'overwrite', label: 'Remplacer' }, { v: 'rename', label: 'Télécharger quand même', primary: true }];
+  const r = await askBox({ title: 'Déjà téléchargé', text: `« ${d.name} » — ${T(st)}. ${T('Que veux-tu faire ?')}`, check: gone ? '' : 'Toujours faire ce choix', buttons });
+  if (!r) return null;
+  if (r.value === 'open') { B.call('br:openDl', d.id); return null; }
+  if (r.checked && !gone) B.call('br:setDupDefault', r.value);
+  return r.value;
+}
+// ajout rapide avec gestion des doublons : jamais « Ajouté » si rien n'a été ajouté
+async function addDl(o) {
+  let r = await B.call('br:quickAdd', o);
+  if (r && r.duplicate) {
+    const a = await askDup(r.duplicate);
+    if (!a) return null;
+    r = await B.call('br:quickAdd', { ...o, dupAction: a });
+  }
+  return r;
+}
+
 let CFG = {}, STORE = { bookmarks: [], history: [] }, tabs = [], cur = null, seq = 0, panel = null;
 const QUICK = [
   { t: 'Google', u: 'https://www.google.com' }, { t: 'YouTube', u: 'https://www.youtube.com' }, { t: 'Wikipédia', u: 'https://fr.wikipedia.org' },
@@ -85,7 +123,17 @@ function ensureWebview(tab) {
   wv.addEventListener('did-navigate', e => { tab.url = e.url; tab.tr = null; tab.lit = false; tab.scanLang = null; updTab(tab); if (!tab.incognito) B.call('br:history', { url: e.url, title: tab.title }); });
   wv.addEventListener('did-navigate-in-page', e => { if (e.isMainFrame) { tab.url = e.url; updTab(tab); } });
   wv.addEventListener('page-title-updated', e => { tab.title = e.title; updTab(tab); if (!tab.incognito) B.call('br:history', { url: tab.url, title: e.title }); });
-  wv.addEventListener('page-favicon-updated', e => { tab.fav = e.favicons[0] || ''; updTab(tab); if (!tab.incognito && /^https?:/.test(tab.url)) B.call('br:history', { url: tab.url, title: tab.title, fav: tab.fav, favOnly: true }); });
+  // icône : récupérée par DrYAE (le site interdit souvent qu'on l'affiche depuis le navigateur), sinon /favicon.ico
+  const getFav = async cands => {
+    if (!/^https?:/.test(tab.url || '')) return;
+    const u = tab.url, f = await B.call('br:fav', cands || [], u, !!tab.incognito).catch(() => '');
+    if (!f || tab.url !== u) return;
+    tab.fav = f; updTab(tab);
+    if (!tab.incognito) B.call('br:history', { url: tab.url, title: tab.title, fav: f, favOnly: true });
+  };
+  wv.addEventListener('page-favicon-updated', e => { tab._favAsked = true; getFav(e.favicons); });
+  wv.addEventListener('did-stop-loading', () => { if (!tab._favAsked || !tab.fav) { tab._favAsked = true; getFav([]); } });
+  wv.addEventListener('did-start-navigation', e => { if (e.isMainFrame && !e.isInPlace && hostOf(e.url) !== hostOf(tab.url)) { tab._favAsked = false; tab.fav = ''; } });
   wv.addEventListener('did-fail-load', e => {
     if (!e.isMainFrame || e.errorCode === -3) return;
     const msg = { '-105': "Adresse introuvable. Vérifie l'orthographe ou ta connexion.", '-106': 'Pas de connexion internet.', '-102': 'Connexion refusée.', '-118': 'Le site met trop de temps à répondre.', '-200': 'Certificat du site invalide.', '-20': 'Bloqué par le bloqueur de publicités.' }[e.errorCode] || e.errorDescription;
@@ -93,6 +141,8 @@ function ensureWebview(tab) {
   });
   wv.addEventListener('ipc-message', e => {
     const a = e.args[0];
+    if (e.channel === 'dryae-pagedown') return closeFloating();
+    if (e.channel === 'dryae-scanmodel') return offerScanModel(a);
     if (e.channel === 'dryae-video') openQuick(tab, a || {});
     else if (e.channel === 'dryae-nav') navStep(a);
     else if (e.channel === 'dryae-tr') { tab.tr = a; if (tab === cur) drawTrBar(); }
@@ -294,12 +344,17 @@ function mainMenu() {
     { label: 'Aide', icon: 'help', sub: () => [
       { label: 'Raccourcis clavier', icon: 'kbd', key: 'F1', fn: showShortcuts },
       { label: "Mode d'emploi", icon: 'help', fn: () => newTab('https://github.com/DrYAE-FPA/DrYAE/blob/main/docs/GUIDE.md') },
-      { label: 'Donner mon avis / signaler un problème', icon: 'star', fn: () => B.call('br:feedback') },
+      { label: 'Donner mon avis', icon: 'star', fn: () => B.call('br:feedback') },
+      { label: 'Signaler un problème…', icon: 'help', fn: reportProblem },
       { label: 'À propos de DrYAE', icon: 'dryae', fn: () => openPage('settings', 'about') },
     ] },
     { label: 'Paramètres', icon: 'gear', fn: () => openPage('settings') },
     { label: 'Quitter', icon: 'x', key: 'Ctrl+Maj+Q', fn: () => B.call('br:quit') },
   ];
+}
+async function reportProblem() {
+  const r = await askBox({ title: 'Signaler un problème', text: T("DrYAE va créer un petit rapport sur ton Bureau (versions, Windows, dernières erreurs — sans mots de passe, sans historique, sans adresses complètes) et ouvrir la page des signalements sur GitHub. Décris ce qui s'est passé et joins le fichier. Rien n'est envoyé sans toi."), ok: 'Créer le rapport' });
+  if (r) { await B.call('br:report'); toast('Rapport créé sur le Bureau'); }
 }
 async function setModule(id, patch) { CFG = { ...CFG, ...(await B.call('br:setModule', id, patch)) }; drawMods(); updToolbar(); if (['adblock', 'capture', 'pip', 'translate', 'lights', 'scan'].includes(id) && patch.enabled !== undefined) toast(patch.enabled ? 'Extension activée (actualisez la page)' : 'Extension désactivée'); }
 $('#bMenu').onclick = e => { const r = e.currentTarget.getBoundingClientRect(); menu(r.right - 300, r.bottom + 4, mainMenu(), true); };
@@ -414,7 +469,7 @@ function drawMedia() {
   $('#dClear').onclick = () => { t.hidden = new Set((t.media || []).map(x => x.url)); dSel = dSel ? new Set() : null; drawMedia(); updToolbar(); };
   $('#dSortB').onclick = () => { dSort = (dSort + 1) % DSORTS.length; drawMedia(); };
   $('#dClose').onclick = closePanel;
-  const gs = $('#dGoSel'); if (gs) gs.onclick = () => { m.filter(x => dSel.has(x.url)).forEach(x => dlMedia(x, true)); toast(T('{0} téléchargement(s) lancé(s)').replace('{0}', dSel.size)); dSel = new Set(); drawMedia(); };
+  const gs = $('#dGoSel'); if (gs) gs.onclick = async () => { const sel = m.filter(x => dSel.has(x.url)); dSel = new Set(); drawMedia(); let n = 0; for (const x of sel) if (await dlMedia(x, true, true)) n++; if (n) toast(T('{0} téléchargement(s) lancé(s)').replace('{0}', n)); };
   $('#pBody').onclick = ev => {
     const mo = ev.target.closest('[data-more]');
     const el = ev.target.closest('[data-d]'); if (!el) return;
@@ -438,9 +493,9 @@ function openMediaItem(x, t = cur) {
   if (['video', 'audio', 'hls'].includes(x.kind)) return openQuick(t, { page: t.url, title: t.title, src: x.url, duration: x.duration });
   return openQuickFile({ url: x.url, name: dName(x), page: t.url, size: x.size, kind: x.kind, incognito: t.incognito });
 }
-function dlMedia(x, direct) {
+function dlMedia(x, direct, quiet) {
   const name = x.kind === 'hls' ? dName(x).replace(/\.mp4$/, '') : dName(x);
-  if (direct) return B.call('br:quickAdd', { url: x.url, page: cur.url, kind: x.kind === 'hls' ? 'hls' : undefined, name, title: cur.title, incognito: cur.incognito, dupAction: 'rename' });
+  if (direct) return addDl({ url: x.url, page: cur.url, kind: x.kind === 'hls' ? 'hls' : undefined, name, title: cur.title, incognito: cur.incognito }).then(r => { if (r && !quiet) toast('Ajouté à DrYAE'); return r; });
   B.call('br:download', { url: x.url, name, page: cur.url, kind: x.kind === 'hls' ? 'hls' : undefined, incognito: cur.incognito });
 }
 $('#pBody').addEventListener('click', e => {
@@ -493,8 +548,20 @@ async function grabLinks(tab = cur) {
   $('#gDl').onclick = () => {
     const urls = $$('#gList [data-g]').filter(x => x.checked).map(x => links[+x.dataset.g].url);
     if (!urls.length) return toast('Coche au moins un lien');
-    B.call('br:downloadMany', { urls, page: tab.url, incognito: tab.incognito });
+    downloadMany(urls, tab);
   };
+}
+
+// plusieurs liens : les doublons sont signalés en une seule question
+async function downloadMany(urls, tab) {
+  const r = await B.call('br:downloadMany', { urls, page: tab.url, incognito: tab.incognito });
+  let n = r.added;
+  if (r.dups.length) {
+    const a = await askBox({ title: 'Déjà téléchargé', text: T('{0} fichier(s) sont déjà dans la liste ou déjà téléchargés. Que veux-tu faire ?').replace('{0}', r.dups.length) + '\n' + r.dups.slice(0, 5).map(d => '• ' + d.name).join('\n') + (r.dups.length > 5 ? '\n…' : ''),
+      cancel: 'Les ignorer', buttons: [{ v: 'overwrite', label: 'Remplacer' }, { v: 'rename', label: 'Télécharger quand même', primary: true }] });
+    if (a) n += (await B.call('br:downloadMany', { urls: r.dups.map(d => d.url), page: tab.url, incognito: tab.incognito, dupAction: a.value })).added;
+  }
+  if (n) toast(T('{0} téléchargement(s) ajouté(s)').replace('{0}', n), { label: 'Voir', fn: () => B.call('br:openMain') });
 }
 
 // recherche dans la page
@@ -692,9 +759,9 @@ function qsOpts() {
 async function qsAdd(o, label) {
   const tab = qsCtx?.tab || cur;
   const op = qsOpts();
-  const r = await B.call('br:quickAdd', { ...o, ...op, name: op.name || null, title: o.title || op.name || (tab && tab.title) || null, incognito: tab?.incognito });
   closeQuick();
-  toast(`Ajouté à DrYAE${label ? ' : ' + label : ''}`, { label: 'Voir', fn: () => B.call('br:openMain') });
+  const r = await addDl({ ...o, ...op, name: op.name || null, title: o.title || op.name || (tab && tab.title) || null, incognito: tab?.incognito });
+  if (r) toast(`${T('Ajouté à DrYAE')}${label ? ' : ' + label : ''}`, { label: 'Voir', fn: () => B.call('br:openMain') });
   return r;
 }
 function qsShow(title, meta, thumb) {
@@ -806,6 +873,18 @@ async function openQuickFile(o) {
   if (mp3) mp3.onclick = () => qsAdd({ kind: 'ytdl', url: o.url, page: o.page, headers: o.headers, mode: 'audio', audioFormat: 'mp3', audioBitrate: '320', title: ($('#qaName').value.trim() || name).replace(/\.\w+$/, '') }, 'MP3');
 }
 // ---- torrent / magnet cliqué sur une page : choix des fichiers ici même, on reste sur la page ----
+// torrent déjà présent : proposer ses trackers
+async function torDup(d) {
+  closeQuick();
+  const extra = d.newTrackers ? ' ' + T('Il apporte {0} tracker(s) nouveau(x) : les ajouter au téléchargement existant peut le rendre plus rapide.').replace('{0}', d.newTrackers) : '';
+  const r = await askBox({ title: 'Torrent déjà dans la liste', text: `« ${d.name} » ${T('est déjà dans la liste.')}${extra}`, buttons: d.newTrackers ? [{ v: 'merge', label: 'Ajouter ses trackers', primary: true }] : [{ v: 'show', label: 'Voir le téléchargement', primary: true }] });
+  if (r?.value === 'merge') { await B.call('br:torTrackers', d.id, d.trackers); toast(T('{0} tracker(s) ajouté(s)').replace('{0}', d.newTrackers)); }
+  if (r?.value === 'show') B.call('br:openMain');
+}
+B.on('torrent-probe', p => {
+  if (!qsCtx || qsCtx.hash !== p.hash) return;
+  $('#qsMeta').textContent = T('Recherche de pairs… {0} s sur {1}').replace('{0}', p.s).replace('{1}', p.max) + ' · ' + T('{0} pair(s)').replace('{0}', p.peers) + (p.stuck ? ' — ' + T('Toujours aucun pair : le pare-feu de Windows bloque peut-être DrYAE.') : '');
+});
 async function openQuickTorrent(o) {
   const tab = cur;
   qsCtx = { url: o.src, page: o.page, tab };
@@ -815,14 +894,23 @@ async function openQuickTorrent(o) {
   $('#qsBody').innerHTML = '<div class="spin"></div>';
   $('#qsBody').onclick = null;
   const ctx = qsCtx;
+  ctx.hash = ((/xt=urn:btih:([a-z0-9]+)/i.exec(o.src) || [])[1] || '').toLowerCase();
+  $('#qsBody').innerHTML = `<div class="spin"></div><div class="row" style="justify-content:center;margin-top:8px"><button class="btn sm" id="qtCancel">${esc(T('Annuler'))}</button></div>`;
+  $('#qtCancel').onclick = () => { if (ctx.hash) B.call('br:torCancel', ctx.hash); closeQuick(); };
   const r = await B.call('br:torInspect', o.src, { cookie: o.cookie, page: o.page });
   if (qsCtx !== ctx) return;
+  ctx.hash = '';
+  const quickBtn = () => {
+    const q = $('#qtQuick'); if (q) q.onclick = async () => { const d = await B.call('br:torQuick', o.src); if (d && d.duplicate) return torDup(d.duplicate); closeQuick(); toast('Torrent ajouté', { label: 'Voir', fn: () => B.call('br:openMain') }); };
+    const f = $('#qtFw'); if (f) f.onclick = () => B.call('br:firewall');
+  };
   if (!r.ok) {
-    $('#qsMeta').textContent = r.error;
-    $('#qsBody').innerHTML = /déjà/.test(r.error) ? '' : `<div class="row" style="margin-top:12px"><button class="btn primary" id="qtQuick">${ic('dl')}Ajouter sans lire les infos</button></div>`;
-    const q = $('#qtQuick'); if (q) q.onclick = async () => { await B.call('br:torQuick', o.src); closeQuick(); toast('Torrent ajouté', { label: 'Voir', fn: () => B.call('br:openMain') }); };
+    $('#qsMeta').textContent = T(r.error);
+    $('#qsBody').innerHTML = /Annulé/.test(r.error) ? '' : `<div class="row" style="margin-top:12px;gap:8px;flex-wrap:wrap"><button class="btn primary" id="qtQuick">${ic('dl')}Ajouter sans lire les infos</button>${/pair|moteur|pare-feu|aria2/i.test(r.error) ? `<button class="btn" id="qtFw">${esc(T('Autoriser DrYAE dans le pare-feu'))}</button>` : ''}</div>`;
+    quickBtn();
     return;
   }
+  if (r.info.duplicate) return torDup(r.info.duplicate);
   const info = r.info;
   const sel = new Set(info.files.map(f => f.i));
   $('#qsTitle').textContent = info.name;
@@ -955,7 +1043,28 @@ async function bookmarkAll() {
   await B.call('br:bmAddAll', list, T('Onglets du {0}').replace('{0}', d));
   toast(T('{0} onglet(s) ajouté(s) aux favoris').replace('{0}', list.length));
 }
+// écriture lue sans son modèle (coréen, russe…) : proposer de le télécharger une fois
+const MODEL_NAMES = { korean: 'Coréen', eslav: 'Russe, ukrainien, biélorusse', cyrillic: 'Autres langues cyrilliques (bulgare, serbe…)', arabic: 'Arabe, persan, ourdou', th: 'Thaï', devanagari: 'Hindi, marathi, népalais' };
+async function offerScanModel(id) {
+  if (id === '?') return toast(T("Le texte de cette image n'a pas pu être lu. Si c'est du coréen, du russe, de l'arabe ou du thaï, télécharge son modèle de lecture."), { label: 'Choisir', fn: () => popOpen('scan', $('#tbItems [data-mod="scan"]') || $('#bExt')) });
+  if (!MODEL_NAMES[id]) return;
+  const list = await B.call('scan:models').catch(() => []); const m = list.find(x => x.id === id); if (!m || m.installed) return;
+  toast(T('Pour mieux lire « {0} », DrYAE peut télécharger son modèle de lecture ({1}).').replace('{0}', T(MODEL_NAMES[id])).replace('{1}', fmt(m.size)), { label: 'Télécharger', fn: () => getScanModel(id) });
+}
+async function getScanModel(id) {
+  toast(T('Téléchargement du modèle de lecture…'));
+  try { await B.call('scan:modelGet', id); toast(T('Modèle installé : relis l\'image (icône « Relire »)')); } catch (e) { toast(T('Téléchargement impossible') + ' : ' + (e.message || e)); }
+  if (typeof POP !== 'undefined' && POP.kind === 'scan') popRender();
+}
+B.on('scan-model', v => { if (v.p != null && typeof POP !== 'undefined' && POP.kind === 'scan') { const el = document.querySelector(`#pop [data-mdl="${v.id}"] .mp`); if (el) el.textContent = Math.round(v.p * 100) + ' %'; } });
+// ferme les fenêtres flottantes (fenêtres d'extensions, menus) : clic dans la page
+function closeFloating() {
+  if (typeof POP !== 'undefined' && POP.kind) popClose();
+  $('#menu').classList.remove('on');
+  B.call('br:closeExtPopups');
+}
 function drawBmBar() {
+  if (bmDrag) { drawBmBar.later = true; return; } // pas de redessin pendant un glisser (il annulerait le déplacement)
   const bar = $('#bmbar');
   bar.classList.toggle('on', !!CFG.showBookmarksBar);
   if (!CFG.showBookmarksBar) return;
@@ -986,6 +1095,9 @@ $('#bmbar').addEventListener('contextmenu', e => {
     { label: 'Renommer…', icon: 'star', fn: () => showBmEdit(n, b) },
     { label: 'Supprimer le dossier', icon: 'trash', fn: () => { if (confirm(T('Supprimer le dossier « {0} » et son contenu ?').replace('{0}', n.title))) B.call('br:bmRemove', [n.id]); } },
   ] : [];
+  // déplacer sans la souris (accessibilité)
+  const bi = n && n.id !== 'other' ? BM.bar.children.findIndex(x => x.id === n.id) : -1;
+  if (bi >= 0) items.push('-', { label: 'Déplacer vers la gauche', icon: 'back', disabled: bi === 0, fn: () => B.call('br:bmMove', [n.id], 'bar', bi - 1) }, { label: 'Déplacer vers la droite', icon: 'fwd', disabled: bi === BM.bar.children.length - 1, fn: () => B.call('br:bmMove', [n.id], 'bar', bi + 2) });
   menu(e.clientX, e.clientY, [...items, ...(items.length ? ['-'] : []),
     { label: 'Ajouter cet onglet aux favoris…', icon: 'star', fn: starClick, disabled: !/^https?:/.test(cur?.url || '') },
     { label: 'Nouveau dossier', icon: 'folder', fn: async () => { const f = await B.call('br:bmAdd', { parentId: 'bar', type: 'folder', title: T('Nouveau dossier') }); setTimeout(() => showBmEdit(f, $(`#bmbar [data-bm="${f.id}"]`)), 120); } },
@@ -993,9 +1105,10 @@ $('#bmbar').addEventListener('contextmenu', e => {
     { label: 'Masquer la barre de favoris', icon: 'bar', fn: toggleBar }]);
 });
 // glisser-déposer : réordonner, ou déposer un lien ou un onglet pour l'ajouter
-let bmDrag = null;
+var bmDrag = null;
 $('#bmbar').addEventListener('dragstart', e => { const b = e.target.closest('[data-bm]'); if (!b || b.dataset.bm === 'other') return; bmDrag = b.dataset.bm; e.dataTransfer.effectAllowed = 'move'; });
 $('#bmbar').addEventListener('dragover', e => { e.preventDefault(); const b = e.target.closest('.bi'); $$('#bmbar .bi').forEach(x => x.classList.remove('drop-l', 'drop-r')); if (b && b.dataset.bm !== 'other') { const r = b.getBoundingClientRect(); b.classList.add(e.clientX > r.left + r.width / 2 ? 'drop-r' : 'drop-l'); } });
+$('#bmbar').addEventListener('dragend', () => { bmDrag = null; $$('#bmbar .bi').forEach(x => x.classList.remove('drop-l', 'drop-r')); if (drawBmBar.later) { drawBmBar.later = false; drawBmBar(); } });
 $('#bmbar').addEventListener('dragleave', () => $$('#bmbar .bi').forEach(x => x.classList.remove('drop-l', 'drop-r')));
 $('#bmbar').addEventListener('drop', async e => {
   e.preventDefault();
@@ -1003,7 +1116,7 @@ $('#bmbar').addEventListener('drop', async e => {
   let idx = BM.bar.children.length;
   if (b && b.dataset.bm !== 'other') { const r = b.getBoundingClientRect(); idx = BM.bar.children.findIndex(n => n.id === b.dataset.bm) + (e.clientX > r.left + r.width / 2 ? 1 : 0); }
   if (b && bmNode(b.dataset.bm)?.type === 'folder' && !bmDrag && e.clientX) {}
-  if (bmDrag) { await B.call('br:bmMove', [bmDrag], 'bar', idx); bmDrag = null; return; }
+  if (bmDrag) { const id = bmDrag; bmDrag = null; await B.call('br:bmMove', [id], 'bar', idx); return; }
   const url = (e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain') || '').split('\n')[0].trim();
   if (/^https?:\/\//.test(url)) { const t = tabs.find(x => x.url === url); await B.call('br:bmAdd', { parentId: 'bar', index: idx, url, title: t?.title || url, fav: t?.fav || '' }); }
 });

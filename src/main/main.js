@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const fsp = fs.promises;
 const { Settings } = require('./settings');
+const LOG = require('./log');
 const I18N = require('../shared/i18n');
 const LOCALES = require('../shared/locales');
 const { Updater } = require('./updater');
@@ -55,12 +56,13 @@ const api = {
       files: (o.files || []).map(f => ({ path: f.path, length: f.length })), selected: o.selected, dir: o.dir, sequential: o.sequential, seedAfter: o.seedAfter, startNow: o.startNow !== false, schedule: !!o.schedule });
     return true;
   },
-  torrentQuick(src) { const d = manager.add({ type: 'torrent', url: src }); return !!d; },
+  torrentQuick(src) { const d = manager.add({ type: 'torrent', url: src }); return d && d.duplicate ? d : !!d; },
   quit() { quitting = true; app.quit(); },
   openSettings(sec) { api.showMain(); send('open-settings', sec || ''); },
   // écran d'ouverture choisi (navigateur par défaut, ou gestionnaire)
   showStart() { if (settings.get().startView === 'manager' || !browser) return api.showMain(); if (!win) createWindow(); browser.open(); },
   showMain() { if (!win) createWindow(); if (win.isMinimized()) win.restore(); win.show(); browser?.hideView(); win.focus(); },
+  report() { return report(); },
   openFeedback() { const u = updater?.info(); if (u) shell.openExternal(u.feedbackUrl || u.repoUrl || 'https://github.com'); },
   hostWindow() { if (!win) createWindow(); return win; },
   onModeChange(m) { send('mode', m); if (m === 'manager') send('reload', manager.views()); },
@@ -186,6 +188,7 @@ function restoreData() {
 }
 
 app.whenReady().then(async () => {
+  LOG.init(app.getPath('userData'), app.getVersion());
   restoreData();
   settings = new Settings(app);
   resolveLanguage();
@@ -201,6 +204,8 @@ app.whenReady().then(async () => {
   });
   await browser.init();
   manager.cookieFileFor = url => browser.cookieFile(url);
+  manager.online = () => { try { return require('electron').net.isOnline(); } catch { return true; } };
+  manager.trash = f => shell.trashItem(f);
   startExtensionServer();
   updater = new Updater({ send: sendUpd, notify: api.notify, T, beforeInstall: () => { browser?.saveStoreSync(); manager?.saveSync(); settings?.save?.(); backupData(); }, auto: () => settings.get().autoUpdateCheck !== false });
   updater.init();
@@ -209,13 +214,15 @@ app.whenReady().then(async () => {
   manager.on('changed', v => send('changed', v));
   manager.on('progress', v => { if (win && win.isVisible() && !win.isMinimized() && !browser.visible()) send('progress', v); updateTray(v); });
   manager.on('reload', () => send('reload', manager.views()));
+  manager.on('torrentProbe', p => { send('torrent-probe', p); browser?.wc?.send('torrent-probe', p); });
   manager.on('notice', n => { api.notify(n.title, n.body); send('toast', n.body); });
   manager.on('itemFinished', d => {
     if (d.status === 'done' && !d._notified) {
       d._notified = true;
       api.notify('Téléchargement terminé', d.name, () => { api.showMain(); });
       send('sound', 'done');
-    } else if (d.status === 'error') api.notify('Échec du téléchargement', `${d.name || d.url}\n${d.error}`);
+    } else if (d.status === 'error') LOG.write('téléchargement', d.type, `${d.errorCode || ''} ${d.error} (${d.host || ''})`);
+    if (d.status === 'error' && !d._retryAt) { const v = d.view(); if (!require('./errors').AUTO.has(v.errKind) || !manager.online()) api.notify('Échec du téléchargement', `${d.name || d.url}\n${T(v.errText || d.error)}`); }
     else if (d.status === 'seeding') api.notify('Torrent terminé', `${d.name} — partage en cours`);
   });
   manager.on('allDone', () => {
@@ -234,6 +241,8 @@ app.whenReady().then(async () => {
     else if (!busy && psb !== null) { powerSaveBlocker.stop(psb); psb = null; }
   }, 5000);
 
+  app.on('render-process-gone', (_e, wc, det) => LOG.write('erreur', 'page plantée', `${det.reason} ${det.exitCode} ${wc?.getType?.() || ''} ${wc?.getURL?.() || ''}`));
+  app.on('child-process-gone', (_e, det) => { if (det.reason !== 'clean-exit') LOG.write('erreur', 'processus', `${det.type} ${det.reason} ${det.name || ''}`); });
   app.on('web-contents-created', (_e, wc) => {
     if (wc.getType() === 'webview') browser.attachWebview(wc);
     else if (wc.getType() === 'window') setImmediate(() => { try { if (!wc.isDestroyed() && browser.isWebSession(wc.session)) browser.attachPopup(wc); } catch {} });
@@ -265,6 +274,17 @@ app.on('before-quit', () => { quitting = true; browser?.onQuit(); manager?.shutd
 app.on('window-all-closed', () => { if (!settings.get().tray) app.quit(); });
 
 // ================= IPC =================
+async function report() {
+  const S = settings.get();
+  const txt = LOG.report({ Langue: S.lang, 'Démarrage sur': S.startView, Proxy: S.proxy?.enabled ? 'oui' : 'non', 'Téléchargements': manager.list.length + ' (' + manager.list.filter(d => d.status === 'error').length + ' en erreur)', 'Erreurs en cours': manager.list.filter(d => d.status === 'error').slice(0, 15).map(d => `${d.type} ${d.errorCode || ''} ${d.error}`), 'Moteur torrent': manager.torrents.proc ? 'lancé' : 'arrêté', Extensions: (browser?.extList?.() || []).length });
+  const d = new Date(), pad = n => String(n).padStart(2, '0');
+  const f = path.join(app.getPath('desktop'), `DrYAE-rapport-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}.txt`);
+  await fsp.mkdir(path.dirname(f), { recursive: true }).catch(() => {});
+  await fsp.writeFile(f, '\ufeff' + txt, 'utf8');
+  shell.showItemInFolder(f);
+  const u = updater?.info(); if (u?.repoUrl) shell.openExternal(u.repoUrl + '/issues/new?template=bug.yml');
+  return f;
+}
 const H = (ch, fn) => ipcMain.handle(ch, async (_e, ...a) => { try { return { ok: true, v: await fn(...a) }; } catch (e) { return { ok: false, error: e.message || String(e) }; } });
 
 H('list', () => manager.views());
@@ -308,7 +328,7 @@ H('add', async (o) => {
     const isHls = o.kind === 'hls' || /\.m3u8(\?|$)/i.test(url);
     const v = manager.add({
       type: isHls ? 'hls' : 'http', url, dir: o.dir, connections: o.connections, startNow: o.startNow !== false, schedule: !!o.schedule,
-      name: urls.length === 1 ? o.name : null, headers: o.headers || {}, pageUrl: o.page || '', pageTitle: o.pageTitle || (browser && browser.pageTitle ? browser.pageTitle(o.page) : ''), speedLimit: o.speedLimit || 0, quality: o.quality || null, allowPage: !!o.allowPage, dupAction: urls.length === 1 ? o.dupAction : (o.dupAction || 'rename'),
+      name: urls.length === 1 ? o.name : null, headers: o.headers || {}, pageUrl: o.page || '', pageTitle: o.pageTitle || (browser && browser.pageTitle ? browser.pageTitle(o.page) : ''), speedLimit: o.speedLimit || 0, quality: o.quality || null, allowPage: !!o.allowPage, dupAction: o.dupAction,
     });
     out.push(v);
   }
@@ -333,6 +353,20 @@ H('resume', id => manager.resume(id));
 H('restart', id => manager.restart(id));
 H('remove', (ids, del) => manager.remove(ids, del));
 H('refresh', (id, url) => manager.refresh(id, url));
+// analyse par Microsoft Defender (MpCmdRun) : 0 = rien trouvé, 2 = menace
+H('avScan', async id => {
+  const d = manager.get(id); const f = d?.type === 'torrent' ? d.rootPath() : d?.file;
+  if (!f || !fs.existsSync(f) || process.platform !== 'win32') return { state: 'error', detail: 'fichier introuvable' };
+  const exe = [process.env.ProgramFiles, process.env.ProgramW6432].filter(Boolean).map(p => path.join(p, 'Windows Defender', 'MpCmdRun.exe')).find(p => fs.existsSync(p));
+  if (!exe) return { state: 'error', detail: 'Microsoft Defender absent' };
+  return new Promise(res => require('child_process').execFile(exe, ['-Scan', '-ScanType', '3', '-File', f, '-DisableRemediation'], { windowsHide: true, timeout: 600000 }, (err, out) => {
+    const code = err ? err.code : 0;
+    LOG.write('antivirus', path.extname(f), `code ${code}`);
+    res(code === 0 ? { state: 'clean' } : code === 2 || /threat|menace/i.test(out || '') ? { state: 'threat' } : { state: 'error', detail: 'code ' + code });
+  }));
+});
+H('changeDir', (id, dir) => manager.changeDir(id, dir));
+H('openFirewall', () => require('child_process').spawn('control.exe', ['/name', 'Microsoft.WindowsFirewall', '/page', 'pageConfigureApps'], { detached: true, windowsHide: false }));
 H('rename', (id, name) => manager.rename(id, name));
 H('move', async id => { const r = await dialog.showOpenDialog(win, { properties: ['openDirectory', 'createDirectory'] }); if (!r.canceled) await manager.move(id, r.filePaths[0]); });
 H('itemSpeed', (id, kb) => manager.get(id)?.setSpeedLimit(kb));
@@ -390,13 +424,15 @@ H('setLang', setLang);
 H('upd:info', () => updater.info());
 H('upd:check', () => updater.check());
 H('upd:install', () => updater.install());
+// « Signaler un problème » : rapport texte sur le Bureau (rien n'est envoyé), puis la page GitHub des signalements
+H('report', async () => report());
 H('openFeedback', () => { const u = updater.info(); shell.openExternal(u.feedbackUrl || u.repoUrl || 'https://github.com'); });
 H('openRepo', () => { const u = updater.info(); if (u.repoUrl) shell.openExternal(u.repoUrl); });
 H('openDonate', () => { const u = updater.info(); if (u.donateUrl) shell.openExternal(u.donateUrl); });
 H('openNotices', () => {
   for (const p of [path.join(process.resourcesPath || '', 'THIRD_PARTY_NOTICES.txt'), path.join(__dirname, '..', '..', 'THIRD_PARTY_NOTICES.txt')]) if (fs.existsSync(p)) return shell.openPath(p);
 });
-H('openExternal', u => shell.openExternal(u));
+H('openExternal', u => { if (/^(https?:|mailto:|ms-settings:)/i.test(String(u))) shell.openExternal(u); });
 H('openBrowser', (url, incognito) => browser.open(url, { incognito }));
 H('cancelShutdown', () => tools.cancelShutdown());
 H('registerMagnet', () => {
@@ -418,6 +454,7 @@ H('torrent:inspect', async (src, opts) => {
 H('torrent:add', o => manager.add({ type: 'torrent', url: o.magnet || ('magnet:?xt=urn:btih:' + o.infoHash), torrentFile: o.torrentFile, infoHash: o.infoHash, name: o.name,
   files: (o.files || []).map(f => ({ path: f.path, length: f.length })), selected: o.selected, dir: o.dir, sequential: o.sequential, seedAfter: o.seedAfter, startNow: o.startNow !== false, schedule: !!o.schedule }));
 H('torrent:addQuick', src => manager.add({ type: 'torrent', url: src }));
+H('torrent:cancelProbe', hash => { if (hash) manager.torrents.probeCancel.add(String(hash).toLowerCase()); });
 H('torrent:select', (id, sel) => manager.get(id)?.setSelection(sel));
 H('torrent:sequential', (id, v) => manager.get(id)?.setSequential(v));
 H('torrent:trackers', (id, list) => manager.get(id)?.addTrackers(list));

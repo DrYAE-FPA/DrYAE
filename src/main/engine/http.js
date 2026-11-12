@@ -91,13 +91,14 @@ class HttpDownload extends Item {
         if (!extOf(name) && EXT_BY_MIME[info.ctype]) name += '.' + EXT_BY_MIME[info.ctype];
         let dir = this.dir || S.dir;
         if (this.autoDir && S.categorize) dir = path.join(S.dir, catFolder(catOf(name)));
-        await fsp.mkdir(dir, { recursive: true });
+        await fsp.mkdir(dir, { recursive: true }).catch(e => { throw Object.assign(new Error(e.message), { code: ['ENOENT', 'ENOTDIR'].includes(e.code) ? 'nodir' : e.code }); });
         this.dir = dir;
         let target = path.join(dir, name);
         if (fs.existsSync(target) && (this.onExist || S.duplicate) === 'overwrite') await fsp.rm(target, { force: true });
         else target = uniquePath(dir, name);
         this.file = target; this.name = path.basename(target);
         this.size = info.size; this.resumable = info.resumable;
+        await this.ctx.checkSpace?.(dir, info.size);
         this.planSegments();
         this.ctx.save();
       } else {
@@ -131,7 +132,7 @@ class HttpDownload extends Item {
       this.segments = [{ start: 0, end: this.size - 1, done: this.size }];
       this.complete();
     } catch (e) {
-      if (this.status === 'running') this.fail(errMsg(e), e.code);
+      if (this.status === 'running') this.fail(errMsg(e), e.code || e.cause?.code);
     }
   }
 
@@ -164,8 +165,8 @@ class HttpDownload extends Item {
       try {
         const extra = this.resumable ? { Range: `bytes=${seg.start + seg.done}-${seg.end}` } : {};
         const res = await this.ctx.fetch(this.finalUrl || this.url, { headers: this.ctx.buildHeaders(this, extra), signal: ac.signal });
-        if (this.resumable && res.status !== 206) throw new Error(`Reprise refusée par le serveur (${res.status})`);
-        if (!res.ok) throw new Error(`Erreur serveur ${res.status}`);
+        if (this.resumable && res.status !== 206) throw Object.assign(new Error(`Reprise refusée par le serveur (${res.status})`), { code: res.ok ? 'norange' : 'http' + res.status });
+        if (!res.ok) throw Object.assign(new Error(`Erreur serveur ${res.status}`), { code: 'http' + res.status });
         if (!this.resumable) seg.done = 0;
         seg.active = true;
         this.changed();

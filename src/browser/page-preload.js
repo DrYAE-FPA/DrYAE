@@ -16,6 +16,8 @@ const toHost = (ch, v) => { try { ipcRenderer.sendToHost(ch, v); } catch {} };
 
 // ---------- 1. souris : boutons latéraux précédent / suivant ----------
 try {
+  // clic dans la page : le navigateur ferme ses fenêtres (extensions, menus), comme Chrome
+  addEventListener('mousedown', () => toHost('dryae-pagedown'), true);
   addEventListener('mouseup', e => { if (e.button === 3 || e.button === 4) { e.preventDefault(); toHost('dryae-nav', e.button === 3 ? -1 : 1); } }, true);
 } catch {}
 
@@ -61,7 +63,8 @@ function pageFeatures() {
       uiRoot = uiHost.attachShadow({ mode: 'closed' });
       setHTML(uiRoot, `<style>${UI_CSS}</style>`);
     }
-    if (!uiHost.isConnected) (document.documentElement || document).appendChild(uiHost);
+    // jamais dans « document » lui-même : avant que la page existe, l'élément deviendrait la page entière (page blanche)
+    if (!uiHost.isConnected) { if (document.documentElement) document.documentElement.appendChild(uiHost); else document.addEventListener('readystatechange', () => { if (!uiHost.isConnected && document.documentElement) document.documentElement.appendChild(uiHost); }, { once: true }); }
     return uiRoot;
   };
   const el = (html, parent) => { const d = document.createElement('div'); setHTML(d, html.trim()); const n = d.firstElementChild; (parent || ui()).appendChild(n); return n; };
@@ -605,7 +608,7 @@ function pageFeatures() {
     return best;
   }
   const opNow = () => Math.max(0.3, Math.min(0.97, LC.opacity / 100));
-  function lightsOn(auto) {
+  function lightsOn(auto, quiet) {
     if (lights) return;
     const t = lightsTarget();
     const fade = L.fade !== false ? 'opacity .45s ease' : 'none';
@@ -614,7 +617,10 @@ function pageFeatures() {
     const tip = el(`<div class="card" style="left:50%;top:14px;transform:translateX(-50%);padding:6px 12px;font-size:12px;opacity:.85">${esc(pt(L.clickOff === false ? 'Échap pour rallumer' : 'Cliquez à côté pour rallumer'))}</div>`);
     setTimeout(() => tip.remove(), 2200);
     let raf = 0;
+    let t2 = 0;
     const lay = () => {
+      // la vidéo arrive après coup (nouvelle page) : on la retrouve
+      if ((!t || !t.isConnected) && ++t2 % 30 === 0) t = lightsTarget();
       const r = t && t.isConnected ? t.getBoundingClientRect() : { left: innerWidth / 2, right: innerWidth / 2, top: innerHeight / 2, bottom: innerHeight / 2 };
       const W = innerWidth, H = innerHeight, l = Math.max(0, r.left), rt = Math.min(W, r.right), tp = Math.max(0, r.top), bt = Math.min(H, r.bottom);
       const set = (p, x, y, w, h) => Object.assign(p.style, { left: x + 'px', top: y + 'px', width: Math.max(0, w) + 'px', height: Math.max(0, h) + 'px' });
@@ -625,7 +631,7 @@ function pageFeatures() {
     };
     lay();
     requestAnimationFrame(() => panes.forEach(p => { p.style.opacity = opNow(); }));
-    panes.forEach(p => { p.onclick = e => { e.preventDefault(); e.stopPropagation(); lightsOff(); }; });
+    panes.forEach(p => { p.onclick = e => { e.preventDefault(); e.stopPropagation(); lightsOff(true); }; });
     // lueur : couleur moyenne de l'image (si la vidéo le permet), sinon violet doux
     let gt = 0; const cv = document.createElement('canvas'); cv.width = cv.height = 4;
     const tint = () => {
@@ -641,8 +647,10 @@ function pageFeatures() {
     tint();
     autoLit = !!auto;
     toHost('dryae-lights', true);
+    // allumé à la main : reste éteint sur toutes les pages et tous les onglets jusqu'à ce qu'on rallume
+    if (!auto && !quiet) ipcRenderer.invoke('lights:global', true).catch(() => {});
   }
-  function lightsOff() { if (!lights) return; lights.off(); lights = null; autoLit = false; toHost('dryae-lights', false); }
+  function lightsOff(user) { if (!lights) return; lights.off(); lights = null; autoLit = false; toHost('dryae-lights', false); if (user !== false) ipcRenderer.invoke('lights:global', false).catch(() => {}); }
   function lightsLook(o) {
     if (o.opacity) LC.opacity = Math.max(30, Math.min(97, +o.opacity));
     if (o.color && /^#[0-9a-f]{6}$/i.test(o.color)) LC.color = o.color;
@@ -653,11 +661,12 @@ function pageFeatures() {
   let hintEl = null, hintT = 0;
   const hint = txt => { if (!hintEl || !hintEl.isConnected) hintEl = el('<div class="card" style="left:50%;top:50%;transform:translate(-50%,-50%);padding:8px 16px;font-size:16px;font-weight:700"></div>'); hintEl.textContent = txt; clearTimeout(hintT); hintT = setTimeout(() => { hintEl?.remove(); hintEl = null; }, 900); };
   // protection des yeux : filtre orangé au-dessus de la page (ne bloque pas les clics)
+  // (feuille de style ajoutée par le navigateur : ne touche pas à la page, fonctionne dès le début du chargement)
   let eyeEl = null;
   function eye(on, level) {
     if (!TOP) return;
-    if (on) { if (!eyeEl || !eyeEl.isConnected) eyeEl = el('<div style="position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;mix-blend-mode:multiply"></div>'); eyeEl.style.background = `rgba(255,150,40,${Math.max(5, Math.min(60, +level || 30)) / 100})`; }
-    else if (eyeEl) { eyeEl.remove(); eyeEl = null; }
+    if (eyeEl) { try { webFrame.removeInsertedCSS(eyeEl); } catch {} eyeEl = null; }
+    if (on) { const a = Math.max(5, Math.min(60, +level || 30)) / 100; try { eyeEl = webFrame.insertCSS(`html::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:2147483646;background:rgba(255,150,40,${a});mix-blend-mode:multiply}`); } catch {} }
   }
   if (CFG.lights && L.eye) eye(true, L.eyeLevel);
   // outils vidéo
@@ -692,7 +701,9 @@ function pageFeatures() {
     }, true);
     document.addEventListener('play', e => { const v = e.target; if (L.auto && v.tagName === 'VIDEO' && !lights) { const r = v.getBoundingClientRect(); if (r.width >= 320 && r.height >= 180) setTimeout(() => lightsOn(true), 300); } }, true);
     // une pause (clic sur la vidéo) ne rallume pas : seule la fin de la vidéo rallume (mode automatique)
-    document.addEventListener('ended', e => { if (e.target.tagName === 'VIDEO' && autoLit) lightsOff(); }, true);
+    document.addEventListener('ended', e => { if (e.target.tagName === 'VIDEO' && autoLit) lightsOff(false); }, true);
+    // « Lumières éteintes » toujours actif : la nouvelle page s'assombrit aussi
+    if (L.global && TOP) { const go = () => setTimeout(() => lightsOn(false, true), 400); if (document.readyState !== 'loading') go(); else document.addEventListener('DOMContentLoaded', go, { once: true }); }
     // pas de lecture automatique tant qu'on n'a pas touché à la page
     document.addEventListener('play', e => { const v = e.target; if (L.stopAutoplay && v.tagName === 'VIDEO' && !(navigator.userActivation && navigator.userActivation.hasBeenActive)) { try { v.pause(); } catch {} } }, true);
     // molette sur une vidéo : volume
@@ -726,7 +737,7 @@ function pageFeatures() {
     bar.querySelector('.st2').onclick = scanStop;
     const loop = () => { if (!scan) return; for (const [img, it] of scan.items) placeScan(img, it); placeTools(); scan.raf = requestAnimationFrame(loop); };
     loop();
-    scan.io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { scanQueue(e.target); scan.io.unobserve(e.target); } }), { rootMargin: '300px' });
+    scan.io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { scanQueue(e.target); scan.io.unobserve(e.target); } }), { rootMargin: '1600px 0px' });
     // survol : quelle image traduite est sous la souris
     scan.move = e => { if (!scan || !scIcons) return; let hit = null; for (const [img, it] of scan.items) { if (!it.box) continue; const r = img.getBoundingClientRect(); if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) { hit = img; break; } } if (hit !== scan.hover) { scan.hover = hit; drawTools(); } };
     addEventListener('mousemove', scan.move, { passive: true, capture: true });
@@ -769,10 +780,11 @@ function pageFeatures() {
       const res = await ipcRenderer.invoke('scan:image', { src: /^https?:/.test(src) ? src : '', data, page: location.href, rect: r.top >= 0 && r.bottom <= innerHeight ? vis : (vis.h > 60 ? vis : null), natural: { w: img.naturalWidth, h: img.naturalHeight } });
       const it = scan?.items.get(img);
       if (it) {
-        it.blocks = res.blocks; it.w = res.w; it.captured = res.captured ? { left: Math.max(0, r.left) - r.left, top: Math.max(0, r.top) - r.top, w: vis.w / dpr } : null;
+        it.blocks = res.blocks; it.w = res.w; it.key = res.key; it.captured = res.captured ? { left: Math.max(0, r.left) - r.left, top: Math.max(0, r.top) - r.top, w: vis.w / dpr } : null;
         it.box?.remove(); it.box = drawScan(it); it.cmp = 100;
         scan.n += res.blocks.length;
         if (res.from) toHost('dryae-scanlang', { from: res.from, to: res.to });
+        if ((res.needModel || res.unreadable) && !scan.askedModel) { scan.askedModel = true; toHost('dryae-scanmodel', res.needModel || '?'); }
       }
       status(ptf('{0} bulle(s) traduite(s)', scan?.n || 0));
     } catch (e) {
@@ -785,18 +797,53 @@ function pageFeatures() {
   }
   // police et mise en forme des bulles : texte noir sur fond blanc, coins arrondis, centré, sans bordure visible
   const FONT = SC.font === 'comic' ? '"Comic Sans MS","Comic Neue",cursive' : SC.font === 'serif' ? 'Georgia,serif' : '"Segoe UI","Arial",sans-serif';
+  // couleur du texte lisible sur le fond de la bulle
+  const inkOn = bg => { const m = /(\d+),\s*(\d+),\s*(\d+)/.exec(bg || ''); if (!m) return '#111'; return (+m[1] * 0.3 + +m[2] * 0.59 + +m[3] * 0.11) > 140 ? '#111' : '#fff'; };
   function drawScan(it) {
     const box = el('<div style="position:fixed;pointer-events:none;overflow:hidden"></div>', scan.layer);
-    for (const b of it.blocks) {
+    it.blocks.forEach((b, i) => {
       const d = document.createElement('div');
-      d.title = b.text;
+      d.title = b.text + '\n' + pt('Clic : original / traduction · clic droit : corriger');
       d.textContent = b.tr || b.text;
-      d.style.cssText = `position:absolute;pointer-events:auto;display:flex;align-items:center;justify-content:center;text-align:center;background:#fff;color:#111;border-radius:14px;padding:3px 5px;font:700 12px/1.18 ${FONT};overflow:hidden;cursor:default;word-break:break-word;hyphens:auto;letter-spacing:-.01em;box-shadow:0 0 6px 4px #fff`;
+      // le texte d'origine est recouvert par la couleur de fond de la bulle (blanc, jaune…)
+      const bg = b.bg || '#fff';
+      d.style.cssText = `position:absolute;pointer-events:auto;display:flex;align-items:center;justify-content:center;text-align:center;background:${bg};color:${inkOn(bg)};border-radius:${b.bubble ? '40%' : '14px'};padding:3px 5px;font:700 12px/1.18 ${FONT};overflow:hidden;cursor:default;word-break:break-word;hyphens:auto;letter-spacing:-.01em;box-shadow:0 0 6px 4px ${bg}`;
       d.onclick = () => { d.textContent = d.textContent === b.text ? (b.tr || b.text) : b.text; d._w = 0; };
+      d.oncontextmenu = e => { e.preventDefault(); e.stopPropagation(); editBubble(it, i, d); };
       d._b = b;
       box.appendChild(d);
-    }
+    });
     return box;
+  }
+  // correction d'une bulle : texte lu, traduction, retraduire, ajouter au lexique
+  function editBubble(it, i, d) {
+    scan.editor?.remove();
+    const b = it.blocks[i], r = d.getBoundingClientRect();
+    const ed = el(`<div class="card" style="left:${Math.max(8, Math.min(innerWidth - 340, r.left))}px;top:${Math.max(8, Math.min(innerHeight - 300, r.bottom + 6))}px;width:320px;padding:10px;font-size:12.5px;display:grid;gap:6px">
+      <b>${esc(pt('Corriger la bulle'))}</b>
+      <label style="color:#8f97aa">${esc(pt('Texte lu'))}</label><textarea class="o" rows="2" style="all:unset;background:#0d0f14;border:1px solid #2a3040;border-radius:6px;padding:5px;color:#e7e9ef;white-space:pre-wrap"></textarea>
+      <label style="color:#8f97aa">${esc(pt('Traduction'))}</label><textarea class="t" rows="3" style="all:unset;background:#0d0f14;border:1px solid #2a3040;border-radius:6px;padding:5px;color:#e7e9ef;white-space:pre-wrap"></textarea>
+      <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn rt">${esc(pt('Retraduire'))}</button><button class="btn gl">${esc(pt('Ajouter au lexique'))}</button><span style="flex:1"></span><button class="btn no">${esc(pt('Annuler'))}</button><button class="btn pri ok">${esc(pt('Enregistrer'))}</button></div>
+      <div class="glx" style="display:none;gap:6px;grid-template-columns:1fr 1fr auto"><input class="gs" placeholder="${esc(pt('Mot d\'origine'))}" style="all:unset;background:#0d0f14;border:1px solid #2a3040;border-radius:6px;padding:4px;color:#e7e9ef"><input class="gt" placeholder="${esc(pt('Toujours traduire par'))}" style="all:unset;background:#0d0f14;border:1px solid #2a3040;border-radius:6px;padding:4px;color:#e7e9ef"><button class="btn gok">OK</button></div></div>`);
+    scan.editor = ed;
+    ed.querySelector('.o').value = b.text; ed.querySelector('.t').value = b.tr || '';
+    ed.addEventListener('mousedown', e => e.stopPropagation(), true);
+    const close = () => { ed.remove(); if (scan) scan.editor = null; };
+    ed.querySelector('.no').onclick = close;
+    ed.querySelector('.rt').onclick = async () => { ed.querySelector('.t').value = await ipcRenderer.invoke('scan:retranslate', ed.querySelector('.o').value, null).catch(() => ed.querySelector('.t').value); };
+    ed.querySelector('.gl').onclick = () => { const g = ed.querySelector('.glx'); g.style.display = 'grid'; const sel = String(getSelection() || '').trim(); ed.querySelector('.gs').value = sel; ed.querySelector('.gs').focus(); };
+    ed.querySelector('.gok').onclick = async () => {
+      const s = ed.querySelector('.gs').value.trim(), t = ed.querySelector('.gt').value.trim(); if (!s || !t) return;
+      const list = await ipcRenderer.invoke('scan:glossary').catch(() => []);
+      await ipcRenderer.invoke('scan:glossary', [...list.filter(x => x.s !== s), { s, t }]).catch(() => {});
+      ed.querySelector('.glx').style.display = 'none'; hint(pt('Ajouté au lexique'));
+    };
+    ed.querySelector('.ok').onclick = () => {
+      b.text = ed.querySelector('.o').value; b.tr = ed.querySelector('.t').value;
+      d.textContent = b.tr || b.text; d._w = 0;
+      if (it.key) ipcRenderer.invoke('scan:edit', it.key, i, { text: b.text, tr: b.tr }).catch(() => {});
+      close();
+    };
   }
   function placeScan(img, it) {
     if (!it.box) return;
@@ -810,11 +857,17 @@ function pageFeatures() {
     Object.assign(it.box.style, { left: base.left + 'px', top: base.top + 'px', width: (r.right - base.left) + 'px', height: (r.bottom - base.top) + 'px', clipPath: it.cmp < 100 ? `inset(0 ${100 - it.cmp}% 0 0)` : '' });
     for (const d of it.box.children) {
       const b = d._b; const pad = 5;
-      const w = (b.x1 - b.x0) * k + pad * 2, h = (b.y1 - b.y0) * k + pad * 2;
+      // zone de dessin : le texte d'origine, agrandie à l'intérieur de la bulle quand elle a été repérée
+      let X0 = b.x0, Y0 = b.y0, X1 = b.x1, Y1 = b.y1;
+      if (b.bubble) {
+        const bb = b.bubble, ix = (bb.x1 - bb.x0) * 0.14, iy = (bb.y1 - bb.y0) * 0.14;
+        X0 = Math.min(X0, bb.x0 + ix); Y0 = Math.min(Y0, bb.y0 + iy); X1 = Math.max(X1, bb.x1 - ix); Y1 = Math.max(Y1, bb.y1 - iy);
+      }
+      const w = (X1 - X0) * k + pad * 2, h = (Y1 - Y0) * k + pad * 2;
       if (d._w !== w) {
         // bulle verticale étroite (japonais, coréen) : un peu plus large pour un texte traduit horizontal
-        const ww = b.vertical ? Math.max(w, h * 0.55) : w, dx = (ww - w) / 2;
-        Object.assign(d.style, { left: (b.x0 * k - pad - dx) + 'px', top: (b.y0 * k - pad) + 'px', width: ww + 'px', height: h + 'px' });
+        const ww = b.vertical && !b.bubble ? Math.max(w, h * 0.55) : w, dx = (ww - w) / 2;
+        Object.assign(d.style, { left: (X0 * k - pad - dx) + 'px', top: (Y0 * k - pad) + 'px', width: ww + 'px', height: h + 'px' });
         // taille du texte : la plus grande qui tient dans la bulle
         let lo = 7, hi = Math.min(26, Math.max(9, h * 0.6)), fs = lo;
         for (let n = 0; n < 7; n++) { const mid = (lo + hi) / 2; d.style.fontSize = mid + 'px'; if (d.scrollHeight <= h + 1 && d.scrollWidth <= ww + 1) { fs = mid; lo = mid; } else hi = mid; }
@@ -854,7 +907,7 @@ function pageFeatures() {
     cover.addEventListener('click', () => { cover.remove(); line.remove(); it.cmp = 100; });
     mv({ clientX: (r0.left + r0.right) / 2 });
   }
-  function scanStop() { if (!scan) return; cancelAnimationFrame(scan.raf); scan.io?.disconnect(); scan.mo?.disconnect(); removeEventListener('mousemove', scan.move, true); scan.layer.remove(); scan.bar.remove(); scan.tools?.remove(); scan = null; }
+  function scanStop() { if (!scan) return; cancelAnimationFrame(scan.raf); scan.io?.disconnect(); scan.mo?.disconnect(); removeEventListener('mousemove', scan.move, true); scan.layer.remove(); scan.bar.remove(); scan.tools?.remove(); scan.editor?.remove(); scan = null; }
   // capture d'une zone de l'écran : on dessine un rectangle, puis « Traduire la zone »
   let region = null;
   function scanRegion() {
@@ -910,7 +963,8 @@ function pageFeatures() {
       case 'translate-selection': return selText() ? translateSelection() : translatePage();
       case 'translate-text': return c.text && translateSelection(c.text, { left: (c.x || innerWidth / 2) - 20, top: (c.y || 60) - 10, bottom: (c.y || 60) + 10 });
       case 'translate-enable': trEnabled = !!c.on; if (!c.on) closeTr(); return;
-      case 'lights': return lights ? lightsOff() : lightsOn(false);
+      case 'lights': return lights ? lightsOff(true) : lightsOn(false);
+      case 'lights-sync': return TOP && (c.on ? lightsOn(false, true) : lightsOff(false));
       case 'lights-set': return lightsLook(c);
       case 'eye': return eye(!!c.on, c.level);
       case 'video': return videoAct(c.act);

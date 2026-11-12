@@ -148,7 +148,7 @@ class HlsDownload extends Item {
   async fetchSeg(t, i, ac) {
     const seg = t.segs[i];
     const res = await this.ctx.fetch(seg.url, { headers: this.ctx.buildHeaders(this, {}), signal: ac.signal });
-    if (!res.ok) throw new Error(`Segment ${i + 1} : erreur ${res.status}`);
+    if (!res.ok) throw Object.assign(new Error(`Segment ${i + 1} : erreur ${res.status}`), { code: 'http' + res.status });
     const chunks = []; let n = 0;
     const reader = res.body.getReader();
     for (;;) {
@@ -269,7 +269,7 @@ class HlsDownload extends Item {
       await fsp.rm(this.tmpDir, { recursive: true, force: true }).catch(() => {});
       this.complete();
     } catch (e) {
-      if (this.status === 'running' || this.status === 'merging') this.fail(errMsg(e), e.code);
+      if (this.status === 'running' || this.status === 'merging') this.fail(errMsg(e), e.code || e.cause?.code);
     } finally { this.controllers.delete(ac); }
   }
   stop() { for (const c of this.controllers) { try { c.abort(); } catch {} } this.controllers.clear(); }

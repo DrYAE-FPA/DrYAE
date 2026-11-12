@@ -1,6 +1,7 @@
 const { EventEmitter } = require('events');
 const { uid, catOf } = require('../util');
 const { Limiter } = require('../limiter');
+const { classify, TEXT } = require('../errors');
 
 // Statuts : queued | running | paused | scheduled | done | seeding | error | merging
 class Item extends EventEmitter {
@@ -64,8 +65,10 @@ class Item extends EventEmitter {
   view() {
     const d = this.downloaded();
     const run = this.status === 'running';
+    const errKind = this.status === 'error' ? classify(this.error, this.errorCode) : '';
     return {
       ...this.toJSON(), category: this.category, downloaded: d, speed: run ? this.speed : 0,
+      errKind, errText: TEXT[errKind] || '', retryAt: this.status === 'error' && this._retryAt > Date.now() ? this._retryAt : 0,
       eta: run && this.speed > 0 && this.size > 0 ? (this.size - d) / this.speed : -1,
     };
   }

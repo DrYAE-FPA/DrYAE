@@ -164,6 +164,7 @@ browser-action-list::part(action):hover{background:var(--panel2)}
 /* 1.6.5 : fenêtres de la barre d'outils (extensions, traducteur, scans, lumières, bloqueur) */
 .pop{position:fixed;z-index:45;display:none;width:350px;max-height:calc(100vh - 100px);overflow:auto;background:var(--panel3);border:1px solid var(--line2);border-radius:14px;box-shadow:var(--shadow);padding:12px;font-size:13px}
 .pop.on{display:block}
+.pop details.pdet{margin:6px 0;border-top:1px solid var(--line,#262c3b);padding-top:6px}.pop details.pdet summary{cursor:pointer;font-weight:600;font-size:12.5px;padding:3px 0}.pop details.pdet .prow{padding:4px 0}
 .pop .ph{display:flex;align-items:center;gap:8px;margin:-2px 0 10px}
 .pop .ph b{flex:1;font-size:14px}
 .pop .ph svg,.pop .prow svg{width:16px;height:16px}
@@ -371,6 +372,12 @@ browser-action-list::part(action):hover{background:var(--panel2)}
 </div>
 <div class="toast" id="toast"></div>
 <div class="pop" id="pop"></div>
+<div class="overlay" id="askDlg"><div class="modal" style="width:min(480px,100%)" role="dialog" aria-modal="true" aria-labelledby="askH">
+  <h3 id="askH"></h3>
+  <p id="askP" style="margin:6px 0 10px;line-height:1.5;word-break:break-word"></p>
+  <label class="check" id="askCk"><input type="checkbox" id="askC"> <span id="askCt"></span></label>
+  <div class="modal-foot" id="askF"></div>
+</div></div>
 <div class="bmdlg" id="bmDlg"><div class="box">
   <h4 id="bmdH">Modifier le favori</h4>
   <label>Nom</label><input type="text" id="bmdName" spellcheck="false">

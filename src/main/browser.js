@@ -6,6 +6,7 @@ const path = require('path');
 const { ElectronBlocker, adsLists } = require('@ghostery/adblocker-electron');
 const PRELOAD_PATH = path.resolve(require.resolve('@ghostery/adblocker-electron-preload'));
 const { extOf, hostOf, uniquePath, sanitize } = require('./util');
+const crypto = require('crypto');
 const pages = require('./pages');
 const M = require('./modules');
 
@@ -161,6 +162,9 @@ class WebBrowser {
     // fenêtre d'extension (popup) : placée sous son bouton, à l'intérieur de l'écran,
     // même quand la fenêtre est agrandie ou sur un 2e écran
     this.ext.on('browser-action-popup-created', popup => {
+      // une seule fenêtre d'extension à la fois ; elle se ferme dès qu'on clique sur la page (voir br:closeExtPopups)
+      try { if (this.extPopup && this.extPopup !== popup && !this.extPopup.isDestroyed()) this.extPopup.destroy(); } catch {}
+      this.extPopup = popup;
       popup.updatePosition = function () {
         const bw = this.browserWindow, par = this.parent;
         if (!bw || bw.isDestroyed() || !par || par.isDestroyed()) return;
@@ -818,9 +822,51 @@ class WebBrowser {
   }
 
   // ---------- historique ----------
+  // mémoire des images traduites (300 dernières), gardée sur le disque
+  scanCache() {
+    if (this._sc) return this._sc;
+    const file = path.join(this.userDir, 'scan-cache.json'); let m = new Map();
+    try { m = new Map(JSON.parse(fs.readFileSync(file, 'utf8'))); } catch {}
+    const save = () => { clearTimeout(this._scT); this._scT = setTimeout(() => fsp.writeFile(file, JSON.stringify([...m])).catch(() => {}), 2000); };
+    this._sc = { get: k => m.get(k), set: (k, v) => { m.delete(k); m.set(k, v); while (m.size > 300) m.delete(m.keys().next().value); save(); }, clear: () => { m.clear(); save(); } };
+    return this._sc;
+  }
   histDays(q, mode) {
-    const f = String(q || '').trim().toLowerCase();
-    return this.store.history.filter(h => !f || (h.title + ' ' + h.url).toLowerCase().includes(f));
+    const f = String(q || '').trim().toLowerCase(), F = this.store.favs || {};
+    return this.store.history.filter(h => !f || (h.title + ' ' + h.url).toLowerCase().includes(f)).map(h => { const x = F[hostOf(h.url)]; return x ? { ...h, fav: x } : h; });
+  }
+  // icônes des sites : récupérées par DrYAE avec la session du navigateur puis gardées en image intégrée (data:),
+  // car beaucoup de sites interdisent qu'on affiche leur icône depuis une autre page (onglets, historique vides)
+  async favFor(cands, pageUrl, incognito) {
+    const host = hostOf(pageUrl); if (!host || !/^https?:/.test(pageUrl)) return '';
+    const F = this.store.favs || (this.store.favs = {});
+    const list = [...new Set([...(cands || []).filter(u => /^(https?|data):/.test(u)), new URL(pageUrl).origin + '/favicon.ico'])];
+    if (F[host] && !(cands || []).length) return F[host];
+    const ses = session.fromPartition(incognito ? PART_PRIV : PART);
+    for (const u of list) {
+      if (u.startsWith('data:image/')) { if (u.length < 90000) return this.favKeep(host, u, incognito); continue; }
+      try {
+        const ac = new AbortController(); const t = setTimeout(() => ac.abort(), 8000);
+        const r = await ses.fetch(u, { signal: ac.signal, headers: { Referer: pageUrl } }).finally(() => clearTimeout(t));
+        const ct = (r.headers.get('content-type') || '').split(';')[0];
+        if (!r.ok || !/^image\/|octet-stream|x-icon/.test(ct)) continue;
+        const buf = Buffer.from(await r.arrayBuffer()); if (!buf.length || buf.length > 65536) continue;
+        const type = /svg/.test(ct) || /<svg/i.test(buf.subarray(0, 300).toString()) ? 'image/svg+xml' : /^image\//.test(ct) ? ct : 'image/x-icon';
+        return this.favKeep(host, `data:${type};base64,${buf.toString('base64')}`, incognito);
+      } catch {}
+    }
+    return F[host] || '';
+  }
+  favKeep(host, data, incognito) {
+    if (incognito) return data;
+    const F = this.store.favs;
+    if (F[host] === data) return data;
+    delete F[host]; F[host] = data;
+    const keys = Object.keys(F); if (keys.length > 800) keys.slice(0, keys.length - 800).forEach(k => delete F[k]);
+    let ch = false; this.bmWalk(n => { if (n.type === 'url' && hostOf(n.url) === host && n.fav !== data) { n.fav = data; ch = true; } });
+    if (ch) this.bmChanged(); else this.saveStore();
+    clearTimeout(this._hf); this._hf = setTimeout(() => this.histChanged(), 1500);
+    return data;
   }
   histDelete(keys) {
     const set = new Set([].concat(keys)); const removed = [];
@@ -950,8 +996,10 @@ class WebBrowser {
     ipcMain.handle('br:store', () => this.store);
     ipcMain.handle('br:settings', () => this.cfg());
     ipcMain.handle('br:setSettings', (_e, patch) => { this.settings.set({ browser: patch }); if (patch && 'adblock' in patch) this.settings.set({ browser: { modules: { adblock: { enabled: !!patch.adblock, ...(patch.adblock ? { installed: true } : {}) } } } }); return this.cfg(); });
+    ipcMain.handle('br:fav', (_e, cands, pageUrl, incognito) => this.favFor(cands, pageUrl, incognito));
     ipcMain.handle('br:history', (_e, { url, title, fav, favOnly }) => {
       if (!/^https?:/.test(url)) return;
+      if (fav && fav.startsWith('data:')) fav = ''; // l'icône est gardée une seule fois par site (store.favs)
       const h = this.store.history;
       if (h[0]?.url === url) { h[0].title = title || h[0].title; if (fav) h[0].fav = fav; } else if (favOnly) return; else h.unshift({ url, title, t: Date.now(), ...(fav ? { fav } : {}) });
       if (h.length > 10000) h.length = 10000;
@@ -977,6 +1025,9 @@ class WebBrowser {
       return out.slice(0, 9);
     });
     ipcMain.handle('br:session', (_e, sess) => { if (sess && Array.isArray(sess.tabs)) { this.store.session = { tabs: sess.tabs.filter(t => /^(https?|dryae):/.test(t.url)).slice(0, 50), active: sess.active | 0 }; this.saveStore(); } });
+    ipcMain.handle('br:torCancel', (_e, h) => { if (h) this.main.manager.torrents.probeCancel.add(String(h).toLowerCase()); });
+    ipcMain.handle('br:torTrackers', (_e, id, list) => this.main.manager.get(id)?.addTrackers(list || []));
+    ipcMain.handle('br:firewall', () => require('child_process').spawn('control.exe', ['/name', 'Microsoft.WindowsFirewall', '/page', 'pageConfigureApps'], { detached: true }));
     ipcMain.handle('br:torInspect', async (_e, src, o) => { try { return { ok: true, info: await this.main.torrentInspect(src, o) }; } catch (e) { return { ok: false, error: String(e.message || e) }; } });
     ipcMain.handle('br:torAdd', (_e, o) => { this.main.torrentAdd(o); return true; });
     ipcMain.handle('br:torQuick', (_e, src) => this.main.torrentQuick(src));
@@ -1048,17 +1099,20 @@ class WebBrowser {
       if (kind === 'ytdl') { this.wc?.send('quick-video', { page: url, wcId }); return; }
       return this.quickFile({ url, name, page, kind, allowPage, incognito, headers: { Cookie: cookie, 'User-Agent': this.ua(), Referer: page } });
     });
-    ipcMain.handle('br:downloadMany', async (_e, { urls, page, incognito }) => {
+    ipcMain.handle('br:downloadMany', async (_e, { urls, page, incognito, dupAction }) => {
       const ses = session.fromPartition(incognito ? PART_PRIV : PART);
       const cookie = urls[0] ? await this.cookieHeader(ses, urls[0]) : '';
-      const MG = this.main.manager, out = [];
+      const MG = this.main.manager; let added = 0; const dups = [];
       for (const url of urls) {
         if (/^magnet:/i.test(url)) { this.onTorrent(url, {}); continue; }
         if (!/^https?:/i.test(url)) continue;
-        out.push(MG.add({ type: /\.m3u8(\?|$)/i.test(url) ? 'hls' : 'http', url, pageUrl: page, pageTitle: this.pageTitle(page), headers: { Cookie: cookie, 'User-Agent': this.ua(), Referer: page } }));
+        const r = MG.add({ type: /\.m3u8(\?|$)/i.test(url) ? 'hls' : 'http', url, pageUrl: page, pageTitle: this.pageTitle(page), headers: { Cookie: cookie, 'User-Agent': this.ua(), Referer: page }, dupAction });
+        if (r && r.duplicate) dups.push({ url, name: r.duplicate.name }); else if (r) added++;
       }
-      return out.length;
+      return { added, dups };
     });
+    ipcMain.handle('br:openDl', (_e, id) => { const d = this.main.manager.get(id); const p = d?.type === 'torrent' ? d.rootPath() : d?.file; if (p) shell.openPath(p); });
+    ipcMain.handle('br:setDupDefault', (_e, v) => { if (['rename', 'overwrite'].includes(v)) this.settings.set({ duplicate: v }); });
     ipcMain.handle('br:quickAdd', async (_e, o) => {
       const ses = session.fromPartition(o.incognito ? PART_PRIV : PART);
       const MG = this.main.manager;
@@ -1113,6 +1167,8 @@ class WebBrowser {
     ipcMain.handle('br:openMain', () => this.main.showMain());
     ipcMain.handle('br:openPage', (_e, name, hash) => this.openPage(name, hash));
     ipcMain.handle('br:feedback', () => this.main.openFeedback?.());
+    ipcMain.handle('br:closeExtPopups', () => { try { if (this.extPopup && !this.extPopup.isDestroyed()) this.extPopup.destroy(); } catch {} this.extPopup = null; });
+    ipcMain.handle('br:report', () => this.main.report?.());
     ipcMain.handle('br:search', (_e, q) => this.searchUrl(q));
     ipcMain.handle('br:updateAdblock', () => this.updateBlocker(true));
     ipcMain.handle('br:setModule', (_e, id, patch) => { this.settings.set({ browser: { modules: { [id]: patch } } }); if (id === 'adblock' && 'enabled' in patch) this.settings.set({ browser: { adblock: !!patch.enabled } }); return this.cfg(); });
@@ -1145,7 +1201,7 @@ class WebBrowser {
         capture: this.modOn('capture') && !isInt,
         pip: this.modOn('pip') && !isInt && !(pip.hidden || []).includes(host) ? { side: pip.side || 'left' } : null,
         translate: this.modOn('translate') && !isInt ? (() => { const t = B.translate || {}; return { selection: t.selection || 'button', off: (t.offSites || []).includes(host), hideSame: t.hideSame !== false, delay: Math.max(0, Math.min(3000, +t.delay || 0)), target: target(), second: t.second || '', pageAuto: (t.autoSites || []).includes(host) }; })() : null,
-        lights: this.modOn('lights') && !isInt ? (() => { const l = B.lights || {}; return { ...l, night: (l.nightHosts || []).includes(host) || this.nightBySchedule(host), nightOff: (l.nightExcept || []).includes(host) }; })() : null,
+        lights: this.modOn('lights') && !isInt ? (() => { const l = B.lights || {}; return { ...l, global: !!this.lightsGlobal, night: (l.nightHosts || []).includes(host) || this.nightBySchedule(host), nightOff: (l.nightExcept || []).includes(host) }; })() : null,
         scan: this.modOn('scan') && !isInt ? (() => { const sc = B.scan || {}; return { auto: (sc.autoSites || []).includes(host), icons: sc.icons !== false, minSize: 250 }; })() : null,
         hides: this.modOn('adblock') && !this.loginTabs.has(e.sender.id) ? ((this.store.hides || {})[host] || []) : [],
       };
@@ -1212,6 +1268,14 @@ class WebBrowser {
       if ('eye' in patch) L.eye = !!patch.eye;
       this.settings.set({ browser: { lights: L } }); this.pushCfg(); return true;
     });
+    // « Lumières éteintes » pour toute l'application (tous les onglets, nouvelles pages) jusqu'à ce qu'on rallume
+    ipcMain.handle('lights:global', (e, on) => {
+      on = !!on; if (this.lightsGlobal === on) return on;
+      this.lightsGlobal = on;
+      for (const wc of webContents.getAllWebContents()) { try { if (wc !== e.sender && !wc.isDestroyed() && wc.getType() === 'webview' && /^https?:/.test(wc.getURL())) wc.send('dryae-cmd', { cmd: 'lights-sync', on }); } catch {} }
+      this.wc?.send('lights-global', on);
+      return on;
+    });
     ipcMain.handle('lights:night', (e, on) => {
       let host = ''; try { host = new URL(e.senderFrame.url).hostname; } catch {}
       const L = { ...(this.B().lights || {}) }; const s = new Set(L.nightHosts || []);
@@ -1219,6 +1283,31 @@ class WebBrowser {
       this.settings.set({ browser: { lights: L } }); return on;
     });
     // traducteur de scans : lecture du texte d'une image puis traduction
+    // modèles de lecture supplémentaires (coréen, russe, arabe, thaï, hindi…)
+    require('./paddle-ocr').setDir(path.join(this.userDir, 'ocr-models'));
+    ipcMain.handle('scan:models', () => { const PO = require('./paddle-ocr'); const have = PO.installed(); return Object.entries(PO.EXTRA).map(([id, m]) => ({ id, label: m.label, size: m.size, installed: have.includes(id), busy: !!this.modelDl?.[id] })); });
+    ipcMain.handle('scan:modelGet', async (e, id) => {
+      const PO = require('./paddle-ocr'); this.modelDl = this.modelDl || {};
+      if (this.modelDl[id]) return this.modelDl[id];
+      const snd = v => { for (const w of [e.sender, this.wc]) try { if (w && !w.isDestroyed()) w.send('scan-model', { id, ...v }); } catch {} };
+      this.modelDl[id] = PO.download(id, p => snd({ p })).then(() => { snd({ done: true }); return true; }, err => { snd({ error: String(err.message || err) }); throw err; }).finally(() => { delete this.modelDl[id]; });
+      return this.modelDl[id];
+    });
+    ipcMain.handle('scan:modelDel', (_e, id) => { require('./paddle-ocr').removeModel(id); return true; });
+    // correction d'une bulle à la main : gardée avec l'image (la page revue plus tard garde la correction)
+    ipcMain.handle('scan:edit', (_e, key, i, patch) => {
+      const c = this.scanCache().get(key); if (!c || !c.blocks[i]) return false;
+      if (typeof patch.text === 'string') c.blocks[i].text = patch.text.slice(0, 2000);
+      if (typeof patch.tr === 'string') c.blocks[i].tr = patch.tr.slice(0, 2000);
+      this.scanCache().set(key, c, true); return true;
+    });
+    ipcMain.handle('scan:retranslate', async (_e, text, to) => (await M.translate([String(text || '')], to || target(), 'auto', this.B().translate || {})).texts[0]);
+    // lexique : « mot d'origine » -> « traduction voulue » (noms des personnages, mots de la série)
+    ipcMain.handle('scan:glossary', (_e, list) => {
+      if (Array.isArray(list)) this.settings.set({ browser: { scan: { ...(this.B().scan || {}), glossary: list.filter(x => x && x.s && x.t).slice(0, 500).map(x => ({ s: String(x.s).slice(0, 100), t: String(x.t).slice(0, 100) })) } } });
+      if (Array.isArray(list)) this.pushCfg();
+      return (this.B().scan || {}).glossary || [];
+    });
     ipcMain.handle('scan:image', async (e, o) => {
       if (!this.modOn('scan')) throw new Error('Traducteur de scans désactivé');
       if (o.region && o.rect) { o.src = ''; o.data = null; } // capture d'une zone choisie à l'écran
@@ -1240,22 +1329,39 @@ class WebBrowser {
         scale = 0;
       }
       const src = o.lang && /^[a-z_]+$/.test(o.lang) ? o.lang : (S.source || 'auto');
-      let groups, w;
-      if (M.PADDLE_LANGS.includes(src)) {
+      const PO = require('./paddle-ocr');
+      // image déjà traduite (même image, mêmes langues) : réponse immédiate, avec les corrections faites à la main
+      const ckey = crypto.createHash('sha1').update(buf || img.toPNG()).digest('hex').slice(0, 20) + '|' + src + '|' + (o.to || S.target || target()) + '|' + ((this.B().translate || {}).provider || 'google');
+      if (!o.fresh) { const c = this.scanCache().get(ckey); if (c) return { ...c, key: ckey, cached: true }; }
+      const modelFor = MODEL_OF_SRC[src];
+      let groups, w, needModel = '';
+      if (modelFor && PO.installed().includes(modelFor)) {
+        // coréen, russe, arabe, thaï… avec le modèle de cette écriture (téléchargé une fois)
+        let sz = img.getSize();
+        if (sz.width < 700) { img = img.resize({ width: sz.width * 2, quality: 'best' }); sz = img.getSize(); }
+        const bm = img.toBitmap(); for (let i = 0; i < bm.length; i += 4) { const t = bm[i]; bm[i] = bm[i + 2]; bm[i + 2] = t; }
+        groups = await PO.readBubbles({ width: sz.width, height: sz.height, data: bm }, { model: modelFor });
+        w = sz.width;
+      } else if (M.PADDLE_LANGS.includes(src)) {
         // lecture « automatique » (modèle multilingue) : la langue n'a pas besoin d'être choisie
         let sz = img.getSize();
         if (sz.width < 700) { img = img.resize({ width: sz.width * 2, quality: 'best' }); sz = img.getSize(); }
         const bm = img.toBitmap(); // BGRA
         for (let i = 0; i < bm.length; i += 4) { const t = bm[i]; bm[i] = bm[i + 2]; bm[i + 2] = t; }
-        groups = await require('./paddle-ocr').readBubbles({ width: sz.width, height: sz.height, data: bm });
+        const RGBA = { width: sz.width, height: sz.height, data: bm };
+        groups = await PO.readBubbles(RGBA);
         w = sz.width;
         // langue reconnue → si le modèle multilingue ne connaît pas ses accents (vietnamien, coréen…),
         // les bulles sont relues avec les données de cette langue (téléchargées la première fois)
         if (groups.length && src === 'auto') {
           try {
             const guess = await M.translate([groups.map(g => g.text).join('\n').slice(0, 2000)], 'en', 'auto', this.B().translate || {});
-            const fix = M.OCR_FIX[String(guess.from || '').split('-')[0]];
-            if (fix) {
+            const lg = String(guess.from || '').split('-')[0], xm = PO.EXTRA_OF[lg];
+            const fix = M.OCR_FIX[lg];
+            // écriture qui a son propre modèle (coréen, russe…) : relecture avec lui s'il est installé, sinon on le propose
+            if (xm && groups.model !== xm && PO.installed().includes(xm)) { groups = await PO.readBubbles(RGBA, { model: xm }); }
+            else if (xm && groups.model !== xm) needModel = xm;
+            if (fix && !(xm && PO.installed().includes(xm))) {
               const pad = 6, texts = await M.readRegions(img.toPNG(), fix, groups.map(g => ({ x0: g.x0 - pad, y0: g.y0 - pad, x1: g.x1 + pad, y1: g.y1 + pad })));
               groups = groups.map((g, i) => (texts[i] ? { ...g, text: texts[i] } : g));
               o.lang = fix;
@@ -1269,14 +1375,36 @@ class WebBrowser {
         w = img.getSize().width;
         groups = await M.readImage(img.toPNG(), src + (S.withEng && !/^eng/.test(src) ? '+eng' : ''));
       }
-      if (!groups.length) return { blocks: [], w };
+      if (!groups.length) return { blocks: [], w, needModel, unreadable: (groups.unread || 0) >= 3 && !groups.model };
+      const usedModel = groups.model || '';
+      groups = readingOrder(groups);
       // langue d'arrivée : celle choisie (par défaut celle du traducteur) ; texte déjà dans cette langue → 2e langue
+      // toutes les bulles de l'image partent ensemble, dans l'ordre de lecture (le traducteur a le contexte),
+      // et les mots du lexique sont remplacés avant (noms des personnages, mots propres à la série)
+      const gl = (S.glossary || []).filter(x => x && x.s && x.t);
+      const prep = t => gl.reduce((a, x) => a.split(x.s).join(x.t), t);
       let to = o.to || S.target || target();
-      let tr = await M.translate(groups.map(g => g.text), to, 'auto', this.B().translate || {});
-      if (!o.to && same(tr.from, to)) { to = second(to); tr = await M.translate(groups.map(g => g.text), to, tr.from, this.B().translate || {}); }
-      return { blocks: groups.map((g, i) => ({ x0: g.x0, y0: g.y0, x1: g.x1, y1: g.y1, text: g.text, tr: tr.texts[i], vertical: g.vertical })), w, captured: scale === 0, from: tr.from, to };
+      let tr = await M.translate(groups.map(g => prep(g.text)), to, 'auto', this.B().translate || {});
+      if (!o.to && same(tr.from, to)) { to = second(to); tr = await M.translate(groups.map(g => prep(g.text)), to, tr.from, this.B().translate || {}); }
+      const res = { blocks: groups.map((g, i) => ({ x0: g.x0, y0: g.y0, x1: g.x1, y1: g.y1, text: g.text, tr: tr.texts[i] || '', vertical: g.vertical, bg: g.bg || '', bubble: g.bubble || null })), w, captured: scale === 0, from: tr.from, to, needModel, model: usedModel };
+      if (scale !== 0) this.scanCache().set(ckey, res, true);
+      return { ...res, key: ckey };
     });
   }
+}
+
+// langue choisie pour les images -> modèle de lecture supplémentaire
+const MODEL_OF_SRC = { kor: 'korean', kor_vert: 'korean', rus: 'eslav', ukr: 'eslav', bel: 'eslav', bul: 'cyrillic', srp: 'cyrillic', ara: 'arabic', fas: 'arabic', urd: 'arabic', tha: 'th', hin: 'devanagari', mar: 'devanagari', nep: 'devanagari' };
+// ordre de lecture des bulles : de haut en bas ; dans une même rangée, de droite à gauche pour un manga
+// (texte vertical), sinon de gauche à droite
+function readingOrder(gs) {
+  const rtl = gs.filter(g => g.vertical).length > gs.length / 2;
+  const s = gs.slice().sort((a, b) => a.y0 - b.y0), rows = [];
+  for (const g of s) {
+    const r = rows.find(r => g.y0 < r.y1 - Math.min(r.y1 - r.y0, g.y1 - g.y0) * 0.4);
+    if (r) { r.items.push(g); r.y1 = Math.max(r.y1, g.y1); } else rows.push({ y0: g.y0, y1: g.y1, items: [g] });
+  }
+  return rows.flatMap(r => r.items.sort((a, b) => rtl ? b.x1 - a.x1 : a.x0 - b.x0));
 }
 
 function isUrlLike(s) { return /^(https?:\/\/|file:\/\/)/i.test(s) || /^[\w-]+(\.[\w-]+)+(:\d+)?(\/.*)?$/.test(s); }

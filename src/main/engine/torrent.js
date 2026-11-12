@@ -30,7 +30,7 @@ const kb = v => (v > 0 ? String(Math.round(v * 1024)) : '0');
 class TorrentHub {
   constructor(ctx) {
     this.ctx = ctx; this.proc = null; this.port = 0; this.secret = ''; this.starting = null;
-    this.extraTrackers = []; this.items = new Set(); this.timer = null; this.server = null; this.serverPort = 0;
+    this.extraTrackers = []; this.items = new Set(); this.timer = null; this.server = null; this.serverPort = 0; this.probeCancel = new Set();
   }
   // ---- processus aria2 ----
   async ensure() {
@@ -175,32 +175,39 @@ class TorrentHub {
       if (!r.ok) throw new Error(`Fichier torrent inaccessible (${r.status})`);
       buf = Buffer.from(await r.arrayBuffer());
     } else if (!/^magnet:/i.test(src) && fs.existsSync(src)) buf = await fsp.readFile(src);
-    const dup = h => this.ctx.list.some(d => d.type === 'torrent' && d.infoHash && d.infoHash.toLowerCase() === String(h).toLowerCase());
+    const dupOf = h => this.ctx.list.find(d => d.type === 'torrent' && d.infoHash && d.infoHash.toLowerCase() === String(h).toLowerCase());
+    // déjà dans la liste : on le signale et on propose d'ajouter ses trackers au téléchargement existant
+    const dupInfo = (p, d) => ({ duplicate: { id: d.id, name: d.name || p.name || p.infoHash, trackers: (p.announce || []).filter(x => /^(udp|https?):\/\//.test(x)), newTrackers: (p.announce || []).filter(x => /^(udp|https?):\/\//.test(x) && !(d.trackersExtra || []).includes(x) && !this.trackers().includes(x)).length } });
     if (buf) {
       const p = await parseTorrent(buf);
       if (!p.infoHash) throw new Error('Fichier torrent invalide');
-      if (dup(p.infoHash)) throw new Error('Ce torrent est déjà dans la liste');
+      const dd = dupOf(p.infoHash); if (dd) return dupInfo(p, dd);
       const file = path.join(torrentDir, p.infoHash + '.torrent');
       await fsp.writeFile(file, buf);
       return { infoHash: p.infoHash, name: p.name, size: p.length, files: p.files.map((f, i) => ({ i, path: f.path, length: f.length })), torrentFile: file, magnet: null };
     }
     const p = await parseTorrent(src).catch(() => null);
     if (!p || !p.infoHash) throw new Error('Lien magnet invalide');
-    if (dup(p.infoHash)) throw new Error('Ce torrent est déjà dans la liste');
+    { const dd = dupOf(p.infoHash); if (dd) return dupInfo(p, dd); }
     const file = path.join(torrentDir, p.infoHash + '.torrent');
     if (!fs.existsSync(file)) {
-      await this.ensure();
+      try { await this.ensure(); } catch (e) { throw Object.assign(new Error(e.message + ' — ' + "l'antivirus ou le pare-feu de Windows l'a peut-être bloqué."), { code: 'engine' }); }
       const metaDir = path.join(torrentDir, '_meta');
       await fsp.mkdir(metaDir, { recursive: true });
       const opts = { dir: metaDir, 'bt-metadata-only': 'true', 'bt-save-metadata': 'true', 'follow-torrent': 'false' };
       const tr = this.trackers(); if (tr.length) opts['bt-tracker'] = tr.join(',');
       const gid = await this.call('addUri', [src], opts);
-      const t0 = Date.now();
-      let ok = false;
+      const t0 = Date.now(), hash = p.infoHash.toLowerCase();
+      let ok = false, peers = 0;
+      this.probeCancel.delete(hash);
       try {
         while (Date.now() - t0 < 90000) {
           await new Promise(r => setTimeout(r, 700));
-          const st = await this.call('tellStatus', gid, ['status', 'errorMessage']).catch(() => null);
+          if (this.probeCancel.has(hash)) { this.probeCancel.delete(hash); throw Object.assign(new Error('Annulé'), { code: 'cancel' }); }
+          const st = await this.call('tellStatus', gid, ['status', 'errorMessage', 'connections']).catch(() => null);
+          if (st) peers = Math.max(peers, +st.connections || 0);
+          // compteur visible (« Recherche de pairs… 12 s ») ; aucun pair après 30 s -> le pare-feu bloque peut-être
+          this.ctx.emit('torrentProbe', { hash, s: Math.round((Date.now() - t0) / 1000), peers: +st?.connections || 0, max: 90, stuck: !peers && Date.now() - t0 > 30000 });
           if (st && st.status === 'complete') { ok = true; break; }
           if (st && st.status === 'error') throw new Error(st.errorMessage || 'Lien magnet invalide');
         }
@@ -210,7 +217,7 @@ class TorrentHub {
         if (!this.items.size) this.idleStop();
       }
       const saved = path.join(metaDir, p.infoHash.toLowerCase() + '.torrent');
-      if (!ok || !fs.existsSync(saved)) throw new Error('Impossible de récupérer les informations du magnet (aucun pair trouvé en 90 s)');
+      if (!ok || !fs.existsSync(saved)) throw Object.assign(new Error(peers ? 'Impossible de récupérer les informations du magnet en 90 s' : 'Impossible de récupérer les informations du magnet (aucun pair trouvé en 90 s)'), { code: 'nopeers' });
       await fsp.rename(saved, file).catch(async () => { await fsp.copyFile(saved, file); });
     }
     const t = await parseTorrent(await fsp.readFile(file));

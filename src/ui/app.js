@@ -84,9 +84,25 @@ function metaHtml(d) {
       if (d.type === 'torrent' && d.uploadSpeed > 1024) m += `<span>↑ ${fmt(d.uploadSpeed)}/s</span>`;
     }
     if (d.speedLimit) m += `<span title="Limite de vitesse">⏱ ${d.speedLimit} Ko/s</span>`;
-    if (d.status === 'error') m += `<span style="color:var(--err)">${esc(d.error)}</span>`;
+    if (d.status === 'error') m += `<span style="color:var(--err)" title="${esc(d.error || '')}">${esc(T(d.errText || d.error || ''))}${d.retryAt ? ' · ' + esc(T('nouvel essai dans {0}').replace('{0}', fmtT(Math.max(1, (d.retryAt - Date.now()) / 1000)))) : ''}</span>`;
   }
   return m;
+}
+
+// boutons pour réparer selon le genre d'erreur (voir src/main/errors.js)
+function fixButtons(d) {
+  if (d.status !== 'error') return '';
+  const k = d.errKind || (d.errorCode === 'webpage' ? 'webpage' : d.errorCode === 'auth' ? 'auth' : '');
+  const b = [];
+  const B = (act, icon, label, primary) => b.push(`<button class="btn sm ${primary ? 'primary' : ''}" data-dact="${act}">${icon ? ic(icon) : ''}${label}</button>`);
+  if (k === 'webpage') B('browser', 'globe', 'Ouvrir la page dans le navigateur', true);
+  if (k === 'auth') B('auth', '', 'Saisir un identifiant', true);
+  if (['disk', 'perm', 'nodir'].includes(k)) B('chdir', 'folder', 'Choisir un autre dossier', true);
+  if (k === 'disk') B('freespace', '', "Libérer de la place (Paramètres de Windows)");
+  if (['gone', 'denied', 'sizechanged'].includes(k)) { if (d.pageUrl) B('browser', 'globe', 'Retrouver le lien sur la page', true); B('refresh', '', 'Rafraîchir le lien'); }
+  if (['engine', 'nopeers'].includes(k)) B('fwhelp', '', 'Autoriser DrYAE dans le pare-feu', true);
+  if (k !== 'webpage' && k !== 'drm') B('resume', 'play', 'Réessayer', !b.length);
+  return `<div class="tools">${b.join('')}</div>`;
 }
 
 // ---------------- affichages façon dossier Windows ----------------
@@ -282,10 +298,21 @@ async function itemAction(act, d) {
     case 'md5': case 'sha1': case 'sha256': return hashItem(d, act);
     case 'extract': return extractItem(d);
     case 'details': return openDrawer(d.id);
+    case 'avscan': return avScan(d);
     case 'browser': return call('openBrowser', d.pageUrl || d.url);
   }
 }
 
+// fichiers qui peuvent contenir un programme : on propose l'analyse par l'antivirus de Windows
+const RISKY = /\.(exe|msi|msix|appx|bat|cmd|ps1|vbs|js|jar|scr|com|dll|zip|7z|rar|tar|gz|iso|apk)$/i;
+async function avScan(d) {
+  toast(T('Analyse de « {0} » par l\'antivirus de Windows…').replace('{0}', d.name));
+  const r = await call('avScan', d.id);
+  if (!r) return;
+  if (r.state === 'clean') toast(T('Aucune menace trouvée dans « {0} »').replace('{0}', d.name));
+  else if (r.state === 'threat') askBox({ title: 'Menace détectée', text: T("L'antivirus de Windows a trouvé une menace dans « {0} ». Ne l'ouvre pas. Windows Sécurité va s'en occuper (Paramètres → Confidentialité et sécurité → Sécurité Windows).").replace('{0}', d.name), ok: 'Compris', danger: true });
+  else toast(T("L'antivirus de Windows n'a pas pu analyser ce fichier") + (r.detail ? ' (' + r.detail + ')' : ''));
+}
 function itemMenu(d) {
   const M = [['details', 'list', 'Informations'], '-'];
   const isArc = /\.(zip|7z|rar|tar|gz|tgz|bz2|xz|iso)$/i.test(d.name || '');
@@ -305,7 +332,8 @@ function itemMenu(d) {
   if (!['done', 'seeding'].includes(d.status)) M.push(['schedule', 'clock', d.status === 'scheduled' ? 'Retirer du planificateur' : 'Ajouter au planificateur']);
   if (d.status === 'done' && d.type !== 'torrent') M.push('-', ['md5', 'ok', 'Somme MD5'], ['sha256', 'ok', 'Somme SHA-256']);
   if (d.status === 'done' && isArc) M.push(['extract', 'arc', "Extraire l'archive"]);
-  M.push('-', ['restart', 'redo', 'Recommencer'], ['remove', 'x', 'Retirer de la liste   Suppr'], ['removeDel', 'trash', 'Supprimer définitivement   Maj+Suppr']);
+  if (d.status === 'done' && RISKY.test(d.name || '')) M.push(['avscan', 'shield', "Analyser avec l'antivirus de Windows"]);
+  M.push('-', ['restart', 'redo', 'Recommencer'], ['remove', 'x', 'Retirer de la liste   Suppr'], ['removeDel', 'trash', 'Supprimer aussi le fichier   Maj+Suppr']);
   return M.map(m => (m === '-' ? m : { label: m[2], icon: m[1], fn: () => itemAction(m[0], d) }));
 }
 
@@ -342,17 +370,17 @@ function prompt2(title, fields, okLabel = 'OK') {
 }
 function confirmAsk(text) { return window.confirm(text); }
 
-// Suppr : retire de la liste sans question (comme la Corbeille de Windows), annulable avec Ctrl+Z.
-// Maj+Suppr : supprime aussi les fichiers du disque, après confirmation.
+// Suppr / Maj+Suppr : une fenêtre demande toujours, avec la case « Supprimer aussi le fichier de l'ordinateur »
+// (cochée d'office avec Maj+Suppr, sinon dernier choix). Les fichiers vont dans la Corbeille de Windows.
 async function removeItems(ids, withFiles) {
-  let del = false;
-  if (withFiles) {
-    const r = await askBox({ title: 'Supprimer définitivement', text: ids.length > 1 ? T('Supprimer définitivement ces {0} éléments et leurs fichiers ?').replace('{0}', ids.length) : T('Supprimer définitivement « {0} » et son fichier ?').replace('{0}', nameOf(items.get(ids[0]) || {})), ok: 'Supprimer', danger: true });
-    if (!r) return;
-    del = true;
-  }
+  const one = ids.length === 1 ? nameOf(items.get(ids[0]) || {}) : '';
+  const r = await askBox({ title: 'Retirer de la liste', text: one ? T('Retirer « {0} » de la liste ?').replace('{0}', one) : T('Retirer ces {0} éléments de la liste ?').replace('{0}', ids.length),
+    ok: 'Retirer', danger: true, check: "Supprimer aussi le fichier de l'ordinateur (il ira dans la Corbeille)", checked: withFiles || !!S.rmFiles });
+  if (!r) return;
+  const del = r.checked;
+  if (!!S.rmFiles !== del && !withFiles) S = await call('setSettings', { rmFiles: del });
   await call('remove', ids, del);
-  if (!del) toast(T('{0} élément(s) retiré(s) de la liste').replace('{0}', ids.length), { label: 'Annuler', fn: undoRemove });
+  toast(del ? T('{0} élément(s) supprimé(s) : fichiers dans la Corbeille').replace('{0}', ids.length) : T('{0} élément(s) retiré(s) de la liste').replace('{0}', ids.length), del ? undefined : { label: 'Annuler', fn: undoRemove });
   ids.forEach(id => { items.delete(id); selected.delete(id); });
   if (ids.includes(current)) closeDrawer();
   render();
@@ -417,6 +445,7 @@ async function drawDrawer() {
   if (['paused', 'error'].includes(d.status)) acts.push(['resume', 'play', 'Reprendre']);
   if (['running', 'queued', 'scheduled', 'seeding'].includes(d.status)) acts.push(['pause', 'pause', d.status === 'seeding' ? 'Arrêter le partage' : 'Pause']);
   if (d.status === 'done') acts.push(['open', 'open', 'Ouvrir']);
+  if (d.status === 'done' && RISKY.test(d.name || '')) acts.push(['avscan', 'shield', 'Analyser (antivirus)']);
   if (d.type === 'torrent' && d.status !== 'done') acts.push(['play', 'stream', 'Lire en streaming']);
   if (d.status === 'done' && /\.(mp4|webm|mkv|mp3|m4a|ogg|wav)$/i.test(d.name || '')) acts.push(['play', 'play', 'Lire']);
   acts.push(['folder', 'folder', 'Dossier']);
@@ -450,13 +479,13 @@ async function drawDrawer() {
     if (d.duration) kv.push(['Durée', fmtT(d.duration)]);
     if (d.status === 'done' && d.type !== 'torrent' && !d.md5) kv.push(['Sommes de contrôle', `<button class="btn sm" data-dact="md5">MD5</button> <button class="btn sm" data-dact="sha256">SHA-256</button>`]);
     if (d.md5) kv.push(['MD5', `<span class="mono">${d.md5}</span>`]);
-    if (d.error) kv.push(['Erreur', `<span style="color:var(--err)">${esc(d.error)}</span>`]);
+    if (d.errText) kv.push(['Problème', `<span style="color:var(--err)">${esc(T(d.errText))}</span>`]);
+    if (d.error) kv.push([d.errText ? 'Détails' : 'Erreur', `<span style="color:var(--err)" class="notr">${esc(d.error)}</span>`]);
     h += `<dl class="kv">${kv.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`;
     if (d.segs && d.size > 0) {
       h += `<div class="sect">Connexions</div><div class="segmap">${d.segs.map(s => `<i class="${s.active ? 'act' : ''}" style="left:${s.start / d.size * 100}%;width:${s.done / d.size * 100}%"></i>`).join('')}</div>`;
     }
-    if (d.errorCode === 'webpage') h += `<div class="tools"><button class="btn sm primary" data-dact="browser">${ic('globe')}Ouvrir la page dans le navigateur</button></div>`;
-    if (d.errorCode === 'auth') h += `<div class="tools"><button class="btn sm primary" data-dact="auth">Saisir un identifiant</button></div>`;
+    h += fixButtons(d);
   }
   if (T && dTab === 'files') {
     h += `<div class="row" style="margin:6px 0;justify-content:space-between"><span class="hint">${T.files.length} fichier(s)</span><label class="check" style="margin:0"><input type="checkbox" id="dSeq" ${d.sequential ? 'checked' : ''}> Séquentiel</label></div>`;
@@ -493,8 +522,16 @@ $('#dBody').addEventListener('click', async e => {
     if (r?.u) { await call('passwords:add', host, r.u, r.p); call('resume', d.id); }
     return;
   }
+  if (act === 'chdir') { const dir = await call('pickDir', d.dir || S.dir); if (dir) { await call('changeDir', d.id, dir); call('resume', d.id); } return; }
+  if (act === 'freespace') return call('openExternal', 'ms-settings:storagesense');
+  if (act === 'fwhelp') return firewallHelp();
   itemAction(act, d);
 });
+// aide pare-feu : le moteur des torrents (aria2c.exe) a été refusé par Windows
+async function firewallHelp() {
+  const r = await askBox({ title: 'Autoriser DrYAE dans le pare-feu', text: T("Windows a peut-être bloqué « aria2c », le moteur des torrents de DrYAE (ce n'est pas un virus). Pour l'autoriser : 1) clique sur « Ouvrir le pare-feu » ; 2) clique sur « Modifier les paramètres » ; 3) dans la liste, coche « aria2c » (colonnes Privé et Public) ; 4) clique sur OK, puis sur « Réessayer » dans DrYAE."), ok: 'Ouvrir le pare-feu' });
+  if (r) call('openFirewall');
+}
 $('#dBody').addEventListener('change', async e => {
   const d = $('#dBody')._d; if (!d) return;
   if (e.target.matches('[data-fsel]')) {
@@ -660,12 +697,22 @@ async function submitAdd(startNow, dupAction) {
     speedLimit: +$('#aSpeed').value || 0, kind: addCtx.kind === 'ytdl' ? undefined : addCtx.kind, quality: v ? v.value : null, allowPage: !!addCtx.allowPage, dupAction,
   }));
   if (!r) return;
-  const dx = r.find(x => x && x.duplicate);
-  if (dx) { const a = await askDuplicate(dx.duplicate); if (a) return submitAdd(startNow, a); return; }
+  const dups = r.filter(x => x && x.duplicate).map(x => x.duplicate), ok = r.filter(x => x && !x.duplicate);
   if (!r.length && !urls.some(u => /^magnet:/i.test(u))) return toast('Aucun lien valide (http://, https:// ou magnet:)');
-  r.filter(Boolean).forEach(d => items.set(d.id, d));
+  ok.forEach(d => items.set(d.id, d));
+  let n = ok.length;
+  if (dups.length === 1 && urls.length === 1) { const a = await askDuplicate(dups[0]); if (a) return submitAdd(startNow, a); return; }
+  if (dups.length) {
+    // plusieurs liens : les déjà présents sont signalés en une seule question, les autres sont déjà ajoutés
+    const a = await askBox({ title: 'Déjà téléchargé', text: T('{0} fichier(s) sont déjà dans la liste ou déjà téléchargés. Que veux-tu faire ?').replace('{0}', dups.length) + '\n' + dups.slice(0, 5).map(d => '• ' + d.name).join('\n') + (dups.length > 5 ? '\n…' : ''),
+      buttons: [{ v: 'overwrite', label: 'Remplacer' }, { v: 'rename', label: 'Télécharger quand même', primary: true }] });
+    if (a) {
+      const r2 = await safe(() => call('add', { urls: dups.map(d => d.url), dir: $('#aDir').value.trim(), connections: +$('#aConn').value, startNow, schedule: $('#aSchedule').checked, headers: headersFromForm(), page: $('#aRef').value.trim() || addCtx.page || '', speedLimit: +$('#aSpeed').value || 0, dupAction: a.value }));
+      (r2 || []).filter(x => x && !x.duplicate).forEach(d => { items.set(d.id, d); n++; });
+    }
+  }
   closeM(); render();
-  if (r.length) toast(r.length > 1 ? `${r.length} téléchargements ajoutés` : 'Téléchargement ajouté');
+  if (n) toast(n > 1 ? `${n} téléchargements ajoutés` : 'Téléchargement ajouté');
 }
 $('#aOk').onclick = () => submitAdd(true);
 $('#aLater').onclick = () => submitAdd(false);
@@ -687,21 +734,46 @@ $('#tQuick').onclick = async () => {
   const src = $('#tSrc').value.trim(); if (!src) return;
   if (!/^magnet:/i.test(src)) return fetchTorrent();
   const d = await safe(() => call('torrent:addQuick', src));
+  if (d && d.duplicate) return askTorrentDup(d.duplicate, true);
   if (d) { items.set(d.id, d); closeM(); render(); toast('Torrent ajouté'); }
 };
+const btihOf = s => { const m = /xt=urn:btih:([a-z0-9]+)/i.exec(s || ''); return m ? m[1].toLowerCase() : ''; };
+let tProbe = '';
+// compteur pendant la lecture d'un magnet + bouton Annuler ; aucun pair après 30 s -> aide pare-feu
+D.on('torrent-probe', p => {
+  if (!tProbe || p.hash !== tProbe) return;
+  $('#tStatus').innerHTML = esc(T('Recherche de pairs… {0} s sur {1}').replace('{0}', p.s).replace('{1}', p.max)) + ' · ' + esc(T('{0} pair(s)').replace('{0}', p.peers))
+    + ` <button class="btn sm" data-tcancel>${esc(T('Annuler'))}</button>` + (p.stuck ? `<br><span style="color:var(--warn,#e0a030)">${esc(T('Toujours aucun pair : le pare-feu de Windows bloque peut-être DrYAE.'))}</span> <button class="btn sm" data-tfw>${esc(T('Que faire ?'))}</button>` : '');
+});
+$('#tStatus').addEventListener('click', e => { if (e.target.closest('[data-tcancel]') && tProbe) call('torrent:cancelProbe', tProbe); if (e.target.closest('[data-tfw]')) firewallHelp(); });
 async function fetchTorrent() {
   const src = $('#tSrc').value.trim();
   if (!src) return;
-  $('#tStatus').textContent = /^magnet:/i.test(src) ? 'Recherche des pairs et lecture des informations… (jusqu\'à 90 s)' : 'Lecture du fichier…';
+  $('#tStatus').textContent = /^magnet:/i.test(src) ? T('Recherche de pairs…') : T('Lecture du fichier…');
   $('#tFetch').disabled = true;
+  tProbe = btihOf(src);
   try {
     tInfo = await call('torrent:inspect', src, showTorrent.ctx || {});
+    tProbe = '';
+    if (tInfo && tInfo.duplicate) { $('#tFetch').disabled = false; $('#tStatus').textContent = ''; return askTorrentDup(tInfo.duplicate, true); }
     $('#tSrcBox').style.display = 'none'; $('#tInfoBox').style.display = '';
     $('#tKv').innerHTML = `<dt>Nom</dt><dd>${esc(tInfo.name)}</dd><dt>Taille</dt><dd>${fmt(tInfo.size)}</dd><dt>Fichiers</dt><dd>${tInfo.files.length}</dd><dt>Hash</dt><dd class="mono">${tInfo.infoHash}</dd>`;
     $('#tFiles').innerHTML = tInfo.files.map(f => `<div class="frow"><input type="checkbox" data-ti="${f.i}" checked><span class="n" title="${esc(f.path)}">${esc(f.path)}</span><span class="s">${fmt(f.length)}</span></div>`).join('');
     updTSel();
-  } catch (e) { $('#tStatus').textContent = e.message; }
+  } catch (e) {
+    tProbe = '';
+    if (/Annulé/.test(e.message)) $('#tStatus').textContent = T('Annulé');
+    else { $('#tStatus').innerHTML = esc(T(e.message)) + (/pair|moteur|pare-feu|aria2/i.test(e.message) ? ` <button class="btn sm" data-tfw>${esc(T('Autoriser DrYAE dans le pare-feu'))}</button>` : ''); }
+  }
   $('#tFetch').disabled = false;
+}
+// torrent déjà dans la liste : proposer d'ajouter ses trackers au téléchargement existant
+async function askTorrentDup(d, closeAfter) {
+  const extra = d.newTrackers ? ' ' + T('Il apporte {0} tracker(s) nouveau(x) : les ajouter au téléchargement existant peut le rendre plus rapide.').replace('{0}', d.newTrackers) : '';
+  const r = await askBox({ title: 'Torrent déjà dans la liste', text: `« ${d.name} » ` + T('est déjà dans la liste.') + extra, buttons: d.newTrackers ? [{ v: 'merge', label: 'Ajouter ses trackers', primary: true }] : [{ v: 'show', label: 'Voir le téléchargement', primary: true }] });
+  if (r?.value === 'merge') { await call('torrent:trackers', d.id, d.trackers); toast(T('{0} tracker(s) ajouté(s)').replace('{0}', d.newTrackers)); }
+  if (r?.value === 'show') { closeM(); openDrawer?.(d.id); return; }
+  if (closeAfter && r) closeM();
 }
 function updTSel() {
   const sel = $$('#tFiles [data-ti]').filter(x => x.checked).map(x => +x.dataset.ti);
@@ -1042,6 +1114,10 @@ $('#abInstall').onclick = () => call('upd:install');
 $('#updGo').onclick = () => call('upd:install');
 $('#updX').onclick = () => { updDismissed = true; $('#updBanner').classList.remove('on'); };
 $('#abFeedback').onclick = () => call('openFeedback');
+$('#abReport').onclick = async () => {
+  const r = await askBox({ title: 'Signaler un problème', text: "DrYAE va créer un petit rapport sur ton Bureau (versions, Windows, dernières erreurs — sans mots de passe, sans historique, sans adresses complètes) et ouvrir la page des signalements sur GitHub. Décris ce qui s'est passé et joins le fichier. Rien n'est envoyé sans toi.", ok: 'Créer le rapport' });
+  if (r) { await call('report'); toast('Rapport créé sur le Bureau'); }
+};
 $('#feedbackBtn').onclick = () => call('openFeedback');
 $('#abRepo').onclick = () => call('openRepo');
 $('#abDonate').onclick = () => call('openDonate');
@@ -1094,7 +1170,7 @@ function askBox(o) {
     $('#askText').textContent = T(o.text || '');
     $('#askChkBox').style.display = o.check ? '' : 'none';
     $('#askChkTxt').textContent = T(o.check || '');
-    $('#askChk').checked = false;
+    $('#askChk').checked = !!o.checked;
     const btns = o.buttons || [{ v: 'ok', label: o.ok || 'OK', primary: true, danger: o.danger }];
     $('#askBtns').innerHTML = '<button class="btn" data-v="">' + esc(T('Annuler')) + '</button>' + btns.map(b => `<button class="btn ${b.primary ? 'primary' : ''} ${b.danger ? 'danger' : ''}" data-v="${b.v}">${esc(T(b.label))}</button>`).join('');
     const done = v => { m.classList.remove('on'); $('#askBtns').onclick = null; m.onkeydown = null; res(v ? { value: v, checked: $('#askChk').checked } : null); };
@@ -1104,13 +1180,16 @@ function askBox(o) {
     setTimeout(() => $('#askBtns .primary')?.focus(), 30);
   });
 }
-// doublon : remplacer, numéroter ou annuler
+// doublon : ouvrir l'existant, garder les deux, remplacer ou annuler (même fenêtre partout, voir askDup du navigateur)
 async function askDuplicate(d) {
-  const st = d.status === 'done' ? T('déjà téléchargé') : T('déjà dans la liste');
-  const r = await askBox({ title: 'Ce fichier existe déjà', text: `« ${d.name} » — ${st}. ` + T('Que veux-tu faire ?'), check: 'Toujours faire ce choix',
-    buttons: [{ v: 'overwrite', label: 'Remplacer' }, { v: 'rename', label: 'Garder les deux (numéroter)', primary: true }] });
+  const gone = d.status === 'done' && !d.file;
+  const st = gone ? T("le fichier n'existe plus sur l'ordinateur") : d.status === 'done' ? T('déjà téléchargé') : T('déjà dans la liste');
+  const buttons = gone ? [{ v: 'overwrite', label: 'Télécharger à nouveau', primary: true }]
+    : [...(d.file ? [{ v: 'open', label: 'Ouvrir le fichier' }] : []), { v: 'overwrite', label: 'Remplacer' }, { v: 'rename', label: 'Télécharger quand même', primary: true }];
+  const r = await askBox({ title: 'Déjà téléchargé', text: `« ${d.name} » — ${st}. ` + T('Que veux-tu faire ?'), check: gone ? '' : 'Toujours faire ce choix', buttons });
   if (!r) return null;
-  if (r.checked) S = await call('setSettings', { duplicate: r.value });
+  if (r.value === 'open') { call('open', d.id); return null; }
+  if (r.checked && !gone) S = await call('setSettings', { duplicate: r.value });
   return r.value;
 }
 

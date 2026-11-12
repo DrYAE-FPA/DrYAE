@@ -35,6 +35,13 @@ function popRender() {
   f(); if (window.I18N?.translateDom) try { I18N.translateDom(popEl); } catch {}
   popPlace();
 }
+// clic dans la page (le <webview> prend le focus) : toutes les fenêtres d'extensions se ferment, comme dans Chrome
+document.addEventListener('focusin', e => {
+  if (e.target.tagName !== 'WEBVIEW') return;
+  if (POP.kind) popClose();
+  document.querySelector('#menu')?.classList.remove('on');
+  B.call('br:closeExtPopups');
+});
 document.addEventListener('mousedown', e => { if (POP.kind && !e.target.closest('#pop') && !e.target.closest('#menu') && !(POP.anchor && POP.anchor.contains(e.target))) popClose(); });
 addEventListener('keydown', e => { if (e.key === 'Escape' && POP.kind) popClose(); });
 addEventListener('resize', () => { if (POP.kind) popPlace(); });
@@ -194,10 +201,11 @@ function drawTrPop() {
 }
 
 // ---------- traducteur de scans ----------
-let OCRL = null;
+let OCRL = null, MODELS = [];
 async function drawScanPop() {
   const s = CFG.scan || {}, h = curHost(), auto = (s.autoSites || []).includes(h);
   if (!OCRL) { try { OCRL = await B.call('br:ocrLangs'); } catch { OCRL = { langs: { eng: 'Anglais' }, have: [] }; } }
+  try { MODELS = await B.call('scan:models'); } catch { MODELS = []; }
   const ocrOpts = Object.entries(OCRL.langs).map(([k, n]) => `<option value="${k}" ${k === (s.source || 'eng') ? 'selected' : ''}>${esc(T(n))}${OCRL.have.includes(k) ? '' : ' ↓'}</option>`).join('');
   popEl.innerHTML = `<div class="ph">${ic('scan')}<b>${esc(T('Traducteur de scans'))}</b><button class="icon-btn" data-set title="${esc(T('Paramètres du traducteur de scans'))}">${ic('gear')}</button></div>
     ${h ? `<div class="prow"><span class="grow">${esc(T('Traduire automatiquement les images de ce site'))}<small class="notr">${esc(h)}</small></span>${tg('scanAuto', auto)}</div>` : ''}
@@ -210,7 +218,14 @@ async function drawScanPop() {
     <div class="prow"><span class="grow">${esc(T('Traduire vers'))}</span><select id="scTo">${langOptions(s.target || '', `<option value="">${esc(T('Comme le traducteur'))}</option>`)}</select></div>
     <div class="prow"><span class="grow">${esc(T('Icônes d\'action sur les images'))}<small>${esc(T('Original / traduction, comparer, relire'))}</small></span>${tg('scIcons', s.icons !== false)}</div>
     <div class="prow"><span class="grow">${esc(T('Lire aussi l\'anglais'))}<small>${esc(T('Pour les pages qui mélangent deux langues'))}</small></span>${tg('scEng', !!s.withEng)}</div>
+    <details class="pdet"><summary>${esc(T('Modèles de lecture supplémentaires'))}</summary><small style="color:var(--dim);display:block;margin:2px 0 4px">${esc(T('Pour les écritures que la lecture automatique connaît mal. Téléchargés une seule fois, utilisés sur ce PC.'))}</small>${(MODELS || []).map(m => `<div class="prow" data-mdl="${m.id}"><span class="grow">${esc(T(m.label))}<small>${fmt(m.size)}</small></span>${m.installed ? `<button class="btn sm" data-mdel="${m.id}">${esc(T('Supprimer'))}</button>` : `<button class="btn sm" data-mget="${m.id}"><span class="mp">${esc(T('Télécharger'))}</span></button>`}</div>`).join('')}</details>
+    <details class="pdet"><summary>${esc(T('Lexique'))} (${(s.glossary || []).length})</summary><small style="color:var(--dim);display:block;margin:2px 0 4px">${esc(T('Mots toujours traduits de la même façon (noms des personnages…). Ajout : clic droit sur une bulle traduite.'))}</small>${(s.glossary || []).map((g, i) => `<div class="prow"><span class="grow notr">${esc(g.s)} → ${esc(g.t)}</span><button class="icon-btn" data-gdel="${i}" title="${esc(T('Supprimer'))}">${ic('x')}</button></div>`).join('') || `<small style="color:var(--dim)">${esc(T('Vide'))}</small>`}</details>
     <div class="pfoot"><small style="color:var(--dim);white-space:normal">${esc(T('Astuce : clic droit sur une image → « Traduire le texte de l\'image ».'))}</small></div>`;
+  popEl.onclick = async e => {
+    const g = e.target.closest('[data-mget]'); if (g) { g.disabled = true; return getScanModel(g.dataset.mget); }
+    const d = e.target.closest('[data-mdel]'); if (d) { await B.call('scan:modelDel', d.dataset.mdel); return popRender(); }
+    const x = e.target.closest('[data-gdel]'); if (x) { const l = [...(CFG.scan?.glossary || [])]; l.splice(+x.dataset.gdel, 1); await B.call('scan:glossary', l); CFG.scan = { ...(CFG.scan || {}), glossary: l }; return popRender(); }
+  };
   $('#scPage').onclick = () => { popClose(); pageCmd('scan'); };
   $('#scZone').onclick = () => { popClose(); pageCmd('scan-region'); };
   $('#scSrc').onchange = e => setB({ scan: { source: e.target.value } });

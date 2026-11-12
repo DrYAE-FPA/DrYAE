@@ -9,6 +9,7 @@ const { TorrentDownload, TorrentHub } = require('./engine/torrent');
 const { YtdlHub, YtdlDownload } = require('./engine/ytdl');
 const { Limiter } = require('./limiter');
 const tools = require('./tools');
+const { classify, AUTO } = require('./errors');
 
 const UA_DEFAULT = `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${(process.versions.chrome || '152').split('.')[0]}.0.0.0 Safari/537.36`;
 const ACTIVE = ['running', 'merging'];
@@ -37,6 +38,8 @@ class Manager extends EventEmitter {
     this._wasBusy = false;
     setInterval(() => this.loop(), 500);
     setInterval(() => this.schedulerTick(), 15000);
+    setInterval(() => this.autoRetry(), 3000);
+    this.online = () => true; // remplacé par le processus principal (état de la connexion de Windows)
     setTimeout(() => this.torrents.refreshTrackerList(u => this.fetch(u)), 4000);
   }
 
@@ -129,6 +132,27 @@ class Manager extends EventEmitter {
     }
   }
 
+  // place libre avant de commencer (taille connue) : erreur claire au lieu d'un disque plein à 95 %
+  async checkSpace(dir, size) {
+    if (!(size > 0) || !fsp.statfs) return;
+    let st; try { st = await fsp.statfs(dir); } catch { return; }
+    const free = Number(st.bavail) * Number(st.bsize), need = size + 50 * 1024 * 1024;
+    if (free < need) throw Object.assign(new Error(`Espace disque insuffisant : ${Math.ceil(size / 1048576)} Mo nécessaires, ${Math.floor(free / 1048576)} Mo libres`), { code: 'ENOSPC' });
+  }
+  // reprise automatique : internet coupé ou site en panne passagère -> nouvel essai, attente qui grandit (15 s … 5 min)
+  autoRetry() {
+    const now = Date.now();
+    for (const d of this.list) {
+      if (d.status !== 'error') { if (d.status === 'done') d._autoTries = 0; continue; }
+      if (!AUTO.has(classify(d.error, d.errorCode)) || (d._autoTries || 0) >= 40) continue;
+      if (!d._retryAt) { d._retryAt = now + Math.min(300000, 15000 * 2 ** Math.min(5, d._autoTries || 0)); d.changed(); continue; }
+      if (now < d._retryAt || !this.online()) continue;
+      d._autoTries = (d._autoTries || 0) + 1; d._retryAt = 0;
+      d.status = 'queued'; d.error = null; d.errorCode = null; d.changed();
+    }
+    this.schedule();
+  }
+
   // --- éléments ---
   create(d) {
     if (d.type === 'torrent') return new TorrentDownload(d, this);
@@ -158,12 +182,18 @@ class Manager extends EventEmitter {
         data.name = sanitize(pt) + (ext && /^(mp4|webm|mkv|mov|m4a|mp3|ts|flv|avi)$/i.test(ext) ? '.' + ext : '');
       }
     }
+    // torrent déjà présent (même empreinte) : jamais en double ; l'interface propose d'ajouter ses trackers
+    if (opts.type === 'torrent') {
+      const h = String(opts.infoHash || (/xt=urn:btih:([a-z0-9]+)/i.exec(opts.url || '') || [])[1] || '').toLowerCase();
+      const ex = h && this.list.find(d => d.type === 'torrent' && String(d.infoHash || (/xt=urn:btih:([a-z0-9]+)/i.exec(d.url || '') || [])[1] || '').toLowerCase() === h);
+      if (ex) { const tr = (String(opts.url || '').match(/[?&]tr=([^&]+)/g) || []).map(x => decodeURIComponent(x.replace(/^[?&]tr=/, ''))).filter(x => /^(udp|https?):\/\//.test(x)); return { duplicate: { id: ex.id, name: ex.name || decodeURIComponent(((/[?&]dn=([^&]+)/.exec(ex.url || '') || [])[1] || '').replace(/\+/g, ' ')) || ex.infoHash || h, torrent: true, trackers: tr, newTrackers: tr.filter(x => !(ex.trackersExtra || []).includes(x)).length } }; }
+    }
     // doublon : même lien ou même titre déjà dans la liste -> on demande quoi faire
     if (opts.type !== 'torrent') {
       const act = opts.dupAction || (S.duplicate === 'ask' ? '' : S.duplicate);
       const dup = this.findDuplicate(data);
       if (dup) {
-        if (!act) return { duplicate: { id: dup.id, name: dup.name || dup.title || dup.url, status: dup.status, file: dup.file && fs.existsSync(dup.file) ? dup.file : '' } };
+        if (!act) return { duplicate: { id: dup.id, url: data.url, name: dup.name || dup.title || dup.url, status: dup.status, file: dup.file && fs.existsSync(dup.file) ? dup.file : '' } };
         if (act === 'skip') return null;
         if (act === 'overwrite') { data.onExist = 'overwrite'; if (!data.name && (dup.name || dup.title)) data.name = dup.type === data.type ? (dup.name || null) : data.name; this.remove([dup.id], true); }
       }
@@ -260,7 +290,7 @@ class Manager extends EventEmitter {
   resume(id) {
     const d = this.get(id);
     if (!d) return;
-    if (['paused', 'error', 'scheduled'].includes(d.status)) { d.status = 'queued'; d.error = null; d.changed(); this.schedule(); }
+    if (['paused', 'error', 'scheduled'].includes(d.status)) { d.status = 'queued'; d.error = null; d._retryAt = 0; d._autoTries = 0; d.changed(); this.schedule(); }
     else if (d.status === 'done' && d.type === 'torrent') d.start(); // repartager
   }
   pause(id) { this.get(id)?.pause(); }
@@ -278,7 +308,11 @@ class Manager extends EventEmitter {
       d.pause?.();
       d.stop?.();
       this.list = this.list.filter(x => x !== d);
-      await d.removeFiles(deleteFiles).catch(() => {});
+      // fichier(s) de l'ordinateur : vers la Corbeille de Windows quand c'est possible (récupérables)
+      const target = deleteFiles ? (d.type === 'torrent' ? (d.files?.length ? d.rootPath() : '') : d.file) : '';
+      let trashed = false;
+      if (target && this.trash && fs.existsSync(target)) { try { await this.trash(target); trashed = true; } catch {} }
+      await d.removeFiles(deleteFiles && !trashed).catch(() => {});
       if (d.type === 'torrent' && d.torrentFile) fsp.rm(d.torrentFile, { force: true }).catch(() => {});
     }
     this.save(); this.emit('reload');
@@ -327,6 +361,20 @@ class Manager extends EventEmitter {
     try { await fsp.rename(src, dst); } catch { await fsp.cp(src, dst, { recursive: true }); await fsp.rm(src, { recursive: true, force: true }); }
     d.dir = dir; d.autoDir = false; if (d.type !== 'torrent') d.file = dst;
     d.changed();
+  }
+  // autre dossier d'enregistrement (disque plein, dossier interdit ou disparu) : la partie déjà reçue suit si possible
+  async changeDir(id, dir) {
+    const d = this.get(id);
+    if (!d || d.status === 'done' || !dir) return;
+    d.pause?.();
+    await fsp.mkdir(dir, { recursive: true });
+    if (d.type !== 'torrent' && d.file) {
+      const nf = path.join(dir, path.basename(d.file));
+      for (const ext of ['.dryae', '']) { try { if (fs.existsSync(d.file + ext)) await fsp.rename(d.file + ext, nf + ext); } catch { try { await fsp.cp(d.file + ext, nf + ext); await fsp.rm(d.file + ext, { force: true }); } catch {} } }
+      d.file = fs.existsSync(nf + '.dryae') || fs.existsSync(nf) ? nf : null;
+    }
+    d.dir = dir; d.autoDir = false; d.error = null; d.errorCode = null;
+    d.status = 'paused'; d.changed(); this.save();
   }
   clearFinished() { this.list = this.list.filter(d => d.status !== 'done'); this.save(); this.emit('reload'); }
   views() { return this.list.map(d => d.view()); }
