@@ -20,7 +20,7 @@ const scan = () => { const out = new Set(); const w = document.createTreeWalker(
   await b.evaluate(() => menu(10, 10, mainMenu(), true)); await b.waitForTimeout(150); (await b.evaluate(scan)).forEach(x => left.add('menu:' + x));
   for (let i = 0; i < subs; i++) { await b.evaluate(i => { const s = mainMenu().filter(e => e && typeof e === 'object' && e.sub)[i]; menu(10, 10, s.sub()); }, i); await b.waitForTimeout(120); (await b.evaluate(scan)).forEach(x => left.add('menu:' + x)); }
   await b.evaluate(() => { $('#menu').classList.remove('on'); showShortcuts(); }); await b.waitForTimeout(200); (await b.evaluate(scan)).forEach(x => left.add('kb:' + x));
-  for (const p of ['history', 'bookmarks', 'passwords', 'extensions', 'settings']) {
+  for (const p of ['history', 'bookmarks', 'passwords', 'extensions', 'settings', 'tasks', 'shortcuts', 'danger']) {
     await b.evaluate(n => B.call('br:openPage', n), p);
     let pg; for (let i = 0; i < 30 && !pg; i++) { pg = app.windows().find(x => x.url().startsWith('dryae://' + p)); await new Promise(r => setTimeout(r, 200)); }
     await pg.waitForTimeout(1200);

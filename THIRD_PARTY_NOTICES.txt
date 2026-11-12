@@ -1,4 +1,4 @@
-DrYAE 1.6.4 — Third-party components / Composants tiers
+DrYAE 1.6.9 — Third-party components / Composants tiers
 ======================================================
 
 DrYAE is free software released under the GNU General Public License v3.0
@@ -67,6 +67,11 @@ undici — MIT — https://github.com/nodejs/undici
 electron-chrome-extensions 4.10 — MIT — https://github.com/samuelmaddock/electron-browser-shell
 electron-chrome-web-store 0.13 — MIT — https://github.com/samuelmaddock/electron-browser-shell
 electron-updater 6.8 — MIT — https://github.com/electron-userland/electron-builder
+@mozilla/readability — Apache-2.0 — https://github.com/mozilla/readability
+  (reading mode)
+qrcode — MIT — https://github.com/soldair/node-qrcode (page QR code)
+sql.js — MIT — https://github.com/sql-js/sql.js (reads the history of
+  another browser when you import it)
 7zip-bin — MIT — https://github.com/develar/7zip-bin
 PP-OCRv5 mobile text detection and recognition models (PaddleOCR) — Apache-2.0
   — https://github.com/PaddlePaddle/PaddleOCR — ONNX copies from the npm package
@@ -81,6 +86,16 @@ argparse — Python-2.0 license
 Other dependencies — MIT, ISC, BSD-2-Clause, BSD-3-Clause, Apache-2.0,
   BlueOak-1.0.0, WTFPL/MIT. Each package keeps its own LICENSE file in
   resources/app/node_modules/<package>/.
+
+------------------------------------------------------------------------
+PDF viewer (folder resources/app/assets/pdfjs)
+------------------------------------------------------------------------
+
+PDF.js 6.5.438 by Mozilla — Apache-2.0 — https://github.com/mozilla/pdf.js
+  The viewer (web/viewer.html) was modified for DrYAE: unused languages
+  removed, a small script added (web/dryae-pdf.js) to choose the language
+  and turn on the signature tool. The full license is in
+  assets/pdfjs/LICENSE.
 
 ------------------------------------------------------------------------
 Ad-blocking filter lists (assets/adblock/engine.bin, compiled data)
@@ -105,6 +120,19 @@ Text recognition data (downloaded on first use, not bundled)
 
 tessdata_fast language data — Apache-2.0 —
   https://github.com/tesseract-ocr/tessdata_fast
+Extra PP-OCRv5 recognition models (Korean, East Slavic, Cyrillic, Arabic,
+  Thai, Devanagari), ONNX copies published by PT Perkasa Pilar Utama in
+  ppu-paddle-ocr-models — Apache-2.0 —
+  https://github.com/PT-Perkasa-Pilar-Utama/ppu-paddle-ocr-models
+  (mirror: https://huggingface.co/snowfluke/ppu-paddle-ocr-models).
+  Original models: PaddleOCR — Apache-2.0.
+
+------------------------------------------------------------------------
+Dangerous-site list (downloaded weekly, not bundled)
+------------------------------------------------------------------------
+
+Phishing.Database (phishing-domains-ACTIVE) — MIT —
+  https://github.com/Phishing-Database/Phishing.Database
 
 ------------------------------------------------------------------------
 Trademarks / Marques

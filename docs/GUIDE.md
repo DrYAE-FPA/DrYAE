@@ -103,7 +103,7 @@ Les vidéos protégées par DRM (Netflix, Disney+…) ne peuvent pas être tél�
 - **Extensions Chrome :** ouvrez le Chrome Web Store depuis la page Extensions, puis cliquez sur « Ajouter à Chrome ». Si la boutique ne s'affiche pas, copiez le lien de la page de l'extension (ou son identifiant) dans **Installer avec un lien**.
 - Si une vérification « Êtes-vous un humain ? » ne passe pas, utilisez **⋮ → Ouvrir cette page dans Chrome** avec l'extension DrYAE (voir section 7).
 
-- **Clic dans la page :** les fenêtres des extensions et les menus se ferment, comme dans Chrome.
+- **Clic dans la page :** les fenêtres des extensions et les menus se ferment.
 - **Barre de favoris :** faites glisser un favori ou un dossier pour le déplacer (ou clic droit → Déplacer vers la gauche / la droite).
 - **Lumières tamisées :** « Lumières éteintes » reste actif sur toutes les pages et tous les onglets jusqu'à ce que vous rallumiez ; la **protection des yeux** s'applique sans gêner l'affichage des pages.
 

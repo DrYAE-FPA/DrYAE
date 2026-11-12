@@ -108,7 +108,7 @@ DRM-protected videos (Netflix, Disney+…) cannot be downloaded.
 - **Chrome extensions:** open the Chrome Web Store from the Extensions page, then click "Add to Chrome". If the store does not show, paste the extension's link (or ID) into **Install from a link**.
 - If a "Are you human?" check doesn't pass, use **⋮ → Open this page in Chrome** with the DrYAE extension (see section 7).
 
-- **Click in the page:** extension windows and menus close, like in Chrome.
+- **Click in the page:** extension windows and menus close.
 - **Bookmarks bar:** drag a bookmark or folder to move it (or right-click → Move left / right).
 - **Dimmed lights:** "Lights off" stays on for every page and tab until you turn the lights back on; **eye protection** no longer gets in the way of pages.
 

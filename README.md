@@ -4,17 +4,20 @@
 
 ---
 
-## ✨ Nouveautés de la version 1.6.8 / What's new
+## ✨ Nouveautés de la version 1.6.9 / What's new
+
+- ⬇️ **Doublons signalés**, suppression du fichier en option (Corbeille), erreurs expliquées en clair avec reprise automatique, analyse antivirus, aide pour les liens magnet.
+- 🗂️ **Groupes d'onglets, côte à côte, recherche dans les onglets, onglets verticaux**, profils, raccourcis personnalisables.
+- 📖 **Mode lecture, lecture à voix haute, lecteur PDF** (surligner, signer), capture de page entière, code QR, pages hors ligne, notes, panneau latéral.
+- 🛡️ **Avertissement avant les sites dangereux**, refus automatique des cookies, autorisations par site, contrôle de sécurité.
+- ♿ **Accessibilité** : taille du texte, contraste élevé, lecture facilitée, clavier et lecteurs d'écran, guide intégré (F1).
+- 🖼️ Traducteur de scans : modèles de lecture supplémentaires (coréen, russe, arabe, thaï, hindi), lexique, correction des bulles.
+
+### Version 1.6.8
 
 - 🌐 **DrYAE s'ouvre sur le navigateur**, comme un navigateur normal (le gestionnaire reste au choix dans les paramètres).
-- 🖼️ **Traducteur de scans sur les sites protégés** : la vraie cause est corrigée (protection « Trusted Types » de certaines pages), les bulles traduites s'affichent.
-- 🌍 Traducteur de scans : langue reconnue toute seule, même vietnamien, polonais, turc… ; la langue détectée s'affiche.
+- 🖼️ Traducteur de scans sur les sites protégés corrigé ; langue reconnue toute seule.
 - 💡 **Lumières tamisées** : elles restent éteintes quand on clique dans la page ou sur la vidéo.
-
-### Version 1.6.7
-
-- 🖼️ Traducteur de scans : lit aussi les images que le site efface aussitôt après les avoir affichées.
-- 🔑 Extensions Chrome : **connexion à un compte** possible.
 
 ### Version 1.6.6
 

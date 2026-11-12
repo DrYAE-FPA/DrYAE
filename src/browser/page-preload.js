@@ -16,7 +16,7 @@ const toHost = (ch, v) => { try { ipcRenderer.sendToHost(ch, v); } catch {} };
 
 // ---------- 1. souris : boutons latéraux précédent / suivant ----------
 try {
-  // clic dans la page : le navigateur ferme ses fenêtres (extensions, menus), comme Chrome
+  // clic dans la page : le navigateur ferme ses fenêtres (extensions, menus)
   addEventListener('mousedown', () => toHost('dryae-pagedown'), true);
   addEventListener('mouseup', e => { if (e.button === 3 || e.button === 4) { e.preventDefault(); toHost('dryae-nav', e.button === 3 ? -1 : 1); } }, true);
 } catch {}

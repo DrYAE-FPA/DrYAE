@@ -753,7 +753,7 @@ function onKey(k, ctrl, shift, alt) {
   if (k === 'f5') return go(() => cur.wv?.reload());
   if (k === 'f1') return go(() => openPage('guide'));
   if (k === 'f3') return go(() => ($('#findbar').classList.contains('on') ? find(!shift) : openFind()));
-  // F6 : barre d'adresse → boutons de la barre d'outils → page (comme Chrome) ; Maj+F6 dans l'autre sens
+  // F6 : barre d'adresse → boutons de la barre d'outils → page ; Maj+F6 dans l'autre sens
   if (k === 'f6') return go(() => cycleFocus(shift ? -1 : 1));
   if (k === 'f11') return go(() => B.call('br:fullscreen'));
   if (k === 'f9' && !alt) return go(() => readerMode());

@@ -35,7 +35,7 @@ function popRender() {
   f(); if (window.I18N?.translateDom) try { I18N.translateDom(popEl); } catch {}
   popPlace();
 }
-// clic dans la page (le <webview> prend le focus) : toutes les fenêtres d'extensions se ferment, comme dans Chrome
+// clic dans la page (le <webview> prend le focus) : toutes les fenêtres d'extensions se ferment
 document.addEventListener('focusin', e => {
   if (e.target.tagName !== 'WEBVIEW') return;
   if (POP.kind) popClose();
