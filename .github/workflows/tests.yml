@@ -26,6 +26,8 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y xvfb aria2 fonts-noto-cjk
       - run: npm ci
       - run: npm i --no-save playwright@1.63.0
+      - name: Electron (programme téléchargé à part)
+        run: node node_modules/electron/install.js && test -x node_modules/electron/dist/electron
       - name: Moteur torrent pour les tests
         run: mkdir -p bin/linux && ln -sf "$(command -v aria2c)" bin/linux/aria2c
       - name: Textes traduits
