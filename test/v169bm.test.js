@@ -20,7 +20,8 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
   await b.evaluate(u => navigate(cur, u), base + '/'); await wait(1500);
   const order = () => b.evaluate(() => [...document.querySelectorAll('#bmbar .bi[data-bm]')].map(x => x.textContent.trim()));
   console.log('avant', await order());
-  await b.dragAndDrop('#bmbar [data-bm="a"]', '#bmbar [data-bm="c"]', { targetPosition: { x: 40, y: 8 } });
+  const cw = (await b.locator('#bmbar [data-bm="c"]').boundingBox()).width; // bord droit de Charlie, quelle que soit la police
+  await b.dragAndDrop('#bmbar [data-bm="a"]', '#bmbar [data-bm="c"]', { targetPosition: { x: Math.max(1, cw - 3), y: 8 } });
   await wait(800);
   const o1 = await order(); ok('Alpha déplacé après Charlie', o1.join(',') === 'Bravo,Dossier,Charlie,Alpha', o1);
   await b.dragAndDrop('#bmbar [data-bm="c"]', '#bmbar [data-bm="b"]', { targetPosition: { x: 2, y: 8 } });
