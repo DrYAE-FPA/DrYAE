@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>DrYAE</title>
+<link rel="icon" href="/_assets/logo.png">
+<link rel="stylesheet" href="/_ui/style.css">
+<link rel="stylesheet" href="common.css">
+<style>
+body{grid-template-columns:minmax(0,1fr)}.ptop{grid-column:1}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
+th{color:var(--dim);font-weight:600;cursor:pointer;position:sticky;top:0;background:var(--bg)}
+td.n{max-width:420px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+td.r,th.r{text-align:right;font-variant-numeric:tabular-nums}
+tr.sel td{background:var(--accent-soft)}
+.bar{display:flex;gap:10px;align-items:center;margin-bottom:12px}
+</style>
+</head>
+<body>
+<header class="ptop" id="top"></header>
+<main class="pmain" id="main" style="grid-column:1/-1"><div class="pwrap" id="wrap">
+  <div class="bar"><p class="hint" style="flex:1" id="sum"></p><button class="btn sm" id="end" disabled>Fermer l'onglet</button></div>
+  <table aria-label="Gestionnaire des tâches"><thead><tr><th data-s="name">Tâche</th><th data-s="kind">Type</th><th class="r" data-s="mem">Mémoire</th><th class="r" data-s="cpu">Processeur</th></tr></thead><tbody id="rows"></tbody></table>
+</div></main>
+<script src="/_shared/locales.js"></script>
+<script src="/_shared/i18n.js"></script>
+<script src="/_shared/a11y.js"></script>
+<script src="common.js"></script>
+<script src="tasks.js"></script>
+</body>
+</html>

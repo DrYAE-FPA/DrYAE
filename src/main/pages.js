@@ -6,9 +6,10 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
+const PDFJS = path.join(ROOT, '..', 'assets', 'pdfjs');
 const DIRS = { '': path.join(ROOT, 'pages'), _shared: path.join(ROOT, 'shared'), _ui: path.join(ROOT, 'ui'), _assets: path.join(ROOT, '..', 'assets') };
 const PAGES = ['history', 'bookmarks', 'passwords', 'extensions', 'settings', 'downloads', 'danger', 'tasks', 'reading', 'shortcuts'];
-const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.json': 'application/json' };
+const TYPES = { '.mjs': 'text/javascript; charset=utf-8', '.ftl': 'text/plain; charset=utf-8', '.json': 'application/json', '.bcmap': 'application/octet-stream', '.pfb': 'application/octet-stream', '.ttf': 'font/ttf', '.wasm': 'application/wasm', '.icc': 'application/octet-stream', '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.json': 'application/json' };
 
 function registerScheme() {
   protocol.registerSchemesAsPrivileged([{ scheme: 'dryae', privileges: { standard: true, secure: true, supportFetchAPI: true } }]);
@@ -17,6 +18,8 @@ function registerScheme() {
 function resolve(u) {
   let x; try { x = new URL(u); } catch { return null; }
   const page = x.hostname;
+  // lecteur PDF (pdf.js) : dryae://pdf/web/viewer.html, dryae://pdf/build/…
+  if (page === 'pdf') { const f = path.normalize(path.join(PDFJS, decodeURIComponent(x.pathname || '/'))); return f.startsWith(PDFJS + path.sep) ? f : null; }
   if (!PAGES.includes(page)) return null;
   let p = decodeURIComponent(x.pathname || '/');
   if (p === '/' || p === '') return path.join(DIRS[''], page + '.html');
@@ -33,11 +36,17 @@ function handleSession(ses) {
   ses._dryaePages = true;
   try {
     ses.protocol.handle('dryae', async req => {
+      // fichier PDF demandé par le lecteur : lu avec la session du navigateur (cookies du site)
+      if (/^dryae:\/\/pdf\/_get\?/.test(req.url)) {
+        const u = new URL(req.url).searchParams.get('u') || '';
+        if (!/^(https?|file):/.test(u)) return new Response('adresse refusée', { status: 400 });
+        try { const r = await ses.fetch(u); return new Response(r.body, { status: r.status, headers: { 'content-type': 'application/pdf' } }); } catch (e) { return new Response(String(e.message || e), { status: 502 }); }
+      }
       const f = resolve(req.url);
       if (!f || !fs.existsSync(f) || fs.statSync(f).isDirectory()) return new Response('Page introuvable', { status: 404, headers: { 'content-type': 'text/plain; charset=utf-8' } });
       const body = await fs.promises.readFile(f);
       return new Response(body, { status: 200, headers: { 'content-type': TYPES[path.extname(f).toLowerCase()] || 'application/octet-stream', 'cache-control': 'no-store',
-        'content-security-policy': "default-src 'self' dryae:; img-src * data: blob: crx:; style-src 'self' 'unsafe-inline' dryae:; script-src 'self' dryae:; connect-src 'self' dryae:" } });
+        'content-security-policy': /^dryae:\/\/pdf\//.test(req.url) ? "default-src 'self' dryae: blob: data:; script-src 'self' dryae: 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline' dryae:; img-src * data: blob:; connect-src 'self' dryae: blob: data:; worker-src 'self' dryae: blob:; font-src 'self' dryae: data:" : "default-src 'self' dryae:; img-src * data: blob: crx:; style-src 'self' 'unsafe-inline' dryae:; script-src 'self' dryae:; connect-src 'self' dryae:" } });
     });
   } catch (e) { console.error('dryae protocol', e.message); }
 }
@@ -46,7 +55,7 @@ function handleSession(ses) {
 function trusted(e) {
   const f = e.senderFrame;
   if (!f || f !== e.sender.mainFrame) return false;
-  if (!/^dryae:\/\//.test(f.url || '')) return false;
+  if (!/^dryae:\/\//.test(f.url || '') || /^dryae:\/\/pdf\//.test(f.url || '')) return false; // le lecteur PDF n'a pas accès au pont
   return e.sender.getType() === 'webview';
 }
 

@@ -51,6 +51,7 @@ async function addDl(o) {
   return r;
 }
 
+const DEF_KEYWORDS = [{ k: 'w', name: 'Wikipédia', url: 'https://fr.wikipedia.org/w/index.php?search=%s' }, { k: 'yt', name: 'YouTube', url: 'https://www.youtube.com/results?search_query=%s' }, { k: 'gh', name: 'GitHub', url: 'https://github.com/search?q=%s' }];
 let CFG = {}, STORE = { bookmarks: [], history: [] }, tabs = [], cur = null, seq = 0, panel = null;
 const QUICK = [
   { t: 'Google', u: 'https://www.google.com' }, { t: 'YouTube', u: 'https://www.youtube.com' }, { t: 'Wikipédia', u: 'https://fr.wikipedia.org' },
@@ -64,6 +65,9 @@ async function toUrl(s) {
   s = s.trim();
   if (!s) return '';
   if (/^magnet:/i.test(s)) return s;
+  // mot-clé de recherche : « yt chat » cherche « chat » directement sur le site choisi (Paramètres → Moteur de recherche)
+  const kw = /^(\S{1,12})\s+(.+)$/.exec(s), K = kw && (CFG.keywords || DEF_KEYWORDS).find(x => x.k.toLowerCase() === kw[1].toLowerCase());
+  if (K && /%s/.test(K.url)) return K.url.replace('%s', encodeURIComponent(kw[2]));
   if (isUrlLike(s)) return /^[a-z-]+:\/\//i.test(s) || /^(about|view-source):/i.test(s) ? s : 'https://' + s;
   return B.call('br:search', s);
 }
@@ -206,7 +210,7 @@ function closeTab(tab) {
   if (cur === tab) select(tabs[Math.min(i, tabs.length - 1)]);
 }
 let sessT = null;
-function saveSession() { clearTimeout(sessT); sessT = setTimeout(() => { const list = tabs.filter(t => !t.incognito && t.url); B.call('br:session', { tabs: list.map(t => ({ url: t.url, title: t.title })), active: Math.max(0, list.indexOf(cur)) }); }, 800); }
+function saveSession() { clearTimeout(sessT); sessT = setTimeout(() => { const list = tabs.filter(t => !t.incognito && t.url); B.call('br:session', { tabs: list.map(t => ({ url: t.url, title: t.title, group: t.group || undefined })), active: Math.max(0, list.indexOf(cur)) }); }, 800); }
 function updTab(tab) {
   saveSession();
   tab.el.querySelector('.t').textContent = tab.title || tab.url || 'Nouvel onglet';
@@ -313,9 +317,11 @@ function mainMenu() {
       ...closedTabs.slice(-10).reverse().map(c => ({ label: c.title || c.url, img: c.fav, icon: 'link', fn: () => { closedTabs.splice(closedTabs.indexOf(c), 1); newTab(c.url, { incognito: c.incognito }); } })),
     ] },
     { label: 'Téléchargements', icon: 'dl', key: 'Ctrl+J', hl: true, fn: openDownloads },
+    { label: 'Rechercher dans les onglets…', icon: 'search', key: 'Ctrl+Maj+A', fn: () => window.TABSX?.tabSearch() },
+    { label: 'Panneau latéral', icon: 'list', fn: () => window.TABSX?.toggleSide() },
     { label: 'Favoris', icon: 'star', sub: bmMenu },
     { label: 'Extensions', icon: 'puzzle', adv: true, sub: () => [
-      { label: 'Gérer les extensions', icon: 'puzzle', key: 'Ctrl+Maj+A', fn: () => openPage('extensions') },
+      { label: 'Gérer les extensions', icon: 'puzzle', key: 'Ctrl+Maj+X', fn: () => openPage('extensions') },
       { label: 'Boutique Chrome Web Store', icon: 'store', fn: () => newTab('https://chromewebstore.google.com/') },
       '-', { title: 'Extensions intégrées' },
       ...MODS.filter(([id]) => CFG.mods?.[id]?.installed !== false).map(([id, l, icon]) => ({ label: l, icon, check: modOn(id), fn: () => setModule(id, { enabled: !modOn(id) }) })),
@@ -331,6 +337,12 @@ function mainMenu() {
     { label: 'Lire la page à voix haute', icon: 'sound', key: 'F8', fn: () => readAloud(), disabled: !web },
     { label: 'Enregistrer sous…', icon: 'save', key: 'Ctrl+S', fn: savePage, disabled: !cur?.wcId },
     { label: 'Outils supplémentaires', icon: 'tools', adv: true, sub: () => [
+      { label: 'Capture de la page entière', icon: 'crop', fn: () => window.TABSX?.fullShot(), disabled: !web },
+      { label: 'Garder la page pour la lire hors ligne', icon: 'save', fn: () => window.TABSX?.saveOffline(), disabled: !web },
+      { label: 'Code QR de la page', icon: 'phone', fn: () => window.TABSX?.showQrPop(), disabled: !web },
+      { label: 'Regrouper les onglets par site', icon: 'list', fn: () => window.TABSX?.groupBySite() },
+      { label: 'Gestionnaire des tâches', icon: 'gear', key: 'Maj+Échap', fn: () => openPage('tasks') },
+      '-',
       modOn('capture') && { label: 'Extraire les liens de la page', icon: 'link', fn: () => grabLinks() },
       modOn('capture') && { label: 'Enregistrer la page avec DrYAE', icon: 'dl', fn: () => cur.url && B.call('br:download', { url: cur.url, page: cur.url, allowPage: true, incognito: cur.incognito }) },
       modOn('capture') && { label: 'Fichiers détectés sur cette page', icon: 'video', key: 'Ctrl+Maj+Y', fn: () => togglePanel('media', true) },
@@ -660,14 +672,34 @@ document.addEventListener('keydown', e => {
   const i = bs.indexOf(e.target); if (i < 0) return;
   bs[(i + (e.key === 'ArrowRight' ? 1 : -1) + bs.length) % bs.length].focus(); e.preventDefault();
 }, true);
+// raccourcis personnalisables (Paramètres → Raccourcis clavier) : action -> combinaison choisie
+const comboOf = (k, ctrl, shift, alt) => { k = String(k); const key = k.length === 1 ? k.toUpperCase() : k.charAt(0).toUpperCase() + k.slice(1); return [ctrl && 'Ctrl', alt && 'Alt', shift && 'Maj', key].filter(Boolean).join('+'); };
+const KEY_ACTIONS = () => ({
+  newTab: () => newTab(), newPrivate: () => newTab('', { incognito: true }), closeTab: () => closeTab(cur), reopen: reopenClosed,
+  tabSearch: () => window.TABSX?.tabSearch(), nextTab: () => { const i = tabs.indexOf(cur); select(tabs[(i + 1) % tabs.length]); }, prevTab: () => { const i = tabs.indexOf(cur); select(tabs[(i - 1 + tabs.length) % tabs.length]); },
+  address: () => { $('#url').focus(); $('#url').select(); }, find: openFind, reload: () => cur.wv?.reload(), back: () => $('#bBack').click(), forward: () => $('#bFwd').click(), home: () => $('#bHome').click(),
+  bookmark: starClick, bookmarks: () => openPage('bookmarks'), bar: toggleBar, history: () => openPage('history'), downloads: openDownloads, extensions: () => openPage('extensions'), settings: () => openPage('settings'),
+  zoomIn: () => zoom(1), zoomOut: () => zoom(-1), zoomReset: () => zoom(0), fullscreen: () => B.call('br:fullscreen'), print: () => cur?.wcId && B.call('br:print', cur.wcId), mute: toggleMute,
+  reader: () => readerMode(), speak: () => readAloud(), translate: () => modOn('translate') && pageCmd('translate-selection'), scanZone: () => modOn('scan') && pageCmd('scan-region'), lights: () => modOn('lights') && pageCmd('lights'),
+  side: () => window.TABSX?.toggleSide(), shot: () => window.TABSX?.fullShot(), offline: () => window.TABSX?.saveOffline(), qr: () => window.TABSX?.showQrPop(), tasks: () => openPage('tasks'), manager: () => B.call('br:openMain'),
+});
+function customKey(k, ctrl, shift, alt) {
+  const map = Object.fromEntries((CFG.keyList || []).map(x => [x.id, x.c])); if (!Object.keys(map).length) return false;
+  const c = comboOf(k, ctrl, shift, alt);
+  const id = Object.keys(map).find(a => map[a] && map[a].toLowerCase() === c.toLowerCase());
+  const fn = id && KEY_ACTIONS()[id]; if (!fn) return false;
+  fn(); return true;
+}
 function onKey(k, ctrl, shift, alt) {
+  if (customKey(k, ctrl, shift, alt)) return true;
   k = String(k).toLowerCase();
   const go = f => { f(); return true; };
   if (ctrl && shift) {
     if (k === 'n' || k === 'p') return go(() => newTab('', { incognito: true }));
     if (k === 't') return go(reopenClosed);
     if (k === 'o') return go(() => openPage('bookmarks'));
-    if (k === 'a') return go(() => openPage('extensions'));
+    if (k === 'a') return go(() => window.TABSX?.tabSearch());
+    if (k === 'x') return go(() => openPage('extensions'));
     if (k === 'y') return go(() => (modOn('capture') ? togglePanel('media', true) : togglePanel('nd', true)));
     if (k === 'b') return go(toggleBar);
     if (k === 'd') return go(bookmarkAll);
@@ -717,6 +749,7 @@ function onKey(k, ctrl, shift, alt) {
     if (k === 'f' || k === 'e') return go(() => { menu.byKey = true; $('#bMenu').focus(); $('#bMenu').click(); menu.byKey = false; });
     return false;
   }
+  if (k === 'escape' && shift) return go(() => openPage('tasks'));
   if (k === 'f5') return go(() => cur.wv?.reload());
   if (k === 'f1') return go(showShortcuts);
   if (k === 'f3') return go(() => ($('#findbar').classList.contains('on') ? find(!shift) : openFind()));
@@ -1021,11 +1054,16 @@ function onMedia(m) {
 B.on('media', onMedia);
 B.on('restore-session', async sess => {
   await ready;
-  const made = sess.tabs.map(t => newTab(t.url, { background: true, lazy: true, title: t.title }));
+  const made = sess.tabs.map(t => { const n = newTab(t.url, { background: true, lazy: true, title: t.title }); if (t.group) n.group = t.group; return n; });
+  window.TABSX?.drawGroups();
   if (made.length) select(made[Math.min(sess.active || 0, made.length - 1)]);
 });
 B.on('theme', t => applyTheme(t));
 B.on('show-shortcuts', () => showShortcuts());
+// PDF : ouvert dans le lecteur PDF de DrYAE (pdf.js)
+const pdfViewerUrl = u => 'dryae://pdf/web/viewer.html?lang=' + encodeURIComponent((window.I18N && I18N.lang) || CFG.lang || 'fr') + '&file=' + encodeURIComponent('dryae://pdf/_get?u=' + encodeURIComponent(u));
+B.on('open-pdf', ({ wcId, url }) => { const go = n => { const t = tabByWc(wcId) || (n > 5 ? cur : null); if (t) navigate(t, pdfViewerUrl(url)); else setTimeout(() => go(n + 1), 100); }; setTimeout(() => go(0), 30); });
+B.on('close-wc', id => { const t = tabByWc(id); if (t) closeTab(t); });
 $('#lockB').onclick = e => popOpen('site', e.currentTarget);
 // un site demande la caméra, le micro, la position… : on pose la question
 const PERM_Q = { camera: 'utiliser votre caméra', microphone: 'utiliser votre micro', geolocation: 'connaître votre position', notifications: 'vous envoyer des notifications', clipboard: 'lire votre presse-papiers', midi: 'utiliser vos appareils MIDI', idle: 'savoir si vous utilisez l\'ordinateur' };

@@ -23,6 +23,8 @@
     "onnxruntime-web": "^1.31.1",
     "parse-torrent": "^11.0.24",
     "pdfmarkdown-ppocrv5-models": "^1.0.0",
+    "qrcode": "^1.5.4",
+    "sql.js": "^1.16.0",
     "tesseract.js": "^7.0.0",
     "undici": "^6.21.0"
   },

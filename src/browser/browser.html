@@ -165,6 +165,32 @@ browser-action-list::part(action):hover{background:var(--panel2)}
 .pop{position:fixed;z-index:45;display:none;width:350px;max-height:calc(100vh - 100px);overflow:auto;background:var(--panel3);border:1px solid var(--line2);border-radius:14px;box-shadow:var(--shadow);padding:12px;font-size:13px}
 .pop.on{display:block}
 .lockb{all:unset;display:flex;align-items:center;cursor:pointer;border-radius:6px;padding:2px}.lockb:hover{background:var(--panel3)}.lockb:focus-visible{outline:2px solid var(--accent)}
+/* 1.6.9 : groupes, vue côte à côte, aperçu, panneau latéral, onglets verticaux */
+.tgrp{all:unset;align-self:center;flex:none;height:22px;min-width:12px;padding:0 9px;margin:0 2px 4px;border-radius:7px;background:var(--gc);color:#fff;font:600 12px "Segoe UI",sans-serif;display:flex;align-items:center;cursor:pointer;max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tgrp:focus-visible{outline:2px solid var(--accent)}.tgrp.col{opacity:.85}
+.tgin{width:110px;height:20px;font:600 12px "Segoe UI";border:0;border-radius:5px;padding:0 4px}
+.tab.ingrp{box-shadow:inset 0 -3px 0 var(--gc)}.tab.gcol{display:none}
+.tab.sleep img,.tab.sleep .fav{opacity:.45;outline:1px dashed var(--dim);outline-offset:1px}
+.tab.audible .t::after{content:" 🔊";font-size:10px}
+.tab.split{box-shadow:inset 0 3px 0 var(--accent)}
+.splitbar{position:absolute;top:0;bottom:0;width:6px;cursor:col-resize;background:var(--line2);z-index:5}.splitbar:hover,.splitbar:focus{background:var(--accent)}
+webview.sideon{outline:2px solid var(--accent-line);outline-offset:-2px}
+.tabprev{position:fixed;z-index:60;width:260px;display:none;flex-direction:column;gap:4px;padding:8px;border-radius:10px;background:var(--panel);border:1px solid var(--line2);box-shadow:var(--shadow);pointer-events:none;font-size:12px}
+.tabprev.on{display:flex}.tabprev b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tabprev small{color:var(--dim)}.tabprev img{width:100%;border-radius:6px;border:1px solid var(--line)}
+.modal.ts{width:min(560px,94vw);padding:10px}.modal.ts input{width:100%;font-size:15px;padding:10px}.tslist{max-height:60vh;overflow:auto;margin-top:6px}
+.tsr{all:unset;box-sizing:border-box;width:100%;display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:8px;cursor:pointer}.tsr.on,.tsr:hover{background:var(--accent-soft)}.tsr img,.tsr .fav{width:16px;height:16px;flex:none}.tsr .tt{flex:1;min-width:0;display:flex;flex-direction:column}.tsr .tt b{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tsr .tt small{color:var(--dim)}.tsr .x{opacity:.6}.tsr .x svg{width:12px;height:12px}.tsh{font-size:11px;color:var(--dim);padding:8px 8px 2px;text-transform:uppercase;letter-spacing:.5px}
+.side{width:320px;border-left:1px solid var(--line);background:var(--panel);display:none;flex-direction:column;min-height:0}.side.on{display:flex}
+.sidenav{display:flex;gap:2px;padding:6px;border-bottom:1px solid var(--line)}.sidenav button{all:unset;cursor:pointer;padding:6px;border-radius:7px;display:flex}.sidenav button svg{width:17px;height:17px}.sidenav button.on,.sidenav button:hover{background:var(--accent-soft);color:var(--accent)}.sidenav button:focus-visible{outline:2px solid var(--accent)}
+.sidebody{flex:1;overflow:auto;padding:10px}.sidebody h4{margin:4px 0 8px}.sidebody details summary{cursor:pointer;padding:4px 0;font-weight:600}
+.sl{all:unset;box-sizing:border-box;display:flex;align-items:flex-start;gap:8px;width:100%;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:12.5px}.sl:hover{background:var(--panel3)}.sl img,.sl .fav{width:14px;height:14px;flex:none;margin-top:2px}.sl span{min-width:0;overflow:hidden;text-overflow:ellipsis}.slr{display:flex;align-items:center}
+.addr .ab{all:unset;display:flex;cursor:pointer;padding:3px;border-radius:6px;opacity:.75}.addr .ab:hover{opacity:1;background:var(--panel3)}.addr .ab svg{width:15px;height:15px}
+.start .ntpedit{position:absolute;right:16px;bottom:16px}
+.start.big .tiles{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}.start.big .tile .ic{width:52px;height:52px;font-size:20px}
+.start.small .tiles{grid-template-columns:repeat(auto-fill,minmax(84px,1fr))}.start.small .tile{padding:8px 4px}.start.small .tile .ic{width:26px;height:26px;font-size:12px}
+body.vtabs{display:grid;grid-template-columns:220px 1fr;grid-template-rows:auto auto auto auto auto 1fr}
+body.vtabs>*{grid-column:2}body.vtabs .stage{grid-row:6;min-height:0}
+body.vtabs .tabstrip{grid-column:1;grid-row:1/-1;flex-direction:column;align-items:stretch;overflow-y:auto;overflow-x:hidden;padding:8px 6px;gap:3px;border-right:1px solid var(--line)}
+body.vtabs .tab{max-width:none;flex:none;border-radius:8px;border:1px solid var(--line)}body.vtabs .tab.ingrp{box-shadow:inset 3px 0 0 var(--gc)}body.vtabs .tgrp{align-self:flex-start;margin:6px 0 2px}body.vtabs .newtab{align-self:flex-start}
 .pop .perm{display:flex;align-items:center;gap:8px;padding:5px 0}.pop .perm span{flex:1}.pop .perm select{width:auto}
 .pop details.pdet{margin:6px 0;border-top:1px solid var(--line,#262c3b);padding-top:6px}.pop details.pdet summary{cursor:pointer;font-weight:600;font-size:12.5px;padding:3px 0}.pop details.pdet .prow{padding:4px 0}
 .pop .ph{display:flex;align-items:center;gap:8px;margin:-2px 0 10px}
@@ -315,13 +341,16 @@ browser-action-list::part(action):hover{background:var(--panel2)}
   <button class="tb" id="bFwd" title="Suivant (Alt+→)"><svg><use href="#i-fwd"/></svg></button>
   <button class="tb" id="bReload" title="Actualiser (F5)"><svg><use href="#i-reload" id="reloadIc"/></svg></button>
   <button class="tb" id="bHome" title="Accueil"><svg><use href="#i-home"/></svg></button>
-  <div class="addr"><button class="lockb" id="lockB" title="Informations sur le site et autorisations" aria-label="Informations sur le site et autorisations"><svg class="lock no" id="lock"><use href="#i-lock" id="lockIc"/></svg></button><input id="url" placeholder="Rechercher ou saisir une adresse" spellcheck="false"><span class="zoom" id="zoom"></span><button class="tb" id="bStar" title="Ajouter aux favoris"><svg><use href="#i-star" id="starIc"/></svg></button></div>
+  <div class="addr"><button class="lockb" id="lockB" title="Informations sur le site et autorisations" aria-label="Informations sur le site et autorisations"><svg class="lock no" id="lock"><use href="#i-lock" id="lockIc"/></svg></button><input id="url" placeholder="Rechercher ou saisir une adresse" spellcheck="false"><span class="zoom" id="zoom"></span><button class="ab adv" id="bQr" title="Code QR de la page (ouvrir sur un téléphone)"><svg><use href="#i-phone"/></svg></button><button class="tb" id="bStar" title="Ajouter aux favoris"><svg><use href="#i-star" id="starIc"/></svg></button></div>
   <!-- extensions épinglées (ordre au choix, glisser pour déplacer), toujours à gauche du bouton des extensions -->
   <span id="tbItems" class="adv" style="display:contents"><button class="tb shield" id="bShield" data-key="mod:adblock" title="Bloqueur de publicités"><svg><use href="#i-shield"/></svg><span class="n" id="shieldN"></span></button></span>
   <button class="tb adv" id="bExt" title="Extensions"><svg><use href="#i-ext"/></svg></button>
   <button class="tb dl" id="bDrYAE" title="Fichiers détectés sur cette page"><svg><use href="#i-dl"/></svg><span class="n" id="dlN"></span></button>
   <button class="tb nd" id="bNd" title="Téléchargements du navigateur"><svg><use href="#i-dl"/></svg><i class="ring"></i><span class="n" id="ndN"></span></button>
   <button class="tb upd" id="bUpd" title="Mise à jour de DrYAE disponible"><svg><use href="#i-upd"/></svg><i class="dot"></i></button>
+  <button class="tb" id="bMedia" title="Lecture en cours (sons et vidéos des onglets)" style="display:none"><svg><use href="#i-music"/></svg></button>
+  <button class="tb" id="bLeaf" title="Économiseur d'énergie actif (sur batterie)" style="display:none"><svg><use href="#i-power"/></svg></button>
+  <button class="tb adv" id="bSide" title="Panneau latéral : favoris, historique, hors ligne, notes, traducteur"><svg><use href="#i-list"/></svg></button>
   <button class="tb" id="bMenu" title="Menu"><svg><use href="#i-menu"/></svg></button>
 </div>
 <div class="bmbar" id="bmbar"></div>
@@ -339,10 +368,14 @@ browser-action-list::part(action):hover{background:var(--panel2)}
     </div>
     <div class="findbar" id="findbar"><input id="findQ" placeholder="Rechercher dans la page"><span class="hint" id="findN"></span><button class="icon-btn" id="findPrev"><svg><use href="#i-back"/></svg></button><button class="icon-btn" id="findNext"><svg><use href="#i-fwd"/></svg></button><button class="icon-btn" id="findX"><svg><use href="#i-x"/></svg></button></div>
   </div>
+  <aside class="side" id="side" aria-label="Panneau latéral"><nav class="sidenav" id="sideNav"></nav><div class="sidebody" id="sideBody"></div></aside>
   <div class="panel" id="panel"><header><b id="pTitle"></b><button class="icon-btn" id="pClose"><svg><use href="#i-x"/></svg></button></header><div class="pbody" id="pBody"></div><div class="pfoot" id="pFoot" style="display:none"></div></div>
 </div>
 
 <div class="menu" id="menu"></div>
+<div class="tabprev" id="tabPrev" aria-hidden="true"></div>
+<div class="overlay" id="tsDlg"><div class="modal ts" role="dialog" aria-modal="true" aria-label="Rechercher dans les onglets"><input id="tsQ" placeholder="Rechercher dans les onglets" aria-label="Rechercher dans les onglets"><div class="tslist" id="tsList" role="listbox"></div></div></div>
+<div class="overlay" id="qrDlg"><div class="modal" style="width:320px;text-align:center" role="dialog" aria-modal="true" aria-label="Code QR de la page"><h3>Code QR de la page</h3><img id="qrImg" alt="Code QR" style="width:260px;height:260px;background:#fff;border-radius:8px;padding:6px"><p class="hint notr" id="qrUrl" style="word-break:break-all;font-size:11px"></p><p class="hint">Scannez-le avec l'appareil photo de votre téléphone.</p><div class="modal-foot"><button class="btn primary" data-qx>Fermer</button></div></div></div>
 <div class="overlay" id="loginModal"><div class="modal" style="width:420px">
   <h3>Identification requise</h3>
   <p class="hint" id="loginHost"></p>
@@ -392,5 +425,6 @@ browser-action-list::part(action):hover{background:var(--panel2)}
 <script src="../shared/a11y.js"></script>
 <script src="browser.js"></script>
 <script src="popups.js"></script>
+<script src="tabs-extra.js"></script>
 </body>
 </html>

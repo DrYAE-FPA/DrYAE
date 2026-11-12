@@ -23,7 +23,7 @@ try {
 
 // ---------- 2. pages internes ----------
 if (CFG.internal) {
-  if (TOP && location.protocol === 'dryae:') {
+  if (TOP && location.protocol === 'dryae:' && location.hostname !== 'pdf') {
     const listeners = new Map();
     ipcRenderer.on('dp-ev', (_e, name, data) => (listeners.get(name) || []).forEach(fn => { try { fn(data); } catch {} }));
     contextBridge.exposeInMainWorld('DRYAE_LANG', CFG.lang || 'fr');
@@ -708,6 +708,8 @@ function pageFeatures() {
     } catch {}
   }
   if (CFG.a11y && !CFG.internal) a11yPage(CFG.a11y);
+  // économiseur de données sans le module des lumières : pas de vidéo lancée toute seule non plus
+  if (CFG.dataSaver && !CFG.lights && !CFG.internal) document.addEventListener('play', e => { const v = e.target; if (v.tagName === 'VIDEO' && !(navigator.userActivation && navigator.userActivation.hasBeenActive)) { try { v.pause(); } catch {} } }, true);
 
   // ---------- 5c. lumières tamisées, protection des yeux, mode nuit, outils vidéo ----------
   let lights = null, autoLit = false;
@@ -817,7 +819,7 @@ function pageFeatures() {
     // « Lumières éteintes » toujours actif : la nouvelle page s'assombrit aussi
     if (L.global && TOP) { const go = () => setTimeout(() => lightsOn(false, true), 400); if (document.readyState !== 'loading') go(); else document.addEventListener('DOMContentLoaded', go, { once: true }); }
     // pas de lecture automatique tant qu'on n'a pas touché à la page
-    document.addEventListener('play', e => { const v = e.target; if (L.stopAutoplay && v.tagName === 'VIDEO' && !(navigator.userActivation && navigator.userActivation.hasBeenActive)) { try { v.pause(); } catch {} } }, true);
+    document.addEventListener('play', e => { const v = e.target; if ((L.stopAutoplay || CFG.dataSaver) && v.tagName === 'VIDEO' && !(navigator.userActivation && navigator.userActivation.hasBeenActive)) { try { v.pause(); } catch {} } }, true);
     // molette sur une vidéo : volume
     addEventListener('wheel', e => {
       if (!L.wheelVolume || e.ctrlKey) return;
@@ -1076,6 +1078,7 @@ function pageFeatures() {
       case 'translate-text': return c.text && translateSelection(c.text, { left: (c.x || innerWidth / 2) - 20, top: (c.y || 60) - 10, bottom: (c.y || 60) + 10 });
       case 'translate-enable': trEnabled = !!c.on; if (!c.on) closeTr(); return;
       case 'lights': return lights ? lightsOff(true) : lightsOn(false);
+      case 'hint': return TOP && hint(c.text);
       case 'a11y': return a11yPage(c);
       case 'reader': return TOP && (reader ? readerClose() : readerOpen(c.article));
       case 'speak': return TOP && speak(c.text, c.lang);

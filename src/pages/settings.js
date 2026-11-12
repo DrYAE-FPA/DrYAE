@@ -3,7 +3,7 @@ let SAFE = {}, C = null, STATS = null, OCR = null, ABOUT = null, LANGS = [];
 shell('Paramètres', null, 'Rechercher dans les paramètres');
 const search = $('#q');
 const SECS = [
-  ['startup', 'power', 'Au démarrage'], ['look', 'palette', 'Apparence'], ['a11y', 'eye', 'Accessibilité'], ['search', 'search', 'Moteur de recherche'], ['autofill', 'key', 'Saisie automatique et mots de passe'],
+  ['startup', 'power', 'Au démarrage'], ['look', 'palette', 'Apparence'], ['a11y', 'eye', 'Accessibilité'], ['perf', 'power', 'Onglets et performances'], ['keys', 'kbd', 'Raccourcis clavier'], ['search', 'search', 'Moteur de recherche'], ['autofill', 'key', 'Saisie automatique et mots de passe'],
   ['privacy', 'shield', 'Confidentialité et sécurité'], ['downloads', 'dl', 'Téléchargements'], ['langs', 'lang', 'Langues'],
   ['-', '', 'Extensions intégrées'], ['adblock', 'shield', 'Bloqueur de publicités'], ['translate', 'translate', 'Traducteur'], ['scan', 'scan', 'Traducteur de scans'], ['lights', 'bulb', 'Lumières tamisées'], ['pip', 'pip', "Image dans l'image"],
   ['-', '', ''], ['system', 'sys', 'Système'], ['reset', 'reload', 'Réinitialiser'], ['extensions', 'puzzle', 'Extensions'], ['about', 'info', 'À propos de DrYAE'],
@@ -44,6 +44,9 @@ function draw() {
   const theme = b.rawTheme || {};
   const startPages = (b.startupPages || []);
   const AX = b.a11yRaw || {};
+  const KMAP = Object.fromEntries((b.keyList || []).map(x => [x.id, x.c]));
+  const KEYS = [['newTab', 'Nouvel onglet', 'Ctrl+T'], ['newPrivate', 'Nouvel onglet privé', 'Ctrl+Maj+N'], ['closeTab', 'Fermer l\'onglet', 'Ctrl+W'], ['reopen', 'Rouvrir l\'onglet fermé', 'Ctrl+Maj+T'], ['tabSearch', 'Rechercher dans les onglets', 'Ctrl+Maj+A'], ['nextTab', 'Onglet suivant', 'Ctrl+Tab'], ['prevTab', 'Onglet précédent', 'Ctrl+Maj+Tab'], ['address', 'Aller à la barre d\'adresse', 'Ctrl+L'], ['find', 'Rechercher dans la page', 'Ctrl+F'], ['reload', 'Actualiser', 'F5'], ['back', 'Page précédente', 'Alt+←'], ['forward', 'Page suivante', 'Alt+→'], ['home', 'Accueil', 'Alt+Début'], ['bookmark', 'Ajouter aux favoris', 'Ctrl+D'], ['bookmarks', 'Gestionnaire de favoris', 'Ctrl+Maj+O'], ['bar', 'Barre de favoris', 'Ctrl+Maj+B'], ['history', 'Historique', 'Ctrl+H'], ['downloads', 'Téléchargements', 'Ctrl+J'], ['extensions', 'Extensions', 'Ctrl+Maj+X'], ['settings', 'Paramètres', ''], ['zoomIn', 'Zoom +', 'Ctrl++'], ['zoomOut', 'Zoom −', 'Ctrl+-'], ['zoomReset', 'Zoom 100 %', 'Ctrl+0'], ['fullscreen', 'Plein écran', 'F11'], ['print', 'Imprimer', 'Ctrl+P'], ['mute', 'Couper le son de l\'onglet', 'Ctrl+M'], ['reader', 'Mode lecture', 'F9'], ['speak', 'Lire la page à voix haute', 'F8'], ['translate', 'Traduire', 'Ctrl+Maj+E'], ['scanZone', 'Traduire une zone (scans)', 'Ctrl+Maj+S'], ['lights', 'Lumières tamisées', 'Ctrl+Maj+L'], ['side', 'Panneau latéral', ''], ['shot', 'Capture de la page entière', ''], ['offline', 'Garder la page hors ligne', ''], ['qr', 'Code QR de la page', ''], ['tasks', 'Gestionnaire des tâches', 'Maj+Échap'], ['manager', 'Gestionnaire de téléchargements', '']];
+  const KWDEF = [{ k: 'w', url: 'https://fr.wikipedia.org/w/index.php?search=%s' }, { k: 'yt', url: 'https://www.youtube.com/results?search_query=%s' }, { k: 'gh', url: 'https://github.com/search?q=%s' }];
   const R = b.root || {};
   const NET = () => [
     ['Recherche des nouvelles versions de DrYAE', 'Au démarrage puis toutes les quelques heures, vers github.com. Rien d\'autre n\'est envoyé que la demande de la dernière version.', `<label class="sw"><input type="checkbox" data-root="autoUpdateCheck" ${R.autoUpdateCheck !== false ? 'checked' : ''}><i></i></label>`],
@@ -78,8 +81,20 @@ function draw() {
       ${row('Mode simple', 'Seulement les boutons essentiels. Les fonctions avancées restent dans les Paramètres.', sw('a11ySimple', !!AX.simple))}
       ${row('Clavier', 'Tab : élément suivant · F6 : barre d\'adresse, boutons, page · Alt+F : menu · Échap : fermer · F1 : tous les raccourcis.', `<button class="btn sm" id="a11yKeys">${esc(TR('Raccourcis clavier'))}</button>`)}
       ${row('Lecteurs d\'écran', 'DrYAE fonctionne avec les lecteurs d\'écran (par exemple NVDA, gratuit, ou le Narrateur de Windows : Ctrl+Windows+Entrée).', '')}`, 'Pour que chacun puisse utiliser DrYAE confortablement.') +
+    sec('perf', 'Onglets et performances', `
+      ${row('Économiseur de mémoire', 'Les onglets que vous n\'utilisez pas sont mis en veille et se rechargent quand vous y revenez. Jamais pour un onglet qui joue du son, une vidéo en image dans l\'image ou un formulaire en cours.', selk('tabsx.memSaver', [['off', 'Désactivé'], ['light', 'Léger (après 1 heure)'], ['balanced', 'Équilibré (après 20 minutes)'], ['max', 'Maximal (après 5 minutes)']], (b.tabsx || {}).memSaver || 'balanced'))}
+      ${row('Sites toujours actifs', 'Jamais mis en veille (musique, messagerie…). Un nom de site par ligne.', `<textarea id="keepAct" style="font:inherit;min-height:54px;width:260px" placeholder="exemple.com">${esc(((b.tabsx || {}).keepActive || []).join('\n'))}</textarea>`)}
+      ${row('Économiseur d\'énergie', 'Ralentit les onglets en arrière-plan et les animations pour que la batterie dure plus longtemps.', selk('tabsx.energy', [['battery', 'Quand l\'ordinateur est sur batterie'], ['always', 'Toujours'], ['off', 'Jamais']], (b.tabsx || {}).energy || 'battery'))}
+      ${row('Économiseur de données', 'Pour les forfaits internet limités : pas de vidéo lancée toute seule, pages allégées quand le site le permet, mises à jour en arrière-plan suspendues.', swk('dataSaver', !!b.dataSaver))}
+      ${row('Aperçu de l\'onglet au survol', 'Petite image de la page, son adresse et la mémoire utilisée.', `<label class="sw"><input type="checkbox" data-k="tabsx.preview" ${(b.tabsx || {}).preview !== false ? 'checked' : ''}><i></i></label>`)}
+      ${row('Onglets verticaux', 'La liste des onglets à gauche plutôt qu\'en haut.', `<label class="sw"><input type="checkbox" data-k="tabsx.vertical" ${(b.tabsx || {}).vertical ? 'checked' : ''}><i></i></label>`)}
+      ${row('Gestionnaire des tâches', 'Mémoire et processeur utilisés par chaque onglet et chaque extension (Maj+Échap).', `<button class="btn sm" data-page="tasks">${esc(TR('Ouvrir'))}</button>`)}`, 'Pour que DrYAE reste rapide, même sur un ordinateur modeste.') +
+    sec('keys', 'Raccourcis clavier', `
+      <div class="prow"><div class="tx"><span>${esc(TR('Cliquez sur « Modifier », puis appuyez sur la nouvelle combinaison (avec Ctrl, Alt ou Maj, ou une touche F1 à F12). Échap : annuler · Retour arrière : retirer.'))}</span></div><button class="btn sm" id="keysReset">${esc(TR('Tout rétablir'))}</button></div>
+      ${KEYS.map(([id, l, d]) => { const c = KMAP[id]; return `<div class="prow" style="padding:8px 18px"><div class="tx"><b>${esc(TR(l))}</b><span>${esc(TR('Par défaut'))} : ${d ? `<kbd>${esc(TR(d))}</kbd>` : esc(TR('aucun'))}</span></div>${c ? `<kbd style="font-size:13px">${esc(TR(c))}</kbd>` : ''}<button class="btn sm" data-kset="${id}">${esc(TR('Modifier'))}</button>${c ? `<button class="icon-btn" data-kdel="${id}" title="${esc(TR('Rétablir'))}">${ic('x')}</button>` : ''}</div>`; }).join('')}`, 'Choisissez vos propres raccourcis. Tous les raccourcis : touche F1 dans le navigateur.') +
     sec('search', 'Moteur de recherche', `
-      ${row('Moteur de recherche utilisé dans la barre d\'adresse', '', sel('eng', [['google', 'Google'], ['bing', 'Bing'], ['duckduckgo', 'DuckDuckGo'], ['qwant', 'Qwant'], ['brave', 'Brave'], ['ecosia', 'Ecosia'], ['startpage', 'Startpage'], ['yahoo', 'Yahoo']], b.search))}`) +
+      ${row('Moteur de recherche utilisé dans la barre d\'adresse', '', sel('eng', [['google', 'Google'], ['bing', 'Bing'], ['duckduckgo', 'DuckDuckGo'], ['qwant', 'Qwant'], ['brave', 'Brave'], ['ecosia', 'Ecosia'], ['startpage', 'Startpage'], ['yahoo', 'Yahoo']], b.search))}
+      <div class="prow" style="flex-direction:column;align-items:stretch"><div class="tx"><b>${esc(TR('Mots-clés de recherche'))}</b><span>${esc(TR('Tapez le mot-clé, une espace, puis votre recherche dans la barre d\'adresse (exemple : « yt chat »). Une ligne par mot-clé : mot-clé | adresse avec %s à la place de la recherche.'))}</span></div><textarea id="kwList" class="notr" style="font:12px Consolas,monospace;min-height:90px;margin-top:6px">${esc((b.keywords || KWDEF).map(x => x.k + ' | ' + x.url).join('\n'))}</textarea></div>`) +
     sec('autofill', 'Saisie automatique et mots de passe', `
       <div class="prow click" data-page="passwords"><span>${ic('key')}</span><div class="tx"><b>${esc(TR('Gestionnaire de mots de passe'))}</b><span>${esc(TR('Mots de passe enregistrés, vérification, sites refusés'))}</span></div><span class="chev">${ic('open')}</span></div>
       <div class="prow click" data-page="passwords#cards"><span>${ic('card')}</span><div class="tx"><b>${esc(TR('Modes de paiement'))}</b><span>${esc(TR('Cartes enregistrées et confirmation par Windows Hello'))}</span></div><span class="chev">${ic('open')}</span></div>
@@ -169,10 +184,12 @@ function draw() {
       ${(P.hidden || []).map(h => `<div class="prow" style="padding-left:40px"><span class="notr" style="flex:1">${esc(h)}</span><button class="icon-btn" data-piph="${esc(h)}">${ic('x')}</button></div>`).join('')}`, 'Un bouton apparaît quand la souris passe sur une vidéo : la vidéo continue dans une petite fenêtre au-dessus des autres.') +
     sec('system', 'Système', `
       ${row('Mode d\'affichage des sites', '', sel('ua', [['desktop', 'Ordinateur'], ['mobile', 'Mobile']], b.ua))}
+      ${row('Lecteur PDF de DrYAE', 'Ouvre les PDF avec des outils pour surligner, écrire, dessiner et signer, puis enregistrer le PDF modifié (bouton « Enregistrer » du lecteur).', swk('pdfViewer', b.pdfViewer !== false))}
       ${row('Détecter les sous-titres', 'Dans le panneau des fichiers détectés.', sw('subs', b.captureSubtitles))}
       ${row('Types de fichiers supplémentaires à détecter', '', `<input type="text" id="extra" value="${esc(b.sniffExtra || '')}" placeholder="zip,rar,apk,pdf">`)}
       <div class="prow" style="flex-direction:column;align-items:stretch"><div class="tx"><b>${esc(TR('Exporter / importer toutes mes données'))}</b><span>${esc(TR('Un seul fichier avec vos réglages, favoris, liste des téléchargements et extensions — pour changer de PC librement, sans compte en ligne.'))}</span></div>
         <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:8px"><label class="hint" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="exHist"> ${esc(TR('Avec l\'historique'))}</label><label class="hint" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="exPw"> ${esc(TR('Avec les mots de passe'))}</label><input type="password" id="exPass" placeholder="${esc(TR('Mot de passe du fichier'))}" style="width:200px;display:none" autocomplete="new-password"></div>
+        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button class="btn sm" id="imOther">${ic('import')}${esc(TR('Importer depuis un autre navigateur…'))}</button></div>
         <div style="display:flex;gap:8px;margin-top:8px"><button class="btn sm primary" id="exGo">${ic('dl')}${esc(TR('Exporter…'))}</button><button class="btn sm" id="imGo">${ic('import')}${esc(TR('Importer…'))}</button></div></div>`) +
     sec('reset', 'Réinitialiser', `
       ${row('Rétablir les paramètres du navigateur par défaut', 'Les favoris, l\'historique, les mots de passe et les extensions sont conservés.', `<button class="btn sm danger" id="reset">${esc(TR('Réinitialiser'))}</button>`)}`) +
@@ -227,6 +244,8 @@ function bind() {
     else if (id === 'ua') await setB({ ua: t.value });
     else if (id === 'subs') await setB({ captureSubtitles: t.checked });
     else if (id === 'extra') await setB({ sniffExtra: t.value });
+    else if (id === 'kwList') await setB({ keywords: t.value.split('\n').map(l => l.split('|').map(x => x.trim())).filter(([k, u]) => k && /^https?:\/\/.*%s/.test(u || '')).map(([k, u]) => ({ k: k.slice(0, 12), name: k, url: u })).slice(0, 50) });
+    else if (id === 'keepAct') await setB({ tabsx: { ...(C.tabsx || {}), keepActive: t.value.split(/[\s,]+/).map(x => x.trim().replace(/^https?:\/\//, '').split('/')[0]).filter(Boolean) } });
     else if (t.dataset.root) { const [a, k] = t.dataset.root.split('.'); await setRoot(k ? { [a]: { [k]: t.checked } } : { [a]: t.checked }); }
     else if (id === 'exPw') { v('exPass').style.display = t.checked ? '' : 'none'; return; }
     else if (id === 'exHist' || id === 'exPass') return;
@@ -258,11 +277,43 @@ function bind() {
     if (id === 'updChk') { v('updTxt').textContent = TR('Recherche de mises à jour…'); await call('updateCheck'); ABOUT = await call('about'); draw(); }
     if (id === 'updGo') call('updateInstall');
     if (id === 'a11yKeys') D.call('showShortcuts');
+    if (id === 'keysReset') { await setB({ keyList: [] }); return draw(); }
+    if ((x = g('kdel'))) { await setB({ keyList: (C.keyList || []).filter(k => k.id !== x) }); return draw(); }
+    if ((x = g('kset'))) {
+      const btn = e.target.closest('[data-kset]'); btn.textContent = TR('Appuyez sur la combinaison…'); btn.focus();
+      btn.onkeydown = async ev => {
+        ev.preventDefault(); ev.stopPropagation();
+        if (['Control', 'Shift', 'Alt', 'Meta'].includes(ev.key)) return;
+        btn.onkeydown = null;
+        if (ev.key === 'Escape') return draw();
+        const k = Object.fromEntries((C.keyList || []).map(o => [o.id, o.c]));
+        if (ev.key === 'Backspace') delete k[x];
+        else {
+          const key = ev.key.length === 1 ? ev.key.toUpperCase() : ev.key.charAt(0).toUpperCase() + ev.key.slice(1);
+          if (!ev.ctrlKey && !ev.altKey && !/^F\d{1,2}$/.test(key) && !(ev.shiftKey && key === 'Escape')) { toast('Ajoutez Ctrl, Alt ou Maj (ou une touche F1 à F12)'); return draw(); }
+          const c = [ev.ctrlKey && 'Ctrl', ev.altKey && 'Alt', ev.shiftKey && 'Maj', key].filter(Boolean).join('+');
+          const other = Object.keys(k).find(a => a !== x && k[a] === c); if (other) delete k[other];
+          k[x] = c;
+        }
+        await setB({ keyList: Object.entries(k).map(([id, c]) => ({ id, c })) }); toast('Raccourci enregistré'); draw();
+      };
+      return;
+    }
     if (id === 'safeUpd') { toast('Mise à jour de la liste…'); const ok = await call('safeUpdate').catch(() => false); SAFE = await call('safeInfo').catch(() => ({})); toast(ok ? 'Liste des sites dangereux à jour' : 'Mise à jour impossible (connexion ?)'); draw(); }
     if (id === 'safety') runSafety();
     if (id === 'exGo') { const f = await call('exportAll', { history: v('exHist').checked, passwords: v('exPw').checked, password: v('exPass').value }).catch(() => null); if (f) toast(TRF('Données exportées : {0}', f.split(/[\\/]/).pop())); }
     if (id === 'imGo') importAll();
+    if (id === 'imOther') importOther();
   };
+}
+// favoris et historique d'un autre navigateur installé sur ce PC ; mots de passe : par leur export .csv
+async function importOther() {
+  const L = await call('importSources');
+  if (!L.length) return dialog({ title: TR('Aucun autre navigateur trouvé sur ce PC'), html: `<p class="hint">${esc(TR('Vous pouvez importer un fichier de favoris (.html) depuis le gestionnaire de favoris.'))}</p>`, cancel: '' });
+  const v = await dialog({ title: TR('Importer depuis un autre navigateur'), html: `<select id="imSrc" style="width:100%">${L.map(s => `<option value="${esc(s.key)}">${esc(s.name)}</option>`).join('')}</select><label class="hint" style="display:flex;gap:6px;margin-top:10px"><input type="checkbox" id="imB" checked> ${esc(TR('Favoris'))}</label><label class="hint" style="display:flex;gap:6px"><input type="checkbox" id="imH" checked> ${esc(TR('Historique'))}</label><p class="hint" style="margin-top:10px">${esc(TR('Mots de passe : dans l\'autre navigateur, exportez-les en fichier .csv, puis Gestionnaire de mots de passe → Importer.'))}</p>`, ok: 'Importer', read: d => ({ key: d.querySelector('#imSrc').value, b: d.querySelector('#imB').checked, h: d.querySelector('#imH').checked }) });
+  if (!v) return;
+  const r = await call('importFrom', v.key, { bookmarks: v.b, history: v.h }).catch(() => null);
+  if (r) toast(TRF('Importé de {0} : {1} favori(s), {2} page(s) d\'historique', r.name, r.bookmarks, r.history));
 }
 // import : le mot de passe du fichier est demandé s'il est protégé
 async function importAll(file, bad) {

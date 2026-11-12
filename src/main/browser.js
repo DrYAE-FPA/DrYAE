@@ -7,6 +7,7 @@ const { ElectronBlocker, adsLists } = require('@ghostery/adblocker-electron');
 const PRELOAD_PATH = path.resolve(require.resolve('@ghostery/adblocker-electron-preload'));
 const { extOf, hostOf, uniquePath, sanitize } = require('./util');
 const crypto = require('crypto');
+const { pathToFileURL } = require('url');
 const SAFE = require('./safe');
 const LOGW = (...a) => { try { require('./log').write('info', ...a); } catch {} };
 const pages = require('./pages');
@@ -438,6 +439,12 @@ class WebBrowser {
     });
     ses.webRequest.onHeadersReceived({ urls: ['<all_urls>'] }, (details, cb) => {
       try { this.sniff(details); } catch {}
+      // PDF ouvert dans un onglet : lecteur PDF de DrYAE (surligner, notes, signature), sauf si désactivé
+      if (details.resourceType === 'mainFrame' && this.B().pdfViewer !== false && details.webContentsId && /^https?:/.test(details.url)) {
+        const rh = details.responseHeaders || {}; const ct = String(rh[Object.keys(rh).find(k => k.toLowerCase() === 'content-type')] || '');
+        const cd = String(rh[Object.keys(rh).find(k => k.toLowerCase() === 'content-disposition')] || '');
+        if (/application\/pdf/i.test(ct) && !/attachment/i.test(cd)) { this.wc?.send('open-pdf', { wcId: details.webContentsId, url: details.url }); return cb({ cancel: true }); }
+      }
       // page de vérification Cloudflare : rien n'est filtré dans cet onglet tant qu'elle est affichée
       if (details.resourceType === 'mainFrame' && details.webContentsId) {
         const rh = details.responseHeaders || {}; const k = Object.keys(rh).find(x => x.toLowerCase() === 'cf-mitigated');
@@ -451,7 +458,8 @@ class WebBrowser {
     // (avant, l'identité changeait à chaque redirection entre les sites de Google : la page se rechargeait en boucle)
     ses.webRequest.onBeforeSendHeaders({ urls: ['<all_urls>'] }, (d, cb) => {
       const inLogin = (d.webContentsId && this.loginTabs.has(d.webContentsId)) || GOOGLE_LOGIN.test(hostOf(d.url));
-      if (!inLogin) return cb({});
+      // économiseur de données : les sites qui le gèrent envoient des pages plus légères
+      if (!inLogin) return cb(this.B().dataSaver ? { requestHeaders: { ...d.requestHeaders, 'Save-Data': 'on' } } : {});
       const h = { ...d.requestHeaders };
       for (const k of Object.keys(h)) if (/^sec-ch-ua/i.test(k)) delete h[k];
       h['User-Agent'] = UA_GOOGLE_LOGIN;
@@ -620,9 +628,12 @@ class WebBrowser {
       if (pages.isPageUrl(wc.getURL()) && c && !i.shift && ['f', 'a'].includes(k)) return;
       const fkey = /^f(1|3|5|6|11|12)$/.test(k) || (/^f[89]$/.test(k) && !i.alt);
       const plain = ['t', 'w', 'p', 'l', 'k', 'e', 'f', 'g', 'j', 'h', 'd', 'r', 's', 'u', 'm', 'tab', 'pageup', 'pagedown', 'f4', 'f5', '+', '=', '-', '0', '/'];
-      const withShift = ['t', 'n', 'p', 'o', 'a', 'y', 'i', 'q', 'r', 'g', 'b', 'd', 'e', 's', 'l', 'u', 'delete', 'tab', 'pageup', 'pagedown'];
-      const hit = fkey || (i.alt && !c && ['arrowleft', 'arrowright', 'home', 'd'].includes(k)) || (c && (i.shift ? withShift.includes(k) : (plain.includes(k) || /^[1-9]$/.test(k))));
-      if (!hit) return;
+      const withShift = ['t', 'n', 'p', 'o', 'a', 'x', 'y', 'i', 'q', 'r', 'g', 'b', 'd', 'e', 's', 'l', 'u', 'delete', 'tab', 'pageup', 'pagedown'];
+      const hit = fkey || (i.shift && !c && !i.alt && k === 'escape') || (i.alt && !c && ['arrowleft', 'arrowright', 'home', 'd', 'f', 'e'].includes(k)) || (c && (i.shift ? withShift.includes(k) : (plain.includes(k) || /^[1-9]$/.test(k))));
+      // raccourcis personnalisés : transmis aussi au navigateur
+      const combo = [c && 'ctrl', i.alt && 'alt', i.shift && 'maj', k].filter(Boolean).join('+');
+      const custom = (this.B().keyList || []).some(x => String(x.c).toLowerCase().replace(/\s/g, '') === combo);
+      if (!hit && !custom) return;
       ev.preventDefault();
       this.wc?.send('shortcut', { key: i.key, ctrl: !!c, shift: !!i.shift, alt: !!i.alt, wcId: wc.id });
     });
@@ -723,6 +734,8 @@ class WebBrowser {
         T.push({ label: `Copier l'adresse de ${lab}`, click: () => clipboard.writeText(p.srcURL) });
       }
       if (p.mediaType === 'image' && this.modOn('scan')) T.push({ label: "Traduire le texte de l'image", click: () => cmd('scan-one', { src: p.srcURL, x: p.x, y: p.y }) });
+      // lecture du texte de l'image, sans traduction, copié dans le presse-papiers (lu sur ce PC)
+      if (p.mediaType === 'image') T.push({ label: "Copier le texte de l'image", click: () => this.copyImageText(wc, p) });
       if (p.mediaType === 'video' && this.modOn('pip')) T.push({ label: 'Image dans l\'image', click: () => this.pipToggle(wc) });
     }
     if (T.length > before) T.push({ type: 'separator' });
@@ -854,6 +867,60 @@ class WebBrowser {
   }
 
   // ---------- historique ----------
+  async copyImageText(wc, p) {
+    const T = global.DRYAE_T || (s => s);
+    const say = m => { try { wc.send('dryae-cmd', { cmd: 'hint', text: T(m) }); } catch {} this.main.notify?.('DrYAE', m); };
+    try {
+      let buf = null;
+      if (/^https?:/.test(p.srcURL)) { const r = await wc.session.fetch(p.srcURL, { headers: { Referer: wc.getURL() } }); if (r.ok) buf = Buffer.from(await r.arrayBuffer()); }
+      const { nativeImage } = require('electron');
+      let img = buf ? nativeImage.createFromBuffer(buf) : null;
+      if (buf && (!img || img.isEmpty())) img = await this.decodeImage(buf).catch(() => null);
+      if (!img || img.isEmpty()) return say("Image illisible");
+      let sz = img.getSize(); if (sz.width < 700) { img = img.resize({ width: sz.width * 2, quality: 'best' }); sz = img.getSize(); }
+      const bm = img.toBitmap(); for (let i = 0; i < bm.length; i += 4) { const t = bm[i]; bm[i] = bm[i + 2]; bm[i + 2] = t; }
+      const gs = await require('./paddle-ocr').readBubbles({ width: sz.width, height: sz.height, data: bm });
+      const text = readingOrder(gs).map(g => g.text).join('\n');
+      if (!text.trim()) return say("Aucun texte trouvé dans l'image");
+      clipboard.writeText(text);
+      say('Texte de l\'image copié');
+    } catch (e) { say('Lecture impossible : ' + e.message); }
+  }
+  // import depuis un autre navigateur : favoris rangés dans « Autres favoris → Importés de … », historique ajouté
+  async importFrom(key, o = {}) {
+    const IM = require('./importer');
+    const src = IM.detect().find(s => s.key === key); if (!src) throw new Error('Navigateur introuvable');
+    const r = await IM.read(src, o);
+    let nb = 0, nh = 0;
+    if (r.bookmarks && r.bookmarks.children.length) {
+      const have = new Set(this.bmFlat().map(b => b.url));
+      const add = (n, pid) => { if (n.type === 'url') { if (!have.has(n.url)) { this.bmAdd({ parentId: pid, url: n.url, title: n.title }); have.add(n.url); nb++; } } else { const f = this.bmAdd({ parentId: pid, type: 'folder', title: n.title }); n.children.forEach(c => add(c, f.id)); } };
+      const top = this.bmAdd({ parentId: 'other', type: 'folder', title: 'Importés de ' + src.name });
+      r.bookmarks.children.forEach(c => add(c, top.id));
+      if (!nb) this.bmRemove([top.id]);
+    }
+    if (r.history.length) {
+      const seen = new Set(this.store.history.map(h => h.url));
+      const extra = r.history.filter(h => !seen.has(h.url));
+      this.store.history = [...this.store.history, ...extra].sort((a, b) => b.t - a.t).slice(0, 10000); nh = extra.length;
+      this.histChanged();
+    }
+    this.store.importAsked = true; this.saveStore(); this.bmChanged();
+    return { bookmarks: nb, history: nh, name: src.name };
+  }
+  // mémoire (Mo) et processeur (%) de chaque onglet
+  metrics() {
+    const byPid = new Map(app.getAppMetrics().map(m => [m.pid, m]));
+    const out = {};
+    for (const wc of webContents.getAllWebContents()) {
+      try {
+        if (wc.isDestroyed()) continue;
+        const m = byPid.get(wc.getOSProcessId()); if (!m) continue;
+        out[wc.id] = { mem: Math.round(m.memory?.workingSetSize || 0), cpu: Math.round((m.cpu?.percentCPUUsage || 0) * 10) / 10, type: wc.getType(), url: wc.getURL(), title: wc.getTitle() };
+      } catch {}
+    }
+    return out;
+  }
   // ---------- autorisations par site ----------
   permOf(host, kind) { const p = (this.store.perms || {})[host] || {}; return p[kind] || (kind === 'notifications' ? 'block' : 'ask'); }
   setPerm(host, kind, v) {
@@ -935,6 +1002,29 @@ class WebBrowser {
     P('theme', () => this.theme());
     P('a11y', () => this.main.a11y?.() || {});
     P('safeInfo', () => SAFE.info());
+    P('importSources', () => { try { return require('./importer').detect().map(({ key, name, kind }) => ({ key, name, kind })); } catch { return []; } });
+    P('importFrom', (key, o) => this.importFrom(key, o));
+    // gestionnaire des tâches
+    P('tasks', () => {
+      const procs = app.getAppMetrics();
+      const byPid = new Map(procs.map(m => [m.pid, m]));
+      const rows = [], used = new Set();
+      const ext = new Map(); try { for (const e of (session.fromPartition(PART).extensions || session.fromPartition(PART)).getAllExtensions()) ext.set(e.id, e.name); } catch {}
+      for (const wc of webContents.getAllWebContents()) {
+        try {
+          if (wc.isDestroyed()) continue;
+          const pid = wc.getOSProcessId(), m = byPid.get(pid); const u = wc.getURL(), t = wc.getType();
+          let kind = 'Onglet', name = wc.getTitle() || u;
+          if (t === 'backgroundPage' || /^chrome-extension:/.test(u)) { kind = 'Extension'; name = ext.get((/^chrome-extension:\/\/([a-p]{32})/.exec(u) || [])[1]) || name; }
+          else if (t !== 'webview') { kind = 'DrYAE'; name = /browser\.html/.test(u) ? 'Barre du navigateur' : /index\.html/.test(u) ? 'Gestionnaire de téléchargements' : name; }
+          if (m) used.add(pid);
+          rows.push({ id: wc.id, kind, name, url: /^https?:/.test(u) ? u : '', mem: m ? Math.round(m.memory.workingSetSize) : 0, cpu: m ? Math.round(m.cpu.percentCPUUsage * 10) / 10 : 0, end: t === 'webview' && !/^dryae:/.test(u) });
+        } catch {}
+      }
+      for (const m of procs) if (!used.has(m.pid)) rows.push({ id: 0, kind: 'Système', name: { Browser: 'DrYAE (principal)', GPU: 'Carte graphique', Utility: 'Service (' + (m.name || m.serviceName || '') + ')', Zygote: 'Démarrage' }[m.type] || m.type, url: '', mem: Math.round(m.memory.workingSetSize), cpu: Math.round(m.cpu.percentCPUUsage * 10) / 10, end: false });
+      return rows.sort((a, b) => b.mem - a.mem);
+    });
+    P('taskEnd', id => { this.wc?.send('close-wc', id); return true; });
     // exporter / importer toutes ses données (un seul fichier, sans compte en ligne)
     P('exportAll', async (o = {}) => {
       const TX = require('./transfer');
@@ -1265,6 +1355,65 @@ class WebBrowser {
     ipcMain.handle('br:feedback', () => this.main.openFeedback?.());
     ipcMain.handle('br:closeExtPopups', () => { try { if (this.extPopup && !this.extPopup.isDestroyed()) this.extPopup.destroy(); } catch {} this.extPopup = null; });
     ipcMain.handle('br:report', () => this.main.report?.());
+    // ---- 1.6.9 : outils des onglets ----
+    // mémoire et processeur par onglet (gestionnaire des tâches, aperçu au survol)
+    ipcMain.handle('br:metrics', () => this.metrics());
+    ipcMain.handle('br:importSources', () => { try { return require('./importer').detect().map(({ key, name, kind }) => ({ key, name, kind })); } catch { return []; } });
+    ipcMain.handle('br:importFrom', (_e, key, o) => this.importFrom(key, o));
+    ipcMain.handle('br:importAsked', () => { this.store.importAsked = true; this.saveStore(); });
+    ipcMain.handle('br:historyRecent', (_e, n) => this.histDays('').slice(0, Math.min(200, +n || 50)));
+    ipcMain.handle('br:trText', async (_e, text) => { const to = (this.B().translate || {}).target || this.settings.get().lang || 'fr'; const r = await M.translate([String(text || '').slice(0, 5000)], to, 'auto', this.B().translate || {}); return { text: r.texts[0], from: r.from }; });
+    // premier lancement : proposer d'importer favoris et historique d'un autre navigateur
+    ipcMain.handle('br:importOffer', () => { if (this.store.importAsked) return []; try { return require('./importer').detect().map(({ key, name }) => ({ key, name })); } catch { return []; } });
+    ipcMain.handle('br:pickImage', async () => {
+      const r = await dialog.showOpenDialog(this.win, { title: 'Image de fond', properties: ['openFile'], filters: [{ name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'webp', 'gif'] }] });
+      if (r.canceled || !r.filePaths[0]) return '';
+      const { nativeImage } = require('electron'); let img = nativeImage.createFromPath(r.filePaths[0]); if (img.isEmpty()) return '';
+      const sz = img.getSize(); if (sz.width > 1920) img = img.resize({ width: 1920, quality: 'good' });
+      return 'data:image/jpeg;base64,' + img.toJPEG(82).toString('base64');
+    });
+    // petite image de l'onglet (aperçu au survol)
+    ipcMain.handle('br:thumb', async (_e, wcId) => { try { const wc = webContents.fromId(wcId); if (!wc || wc.isDestroyed()) return ''; const img = await wc.capturePage(); return img.isEmpty() ? '' : img.resize({ width: 240, quality: 'good' }).toDataURL(); } catch { return ''; } });
+    // capture de la page entière (même la partie qu'il faut faire défiler)
+    ipcMain.handle('br:fullshot', async (_e, wcId) => {
+      const wc = webContents.fromId(wcId); if (!wc || wc.isDestroyed()) return '';
+      const dbg = wc.debugger; let attached = false;
+      try {
+        if (!dbg.isAttached()) { dbg.attach('1.3'); attached = true; }
+        const m = await dbg.sendCommand('Page.getLayoutMetrics');
+        const cs = m.cssContentSize || m.contentSize; const W = Math.ceil(cs.width), H = Math.min(Math.ceil(cs.height), 16000);
+        const r = await dbg.sendCommand('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true, clip: { x: 0, y: 0, width: W, height: H, scale: 1 } });
+        const buf = Buffer.from(r.data, 'base64');
+        const dir = path.join(app.getPath('pictures'), 'DrYAE'); await fsp.mkdir(dir, { recursive: true });
+        const d = new Date(), pad = n => String(n).padStart(2, '0');
+        const f = path.join(dir, `page-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}.png`);
+        await fsp.writeFile(f, buf);
+        try { const { nativeImage } = require('electron'); clipboard.writeImage(nativeImage.createFromBuffer(buf)); } catch {}
+        return f;
+      } catch (e) { LOGW('capture', e.message); return ''; } finally { if (attached) try { dbg.detach(); } catch {} }
+    });
+    // page gardée pour la lire sans internet (un seul fichier .mhtml)
+    ipcMain.handle('br:saveOffline', async (_e, wcId) => {
+      const wc = webContents.fromId(wcId); if (!wc || wc.isDestroyed()) return null;
+      const dir = path.join(this.userDir, 'offline'); await fsp.mkdir(dir, { recursive: true });
+      const id = Date.now().toString(36); const f = path.join(dir, id + '.mhtml');
+      await wc.savePage(f, 'MHTML');
+      const st = await fsp.stat(f);
+      const it = { id, url: wc.getURL(), title: wc.getTitle() || wc.getURL(), t: Date.now(), size: st.size, fav: (this.store.favs || {})[hostOf(wc.getURL())] || '' };
+      this.store.offline = [it, ...(this.store.offline || [])].slice(0, 500); this.saveStore(); pages.broadcast('offline');
+      return it;
+    });
+    ipcMain.handle('br:offlineList', () => this.store.offline || []);
+    ipcMain.handle('br:offlineOpen', (_e, id) => { const it = (this.store.offline || []).find(x => x.id === id); return it ? pathToFileURL(path.join(this.userDir, 'offline', it.id + '.mhtml')).href : ''; });
+    ipcMain.handle('br:offlineDel', async (_e, id) => { this.store.offline = (this.store.offline || []).filter(x => x.id !== id); await fsp.rm(path.join(this.userDir, 'offline', id + '.mhtml'), { force: true }).catch(() => {}); this.saveStore(); pages.broadcast('offline'); return true; });
+    // code QR de l'adresse (ouvrir la page sur un téléphone)
+    ipcMain.handle('br:qr', async (_e, text) => require('qrcode').toDataURL(String(text || '').slice(0, 2000), { margin: 1, width: 260, errorCorrectionLevel: 'M' }));
+    // notes rapides liées aux pages (gardées sur ce PC)
+    ipcMain.handle('br:notes', () => this.store.notes || {});
+    ipcMain.handle('br:noteSet', (_e, url, text) => { const N = this.store.notes || (this.store.notes = {}); const k = String(url || '').split('#')[0]; if (!k) return; if (String(text || '').trim()) N[k] = { text: String(text).slice(0, 20000), t: Date.now(), title: webContents.getAllWebContents().find(w => !w.isDestroyed() && w.getURL().split('#')[0] === k)?.getTitle() || N[k]?.title || k }; else delete N[k]; this.saveStore(); return true; });
+    // économiseur d'énergie : sur batterie ?
+    ipcMain.handle('br:power', () => { try { const { powerMonitor } = require('electron'); return { battery: powerMonitor.isOnBatteryPower() }; } catch { return { battery: false }; } });
+    ipcMain.handle('br:frameRate', (_e, wcIds, fps) => { for (const id of wcIds || []) { try { const wc = webContents.fromId(id); if (wc && !wc.isDestroyed()) wc.setFrameRate(fps); } catch {} } });
     for (const k of ['profiles', 'profileAdd', 'profileOpen', 'profileDelete']) ipcMain.handle('br:' + k, (_e, ...a) => this.main.ipc?.(k, ...a));
     ipcMain.handle('br:search', (_e, q) => this.searchUrl(q));
     ipcMain.handle('br:updateAdblock', () => this.updateBlocker(true));
@@ -1303,6 +1452,7 @@ class WebBrowser {
         hides: this.modOn('adblock') && !this.loginTabs.has(e.sender.id) ? ((this.store.hides || {})[host] || []) : [],
         a11y: this.main.a11y?.() || {},
         reader: B.reader || {},
+        dataSaver: !!B.dataSaver,
         cookieRefuse: B.cookieRefuse !== false && !(B.cookieRefuseOff || []).includes(host),
       };
     });
