@@ -64,18 +64,18 @@
       <button data-f="paused"><svg><use href="#i-pause"/></svg>En pause<span class="count" data-c="paused"></span></button>
       <button data-f="scheduled"><svg><use href="#i-clock"/></svg>Planifiés<span class="count" data-c="scheduled"></span></button>
       <button data-f="error"><svg><use href="#i-err"/></svg>Échecs<span class="count" data-c="error"></span></button>
-      <h4>Types</h4>
-      <button data-f="torrent"><svg><use href="#i-magnet"/></svg>Torrents<span class="count" data-c="torrent"></span></button>
-      <button data-f="ytdl"><svg><use href="#i-yt"/></svg>Vidéos en ligne<span class="count" data-c="ytdl"></span></button>
-      <button data-f="hls"><svg><use href="#i-stream"/></svg>Flux vidéo<span class="count" data-c="hls"></span></button>
-      <h4>Catégories</h4>
-      <button data-f="video"><svg><use href="#i-video"/></svg>Vidéos<span class="count" data-c="video"></span></button>
-      <button data-f="audio"><svg><use href="#i-audio"/></svg>Musique<span class="count" data-c="audio"></span></button>
-      <button data-f="doc"><svg><use href="#i-doc"/></svg>Documents<span class="count" data-c="doc"></span></button>
-      <button data-f="img"><svg><use href="#i-img"/></svg>Images<span class="count" data-c="img"></span></button>
-      <button data-f="arc"><svg><use href="#i-arc"/></svg>Archives<span class="count" data-c="arc"></span></button>
-      <button data-f="app"><svg><use href="#i-app"/></svg>Programmes<span class="count" data-c="app"></span></button>
-      <button data-f="other"><svg><use href="#i-list"/></svg>Autres<span class="count" data-c="other"></span></button>
+      <h4 class="adv">Types</h4>
+      <button data-f="torrent" class="adv"><svg><use href="#i-magnet"/></svg>Torrents<span class="count" data-c="torrent"></span></button>
+      <button data-f="ytdl" class="adv"><svg><use href="#i-yt"/></svg>Vidéos en ligne<span class="count" data-c="ytdl"></span></button>
+      <button data-f="hls" class="adv"><svg><use href="#i-stream"/></svg>Flux vidéo<span class="count" data-c="hls"></span></button>
+      <h4 class="adv">Catégories</h4>
+      <button data-f="video" class="adv"><svg><use href="#i-video"/></svg>Vidéos<span class="count" data-c="video"></span></button>
+      <button data-f="audio" class="adv"><svg><use href="#i-audio"/></svg>Musique<span class="count" data-c="audio"></span></button>
+      <button data-f="doc" class="adv"><svg><use href="#i-doc"/></svg>Documents<span class="count" data-c="doc"></span></button>
+      <button data-f="img" class="adv"><svg><use href="#i-img"/></svg>Images<span class="count" data-c="img"></span></button>
+      <button data-f="arc" class="adv"><svg><use href="#i-arc"/></svg>Archives<span class="count" data-c="arc"></span></button>
+      <button data-f="app" class="adv"><svg><use href="#i-app"/></svg>Programmes<span class="count" data-c="app"></span></button>
+      <button data-f="other" class="adv"><svg><use href="#i-list"/></svg>Autres<span class="count" data-c="other"></span></button>
     </nav>
     <div class="side-foot">
       <div class="speedbox">
@@ -90,7 +90,7 @@
     <div class="top">
       <div class="split">
         <button class="btn primary" id="addBtn" title="Ctrl+N"><svg><use href="#i-plus"/></svg>Ajouter</button>
-        <button class="btn primary" id="addMenuBtn"><svg><use href="#i-down"/></svg></button>
+        <button class="btn primary" id="addMenuBtn" title="Autres façons d'ajouter (torrent, liste de liens…)"><svg><use href="#i-down"/></svg></button>
       </div>
       <button class="btn" id="resumeAll"><svg><use href="#i-play"/></svg>Tout reprendre</button>
       <button class="btn" id="pauseAll"><svg><use href="#i-pause"/></svg>Tout en pause</button>
@@ -335,6 +335,7 @@
       </section>
       <section data-s="look">
         <h4>Apparence</h4>
+        <div class="row" style="margin:4px 0 10px"><button class="btn" id="lA11y"><svg><use href="#i-info"/></svg>Accessibilité : taille du texte, contraste, lecture facilitée…</button></div>
         <label>Thème</label>
         <select id="lMode"><option value="dark">Sombre</option><option value="amoled">Noir (AMOLED)</option><option value="light">Clair</option><option value="system">Suivre Windows</option></select>
         <label>Couleur d'accent</label>
@@ -362,6 +363,7 @@
 <div class="toast" id="toast"></div>
 <script src="../shared/locales.js"></script>
 <script src="../shared/i18n.js"></script>
+<script src="../shared/a11y.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

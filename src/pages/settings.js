@@ -3,7 +3,7 @@ let C = null, STATS = null, OCR = null, ABOUT = null, LANGS = [];
 shell('Paramètres', null, 'Rechercher dans les paramètres');
 const search = $('#q');
 const SECS = [
-  ['startup', 'power', 'Au démarrage'], ['look', 'palette', 'Apparence'], ['search', 'search', 'Moteur de recherche'], ['autofill', 'key', 'Saisie automatique et mots de passe'],
+  ['startup', 'power', 'Au démarrage'], ['look', 'palette', 'Apparence'], ['a11y', 'eye', 'Accessibilité'], ['search', 'search', 'Moteur de recherche'], ['autofill', 'key', 'Saisie automatique et mots de passe'],
   ['privacy', 'shield', 'Confidentialité et sécurité'], ['downloads', 'dl', 'Téléchargements'], ['langs', 'lang', 'Langues'],
   ['-', '', 'Extensions intégrées'], ['adblock', 'shield', 'Bloqueur de publicités'], ['translate', 'translate', 'Traducteur'], ['scan', 'scan', 'Traducteur de scans'], ['lights', 'bulb', 'Lumières tamisées'], ['pip', 'pip', "Image dans l'image"],
   ['-', '', ''], ['system', 'sys', 'Système'], ['reset', 'reload', 'Réinitialiser'], ['extensions', 'puzzle', 'Extensions'], ['about', 'info', 'À propos de DrYAE'],
@@ -43,6 +43,7 @@ function draw() {
   const b = C, T2 = b.translate || {}, S = b.scan || {}, L = b.lights || {}, P = b.pip || {}, AL = b.adLists || {}, N = b.nativeDl || {};
   const theme = b.rawTheme || {};
   const startPages = (b.startupPages || []);
+  const AX = b.a11yRaw || {};
   const hides = STATS.hides || {};
   const upd = ABOUT.update || {};
   const updTxt = { checking: 'Recherche de mises à jour…', available: 'DrYAE {0} est disponible.', downloading: 'Téléchargement de la mise à jour… {0} %', ready: 'La mise à jour {0} est prête.', latest: 'DrYAE est à jour.', error: 'Vérification impossible.' }[upd.status] || '';
@@ -57,6 +58,14 @@ function draw() {
       ${row('Couleur d\'accent', 'La couleur choisie dans Windows, ou la vôtre.', `<label class="hint" style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="accSys" ${!theme.accent || theme.accent === 'system' ? 'checked' : ''}> ${esc(TR('Couleur de Windows'))}</label><input type="color" id="acc" value="${/^#[0-9a-f]{6}$/i.test(theme.accent || '') ? theme.accent : '#8b5cf6'}" style="width:44px;height:30px;padding:2px;border-radius:6px">`)}
       ${row('Afficher la barre de favoris', 'Raccourci : Ctrl+Maj+B', sw('bar', b.showBookmarksBar))}
       ${row('Afficher le bouton Accueil', '', sw('home', b.showHome !== false))}`) +
+    sec('a11y', 'Accessibilité', `
+      ${row('Taille du texte de DrYAE', 'Menus, barre d\'outils et gestionnaire (les pages web gardent leur zoom : Ctrl + / Ctrl −).', `<input type="range" id="a11yScale" min="80" max="200" step="10" value="${AX.scale || 100}" style="width:200px" aria-label="${esc(TR('Taille du texte de DrYAE'))}"><b id="a11yScaleV" style="width:52px;text-align:right">${AX.scale || 100} %</b>`)}
+      ${row('Contraste élevé', 'Texte blanc sur fond noir, contours épais. « Comme Windows » suit le thème de contraste de Windows.', sel('a11yContrast', [['auto', 'Comme Windows'], ['on', 'Activé'], ['off', 'Désactivé']], AX.contrast || 'auto'))}
+      ${row('Lecture facilitée', 'Police simple, lettres et mots plus espacés, dans DrYAE et dans les pages (aide les personnes dyslexiques).', sw('a11yEasy', !!AX.easy))}
+      ${row('Réduire les animations', '« Comme Windows » suit le réglage « Effets d\'animation » de Windows.', sel('a11yMotion', [['auto', 'Comme Windows'], ['on', 'Activé'], ['off', 'Désactivé']], AX.motion || 'auto'))}
+      ${row('Mode simple', 'Seulement les boutons essentiels. Les fonctions avancées restent dans les Paramètres.', sw('a11ySimple', !!AX.simple))}
+      ${row('Clavier', 'Tab : élément suivant · F6 : barre d\'adresse, boutons, page · Alt+F : menu · Échap : fermer · F1 : tous les raccourcis.', `<button class="btn sm" id="a11yKeys">${esc(TR('Raccourcis clavier'))}</button>`)}
+      ${row('Lecteurs d\'écran', 'DrYAE fonctionne avec les lecteurs d\'écran (par exemple NVDA, gratuit, ou le Narrateur de Windows : Ctrl+Windows+Entrée).', '')}`, 'Pour que chacun puisse utiliser DrYAE confortablement.') +
     sec('search', 'Moteur de recherche', `
       ${row('Moteur de recherche utilisé dans la barre d\'adresse', '', sel('eng', [['google', 'Google'], ['bing', 'Bing'], ['duckduckgo', 'DuckDuckGo'], ['qwant', 'Qwant'], ['brave', 'Brave'], ['ecosia', 'Ecosia'], ['startpage', 'Startpage'], ['yahoo', 'Yahoo']], b.search))}`) +
     sec('autofill', 'Saisie automatique et mots de passe', `
@@ -170,6 +179,7 @@ function bind() {
     if (t.name === 'st') { await setB({ startup: t.value }); await setRoot({ restoreSession: t.value === 'restore' }); v('spRow').style.display = t.value === 'pages' ? '' : 'none'; }
     else if (id === 'sp') await setB({ startupPages: t.value.split(/\n+/).map(x => x.trim()).filter(Boolean).map(x => (/^[a-z]+:\/\//i.test(x) ? x : 'https://' + x)) });
     else if (id === 'theme') await setRoot({ theme: { ...(C.rawTheme || {}), mode: t.value } });
+    else if (id.startsWith('a11y')) { const k = { a11yScale: 'scale', a11yContrast: 'contrast', a11yEasy: 'easy', a11yMotion: 'motion', a11ySimple: 'simple' }[id]; if (!k) return; await setRoot({ a11y: { ...(C.a11yRaw || {}), [k]: t.type === 'checkbox' ? t.checked : k === 'scale' ? +t.value : t.value } }); }
     else if (id === 'acc' || id === 'accSys') await setRoot({ theme: { ...(C.rawTheme || {}), accent: v('accSys').checked ? 'system' : v('acc').value } });
     else if (id === 'bar') await setB({ showBookmarksBar: t.checked });
     else if (id === 'home') await setB({ showHome: t.checked });
@@ -201,7 +211,7 @@ function bind() {
     else return;
     toast('Paramètre enregistré');
   };
-  w.oninput = e => { if (e.target.id === 'liOp') v('liOpV').textContent = e.target.value + ' %'; };
+  w.oninput = e => { if (e.target.id === 'liOp') v('liOpV').textContent = e.target.value + ' %'; if (e.target.id === 'a11yScale') v('a11yScaleV').textContent = e.target.value + ' %'; };
   w.onclick = async e => {
     const g = a => e.target.closest('[data-' + a + ']')?.dataset[a];
     let x;
@@ -222,6 +232,7 @@ function bind() {
     if (id === 'reset') { if (await confirmBox(TR('Rétablir les paramètres du navigateur par défaut ?'), 'Réinitialiser')) { C = await call('resetBrowser'); draw(); toast('Paramètres réinitialisés'); } }
     if (id === 'updChk') { v('updTxt').textContent = TR('Recherche de mises à jour…'); await call('updateCheck'); ABOUT = await call('about'); draw(); }
     if (id === 'updGo') call('updateInstall');
+    if (id === 'a11yKeys') D.call('showShortcuts');
   };
 }
 D.on('update-state', async () => { ABOUT = await call('about'); if ($('#s-about')) draw(); });

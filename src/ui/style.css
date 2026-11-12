@@ -241,3 +241,22 @@ textarea{min-height:90px;resize:vertical;font-family:Consolas,monospace;font-siz
 .updcard .uc-ic svg{width:20px;height:20px}
 .updcard .uc-tx{flex:1;min-width:0}.updcard .uc-tx b{display:block}.updcard .uc-tx span{display:block;color:var(--muted);font-size:12px;margin:2px 0 6px}
 .updcard .uc-bar{height:5px;border-radius:9px;background:var(--line);overflow:hidden}.updcard .uc-bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .3s}
+
+/* ---------- 1.6.9 : accessibilité (Paramètres → Accessibilité) ---------- */
+/* clavier : cadre bien visible autour de l'élément choisi */
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+/* contraste élevé : texte blanc sur noir, accents jaunes, bordures épaisses */
+html.a-hc{--bg:#000;--panel:#000;--panel2:#0b0b0b;--panel3:#161616;--line:#fff;--line2:#fff;--text:#fff;--muted:#fff;--dim:#e6e6e6;--accent:#ffd400;--accent-soft:#ffd40030;--accent-line:#ffd400;--ok:#4cff7a;--err:#ff6b6b;--warn:#ffd400}
+html.a-hc button,html.a-hc input,html.a-hc select,html.a-hc textarea,html.a-hc .modal,html.a-hc .pop,html.a-hc .menu{border:2px solid #fff!important}
+html.a-hc a{color:#ffd400!important;text-decoration:underline!important}
+html.a-hc :focus-visible{outline:3px solid #ffd400;outline-offset:2px}
+html.a-hc img,html.a-hc svg{filter:none}
+/* lecture facilitée : police simple, lettres et mots plus espacés */
+html.a-easy body,html.a-easy button,html.a-easy input,html.a-easy select,html.a-easy textarea{font-family:Verdana,Tahoma,"Segoe UI",sans-serif!important;letter-spacing:.04em!important;word-spacing:.14em!important;line-height:1.55}
+/* animations réduites */
+html.a-rm *,html.a-rm *::before,html.a-rm *::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
+@media (prefers-reduced-motion:reduce){html:not(.a-motion) *,html:not(.a-motion) *::before,html:not(.a-motion) *::after{animation-duration:.001ms!important;transition-duration:.001ms!important;scroll-behavior:auto!important}}
+/* mode simple : seulement l'essentiel */
+html.a-simple .adv{display:none!important}
+/* texte pour les lecteurs d'écran seulement */
+.sr-only{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}

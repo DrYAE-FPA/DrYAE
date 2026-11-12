@@ -88,6 +88,12 @@ class WebBrowser {
     if (!t.accent || t.accent === 'system') { let c = null; try { c = require('electron').systemPreferences.getAccentColor?.(); } catch {} t.accent = c ? '#' + c.slice(0, 6) : '#8b5cf6'; }
     return t;
   }
+  // accessibilité : taille du texte de la barre du navigateur, styles des fenêtres DrYAE et des pages
+  applyA11y(e) {
+    try { this.wc?.setZoomFactor(e.scale / 100); } catch {}
+    this.wc?.send('a11y', e); pages.broadcast('a11y', e);
+    for (const wc of webContents.getAllWebContents()) { try { if (wc.getType() === 'webview' && /^https?:/.test(wc.getURL())) wc.send('dryae-cmd', { cmd: 'a11y', ...e }); } catch {} }
+  }
   sendTheme() { this.wc?.send('theme', this.theme()); pages.broadcast('theme', this.theme()); }
   // fichier de cookies (format Netscape) pour yt-dlp, à partir de la session du navigateur
   async cookieFile(url) {
@@ -133,7 +139,7 @@ class WebBrowser {
     ipcMain.handle('@ghostery/adblocker/is-mutation-observer-enabled', e => this.blocker?.onIsMutationObserverEnabled(e));
   }
   // réglages envoyés à l'interface du navigateur
-  cfg() { return { ...this.B(), theme: this.theme(), rawTheme: this.settings.get().theme || {}, restoreSession: this.settings.get().restoreSession, searchUrl: SEARCH[this.B().search] || SEARCH.google, ua: this.B().ua, partitions: { normal: PART, incognito: PART_PRIV }, mods: Object.fromEntries(M.MODULES.map(m => [m.id, { ...M.MOD_DEFAULT, ...(this.B().modules || {})[m.id], on: this.modOn(m.id) }])), lang: this.settings.get().lang }; }
+  cfg() { return { ...this.B(), theme: this.theme(), rawTheme: this.settings.get().theme || {}, restoreSession: this.settings.get().restoreSession, searchUrl: SEARCH[this.B().search] || SEARCH.google, ua: this.B().ua, partitions: { normal: PART, incognito: PART_PRIV }, mods: Object.fromEntries(M.MODULES.map(m => [m.id, { ...M.MOD_DEFAULT, ...(this.B().modules || {})[m.id], on: this.modOn(m.id) }])), lang: this.settings.get().lang, a11y: this.main.a11y?.() || {}, a11yRaw: this.settings.get().a11y || {} }; }
   pushCfg() { clearTimeout(this._pc); this._pc = setTimeout(() => { this.wc?.send('cfg', this.cfg()); pages.broadcast('cfg', this.cfg()); }, 50); }
 
   // ---------- extensions Chrome (Chrome Web Store + dossiers) ----------
@@ -522,6 +528,7 @@ class WebBrowser {
       webPreferences: { preload: this.uiPreload(), webviewTag: true, contextIsolation: true, sandbox: true },
     });
     this.view.setBackgroundColor('#0d0f14');
+    this.view.webContents.on('dom-ready', () => { try { const e = this.main.a11y?.(); if (e) this.view.webContents.setZoomFactor(e.scale / 100); } catch {} });
     host.contentView.addChildView(this.view);
     const wc = this.view.webContents;
     // préférences imposées à chaque onglet : scripts DrYAE aussi dans les iframes (vérifications anti-robot)
@@ -586,7 +593,7 @@ class WebBrowser {
       const k = String(i.key || '').toLowerCase(), c = i.control || i.meta;
       // dans les pages internes, Ctrl+F et Ctrl+A restent à la page (recherche et sélection de la liste)
       if (pages.isPageUrl(wc.getURL()) && c && !i.shift && ['f', 'a'].includes(k)) return;
-      const fkey = /^f(1|3|5|6|11|12)$/.test(k);
+      const fkey = /^f(1|3|5|6|11|12)$/.test(k) || (/^f[89]$/.test(k) && !i.alt);
       const plain = ['t', 'w', 'p', 'l', 'k', 'e', 'f', 'g', 'j', 'h', 'd', 'r', 's', 'u', 'm', 'tab', 'pageup', 'pagedown', 'f4', 'f5', '+', '=', '-', '0', '/'];
       const withShift = ['t', 'n', 'p', 'o', 'a', 'y', 'i', 'q', 'r', 'g', 'b', 'd', 'e', 's', 'l', 'u', 'delete', 'tab', 'pageup', 'pagedown'];
       const hit = fkey || (i.alt && !c && ['arrowleft', 'arrowright', 'home', 'd'].includes(k)) || (c && (i.shift ? withShift.includes(k) : (plain.includes(k) || /^[1-9]$/.test(k))));
@@ -881,6 +888,7 @@ class WebBrowser {
     const P = pages.on;
     P('cfg', () => this.cfg());
     P('theme', () => this.theme());
+    P('a11y', () => this.main.a11y?.() || {});
     P('open', (url, o = {}) => {
       if (typeof url !== 'string' || !/^(https?|dryae|chrome-extension):/i.test(url)) return;
       const me = pages.sender;
@@ -890,7 +898,8 @@ class WebBrowser {
     P('openPage', (name, hash) => this.openPage(name, hash));
     P('openManager', () => this.main.showMain());
     P('setBrowser', patch => { this.settings.set({ browser: patch }); if (patch && 'adblock' in patch) { this.settings.set({ browser: { modules: { adblock: { enabled: !!patch.adblock } } } }); } return this.cfg(); });
-    P('setRoot', patch => { const ok = ['restoreSession', 'theme', 'lang']; const p = {}; for (const k of ok) if (k in (patch || {})) p[k] = patch[k]; this.settings.set(p); if (p.lang) this.main.setLang?.(p.lang); return this.cfg(); });
+    P('showShortcuts', () => this.wc?.send('show-shortcuts'));
+    P('setRoot', patch => { const ok = ['restoreSession', 'theme', 'lang', 'a11y']; const p = {}; for (const k of ok) if (k in (patch || {})) p[k] = patch[k]; this.settings.set(p); if (p.lang) this.main.setLang?.(p.lang); return this.cfg(); });
     P('resetBrowser', () => { const def = this.settings.def.browser; const keep = { modules: this.B().modules, filterLists: this.B().filterLists, customFilters: this.B().customFilters }; this.settings.set({ browser: { ...JSON.parse(JSON.stringify(def)), ...keep } }); return this.cfg(); });
     P('about', () => ({ version: app.getVersion(), chrome: process.versions.chrome, electron: process.versions.electron, update: this.main.updateInfo?.() }));
     P('updateCheck', () => this.main.updateCheck?.());
@@ -1204,6 +1213,8 @@ class WebBrowser {
         lights: this.modOn('lights') && !isInt ? (() => { const l = B.lights || {}; return { ...l, global: !!this.lightsGlobal, night: (l.nightHosts || []).includes(host) || this.nightBySchedule(host), nightOff: (l.nightExcept || []).includes(host) }; })() : null,
         scan: this.modOn('scan') && !isInt ? (() => { const sc = B.scan || {}; return { auto: (sc.autoSites || []).includes(host), icons: sc.icons !== false, minSize: 250 }; })() : null,
         hides: this.modOn('adblock') && !this.loginTabs.has(e.sender.id) ? ((this.store.hides || {})[host] || []) : [],
+        a11y: this.main.a11y?.() || {},
+        reader: B.reader || {},
       };
     });
     const target = () => { const B = this.B(); return (B.translate || {}).target || this.settings.get().lang || 'fr'; };
@@ -1269,6 +1280,14 @@ class WebBrowser {
       this.settings.set({ browser: { lights: L } }); this.pushCfg(); return true;
     });
     // « Lumières éteintes » pour toute l'application (tous les onglets, nouvelles pages) jusqu'à ce qu'on rallume
+    ipcMain.handle('reader:pref', (_e, p = {}) => { const R = { size: Math.max(13, Math.min(34, +p.size || 19)), theme: ['light', 'sepia', 'dark'].includes(p.theme) ? p.theme : 'light', width: Math.max(480, Math.min(1100, +p.width || 720)), font: ['sans', 'serif', 'easy'].includes(p.font) ? p.font : 'sans', rate: Math.max(0.5, Math.min(2.5, +p.rate || 1)) }; this.settings.set({ browser: { reader: R } }); return R; });
+    // article de la page (mode lecture, lecture à voix haute) : Readability (Mozilla, Apache-2.0) exécuté à part de la page
+    ipcMain.handle('br:article', async (_e, wcId) => {
+      const wc = webContents.fromId(wcId); if (!wc || wc.isDestroyed()) return null;
+      if (!this._rd) this._rd = fs.readFileSync(require.resolve('@mozilla/readability/Readability.js'), 'utf8');
+      const code = this._rd + `;(() => { try { const a = new Readability(document.cloneNode(true), { charThreshold: 250 }).parse(); return a ? { title: a.title, html: a.content, text: a.textContent, byline: a.byline, site: a.siteName, lang: a.lang || document.documentElement.lang || '', dir: a.dir || '' } : null; } catch (e) { return null; } })()`;
+      try { return await wc.executeJavaScriptInIsolatedWorld(1002, [{ code }]); } catch (e) { console.error("article", e.message); return null; }
+    });
     ipcMain.handle('lights:global', (e, on) => {
       on = !!on; if (this.lightsGlobal === on) return on;
       this.lightsGlobal = on;

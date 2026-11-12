@@ -142,6 +142,7 @@ function ensureWebview(tab) {
   wv.addEventListener('ipc-message', e => {
     const a = e.args[0];
     if (e.channel === 'dryae-pagedown') return closeFloating();
+    if (e.channel === 'dryae-reader') { tab.reader = !!a; if (tab === cur) updToolbar(); return; }
     if (e.channel === 'dryae-scanmodel') return offerScanModel(a);
     if (e.channel === 'dryae-video') openQuick(tab, a || {});
     else if (e.channel === 'dryae-nav') navStep(a);
@@ -312,7 +313,7 @@ function mainMenu() {
     ] },
     { label: 'Téléchargements', icon: 'dl', key: 'Ctrl+J', hl: true, fn: openDownloads },
     { label: 'Favoris', icon: 'star', sub: bmMenu },
-    { label: 'Extensions', icon: 'puzzle', sub: () => [
+    { label: 'Extensions', icon: 'puzzle', adv: true, sub: () => [
       { label: 'Gérer les extensions', icon: 'puzzle', key: 'Ctrl+Maj+A', fn: () => openPage('extensions') },
       { label: 'Boutique Chrome Web Store', icon: 'store', fn: () => newTab('https://chromewebstore.google.com/') },
       '-', { title: 'Extensions intégrées' },
@@ -325,8 +326,10 @@ function mainMenu() {
     { label: 'Imprimer…', icon: 'print', key: 'Ctrl+P', fn: () => cur?.wcId && B.call('br:print', cur.wcId), disabled: !cur?.wcId },
     modOn('translate') && { label: cur?.tr && cur.tr.state !== 'restored' ? "Afficher l'original" : 'Traduire la page', icon: 'translate', key: 'Ctrl+Maj+E', fn: () => pageCmd('translate-page'), disabled: !web },
     { label: 'Rechercher dans la page…', icon: 'search', key: 'Ctrl+F', fn: () => openFind() },
+    { label: cur?.reader ? 'Quitter le mode lecture' : 'Mode lecture', icon: 'file', key: 'F9', fn: () => readerMode(), disabled: !web },
+    { label: 'Lire la page à voix haute', icon: 'sound', key: 'F8', fn: () => readAloud(), disabled: !web },
     { label: 'Enregistrer sous…', icon: 'save', key: 'Ctrl+S', fn: savePage, disabled: !cur?.wcId },
-    { label: 'Outils supplémentaires', icon: 'tools', sub: () => [
+    { label: 'Outils supplémentaires', icon: 'tools', adv: true, sub: () => [
       modOn('capture') && { label: 'Extraire les liens de la page', icon: 'link', fn: () => grabLinks() },
       modOn('capture') && { label: 'Enregistrer la page avec DrYAE', icon: 'dl', fn: () => cur.url && B.call('br:download', { url: cur.url, page: cur.url, allowPage: true, incognito: cur.incognito }) },
       modOn('capture') && { label: 'Fichiers détectés sur cette page', icon: 'video', key: 'Ctrl+Maj+Y', fn: () => togglePanel('media', true) },
@@ -352,6 +355,21 @@ function mainMenu() {
     { label: 'Quitter', icon: 'x', key: 'Ctrl+Maj+Q', fn: () => B.call('br:quit') },
   ];
 }
+// mode lecture et lecture à voix haute
+async function readerMode(tab = cur) {
+  if (!tab?.wcId || !/^https?:/.test(tab.url || '')) return toast('Ouvre une page web d\'abord');
+  if (tab.reader) return pageCmd('reader', {}, tab);
+  const article = await B.call('br:article', tab.wcId);
+  if (!article) return toast('Pas d\'article à afficher sur cette page');
+  pageCmd('reader', { article }, tab);
+}
+async function readAloud(tab = cur) {
+  if (!tab?.wcId || !/^https?:/.test(tab.url || '')) return toast('Ouvre une page web d\'abord');
+  const sel = await tab.wv.executeJavaScript('String(getSelection())').catch(() => '');
+  if (sel && sel.trim()) return pageCmd('speak', { text: sel }, tab);
+  const a = await B.call('br:article', tab.wcId);
+  pageCmd('speak', { text: a?.text || await tab.wv.executeJavaScript('document.body.innerText').catch(() => ''), lang: a?.lang }, tab);
+}
 async function reportProblem() {
   const r = await askBox({ title: 'Signaler un problème', text: T("DrYAE va créer un petit rapport sur ton Bureau (versions, Windows, dernières erreurs — sans mots de passe, sans historique, sans adresses complètes) et ouvrir la page des signalements sur GitHub. Décris ce qui s'est passé et joins le fichier. Rien n'est envoyé sans toi."), ok: 'Créer le rapport' });
   if (r) { await B.call('br:report'); toast('Rapport créé sur le Bureau'); }
@@ -363,7 +381,11 @@ function zoom(d) { if (!cur.wv) return; cur.zoom = d === 0 ? 0 : Math.max(-5, Ma
 // menu générique : { label, icon, key, fn, sub, disabled } ; '-' = séparateur ; { zoom:true } = ligne de zoom
 function menu(x, y, entries, wide, back) {
   const m = $('#menu');
-  const list = typeof entries === 'function' ? entries() : entries;
+  // mode simple : les entrées avancées sont cachées
+  const list = (typeof entries === 'function' ? entries() : entries).map(e => (e && e.adv && CFG.a11y?.simple ? null : e));
+  const opener = m.classList.contains('on') ? menu.opener : document.activeElement;
+  menu.opener = opener;
+  m.setAttribute('role', 'menu');
   m.classList.toggle('wide', !!wide);
   m.innerHTML = (back ? `<button class="mback" data-back>${ic('back')}<span>${esc(back.title)}</span></button><hr>` : '') + list.map((e, i) => {
     if (!e) return '';
@@ -371,7 +393,7 @@ function menu(x, y, entries, wide, back) {
     if (e.title) return `<div class="mtitle">${esc(T(e.title))}</div>`;
     if (e.zoom) return `<div class="mzoom"><span>${esc(T('Zoom'))}</span><button data-z="-1" title="Ctrl −">−</button><b>${e.pct} %</b><button data-z="1" title="Ctrl +">+</button><button data-z="fs" title="F11">${ic('expand')}</button></div>`;
     const lead = e.check !== undefined ? `<span class="mck">${e.check ? ic('check') : ''}</span>${ic(e.icon || 'list')}` : e.img ? `<img class="mfav" src="${esc(e.img)}" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'mfavx'}))" alt="">` : ic(e.icon || 'list');
-    return `<button data-i="${i}" ${e.hl ? 'class="mhl"' : ''} ${e.disabled ? 'disabled' : ''}>${lead}<span class="ml">${esc(e.label)}</span>${e.key ? `<kbd>${esc(T(e.key))}</kbd>` : ''}${e.sub ? `<span class="mar">${ic('fwd')}</span>` : ''}</button>`;
+    return `<button data-i="${i}" role="menuitem" ${e.hl ? 'class="mhl"' : ''} ${e.disabled ? 'disabled' : ''}>${lead}<span class="ml">${esc(e.label)}</span>${e.key ? `<kbd>${esc(T(e.key))}</kbd>` : ''}${e.sub ? `<span class="mar">${ic('fwd')}</span>` : ''}</button>`;
   }).join('');
   m.classList.add('on');
   const r = m.getBoundingClientRect();
@@ -386,6 +408,15 @@ function menu(x, y, entries, wide, back) {
     if (e.sub) return menu(x, y, e.sub, wide, { title: e.label, entries });
     m.classList.remove('on'); e.fn();
   };
+  // clavier : ↑ ↓ pour se déplacer, → ouvre un sous-menu, ← revient, Échap ferme et rend la main au bouton d'origine
+  m.onkeydown = ev => {
+    const b = ev.target.closest('[data-i]');
+    if (ev.key === 'Escape') { m.classList.remove('on'); menu.opener?.focus?.(); ev.preventDefault(); }
+    else if (ev.key === 'ArrowRight' && b && list[+b.dataset.i]?.sub) { b.click(); ev.preventDefault(); }
+    else if (ev.key === 'ArrowLeft' && back) { m.querySelector('[data-back]')?.click(); ev.preventDefault(); }
+  };
+  if (!m._arrows) { m._arrows = true; window.A11Y?.arrows(m, 'button:not([disabled])'); }
+  if (opener && (opener.id === 'bMenu' || back || menu.byKey)) setTimeout(() => m.querySelector('[data-i]:not([disabled])')?.focus(), 0);
 }
 document.addEventListener('mousedown', e => { if (!e.target.closest('#menu')) $('#menu').classList.remove('on'); });
 
@@ -597,6 +628,21 @@ function reopenClosed() { const u = closedTabs.pop(); if (u) { newTab(u.url, { i
 async function toggleMute() { if (!cur?.wcId) return; cur.muted = await B.call('br:mute', cur.wcId); toast(cur.muted ? 'Son de l\'onglet coupé' : 'Son de l\'onglet réactivé'); updTab(cur); }
 async function savePage() { if (cur?.wcId && await B.call('br:savePage', cur.wcId)) toast('Page enregistrée'); }
 function viewSource() { if (/^https?:/.test(cur?.url || '')) newTab('view-source:' + cur.url); }
+function cycleFocus(dir) {
+  const a = document.activeElement, zones = ['url', 'tools', 'page'];
+  const now = a?.id === 'url' ? 0 : a?.closest?.('.toolbar') ? 1 : 2;
+  const next = zones[(now + dir + 3) % 3];
+  if (next === 'url') { $('#url').focus(); $('#url').select(); }
+  else if (next === 'tools') $('.toolbar button:not([disabled])')?.focus();
+  else cur?.wv?.focus();
+}
+// barre d'outils : ← → pour passer d'un bouton à l'autre
+document.addEventListener('keydown', e => {
+  if (!['ArrowLeft', 'ArrowRight'].includes(e.key) || !e.target.closest?.('.toolbar') || e.target.tagName === 'INPUT') return;
+  const bs = [...document.querySelectorAll('.toolbar button:not([disabled])')].filter(b => b.offsetParent !== null);
+  const i = bs.indexOf(e.target); if (i < 0) return;
+  bs[(i + (e.key === 'ArrowRight' ? 1 : -1) + bs.length) % bs.length].focus(); e.preventDefault();
+}, true);
 function onKey(k, ctrl, shift, alt) {
   k = String(k).toLowerCase();
   const go = f => { f(); return true; };
@@ -651,13 +697,17 @@ function onKey(k, ctrl, shift, alt) {
     if (k === 'arrowright') return go(() => $('#bFwd').click());
     if (k === 'home') return go(() => showStart(cur));
     if (k === 'd') return go(() => $('#url').focus());
+    if (k === 'f' || k === 'e') return go(() => { menu.byKey = true; $('#bMenu').focus(); $('#bMenu').click(); menu.byKey = false; });
     return false;
   }
   if (k === 'f5') return go(() => cur.wv?.reload());
   if (k === 'f1') return go(showShortcuts);
   if (k === 'f3') return go(() => ($('#findbar').classList.contains('on') ? find(!shift) : openFind()));
-  if (k === 'f6') return go(() => $('#url').focus());
+  // F6 : barre d'adresse → boutons de la barre d'outils → page (comme Chrome) ; Maj+F6 dans l'autre sens
+  if (k === 'f6') return go(() => cycleFocus(shift ? -1 : 1));
   if (k === 'f11') return go(() => B.call('br:fullscreen'));
+  if (k === 'f9' && !alt) return go(() => readerMode());
+  if (k === 'f8' && !alt) return go(() => readAloud());
   if (k === 'f12') return go(() => cur?.wcId && B.call('br:devtools', cur.wcId));
   return false;
 }
@@ -958,6 +1008,8 @@ B.on('restore-session', async sess => {
   if (made.length) select(made[Math.min(sess.active || 0, made.length - 1)]);
 });
 B.on('theme', t => applyTheme(t));
+B.on('show-shortcuts', () => showShortcuts());
+B.on('a11y', e => { CFG.a11y = e; window.A11Y?.apply(e); drawMods(); });
 B.on('media-reset', ({ wcId }) => {
   pending.delete(wcId);
   const t = tabByWc(wcId); if (!t) return;
@@ -1355,7 +1407,7 @@ B.on('cfg', c => { CFG = { ...CFG, ...c }; applyTheme(CFG.theme || {}); drawBmBa
 B.on('ext-changed', () => {});
 ready.then(async () => {
   BM = await B.call('br:bmTree');
-  drawBmBar(); drawMods(); drawNdBtn();
+  window.A11Y?.apply(CFG.a11y); drawBmBar(); drawMods(); drawNdBtn();
   B.call('upd:info').then(drawUpd).catch(() => {});
   ND = await B.call('br:nd'); drawNdBtn();
 });

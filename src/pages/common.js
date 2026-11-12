@@ -100,6 +100,8 @@ function applyTheme(t = {}) {
 }
 D.call('theme').then(applyTheme).catch(() => {});
 D.on('theme', applyTheme);
+D.call('a11y').then(e => window.A11Y?.apply(e)).catch(() => {});
+D.on('a11y', e => window.A11Y?.apply(e));
 
 // liste au clavier, comme dans le gestionnaire de téléchargements :
 // ↑ ↓ Début Fin Page↑ Page↓ (Maj pour étendre), Espace, Ctrl+A, Entrée, Ctrl+Entrée, Suppr, F2, Ctrl+Z, Échap, Ctrl+F ou /

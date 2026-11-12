@@ -597,6 +597,96 @@ function pageFeatures() {
     if (document.readyState === 'complete') go(); else addEventListener('load', go, { once: true });
   }
 
+  // ---------- mode lecture : seulement le texte de l'article (préparé par Readability, Mozilla, Apache-2.0) ----------
+  let reader = null;
+  const RD = { size: 19, theme: 'light', width: 720, font: 'sans', ...(CFG.reader || {}) };
+  const RTH = { light: ['#ffffff', '#1d1d1f', '#0b57d0'], sepia: ['#f4ecd8', '#3b2f1e', '#8a4b08'], dark: ['#15171c', '#e3e5ea', '#8ab4f8'] };
+  // le contenu vient de la page : on garde le texte et les images, sans scripts ni attributs d'événements
+  function cleanNode(html) {
+    const doc = new DOMParser().parseFromString('<!doctype html><body>' + (html || ''), 'text/html');
+    doc.querySelectorAll('script,style,iframe,object,embed,form,input,button,link,meta,noscript').forEach(n => n.remove());
+    doc.querySelectorAll('*').forEach(n => { for (const a of [...n.attributes]) { const k = a.name.toLowerCase(); if (k.startsWith('on') || k === 'style' || k === 'class' || k === 'id' || ((k === 'href' || k === 'src') && /^\s*javascript:/i.test(a.value))) n.removeAttribute(a.name); } if (n.tagName === 'A') { n.setAttribute('target', '_blank'); n.setAttribute('rel', 'noopener'); } if (n.tagName === 'IMG') n.setAttribute('loading', 'lazy'); });
+    return doc.body;
+  }
+  function readerOpen(a) {
+    if (!a || !a.html) return hint(pt('Pas d\'article à afficher sur cette page'));
+    const [bg, fg, ln] = RTH[RD.theme] || RTH.light;
+    const box = el(`<div class="card rd" role="dialog" aria-modal="true" aria-label="${esc(pt('Mode lecture'))}" tabindex="-1" style="inset:0;border-radius:0;border:0;overflow:auto;background:${bg};color:${fg};z-index:2147483647">
+      <style>.rd .bar{position:sticky;top:0;display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap;padding:8px;background:${bg}ee;border-bottom:1px solid #8884;backdrop-filter:blur(6px)}.rd .bar button{all:unset;cursor:pointer;padding:6px 10px;border-radius:8px;background:#8882;font:600 13px "Segoe UI",sans-serif;color:${fg}}.rd .bar button:focus-visible{outline:2px solid ${ln}}.rd article{margin:0 auto;padding:28px 22px 80px;max-width:${RD.width}px;font:${RD.size}px/1.7 ${RD.font === 'serif' ? 'Georgia,"Times New Roman",serif' : RD.font === 'easy' ? 'Verdana,Tahoma,sans-serif' : '"Segoe UI",Arial,sans-serif'};${RD.font === 'easy' ? 'letter-spacing:.04em;word-spacing:.14em;' : ''}}.rd article h1{font-size:1.7em;line-height:1.25;margin:.2em 0 .3em}.rd .by{opacity:.7;font-size:.85em;margin-bottom:1.4em}.rd article img,.rd article video,.rd article figure{max-width:100%;height:auto}.rd article a{color:${ln}}.rd article pre{white-space:pre-wrap;background:#8881;padding:10px;border-radius:8px}.rd article table{border-collapse:collapse;max-width:100%}.rd article td,.rd article th{border:1px solid #8885;padding:4px 6px}</style>
+      <div class="bar">
+        <button data-r="minus" aria-label="${esc(pt('Texte plus petit'))}">A−</button><button data-r="plus" aria-label="${esc(pt('Texte plus grand'))}">A+</button>
+        <button data-r="theme">${esc(pt('Couleurs'))}</button><button data-r="font">${esc(pt('Police'))}</button><button data-r="width">${esc(pt('Largeur'))}</button>
+        <button data-r="speak">🔊 ${esc(pt('Lire à voix haute'))}</button><button data-r="close" aria-label="${esc(pt('Fermer le mode lecture (Échap)'))}">✕ ${esc(pt('Fermer'))}</button>
+      </div>
+      <article lang="${esc(a.lang || '')}" dir="${esc(a.dir || 'auto')}"><h1></h1><div class="by"></div><div class="ct"></div></article></div>`);
+    box.querySelector('h1').textContent = a.title || document.title;
+    box.querySelector('.by').textContent = [a.byline, a.site].filter(Boolean).join(' · ');
+    box.querySelector('.ct').append(...cleanNode(a.html).childNodes);
+    const save = () => ipcRenderer.invoke('reader:pref', RD).catch(() => {});
+    box.querySelector('.bar').onclick = e => {
+      const k = e.target.closest('[data-r]')?.dataset.r; if (!k) return;
+      if (k === 'close') return readerClose();
+      if (k === 'speak') return speaking ? speakStop() : speak(box.querySelector('article').innerText, a.lang);
+      if (k === 'plus') RD.size = Math.min(34, RD.size + 2); if (k === 'minus') RD.size = Math.max(13, RD.size - 2);
+      if (k === 'theme') RD.theme = { light: 'sepia', sepia: 'dark', dark: 'light' }[RD.theme] || 'light';
+      if (k === 'font') RD.font = { sans: 'serif', serif: 'easy', easy: 'sans' }[RD.font] || 'sans';
+      if (k === 'width') RD.width = RD.width >= 900 ? 560 : RD.width + 170;
+      save(); readerClose(true); readerOpen(a);
+    };
+    box.addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); readerClose(); } }, true);
+    reader = { box, a, overflow: document.documentElement.style.overflow };
+    document.documentElement.style.overflow = 'hidden';
+    setTimeout(() => box.focus(), 30);
+    toHost('dryae-reader', true);
+  }
+  function readerClose(keep) { if (!reader) return; reader.box.remove(); document.documentElement.style.overflow = reader.overflow || ''; reader = null; if (!keep) { speakStop(); toHost('dryae-reader', false); } }
+
+  // ---------- lecture à voix haute (voix installées dans Windows) ----------
+  let speaking = null;
+  function speakStop() { try { speechSynthesis.cancel(); } catch {} speaking?.card?.remove(); speaking = null; }
+  function speak(text, lang) {
+    speakStop();
+    text = String(text || '').replace(/\s+/g, ' ').trim(); if (!text) return hint(pt('Rien à lire sur cette page'));
+    // phrases d'au plus 220 caractères (les longues phrases coupent certaines voix)
+    const parts = (text.match(/[^.!?。！？]+[.!?。！？]*\s*/g) || [text]).flatMap(s => s.length <= 220 ? [s] : s.match(/.{1,220}(\s|$)/g));
+    const L = (lang || document.documentElement.lang || navigator.language || 'fr').toLowerCase();
+    const voice = () => { const v = speechSynthesis.getVoices(); return v.find(x => x.lang.toLowerCase() === L) || v.find(x => x.lang.toLowerCase().startsWith(L.split('-')[0])) || null; };
+    const card = el(`<div class="card" role="region" aria-label="${esc(pt('Lecture à voix haute'))}" style="left:50%;bottom:18px;transform:translateX(-50%);padding:8px 10px;display:flex;gap:6px;align-items:center;font-size:12.5px;z-index:2147483647"><b>🔊 ${esc(pt('Lecture à voix haute'))}</b><span class="pg" style="color:#8f97aa;min-width:54px"></span><button class="btn" data-s="slow" aria-label="${esc(pt('Plus lent'))}">−</button><span class="rt">1×</span><button class="btn" data-s="fast" aria-label="${esc(pt('Plus rapide'))}">+</button><button class="btn" data-s="pause">${esc(pt('Pause'))}</button><button class="btn" data-s="stop">${esc(pt('Arrêter'))}</button></div>`);
+    speaking = { card, i: 0, rate: +(CFG.reader?.rate) || 1, paused: false };
+    const S = speaking;
+    const next = () => {
+      if (speaking !== S) return;
+      if (S.i >= parts.length) return speakStop();
+      card.querySelector('.pg').textContent = Math.round(S.i / parts.length * 100) + ' %';
+      const u = new SpeechSynthesisUtterance(parts[S.i]); u.lang = L; const v = voice(); if (v) u.voice = v; u.rate = S.rate;
+      u.onend = () => { S.i++; next(); }; u.onerror = () => { S.i++; next(); };
+      speechSynthesis.speak(u);
+    };
+    card.onclick = e => {
+      const k = e.target.closest('[data-s]')?.dataset.s; if (!k) return;
+      if (k === 'stop') return speakStop();
+      if (k === 'pause') { S.paused = !S.paused; S.paused ? speechSynthesis.pause() : speechSynthesis.resume(); e.target.textContent = pt(S.paused ? 'Reprendre' : 'Pause'); return; }
+      S.rate = Math.max(0.5, Math.min(2.5, S.rate + (k === 'fast' ? 0.25 : -0.25))); card.querySelector('.rt').textContent = S.rate + '×';
+      ipcRenderer.invoke('reader:pref', { ...RD, rate: S.rate }).catch(() => {});
+      speechSynthesis.cancel(); next();
+    };
+    if (!speechSynthesis.getVoices().length) speechSynthesis.onvoiceschanged = () => { speechSynthesis.onvoiceschanged = null; };
+    next();
+  }
+
+  // ---------- accessibilité dans les pages web : lecture facilitée, animations réduites ----------
+  let a11yKeys = [];
+  function a11yPage(e = {}) {
+    if (!TOP && !e.frames) { /* aussi dans les cadres : même réglage */ }
+    for (const k of a11yKeys) try { webFrame.removeInsertedCSS(k); } catch {}
+    a11yKeys = [];
+    try {
+      if (e.easy) a11yKeys.push(webFrame.insertCSS('body,body *:not(code):not(pre):not(kbd):not([class*=icon]):not(i){font-family:Verdana,Tahoma,"Segoe UI",sans-serif!important;letter-spacing:.04em!important;word-spacing:.14em!important}p,li,dd,td{line-height:1.6!important}'));
+      if (e.rm) a11yKeys.push(webFrame.insertCSS('*,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}'));
+    } catch {}
+  }
+  if (CFG.a11y && !CFG.internal) a11yPage(CFG.a11y);
+
   // ---------- 5c. lumières tamisées, protection des yeux, mode nuit, outils vidéo ----------
   let lights = null, autoLit = false;
   const L = CFG.lights || {};
@@ -964,6 +1054,10 @@ function pageFeatures() {
       case 'translate-text': return c.text && translateSelection(c.text, { left: (c.x || innerWidth / 2) - 20, top: (c.y || 60) - 10, bottom: (c.y || 60) + 10 });
       case 'translate-enable': trEnabled = !!c.on; if (!c.on) closeTr(); return;
       case 'lights': return lights ? lightsOff(true) : lightsOn(false);
+      case 'a11y': return a11yPage(c);
+      case 'reader': return TOP && (reader ? readerClose() : readerOpen(c.article));
+      case 'speak': return TOP && speak(c.text, c.lang);
+      case 'speak-stop': return speakStop();
       case 'lights-sync': return TOP && (c.on ? lightsOn(false, true) : lightsOff(false));
       case 'lights-set': return lightsLook(c);
       case 'eye': return eye(!!c.on, c.level);

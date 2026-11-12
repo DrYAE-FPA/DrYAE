@@ -63,6 +63,7 @@ const api = {
   showStart() { if (settings.get().startView === 'manager' || !browser) return api.showMain(); if (!win) createWindow(); browser.open(); },
   showMain() { if (!win) createWindow(); if (win.isMinimized()) win.restore(); win.show(); browser?.hideView(); win.focus(); },
   report() { return report(); },
+  a11y() { return a11yEff(); },
   openFeedback() { const u = updater?.info(); if (u) shell.openExternal(u.feedbackUrl || u.repoUrl || 'https://github.com'); },
   hostWindow() { if (!win) createWindow(); return win; },
   onModeChange(m) { send('mode', m); if (m === 'manager') send('reload', manager.views()); },
@@ -96,6 +97,7 @@ function createWindow() {
   win.setMenu(null);
   win.loadFile(path.join(UI, 'index.html'));
   // lancé avec Windows (--hidden) : DrYAE reste caché dans les icônes de la barre des tâches, sans ouvrir de fenêtre
+  win.once('ready-to-show', () => { try { applyA11y(); } catch {} });
   win.once('ready-to-show', () => { if (!process.argv.includes('--hidden')) { if (settings.get().startView === 'manager' || !browser || process.argv.some(a => /^magnet:|\.torrent$|^https?:\/\//i.test(a))) win.show(); else browser.open(); } flushArgs(); });
   win.on('focus', () => send('focus'));
   win.on('show', () => send('reload', manager.views()));
@@ -209,7 +211,9 @@ app.whenReady().then(async () => {
   startExtensionServer();
   updater = new Updater({ send: sendUpd, notify: api.notify, T, beforeInstall: () => { browser?.saveStoreSync(); manager?.saveSync(); settings?.save?.(); backupData(); }, auto: () => settings.get().autoUpdateCheck !== false });
   updater.init();
-  settings.on('change', (_d, patch) => { if (patch.theme) browser.sendTheme(); });
+  settings.on('change', (_d, patch) => { if (patch.theme) browser.sendTheme(); if (patch.a11y) applyA11y(); });
+  require('electron').nativeTheme.on('updated', () => applyA11y());
+  applyA11y();
 
   manager.on('changed', v => send('changed', v));
   manager.on('progress', v => { if (win && win.isVisible() && !win.isMinimized() && !browser.visible()) send('progress', v); updateTray(v); });
@@ -274,6 +278,17 @@ app.on('before-quit', () => { quitting = true; browser?.onQuit(); manager?.shutd
 app.on('window-all-closed', () => { if (!settings.get().tray) app.quit(); });
 
 // ================= IPC =================
+// accessibilité : réglages effectifs (contraste « automatique » = celui de Windows)
+function a11yEff() {
+  const A = settings.get().a11y || {};
+  let hc = false; try { hc = A.contrast === 'on' || (A.contrast !== 'off' && require('electron').nativeTheme.shouldUseHighContrastColors); } catch {}
+  return { hc, easy: !!A.easy, rm: A.motion === 'on', motion: A.motion || 'auto', simple: !!A.simple, scale: Math.max(80, Math.min(200, +A.scale || 100)) };
+}
+function applyA11y() {
+  const e = a11yEff();
+  try { if (win && !win.isDestroyed()) win.webContents.setZoomFactor(e.scale / 100); } catch {}
+  send('a11y', e); browser?.applyA11y?.(e);
+}
 async function report() {
   const S = settings.get();
   const txt = LOG.report({ Langue: S.lang, 'Démarrage sur': S.startView, Proxy: S.proxy?.enabled ? 'oui' : 'non', 'Téléchargements': manager.list.length + ' (' + manager.list.filter(d => d.status === 'error').length + ' en erreur)', 'Erreurs en cours': manager.list.filter(d => d.status === 'error').slice(0, 15).map(d => `${d.type} ${d.errorCode || ''} ${d.error}`), 'Moteur torrent': manager.torrents.proc ? 'lancé' : 'arrêté', Extensions: (browser?.extList?.() || []).length });
@@ -426,6 +441,8 @@ H('upd:check', () => updater.check());
 H('upd:install', () => updater.install());
 // « Signaler un problème » : rapport texte sur le Bureau (rien n'est envoyé), puis la page GitHub des signalements
 H('report', async () => report());
+H('a11y', () => a11yEff());
+H('openPage', (name, hash) => { if (/^\w+$/.test(name || '')) browser?.openPage(name, hash || ''); });
 H('openFeedback', () => { const u = updater.info(); shell.openExternal(u.feedbackUrl || u.repoUrl || 'https://github.com'); });
 H('openRepo', () => { const u = updater.info(); if (u.repoUrl) shell.openExternal(u.repoUrl); });
 H('openDonate', () => { const u = updater.info(); if (u.donateUrl) shell.openExternal(u.donateUrl); });

@@ -315,8 +315,8 @@ browser-action-list::part(action):hover{background:var(--panel2)}
   <button class="tb" id="bHome" title="Accueil"><svg><use href="#i-home"/></svg></button>
   <div class="addr"><svg class="lock no" id="lock"><use href="#i-lock" id="lockIc"/></svg><input id="url" placeholder="Rechercher ou saisir une adresse" spellcheck="false"><span class="zoom" id="zoom"></span><button class="tb" id="bStar" title="Ajouter aux favoris"><svg><use href="#i-star" id="starIc"/></svg></button></div>
   <!-- extensions épinglées (ordre au choix, glisser pour déplacer), toujours à gauche du bouton des extensions -->
-  <span id="tbItems" style="display:contents"><button class="tb shield" id="bShield" data-key="mod:adblock" title="Bloqueur de publicités"><svg><use href="#i-shield"/></svg><span class="n" id="shieldN"></span></button></span>
-  <button class="tb" id="bExt" title="Extensions"><svg><use href="#i-ext"/></svg></button>
+  <span id="tbItems" class="adv" style="display:contents"><button class="tb shield" id="bShield" data-key="mod:adblock" title="Bloqueur de publicités"><svg><use href="#i-shield"/></svg><span class="n" id="shieldN"></span></button></span>
+  <button class="tb adv" id="bExt" title="Extensions"><svg><use href="#i-ext"/></svg></button>
   <button class="tb dl" id="bDrYAE" title="Fichiers détectés sur cette page"><svg><use href="#i-dl"/></svg><span class="n" id="dlN"></span></button>
   <button class="tb nd" id="bNd" title="Téléchargements du navigateur"><svg><use href="#i-dl"/></svg><i class="ring"></i><span class="n" id="ndN"></span></button>
   <button class="tb upd" id="bUpd" title="Mise à jour de DrYAE disponible"><svg><use href="#i-upd"/></svg><i class="dot"></i></button>
@@ -387,6 +387,7 @@ browser-action-list::part(action):hover{background:var(--panel2)}
 </div></div>
 <script src="../shared/locales.js"></script>
 <script src="../shared/i18n.js"></script>
+<script src="../shared/a11y.js"></script>
 <script src="browser.js"></script>
 <script src="popups.js"></script>
 </body>

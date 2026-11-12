@@ -26,6 +26,8 @@ function defaults(app) {
     maxRetries: 10,
     userAgent: '',
     proxy: { enabled: false, url: '' },
+    // accessibilité : taille du texte de DrYAE (%), contraste élevé, lecture facilitée, animations, mode simple
+    a11y: { scale: 100, contrast: 'auto', easy: false, motion: 'auto', simple: false },
     rmFiles: false,           // case « Supprimer aussi le fichier » (dernier choix)
     duplicate: 'ask',         // ask | rename | overwrite (doublon : même lien ou même titre)
     confirmClear: true,

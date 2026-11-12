@@ -1114,6 +1114,7 @@ $('#abInstall').onclick = () => call('upd:install');
 $('#updGo').onclick = () => call('upd:install');
 $('#updX').onclick = () => { updDismissed = true; $('#updBanner').classList.remove('on'); };
 $('#abFeedback').onclick = () => call('openFeedback');
+$('#lA11y').onclick = () => { closeM?.(); call('openPage', 'settings', 'a11y'); };
 $('#abReport').onclick = async () => {
   const r = await askBox({ title: 'Signaler un problème', text: "DrYAE va créer un petit rapport sur ton Bureau (versions, Windows, dernières erreurs — sans mots de passe, sans historique, sans adresses complètes) et ouvrir la page des signalements sur GitHub. Décris ce qui s'est passé et joins le fichier. Rien n'est envoyé sans toi.", ok: 'Créer le rapport' });
   if (r) { await call('report'); toast('Rapport créé sur le Bureau'); }
@@ -1148,6 +1149,8 @@ D.on('changed', d => { items.set(d.id, { ...items.get(d.id), ...d }); render(); 
 D.on('progress', arr => { arr.forEach(d => items.set(d.id, { ...items.get(d.id), ...d })); render(); });
 D.on('reload', arr => { items = new Map(arr.map(d => [d.id, d])); render(); });
 D.on('toast', t => toast(t));
+D.on('a11y', e => window.A11Y?.apply(e));
+call('a11y').then(e => window.A11Y?.apply(e)).catch(() => {});
 D.on('prompt-add', o => { closeM(); showAdd(o || {}); });
 D.on('prompt-torrent', o => { closeM(); showTorrent(o || {}); });
 matchMedia('(prefers-color-scheme: light)').addEventListener('change', applyTheme);
