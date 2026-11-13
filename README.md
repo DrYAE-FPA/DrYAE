@@ -1,10 +1,21 @@
 <p align="center"><img src="assets/logo.png" width="96" alt="DrYAE"></p>
 <h1 align="center">DrYAE</h1>
 <p align="center">Free download manager with a built-in browser, for Windows<br>Gestionnaire de téléchargements gratuit avec navigateur intégré, pour Windows</p>
+<p align="center"><a href="https://github.com/DrYAE-FPA/DrYAE/releases"><img src="https://img.shields.io/github/downloads/DrYAE-FPA/DrYAE/total?label=T%C3%A9l%C3%A9chargements%20%2F%20Downloads&color=8b5cf6" alt="Téléchargements / Downloads"></a></p>
 
 ---
 
-## ✨ Nouveautés de la version 1.6.9 / What's new
+## ✨ Nouveautés de la version 1.7.0 / What's new
+
+- 📚 **Travail et études** : espaces de travail (onglets enregistrés sous un nom), collections exportées en Word ou PDF, citer une page (APA, MLA, ISO 690), surligner et annoter les pages.
+- ⌨️ **Palette de commandes (Ctrl+K)**, calculs et conversions dans la barre d'adresse (« 30 euros en FCFA »), recherche dans le texte des pages visitées.
+- 👥 **Conteneurs** : deux comptes du même site en même temps ; correcteur d'orthographe ; onglets inactifs rangés sans les perdre.
+- 🎓 **Mode présentation** pour la classe, **vitesse des vidéos** ×0,5 à ×3 (aussi dans le lecteur du gestionnaire), **rappels de pause**.
+- 🌐 **DrYAE navigateur par défaut** : les liens de Word, Discord ou des e-mails s'ouvrent dans DrYAE.
+- 🖼️ Traducteur de scans : noms et cris jamais traduits, case « Ne jamais traduire », lettres mal lues mieux corrigées, modèle « langues latines », lecture correcte avec les lumières tamisées.
+- 🧩 Le panneau des extensions n'affiche plus que les extensions activées.
+
+### Version 1.6.9
 
 - 🖼️ **Traducteur de scans revu** (version refaite) : s'allume seulement quand vous cliquez, plus de grosses bulles, texte effacé et réécrit proprement, corrections de lecture en anglais, **traduction IA facultative** avec votre clé gratuite ; petits caractères et bulles noires mieux lus, bruitages et cris laissés intacts.
 - 🪟 **Vue côte à côte** : menu pour inverser, régler la largeur et faire défiler les deux côtés ensemble.

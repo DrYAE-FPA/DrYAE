@@ -3,7 +3,7 @@ let SAFE = {}, C = null, STATS = null, OCR = null, ABOUT = null, LANGS = [];
 shell('Paramètres', null, 'Rechercher dans les paramètres');
 const search = $('#q');
 const SECS = [
-  ['startup', 'power', 'Au démarrage'], ['look', 'palette', 'Apparence'], ['a11y', 'eye', 'Accessibilité'], ['perf', 'power', 'Onglets et performances'], ['keys', 'kbd', 'Raccourcis clavier'], ['search', 'search', 'Moteur de recherche'], ['autofill', 'key', 'Saisie automatique et mots de passe'],
+  ['startup', 'power', 'Au démarrage'], ['look', 'palette', 'Apparence'], ['a11y', 'eye', 'Accessibilité'], ['perf', 'power', 'Onglets et performances'], ['work', 'folder', 'Travail et études'], ['keys', 'kbd', 'Raccourcis clavier'], ['search', 'search', 'Moteur de recherche'], ['autofill', 'key', 'Saisie automatique et mots de passe'],
   ['privacy', 'shield', 'Confidentialité et sécurité'], ['downloads', 'dl', 'Téléchargements'], ['langs', 'lang', 'Langues'],
   ['-', '', 'Extensions intégrées'], ['adblock', 'shield', 'Bloqueur de publicités'], ['translate', 'translate', 'Traducteur'], ['scan', 'scan', 'Traducteur de scans'], ['lights', 'bulb', 'Lumières tamisées'], ['pip', 'pip', "Image dans l'image"],
   ['-', '', ''], ['system', 'sys', 'Système'], ['reset', 'reload', 'Réinitialiser'], ['extensions', 'puzzle', 'Extensions'], ['about', 'info', 'À propos de DrYAE'],
@@ -45,7 +45,7 @@ function draw() {
   const startPages = (b.startupPages || []);
   const AX = b.a11yRaw || {};
   const KMAP = Object.fromEntries((b.keyList || []).map(x => [x.id, x.c]));
-  const KEYS = [['newTab', 'Nouvel onglet', 'Ctrl+T'], ['newPrivate', 'Nouvel onglet privé', 'Ctrl+Maj+N'], ['closeTab', 'Fermer l\'onglet', 'Ctrl+W'], ['reopen', 'Rouvrir l\'onglet fermé', 'Ctrl+Maj+T'], ['tabSearch', 'Rechercher dans les onglets', 'Ctrl+Maj+A'], ['nextTab', 'Onglet suivant', 'Ctrl+Tab'], ['prevTab', 'Onglet précédent', 'Ctrl+Maj+Tab'], ['address', 'Aller à la barre d\'adresse', 'Ctrl+L'], ['find', 'Rechercher dans la page', 'Ctrl+F'], ['reload', 'Actualiser', 'F5'], ['back', 'Page précédente', 'Alt+←'], ['forward', 'Page suivante', 'Alt+→'], ['home', 'Accueil', 'Alt+Début'], ['bookmark', 'Ajouter aux favoris', 'Ctrl+D'], ['bookmarks', 'Gestionnaire de favoris', 'Ctrl+Maj+O'], ['bar', 'Barre de favoris', 'Ctrl+Maj+B'], ['history', 'Historique', 'Ctrl+H'], ['downloads', 'Téléchargements', 'Ctrl+J'], ['extensions', 'Extensions', 'Ctrl+Maj+X'], ['settings', 'Paramètres', ''], ['zoomIn', 'Zoom +', 'Ctrl++'], ['zoomOut', 'Zoom −', 'Ctrl+-'], ['zoomReset', 'Zoom 100 %', 'Ctrl+0'], ['fullscreen', 'Plein écran', 'F11'], ['print', 'Imprimer', 'Ctrl+P'], ['mute', 'Couper le son de l\'onglet', 'Ctrl+M'], ['reader', 'Mode lecture', 'F9'], ['speak', 'Lire la page à voix haute', 'F8'], ['translate', 'Traduire', 'Ctrl+Maj+E'], ['scanZone', 'Traduire une zone (scans)', 'Ctrl+Maj+S'], ['lights', 'Lumières tamisées', 'Ctrl+Maj+L'], ['side', 'Panneau latéral', ''], ['shot', 'Capture de la page entière', ''], ['offline', 'Garder la page hors ligne', ''], ['qr', 'Code QR de la page', ''], ['tasks', 'Gestionnaire des tâches', 'Maj+Échap'], ['manager', 'Gestionnaire de téléchargements', '']];
+  const KEYS = [['newTab', 'Nouvel onglet', 'Ctrl+T'], ['newPrivate', 'Nouvel onglet privé', 'Ctrl+Maj+N'], ['closeTab', 'Fermer l\'onglet', 'Ctrl+W'], ['reopen', 'Rouvrir l\'onglet fermé', 'Ctrl+Maj+T'], ['tabSearch', 'Rechercher dans les onglets', 'Ctrl+Maj+A'], ['nextTab', 'Onglet suivant', 'Ctrl+Tab'], ['prevTab', 'Onglet précédent', 'Ctrl+Maj+Tab'], ['address', 'Aller à la barre d\'adresse', 'Ctrl+L'], ['find', 'Rechercher dans la page', 'Ctrl+F'], ['reload', 'Actualiser', 'F5'], ['back', 'Page précédente', 'Alt+←'], ['forward', 'Page suivante', 'Alt+→'], ['home', 'Accueil', 'Alt+Début'], ['bookmark', 'Ajouter aux favoris', 'Ctrl+D'], ['bookmarks', 'Gestionnaire de favoris', 'Ctrl+Maj+O'], ['bar', 'Barre de favoris', 'Ctrl+Maj+B'], ['history', 'Historique', 'Ctrl+H'], ['downloads', 'Téléchargements', 'Ctrl+J'], ['extensions', 'Extensions', 'Ctrl+Maj+X'], ['settings', 'Paramètres', ''], ['zoomIn', 'Zoom +', 'Ctrl++'], ['zoomOut', 'Zoom −', 'Ctrl+-'], ['zoomReset', 'Zoom 100 %', 'Ctrl+0'], ['fullscreen', 'Plein écran', 'F11'], ['print', 'Imprimer', 'Ctrl+P'], ['mute', 'Couper le son de l\'onglet', 'Ctrl+M'], ['reader', 'Mode lecture', 'F9'], ['speak', 'Lire la page à voix haute', 'F8'], ['translate', 'Traduire', 'Ctrl+Maj+E'], ['scanZone', 'Traduire une zone (scans)', 'Ctrl+Maj+S'], ['lights', 'Lumières tamisées', 'Ctrl+Maj+L'], ['side', 'Panneau latéral', ''], ['palette', 'Palette de commandes', 'Ctrl+K'], ['spaces', 'Espaces de travail', ''], ['cols', 'Collections', ''], ['cite', 'Citer cette page', ''], ['present', 'Mode présentation', ''], ['shot', 'Capture de la page entière', ''], ['offline', 'Garder la page hors ligne', ''], ['qr', 'Code QR de la page', ''], ['tasks', 'Gestionnaire des tâches', 'Maj+Échap'], ['manager', 'Gestionnaire de téléchargements', '']];
   const KWDEF = [{ k: 'w', url: 'https://fr.wikipedia.org/w/index.php?search=%s' }, { k: 'yt', url: 'https://www.youtube.com/results?search_query=%s' }, { k: 'gh', url: 'https://github.com/search?q=%s' }];
   const R = b.root || {};
   const NET = () => [
@@ -59,6 +59,9 @@ function draw() {
     ['Traduction IA des scans (facultative)', 'Seulement si vous l\'activez avec votre propre clé : l\'image de la page et le texte lu sont envoyés à Google Gemini.', ''],
     ['Vérification des mots de passe divulgués', 'Seulement quand vous la lancez : 5 caractères de l\'empreinte de chaque mot de passe (jamais le mot de passe lui-même).', ''],
     ['Icônes des sites', 'Demandées au site que vous visitez, comme le ferait la page elle-même.', ''],
+    ['Nombre de téléchargements de DrYAE', 'Seulement quand vous ouvrez « À propos de DrYAE » : le total public est demandé à github.com (une fois par jour au plus). Rien ne vous identifie.', ''],
+    ['Taux de change', 'Seulement quand vous tapez une conversion de monnaie dans la barre d\'adresse (par exemple « 30 euros en FCFA ») : les taux du jour sont demandés au site public open.er-api.com, au plus deux fois par jour. Rien d\'autre n\'est envoyé.', ''],
+    ['Correcteur d\'orthographe', 'Sous Windows, DrYAE utilise le correcteur de Windows : rien n\'est envoyé ni téléchargé.', ''],
   ];
   const hides = STATS.hides || {};
   const upd = ABOUT.update || {};
@@ -90,6 +93,16 @@ function draw() {
       ${row('Aperçu de l\'onglet au survol', 'Petite image de la page, son adresse et la mémoire utilisée.', `<label class="sw"><input type="checkbox" data-k="tabsx.preview" ${(b.tabsx || {}).preview !== false ? 'checked' : ''}><i></i></label>`)}
       ${row('Onglets verticaux', 'La liste des onglets à gauche plutôt qu\'en haut.', `<label class="sw"><input type="checkbox" data-k="tabsx.vertical" ${(b.tabsx || {}).vertical ? 'checked' : ''}><i></i></label>`)}
       ${row('Gestionnaire des tâches', 'Mémoire et processeur utilisés par chaque onglet et chaque extension (Maj+Échap).', `<button class="btn sm" data-page="tasks">${esc(TR('Ouvrir'))}</button>`)}`, 'Pour que DrYAE reste rapide, même sur un ordinateur modeste.') +
+    sec('work', 'Travail et études', `
+      ${row('Rappels de pause', 'Un petit rappel pendant que vous utilisez DrYAE : reposer les yeux (regarder au loin 20 secondes) et se lever. Le temps ne compte pas quand l\'ordinateur n\'est pas utilisé.', swk('breaks.on', (b.breaks || {}).on !== false))}
+      ${row('Repos des yeux toutes les', 'minutes', `<input type="number" data-k="breaks.eye" min="10" max="120" value="${+(b.breaks || {}).eye || 20}" style="width:80px">`)}
+      ${row('Se lever toutes les', 'minutes', `<input type="number" data-k="breaks.stand" min="30" max="240" value="${+(b.breaks || {}).stand || 60}" style="width:80px">`)}
+      ${row('Onglets inactifs', 'Proposer de ranger les onglets que vous n\'avez pas ouverts depuis plusieurs jours. Ils restent dans « Espaces de travail → Onglets inactifs » pour les rouvrir.', swk('inactive.on', (b.inactive || {}).on !== false) + ` <input type="number" data-k="inactive.days" min="1" max="60" value="${+(b.inactive || {}).days || 7}" style="width:70px"> ${esc(TR('jours'))}`)}
+      ${row('Correcteur d\'orthographe', 'Souligne les fautes dans les zones de texte des pages ; propositions au clic droit. Sous Windows, DrYAE utilise le correcteur de Windows : rien n\'est téléchargé.', swk('spell.on', (b.spell || {}).on !== false))}
+      ${row('Rechercher aussi dans le texte des pages visitées', 'L\'historique retrouve une page par un mot qu\'elle contenait. Le texte est gardé sur ce PC seulement, jamais dans les onglets privés, et effacé avec l\'historique.', swk('histText', b.histText !== false))}
+      <div class="prow" style="flex-direction:column;align-items:stretch"><div class="tx"><b>${esc(TR('Conteneurs'))}</b><span>${esc(TR('Un onglet dans un conteneur a ses propres cookies : vous pouvez être connecté à deux comptes du même site en même temps. Clic droit sur un onglet : « Rouvrir dans un conteneur ».'))}</span></div>
+        ${[['c1', '#3b82f6'], ['c2', '#22c55e'], ['c3', '#f97316'], ['c4', '#ec4899']].map(([id, col], i) => `<div style="display:flex;align-items:center;gap:8px;margin-top:6px"><i style="width:12px;height:12px;border-radius:50%;background:${col};flex:none"></i><input id="ctn_${id}" maxlength="30" value="${esc((b.containers || {})[id] || '')}" placeholder="${esc(TR('Conteneur {0}').replace('{0}', i + 1))}" style="flex:1;max-width:260px"><button class="btn sm" data-ctnclear="${id}">${ic('trash')}${esc(TR('Effacer ses cookies et données'))}</button></div>`).join('')}
+      </div>`, 'Pour les longues sessions de révision, de cours ou de travail.') +
     sec('keys', 'Raccourcis clavier', `
       <div class="prow"><div class="tx"><span>${esc(TR('Cliquez sur « Modifier », puis appuyez sur la nouvelle combinaison (avec Ctrl, Alt ou Maj, ou une touche F1 à F12). Échap : annuler · Retour arrière : retirer.'))}</span></div><button class="btn sm" id="keysReset">${esc(TR('Tout rétablir'))}</button></div>
       ${KEYS.map(([id, l, d]) => { const c = KMAP[id]; return `<div class="prow" style="padding:8px 18px"><div class="tx"><b>${esc(TR(l))}</b><span>${esc(TR('Par défaut'))} : ${d ? `<kbd>${esc(TR(d))}</kbd>` : esc(TR('aucun'))}</span></div>${c ? `<kbd style="font-size:13px">${esc(TR(c))}</kbd>` : ''}<button class="btn sm" data-kset="${id}">${esc(TR('Modifier'))}</button>${c ? `<button class="icon-btn" data-kdel="${id}" title="${esc(TR('Rétablir'))}">${ic('x')}</button>` : ''}</div>`; }).join('')}`, 'Choisissez vos propres raccourcis. Tous les raccourcis : touche F1 dans le navigateur.') +
@@ -184,6 +197,9 @@ function draw() {
       ${row('Sites où le bouton est masqué', '', '')}
       ${(P.hidden || []).map(h => `<div class="prow" style="padding-left:40px"><span class="notr" style="flex:1">${esc(h)}</span><button class="icon-btn" data-piph="${esc(h)}">${ic('x')}</button></div>`).join('')}`, 'Un bouton apparaît quand la souris passe sur une vidéo : la vidéo continue dans une petite fenêtre au-dessus des autres.') +
     sec('system', 'Système', `
+      ${row('Navigateur par défaut', 'Les liens ouverts depuis d\'autres programmes (Word, Discord, e-mails) s\'ouvrent dans DrYAE. Windows demande toujours de confirmer : DrYAE ouvre la bonne page des Paramètres de Windows, il suffit d\'y choisir DrYAE.', `<label class="sw"><input type="checkbox" id="defOn"><i></i></label>`)}
+      <div class="prow" id="defRow"><div class="tx"><b id="defTxt">…</b><span id="defSub"></span></div><button class="btn sm" id="defGo">${esc(TR('Choisir DrYAE dans Windows'))}</button></div>
+      ${row('Ouvrir aussi les PDF avec DrYAE', '', `<label class="sw"><input type="checkbox" id="defPdf"><i></i></label>`)}
       ${row('Mode d\'affichage des sites', '', sel('ua', [['desktop', 'Ordinateur'], ['mobile', 'Mobile']], b.ua))}
       ${row('Lecteur PDF de DrYAE', 'Ouvre les PDF avec des outils pour surligner, écrire, dessiner et signer, puis enregistrer le PDF modifié (bouton « Enregistrer » du lecteur).', swk('pdfViewer', b.pdfViewer !== false))}
       ${row('Détecter les sous-titres', 'Dans le panneau des fichiers détectés.', sw('subs', b.captureSubtitles))}
@@ -197,12 +213,28 @@ function draw() {
     sec('about', 'À propos de DrYAE', `
       <div class="prow"><img src="/_assets/logo.png" style="width:48px;height:48px;border-radius:12px" alt=""><div class="tx"><b style="font-size:15px">DrYAE ${esc(ABOUT.version)}</b><span>${esc(TR('Logiciel libre (GPL-3.0)'))} · Chromium ${esc(ABOUT.chrome)}</span></div></div>
       <div class="prow"><div class="tx"><b id="updTxt">${esc(TRF(updTxt, upd.status === 'downloading' ? Math.round(upd.progress || 0) : upd.version || ''))}</b><span>${upd.error ? esc(upd.error) : ''}</span></div><button class="btn sm" id="updChk">${esc(TR('Rechercher des mises à jour'))}</button>${['available', 'ready'].includes(upd.status) ? `<button class="btn sm primary" id="updGo">${esc(TR(upd.status === 'ready' ? 'Redémarrer et installer' : 'Mettre à jour'))}</button>` : ''}</div>
+      <div class="prow"><div class="tx"><b id="dlCount">${esc(TR('Téléchargements de DrYAE'))} : …</b><span>${esc(TR('Compté par GitHub, pour toutes les versions. DrYAE ne sait pas qui vous êtes.'))}</span></div></div>
       <div class="prow click" data-url="https://github.com/DrYAE-FPA/DrYAE"><div class="tx"><b>${esc(TR('Code source et nouveautés'))}</b><span>github.com/DrYAE-FPA/DrYAE</span></div><span class="chev">${ic('open')}</span></div>
       <div class="prow click" data-url="https://github.com/DrYAE-FPA/DrYAE/blob/main/docs/GUIDE.md"><div class="tx"><b>${esc(TR('Mode d\'emploi'))}</b></div><span class="chev">${ic('open')}</span></div>
       <div class="prow"><div class="tx"><b>${esc(TR('Gratuit et libre, sans publicité, sans compte, sans collecte de données.'))}</b><span>${esc(TR('DrYAE ne vend rien et ne vous suit pas. Détail de ce qu\'il envoie sur internet : Confidentialité et sécurité.'))}</span></div></div>
       <div class="prow"><div class="tx"><span>${esc(TR('Ne téléchargez que ce que vous avez le droit de copier.'))}</span></div></div>`);
   bind();
   search.oninput();
+  // navigateur par défaut
+  if ($('#defOn')) {
+    const show = d => {
+      $('#defOn').checked = d.on; $('#defPdf').checked = d.pdf; $('#defPdf').disabled = !d.on || !d.supported; $('#defOn').disabled = !d.supported && !d.on;
+      $('#defGo').hidden = !d.on || !d.supported;
+      $('#defTxt').textContent = !d.supported ? TR(d.portable ? 'Version portable : impossible de la déclarer à Windows' : 'Seulement dans la version installée de DrYAE sous Windows') : d.isDefault ? TR('DrYAE est votre navigateur par défaut') : d.on ? TR('DrYAE est déclaré à Windows : choisissez-le comme navigateur') : TR('DrYAE n\'est pas déclaré comme navigateur');
+      $('#defSub').textContent = !d.supported && d.portable ? TR('Une version portable peut changer de dossier : Windows ne peut pas la retenir. Installez DrYAE avec l\'installateur pour cette option.') : '';
+    };
+    call('defaultInfo').then(show).catch(() => {});
+    $('#defOn').onchange = async e => show(await call('defaultSet', { on: e.target.checked, open: e.target.checked }));
+    $('#defPdf').onchange = async e => show(await call('defaultSet', { pdf: e.target.checked }));
+    $('#defGo').onclick = () => call('defaultOpen');
+  }
+  // le total n'est demandé à GitHub que quand la ligne « À propos » est affichée à l'écran
+  if ($('#dlCount')) { const io = new IntersectionObserver(es => { if (!es.some(x => x.isIntersecting)) return; io.disconnect(); call('downloads').then(n => { const el = $('#dlCount'); if (el) el.textContent = TR('Téléchargements de DrYAE') + ' : ' + (n == null ? TR('indisponible') : Number(n).toLocaleString()); }).catch(() => {}); }); io.observe($('#dlCount')); }
 }
 function bind() {
   const w = $('#wrap');
@@ -210,12 +242,13 @@ function bind() {
   w.onchange = async e => {
     if (e.target.dataset && e.target.dataset.k) {
       const t = e.target, [g, k] = t.dataset.k.split('.');
-      const val = t.type === 'checkbox' ? t.checked : (t.type === 'range' || k === 'delay') ? +t.value : t.value;
+      const val = t.type === 'checkbox' ? t.checked : (t.type === 'range' || t.type === 'number' || k === 'delay') ? +t.value : t.value;
       await setB(k ? { [g]: { ...(C[g] || {}), [k]: val } } : { [g]: val });
       if (t.dataset.k === 'lights.eye') draw();
       return toast('Paramètre enregistré');
     }
     const t = e.target, id = t.id;
+    if (id.startsWith('ctn_')) { await call('containerRename', id.slice(4), t.value); return toast('Paramètre enregistré'); }
     if (t.name === 'st') { await setB({ startup: t.value }); await setRoot({ restoreSession: t.value === 'restore' }); v('spRow').style.display = t.value === 'pages' ? '' : 'none'; }
     else if (id === 'sp') await setB({ startupPages: t.value.split(/\n+/).map(x => x.trim()).filter(Boolean).map(x => (/^[a-z]+:\/\//i.test(x) ? x : 'https://' + x)) });
     else if (id === 'theme') await setRoot({ theme: { ...(C.rawTheme || {}), mode: t.value } });
@@ -258,6 +291,8 @@ function bind() {
   };
   w.oninput = e => { if (e.target.id === 'liOp') v('liOpV').textContent = e.target.value + ' %'; if (e.target.id === 'a11yScale') v('a11yScaleV').textContent = e.target.value + ' %'; };
   w.onclick = async e => {
+    const cc = e.target.closest('[data-ctnclear]');
+    if (cc) { if (!(await confirmBox(TR('Effacer les cookies et les données de ce conteneur ? Vous serez déconnecté des sites ouverts dedans.'), 'Effacer'))) return; await call('containerClear', cc.dataset.ctnclear); return toast('Données effacées'); }
     const g = a => e.target.closest('[data-' + a + ']')?.dataset[a];
     let x;
     if ((x = g('page'))) { const [p, h] = x.split('#'); return D.call('openPage', p, h || ''); }

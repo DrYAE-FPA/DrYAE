@@ -43,6 +43,8 @@ function edits(w) {
   const out = [];
   for (let i = 0; i < w.length; i++) {
     for (const c of CONF[w[i]] || '') out.push([w.slice(0, i) + c + w.slice(i + 1), 1]);
+    // deux lettres lues pour une (« MLICH » → MUCH, « RN » pour M, « CL » pour D)
+    const p2 = { li: 'u', ii: 'u', rn: 'm', cl: 'd', vv: 'w', iu: 'm' }[w.slice(i, i + 2)]; if (p2) out.push([w.slice(0, i) + p2 + w.slice(i + 2), 0.9]);
     if (w.length > 3) out.push([w.slice(0, i) + w.slice(i + 1), 1.4]);
   }
   // mot de 3 lettres avec une voyelle (« AXE », « REA ») : pas de lettre ajoutée (seulement « WLL » → WILL, « WTH » → WITH)
@@ -63,7 +65,7 @@ function split(w) {
     if (APOS.has(s)) return { w: APOS.get(s), c: 1.2 };
     if (s.length <= 2) return SHORT.has(s) ? { w: s, c: s.length === 1 ? 1.6 : 1.3 } : null;
     // mot exact : seulement un mot courant (« SUMIRE » ne devient pas « SUM IRE »)
-    if (known(s) && rank(s) <= 1) return { w: s, c: 1 + rank(s) * 0.25 };
+    if (known(s) && (rank(s) <= 1 || (s.length >= 6 && rank(s) <= 3))) return { w: s, c: 1 + rank(s) * 0.25 };
     if (s.length >= 4) { const c = correct1(s); if (c) return { w: c.w, c: 1.8 + c.c, fix: true }; }
     return null;
   };
@@ -140,13 +142,14 @@ function fixParts(parts) {
 }
 function fixWords(text) {
   load();
-  text = halfwidth(text);
+  text = digitWords(halfwidth(text), w => known(w), w => rank(w));
   const mixed = /\p{Ll}{3,}/u.test(text);
   text = String(text).replace(/[\p{L}']+/gu, (m, off, all) => {
     let w = m.toLowerCase().replace(/^'+|'+$/g, '');
     // texte en minuscules : un mot à majuscule au milieu d'une phrase est un nom propre (« Rea », « Chaosah ») : pas touché
     if (mixed && /^\p{Lu}\p{Ll}+$/u.test(m) && off > 0 && !/[.!?…:"“«]\s*$/.test(all.slice(Math.max(0, off - 3), off)) && !known(w)) return m;
     if (!/^[a-z']+$/.test(w)) return m;
+    if (!known(w) && !APOS.has(w) && !SPECIAL[w] && /l/.test(w)) { const u = lToU(w, x => known(x), x => rank(x), w.length <= 2 ? 0 : 3); if (u) { const core = m.replace(/^'+|'+$/g, ''); return m.replace(core, likeCase(core, u)); } }
     // apostrophe ou « I » non lus dans les formes courtes : « TS » → IT'S, « TVE » → I'VE, « DINT » → DIDN'T
     if (SPECIAL[w]) { const core = m.replace(/^'+|'+$/g, ''); return m.replace(core, likeCase(core, SPECIAL[w])); }
     // « EVERYTHINE'S » : on corrige le mot, le « 'S » reste
@@ -204,6 +207,51 @@ module.exports = { learnNames, fixNames, plausible, ROMAJI, isName, load, correc
 
 // ponctuation « pleine largeur » (！？，) lue par le modèle multilingue dans un texte latin
 function halfwidth(s) { return String(s).replace(/[！-～]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xfee0)).replace(/　/g, ' '); }
+
+
+// ---- 1.7.0 : U lu comme L, même plusieurs fois dans un mot (« NOLS » → NOUS, « LP » → UP, « KAZLYA » → KAZUYA) ----
+function lToU(w, isWord, rankOf, maxRank) {
+  const ix = []; for (let i = 0; i < w.length; i++) if (w[i] === 'l') ix.push(i);
+  if (!ix.length || ix.length > 5) return '';
+  let best = '', br = 99;
+  for (let mask = 1; mask < (1 << ix.length); mask++) {
+    const a = [...w]; ix.forEach((p, j) => { if (mask & (1 << j)) a[p] = 'u'; });
+    const s = a.join('');
+    if (isWord(s)) { const r = rankOf(s); if (r < br) { br = r; best = s; } }
+  }
+  if (best && br <= maxRank) return best;
+  // nom japonais : « KAZLYA » n'en a pas la forme, « KAZUYA » oui
+  if (w.length >= 4 && !ROMAJI.test(w)) for (let mask = 1; mask < (1 << ix.length); mask++) {
+    const a = [...w]; ix.forEach((p, j) => { if (mask & (1 << j)) a[p] = 'u'; });
+    const s = a.join(''); if (ROMAJI.test(s)) return s;
+  }
+  return '';
+}
+// ---- 1.7.0 : chiffres lus à la place des lettres (« GO » lu « 60 », « GOD » lu « 600 », « GOOD » lu « 6OOD ») ----
+const DIG = { 0: 'od', 1: 'il', 2: 'z', 3: 'e', 4: 'a', 5: 's', 6: 'gb', 8: 'b', 9: 'g' };
+// mots qui montrent qu'un nombre est un vrai nombre (« 60 ANS », « 600 YEN »)
+const NUMCTX = /^(years?|yrs?|yen|dollars?|euros?|francs?|fcfa|cfa|%|times|people|persons?|men|women|meters?|metres?|km|kg|g|cm|mm|m|minutes?|mins?|seconds?|secs?|hours?|hrs?|days?|weeks?|months?|points?|pts|degrees?|ans?|années?|fois|personnes?|mètres?|secondes?|heures?|jours?|semaines?|mois|h|x|th|st|nd|rd|e|ème|er|ère)$/i;
+function digitWords(text, isWord, rankOf) {
+  if (!/\d/.test(text)) return text;
+  const toks = String(text).split(/(\s+)/);
+  for (let i = 0; i < toks.length; i++) {
+    const m = /^([^\p{L}\d]*)([\p{L}\d]+)([^\p{L}\d]*)$/u.exec(toks[i]); if (!m || !/\d/.test(m[2])) continue;
+    const core = m[2], pure = /^\d+$/.test(core);
+    if (core.length < 2 || core.length > 9) continue;
+    // nombre suivi d'une unité, d'un mot comme « ANS », ou précédé d'un autre nombre : c'est un vrai nombre
+    const next = (toks[i + 2] || '').replace(/[^\p{L}%]/gu, ''), prev = (toks[i - 2] || '');
+    if (pure && (NUMCTX.test(next) || /\d/.test(prev) || /[.,:]\d/.test(toks[i]) || /^\d{4}$/.test(core) && +core > 1000 && +core < 2100)) continue;
+    // le reste du texte doit être en majuscules (lettrage de bulle), sinon on ne touche pas aux nombres
+    if (pure && /\p{Ll}/u.test(text)) continue;
+    let opts = [''];
+    for (const ch of core.toLowerCase()) { const alt = /\d/.test(ch) ? (DIG[ch] || '') : ch; if (!alt) { opts = []; break; } opts = opts.flatMap(o => [...alt].map(a => o + a)); if (opts.length > 64) break; }
+    let best = '', br = 99;
+    for (const o of opts) if (isWord(o)) { const r = rankOf(o); if (r < br) { br = r; best = o; } }
+    // nombre seul : seulement vers un mot très courant (« 60 » → GO, « 600 » → GOD, mais « 100 » reste 100)
+    if (best && (!pure || br <= 1)) toks[i] = m[1] + best.toUpperCase() + m[3];
+  }
+  return toks.join('');
+}
 // ===================== français =====================
 // Liste de mots français (an-array-of-french-words, MIT, voir assets/dict/FR-WORDS-LICENSE.txt), chargée seulement
 // pour une page en français. Pas de fréquences dans cette liste : les mots les plus courants sont donnés ici à la main.
@@ -288,7 +336,7 @@ function frSplit(k) {
 }
 function fixFrench(text) {
   loadFr();
-  text = halfwidth(text);
+  text = digitWords(halfwidth(text), w => FRK.has(strip(w)), w => FRT.has(strip(w)) ? 0 : 3);
   // « TUES » en début de phrase : TU ES
   text = String(text).replace(/(^|[.!?…]\s*)TUES\b/g, '$1TU ES');
   text = String(text)
@@ -315,6 +363,7 @@ function fixFrench(text) {
       if (!FRT.has(k)) { const c = frCorrect(core); if (c && FRT.has(strip(c)) && /[lq]/.test(k)) return out(c); }
       return m;
     }
+    if (/l/.test(k)) { const u = lToU(k, x => FRK.has(x), x => FRT.has(x) ? 0 : 2, k.length <= 2 ? 0 : 2); if (u) return out(FRK.get(u) || u); }
     const c = frCorrect(core); if (c) return out(c);
     const s = k.length >= 4 ? frSplit(k) : ''; if (s) return out(s);
     return m;

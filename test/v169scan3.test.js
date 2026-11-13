@@ -34,5 +34,13 @@ if (!fs.existsSync(IMG)) { console.log('OK  (page de référence absente : test 
   ok('image protégée : fichier refusé, lecture faite sur la page', blocked > 0 && txt.length > 0, { blocked });
   const words = txt.toUpperCase().match(/[A-Z]{3,}/g) || [];
   ok('capture haute définition : texte lisible (EXORCIST, PERFORMANCE, OUTSIDER)', /EXORCIST/i.test(txt) && /PERFORMANCE/i.test(txt) && /OUTSIDER/i.test(txt), words.length);
+  // 1.7.0 : lumières tamisées allumées (page assombrie à l'écran) : la lecture se fait quand même sur l'image normale
+  seen.length = 0;
+  await b.evaluate(() => pageCmd('lights')); await wait(1200);
+  const dark = await pg.evaluate(() => { const d = [...document.querySelectorAll('body > *')].length; return d; }).catch(() => 0);
+  await b.evaluate(() => pageCmd('scan')); await wait(500); await b.evaluate(() => pageCmd('scan'));
+  for (let i = 0; i < 120 && !seen.some(q => q.length > 1); i++) await wait(500);
+  const txt2 = seen.filter(q => q.length > 1).flat().join(' ');
+  ok('lumières tamisées : l\'image est lue sans le voile (EXORCIST, PERFORMANCE)', /EXORCIST/i.test(txt2) && /PERFORMANCE/i.test(txt2), txt2.slice(0, 160));
   await Promise.race([app.close(), wait(5000)]); srv.close(); process.exit(0);
 })().catch(e => { console.error('ÉCHEC', e); process.exit(1); });

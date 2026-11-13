@@ -26,6 +26,7 @@ $('#tabs').addEventListener('contextmenu', e => {
     ] },
     t.group ? { label: 'Retirer du groupe', icon: 'x', fn: () => { t.group = null; drawGroups(); saveGroups(); } } : null,
     { label: 'Regrouper les onglets par site', icon: 'list', fn: groupBySite },
+    window.WORK && !t.incognito ? { label: 'Rouvrir dans un conteneur', icon: 'box', sub: () => WORK.ctnMenu(t) } : null,
     '-',
     { label: 'Fermer', icon: 'x', key: 'Ctrl+W', fn: () => closeTab(t) },
     { label: 'Fermer les autres onglets', icon: 'x', fn: () => tabs.filter(x => x !== t).forEach(closeTab), disabled: tabs.length < 2 },
@@ -340,7 +341,7 @@ async function mediaPop(anchor) {
 }
 
 // ---------------------------------------------------------------- panneau latéral
-const SIDE_TABS = [['bm', 'star', 'Favoris'], ['hist', 'clock', 'Historique'], ['off', 'save', 'Hors ligne'], ['notes', 'file', 'Notes'], ['tr', 'translate', 'Traducteur']];
+const SIDE_TABS = [['bm', 'star', 'Favoris'], ['hist', 'clock', 'Historique'], ['ws', 'spaces', 'Espaces de travail'], ['col', 'col', 'Collections'], ['off', 'save', 'Hors ligne'], ['notes', 'file', 'Notes'], ['tr', 'translate', 'Traducteur']];
 let sideTab = localStorage.getItem('dryae-side') || 'bm';
 function toggleSide(tabName) {
   const S = $('#side');
@@ -368,7 +369,10 @@ async function drawSide() {
     const k = (cur?.url || '').split('#')[0];
     body.innerHTML = `<h4>${esc(T('Notes'))}</h4>` + (/^https?:/.test(k) ? `<label class="hint">${esc(T('Note pour cette page'))}</label><textarea id="noteTx" rows="8" style="width:100%;margin:4px 0" placeholder="${esc(T('Écrivez ici… (enregistré automatiquement)'))}">${esc(N[k]?.text || '')}</textarea>` : `<p class="hint">${esc(T('Ouvrez une page web pour y attacher une note.'))}</p>`)
       + `<h4 style="margin-top:12px">${esc(T('Toutes les notes'))}</h4>` + (Object.entries(N).sort((a, b) => b[1].t - a[1].t).map(([u, n]) => link(u, n.title, '', `<small class="notr" style="display:block;color:var(--dim)">${esc(n.text.slice(0, 80))}</small>`)).join('') || `<p class="hint">${esc(T('Aucune note.'))}</p>`);
+    if (window.WORK) await WORK.drawMarks(body, k);
     const tx = $('#noteTx'); if (tx) { let tm = 0; tx.oninput = () => { clearTimeout(tm); tm = setTimeout(() => B.call('br:noteSet', k, tx.value), 500); }; }
+  } else if ((sideTab === 'ws' || sideTab === 'col') && window.WORK) {
+    await WORK.drawSide(sideTab, body);
   } else if (sideTab === 'tr') {
     body.innerHTML = `<h4>${esc(T('Traducteur'))}</h4><textarea id="sTrIn" rows="6" style="width:100%" placeholder="${esc(T('Texte à traduire'))}"></textarea><div class="row" style="margin:6px 0;gap:6px"><button class="btn sm primary" id="sTrGo">${esc(T('Traduire'))}</button><button class="btn sm" id="sTrSel">${esc(T('Texte sélectionné dans la page'))}</button></div><div id="sTrOut" class="notr" style="white-space:pre-wrap;background:var(--panel2);border-radius:8px;padding:8px;min-height:60px"></div>`;
     $('#sTrGo').onclick = async () => { const t = $('#sTrIn').value.trim(); if (!t) return; $('#sTrOut').textContent = '…'; try { const r = await B.call('br:trText', t); $('#sTrOut').textContent = r.text || r; } catch (e) { $('#sTrOut').textContent = String(e.message || e); } };
@@ -378,6 +382,7 @@ async function drawSide() {
 }
 $('#side').addEventListener('click', async e => {
   const st = e.target.closest('[data-st]'); if (st) { if (st.dataset.st === 'x') return toggleSide(); sideTab = st.dataset.st; return drawSide(); }
+  if (e.target.closest('[data-w]')) return; // espaces, collections et surlignages : gérés par work.js
   const d = e.target.closest('[data-deloff]'); if (d) { await B.call('br:offlineDel', d.dataset.deloff); return drawSide(); }
   const a = e.target.closest('[data-act]'); if (a && a.dataset.act === 'saveoff') return saveOffline();
   const p = e.target.closest('[data-page]'); if (p) return openPage(p.dataset.page);
@@ -465,4 +470,4 @@ setTimeout(async () => {
   if (!r) return;
   try { const d = await B.call('br:importFrom', list[0].key, { history: r.checked }); toast(T('Importé : {0} favori(s), {1} page(s) d\'historique').replace('{0}', d.bookmarks).replace('{1}', d.history)); } catch (e) { toast(T('Import impossible') + ' : ' + (e.message || e)); }
 }, 4000);
-window.TABSX = { splitMenu, tabSearch, toggleSide, saveOffline, fullShot, showQrPop, splitWith, unsplit, groupBySite, drawGroups, sleepTab, saverTick, GROUPS: () => GROUPS };
+window.TABSX = { drawSide, sideTab: () => ($('#side').classList.contains('on') ? sideTab : ''), splitMenu, tabSearch, toggleSide, saveOffline, fullShot, showQrPop, splitWith, unsplit, groupBySite, drawGroups, sleepTab, saverTick, GROUPS: () => GROUPS };

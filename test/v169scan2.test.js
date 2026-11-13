@@ -54,7 +54,10 @@ const FR = s => s.split(/\s+/).map(w => w.length > 3 ? w + 'ée' : w).join(' ');
   ok('mots coupés par un tiret recollés (PERFORMANCE, TEMPORARY…)', texts.some(t => /PERFORMANCE/.test(t)) && !texts.some(t => /\b(PER|TEM)- /.test(t)), texts.filter(t => /PER|TEM/.test(t)));
   ok('bulles en majuscules : traduction affichée en majuscules', all.filter(x => x.caps).length >= all.length * 0.8, all.filter(x => !x.caps).map(x => x.text));
   const sent = seen.filter(q => q.length > 1).flat();
-  ok('texte envoyé au traducteur en minuscules normales', sent.length && sent.every(s => s !== s.toUpperCase()), sent.slice(0, 3));
+  // les noms japonais sont remplacés par des marques [1], [2]… (1.7.0) : on ne regarde que les phrases
+  const phr = sent.filter(s => /\p{L}{3}/u.test(s.replace(/\[\d+\]/g, '')));
+  ok('texte envoyé au traducteur en minuscules normales', phr.length && phr.every(s => s !== s.toUpperCase()), sent.slice(0, 3));
+  ok('noms japonais protégés par des marques ([1], [2]…)', sent.some(s => /\[\d+\]/.test(s)) && !sent.some(s => /HIGASHINA|Higashina/.test(s)), sent.slice(0, 2));
   // affichage : mots jamais coupés, taille jamais plus grande que le texte d'origine
   const view = await pg.evaluate(() => null);
   void view;

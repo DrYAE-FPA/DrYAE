@@ -1,5 +1,77 @@
 # Nouveautés / Changelog
 
+## 1.7.0
+
+### 🇫🇷 Français
+Une version pour les longues sessions de travail (étudiants, professeurs, travailleurs), un traducteur de scans plus juste et DrYAE comme navigateur par défaut.
+
+**Travail et études**
+- **Espaces de travail** : enregistrez les onglets ouverts sous un nom (« Révisions maths », « Cours de 3e ») et rouvrez-les plus tard, tels quels (panneau latéral).
+- **Collections** : rassemblez des pages, des passages, des images et des notes (clic droit → « Ajouter à une collection »), puis exportez-les en **document Word** ou en **PDF**.
+- **Citer cette page** : la référence est prête aux formats **APA**, **MLA** et **ISO 690**, à vérifier puis copier (l'italique est gardé pour Word).
+- **Surligner et annoter** les pages web : quatre couleurs, une note par passage ; tout revient à la visite suivante.
+- **Conteneurs** : un onglet avec ses propres cookies, pour être connecté à deux comptes du même site en même temps.
+- **Palette de commandes (Ctrl+K)** : tapez une action (« mode lecture », « côte à côte », « vider le cache ») et Entrée.
+- **Calculs et conversions dans la barre d'adresse** : « 15 % de 2400 », « 5 km en miles », « 100 °F en °C », « 30 euros en FCFA ».
+- **Vitesse des vidéos** de ×0,5 à ×3, retenue pour chaque site (clic droit sur la vidéo), et dans le **lecteur du gestionnaire**.
+- **Mode présentation** : la page en plein écran sans barres, gros curseur, surligneur temporaire (Alt + souris), notifications coupées.
+- **Rappels de pause** : repos des yeux toutes les 20 minutes, se lever toutes les heures (réglables ou désactivables).
+- **Onglets inactifs** : DrYAE propose de ranger les onglets oubliés depuis 7 jours, sans les perdre.
+- **Historique** : retrouve une page par un mot de son texte (le texte reste sur votre PC, jamais pour les onglets privés).
+- **Correcteur d'orthographe** dans les zones de texte des pages, propositions au clic droit.
+- **Masquer un élément gênant** d'une page (clic droit), pour toujours sur ce site — même sans le bloqueur de publicités.
+- Nouvelle section **Paramètres → Travail et études**.
+
+**Navigateur par défaut**
+- DrYAE peut devenir votre **navigateur par défaut** (Paramètres → Système) : les liens ouverts depuis Word, Discord ou vos e-mails s'ouvrent dans un nouvel onglet de DrYAE. Windows demande toujours de confirmer ; DrYAE ouvre la bonne page. Les PDF aussi, si vous le voulez. Pas possible avec la version portable.
+
+**Traducteur de scans**
+- Les **noms des personnages** et les **cris** ne sont plus traduits ; nouvelle case **« Ne jamais traduire »** dans le lexique pour garder une expression telle quelle.
+- Lettres mal lues mieux corrigées : U lu L (« KAZLYA » → KAZUYA), G lu 6 (« 60 » → GO, « 6OOD » → GOOD) sans toucher aux vrais nombres, « MLICH » → MUCH ; texte en italique redressé avant la lecture.
+- **Modèle de lecture « langues latines »** (anglais, français, espagnol, portugais), proposé une fois : bulles mieux lues.
+- Avec les **lumières tamisées** allumées, le traducteur lit l'image sans le voile : les lumières restent allumées à l'écran.
+
+**Divers**
+- Le panneau du bouton **Extensions** n'affiche plus que les extensions activées.
+- **Nombre de téléchargements de DrYAE** visible dans Paramètres → À propos et sur la page du projet (compté par GitHub, rien ne vous identifie).
+
+Ne téléchargez que ce que vous avez le droit de copier.
+
+### 🇬🇧 English
+A release for long work sessions (students, teachers, workers), a more accurate image text translator, and DrYAE as your default browser.
+
+**Work and study**
+- **Workspaces**: save the open tabs under a name ("Maths revision", "Year 9 class") and reopen them later, just as they were (side panel).
+- **Collections**: gather pages, passages, images and notes (right-click → "Add to a collection"), then export them to a **Word document** or a **PDF**.
+- **Cite this page**: the reference is ready in **APA**, **MLA** and **ISO 690**, to check and copy (italics kept for Word).
+- **Highlight and annotate** web pages: four colours, one note per passage; everything comes back on the next visit.
+- **Containers**: a tab with its own cookies, to be signed in to two accounts on the same site at once.
+- **Command palette (Ctrl+K)**: type an action ("reading mode", "side by side", "clear cache") and press Enter.
+- **Calculations and conversions in the address bar**: "15% of 2400", "5 km in miles", "100 °F in °C", "30 euros in FCFA".
+- **Video speed** from ×0.5 to ×3, remembered per site (right-click the video), and in the **manager's player**.
+- **Presentation mode**: the page full screen without bars, large cursor, temporary highlighter (Alt + mouse), notifications muted.
+- **Break reminders**: eye rest every 20 minutes, stand up every hour (adjustable or off).
+- **Inactive tabs**: DrYAE offers to tidy up tabs forgotten for 7 days, without losing them.
+- **History**: finds a page by a word in its text (the text stays on your PC, never for private tabs).
+- **Spell checker** in page text boxes, suggestions on right-click.
+- **Hide an annoying element** on a page (right-click), for good on that site — even without the ad blocker.
+- New **Settings → Work and study** section.
+
+**Default browser**
+- DrYAE can become your **default browser** (Settings → System): links opened from Word, Discord or your e-mails open in a new DrYAE tab. Windows always asks you to confirm; DrYAE opens the right page. PDFs too, if you want. Not possible with the portable version.
+
+**Image text translator**
+- **Character names** and **shouts** are no longer translated; new **"Never translate"** box in the glossary to keep a phrase as it is.
+- Misread letters better fixed: U read as L ("KAZLYA" → KAZUYA), G read as 6 ("60" → GO, "6OOD" → GOOD) without touching real numbers, "MLICH" → MUCH; italic text straightened before reading.
+- **"Latin-script languages" reading model** (English, French, Spanish, Portuguese), offered once: bubbles read better.
+- With **dimmed lights** on, the translator reads the image without the veil: the lights stay on screen.
+
+**Other**
+- The **Extensions** button panel now only shows turned-on extensions.
+- **Number of DrYAE downloads** shown in Settings → About and on the project page (counted by GitHub, nothing identifies you).
+
+Only download what you have the right to copy.
+
 ## 1.6.9
 
 ### 🇫🇷 Français

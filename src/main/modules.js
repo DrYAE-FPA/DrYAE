@@ -306,8 +306,48 @@ function generatePassword(n = 16) {
 
 // cris et onomatopées seuls dans une bulle (AHHH, HEHE, FUFU, HMM, GRRR…) : gardés tels quels, pas traduits
 const INTERJ = /^(?:a+h*|o+h*|e+h+|u+h+|h+m+|hu+h+|he+h+|(?:he)+h*|(?:ha)+h*|(?:hi)+|(?:fu)+|(?:ku)+|u?fu+|gr+|tch|ts+k|pf+t?|phew|u+g+h+|a+r+g+h+|e+k|ky+a+|n+|m+|wh?oa+|w+o+w+|a+h*a+|a?(?:ha)+h?|y+a+y*|ya+h+o+|z+|u+m+|e+r+m*|hm+ph|o+p+s+)$/i;
+// 1.7.0 : cri fait de une ou deux lettres répétées (HEHEHE, HAAAA, HMMM, OHHH, UFUFU, Haaaa…) ou cri connu (KYAAA, NYAA, EHE)
+const INTERJ2 = /^(?:k?ya+h*|gya+|nya+|wa+h*|ba+h*|mu+h*|nu+|fu+n|hu+n|e?he+h*e*|eh+e+|ehe|kya+h*)$/i;
+function interjWord(w) {
+  if (INTERJ.test(w) || INTERJ2.test(w)) return true;
+  const l = w.toLowerCase();
+  if (l.length < 3 || !/^[a-zà-ÿ]+$/.test(l)) return false;
+  // motif répété (HEHEHE, UFUFU, HAHAHA) ou lettre triplée (HAAAA, HMMM, OHHH), sans être un vrai mot (MAMA, COCO, SEE)
+  const rep = /^(.{1,2})\1+.?$/.test(l) || /(.)\1\1/.test(l);
+  if (!rep) return false;
+  try { const SF = require('./scan-fix'); if (!/(.)\1\1/.test(l) && (SF.load().has(l) || SF.frKnown(l))) return false; } catch {}
+  return true;
+}
 function interjection(t) {
   const ws = String(t || '').match(/\p{L}+/gu) || [];
-  return ws.length > 0 && ws.length <= 6 && ws.every(w => INTERJ.test(w));
+  return ws.length > 0 && ws.length <= 6 && ws.every(w => interjWord(w));
 }
-module.exports = { interjection, cleanScan, forMT, aiScan, MODULES, MOD_DEFAULT, PROVIDERS, PADDLE_LANGS, OCR_FIX, readRegions, translate, setUserAgent, readImage, OCR_LANGS, ocrDownloaded, windowsHello, pwnedCount, weak, generatePassword };
+
+// 1.7.0 : cris et noms protégés à l'intérieur d'une phrase : remplacés par des marques [1], [2]… que le traducteur
+// recopie telles quelles, puis remis à leur place. Noms : forme d'un nom japonais (KA-NA-KA) ou liste « Ne jamais traduire ».
+function protect(text, lang, never) {
+  const keep = [];
+  let SF = null; try { SF = require('./scan-fix'); } catch {}
+  const isWord = w => { if (!SF) return true; const l = w.toLowerCase(); return lang === 'fr' ? SF.frKnown(l) : SF.isName ? !SF.isName(l) && l.length >= 3 ? true : !SF.isName(l) : true; };
+  let t = String(text);
+  // expressions « Ne jamais traduire » (plusieurs mots possibles), les plus longues d'abord
+  for (const n of (never || []).filter(Boolean).sort((a, b) => b.length - a.length)) {
+    const re = new RegExp('(^|[^\\p{L}])(' + n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')(?![\\p{L}])', 'giu');
+    t = t.replace(re, (m, a, b) => { keep.push(b); return a + '[' + keep.length + ']'; });
+  }
+  t = t.replace(/[\p{L}][\p{L}'’-]*/gu, w => {
+    const core = w.replace(/['’]s$/i, ''), rest = w.slice(core.length);
+    const parts = core.split('-');
+    const interj = core.length >= 3 && parts.every(x => x.length >= 2 && interjWord(x));
+    const name = !interj && SF && core.length >= 4 && parts.every(x => x.length >= 2 && SF.ROMAJI.test(x)) && parts.some(x => !isWord(x));
+    if (!interj && !name) return w;
+    // un texte fait seulement de cris est déjà gardé en entier ailleurs
+    keep.push(core); return '[' + keep.length + ']' + rest;
+  });
+  return { t, keep };
+}
+function unprotect(t, keep) {
+  if (!keep || !keep.length) return t;
+  return String(t).replace(/[[［]\s*(\d+)\s*[\]］]/g, (m, k) => keep[+k - 1] != null ? keep[+k - 1] : m);
+}
+module.exports = { protect, unprotect, interjWord, interjection, cleanScan, forMT, aiScan, MODULES, MOD_DEFAULT, PROVIDERS, PADDLE_LANGS, OCR_FIX, readRegions, translate, setUserAgent, readImage, OCR_LANGS, ocrDownloaded, windowsHello, pwnedCount, weak, generatePassword };

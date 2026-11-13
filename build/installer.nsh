@@ -19,4 +19,12 @@
 
 !macro customUnInstall
   Delete "$INSTDIR\lang.txt"
+  ; 1.7.0 : déclaration « navigateur par défaut » retirée (si l'utilisateur l'avait activée)
+  ${IfNot} ${isUpdated}
+    DeleteRegValue HKCU "Software\RegisteredApplications" "DrYAE"
+    DeleteRegKey HKCU "Software\Clients\StartMenuInternet\DrYAE"
+    DeleteRegKey HKCU "Software\Classes\DrYAEURL"
+    DeleteRegKey HKCU "Software\Classes\DrYAEHTML"
+    DeleteRegKey HKCU "Software\Classes\DrYAEPDF"
+  ${EndIf}
 !macroend

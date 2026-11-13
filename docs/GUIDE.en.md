@@ -142,6 +142,25 @@ DRM-protected videos (Netflix, Disney+…) cannot be downloaded.
 - **Image text translator, comics in French:** solid-colour bubbles are recognized, French reading is fixed (mixed-up letters, glued words) and drawn sound effects stay intact.
 - **Side-by-side view:** the ⋮ button on the divider (or a right-click on the divider) lets you swap sides, choose the width, scroll both sides together, separate the tabs or close one side.
 
+## 5a+. Work and study (new in 1.7.0)
+- **Workspaces** (side panel, four-squares icon): name your open tabs ("Maths revision", "Year 9 class"…) and click **Save**. Later, **Open** reopens them as they were, **Replace tabs** closes the open tabs and puts the space's tabs instead, **Update** saves the current tabs into the space.
+- **Collections** (side panel): right-click a page, **selected text** or an **image** → **Add to a collection**. You can also write notes, reorder items, then **Export to Word** or **Export to PDF** (headings, passages, images and page addresses).
+- **Cite this page** (right-click in the page, or ⋮ menu → More tools): the reference is ready in **APA**, **MLA** and **ISO 690**. Check the author, title and date found on the page; **Copy** keeps the italics for Word.
+- **Highlight**: select a passage, right-click → **Highlight** (yellow, green, blue or pink) or **Highlight and add a note**. Highlights come back every time you visit the page. Click a highlighted passage to change its colour, write the note or remove it. They are listed in the side panel, **Notes** tab.
+- **Hide an annoying element** (banner, video that follows the page): right-click → **Hide this element…**, for good on that site.
+- **Containers**: right-click a tab → **Reopen in a container**. The tab has its own cookies: you can be signed in to two accounts on the same site at once. A coloured line under the tab shows the container. Names and clearing: Settings → **Work and study**.
+- **Command palette: Ctrl+K**. Type the name of an action ("reading mode", "side by side", "clear cache"…) then Enter. Change the shortcut in Settings → Keyboard shortcuts.
+- **Calculations and conversions in the address bar**: "15% of 2400", "5 km in miles", "100 °F in °C", "30 euros in FCFA". The result appears under the bar; click it to copy.
+- **Video speed** (×0.5 to ×3): right-click the video → **Playback speed**, or ⋮ menu → More tools. The speed is remembered for the site. In the **manager's player**, choose the speed at the top right (keys < and >).
+- **Presentation mode** (⋮ menu → More tools): the page full screen, without bars, with a large cursor. Hold **Alt** and move the mouse to point out a passage (the yellow trail fades by itself). Notifications are muted. **Esc** to exit.
+- **Break reminders**: every 20 minutes, "look into the distance for 20 seconds"; every hour, "stand up". Adjust or turn off in Settings → **Work and study**.
+- **Inactive tabs**: DrYAE offers to tidy up tabs you haven't opened for 7 days; they stay in **Workspaces → Inactive tabs** so you can reopen them.
+- **History**: search also finds a page by a word in its text. The text stays on your PC, never for private tabs.
+- **Spell checker** in page text boxes, with suggestions on right-click.
+- **Default browser**: Settings → System → **Default browser**, then **Choose DrYAE in Windows** (Windows always asks you to confirm). Links opened from Word, Discord or your e-mails then open in DrYAE. Not possible with the portable version.
+- **Image text translator:** character names and shouts are no longer translated; in **Glossary**, **Never translate** keeps a phrase as it is. For English and French, the **"Latin-script languages" reading model** (offered once) reads bubbles better. The translator no longer sees the **dimmed lights** veil: the lights stay on screen during translation.
+- The **Extensions** button panel now only shows turned-on extensions; turn the others back on in **Manage extensions**.
+
 ## 5b. Accessibility
 Settings → **Accessibility**: DrYAE text size (up to 200%), **high contrast** (or as Windows), **easy reading** (simple font and wider letter spacing, helpful for dyslexia), **reduce animations**, **simple mode** (only the essential buttons). Everything also works from the keyboard: Tab, arrows, Esc, F6 (address bar → buttons → page), Alt+F (menu). DrYAE works with screen readers (NVDA, Narrator). Your own shortcuts: Settings → **Keyboard shortcuts**.
 
@@ -187,7 +206,7 @@ Press **F1** to open this guide inside DrYAE; the full list of shortcuts is at t
 
 **Download manager (Windows shortcuts):** Ctrl+A (select all) · Ctrl+click / Shift+click · arrows and Shift+arrows · Home / End · Enter (open) · Space (pause/resume) · F2 (rename) · Del (remove from list) · Shift+Del (delete permanently) · Ctrl+Z (undo remove) · Ctrl+C (copy the file) · Ctrl+Shift+C (copy path) · Ctrl+V (paste a link) · Alt+Enter (properties) · Alt+Shift+P (details pane) · Ctrl+Shift+2…8 (views) · F3 / Ctrl+F (search) · F5 (refresh) · Ctrl+E (folder) · Ctrl+N (add link) · Ctrl+T (torrent) · Ctrl+O (.torrent file) · Ctrl+B (browser) · Esc.
 
-**Browser (standard shortcuts):** Ctrl+T · Ctrl+Shift+P (private tab) · Ctrl+W · Ctrl+Shift+T (reopen closed tab) · Ctrl+Tab · Ctrl+1…9 · Ctrl+L / F6 · Ctrl+F / F3 · F5 / Ctrl+R · Alt+←/→ · Ctrl+D · Ctrl+H · Ctrl+J (download manager) · Ctrl+Shift+Y (detected files) · Ctrl+P · Ctrl+S · Ctrl+U · Ctrl+M (mute) · Ctrl+ +/−/0 · F11 · F12 · Ctrl+Shift+Del · Ctrl+Shift+Q.
+**Browser (standard shortcuts):** Ctrl+T · Ctrl+Shift+P (private tab) · Ctrl+W · Ctrl+Shift+T (reopen closed tab) · Ctrl+Tab · Ctrl+1…9 · Ctrl+L / F6 · Ctrl+K (command palette) · Ctrl+F / F3 · F5 / Ctrl+R · Alt+←/→ · Ctrl+D · Ctrl+H · Ctrl+J (download manager) · Ctrl+Shift+Y (detected files) · Ctrl+P · Ctrl+S · Ctrl+U · Ctrl+M (mute) · Ctrl+ +/−/0 · F11 · F12 · Ctrl+Shift+Del · Ctrl+Shift+Q.
 
 ## Responsible use
 Only download content you have the right to copy: your own files, free content, or content you are allowed to download. Follow the terms of service of the sites you visit.

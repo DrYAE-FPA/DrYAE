@@ -65,6 +65,7 @@ textarea{width:100%;min-height:90px;resize:vertical;font:12px ui-monospace,Conso
 .lrow .ck{width:16px;height:16px;accent-color:var(--accent);flex:none;margin:0}
 .lrow .tm{color:var(--muted);font-size:12px;width:46px;flex:none;font-variant-numeric:tabular-nums}
 .lrow .tt{flex:1;min-width:0;display:flex;align-items:baseline;gap:10px}
+.lrow .tt:has(.snip){flex-wrap:wrap;row-gap:2px}
 .lrow .tt b{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lrow .tt span{color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:none;max-width:40%}
 .lrow .act{opacity:0;display:flex;gap:2px}

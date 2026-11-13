@@ -51,6 +51,28 @@ const AD_LISTS = {
 };
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 
+
+// 1.7.0 : retire d'une photo de page le voile des lumières tamisées (couleur + opacité) et de la protection des yeux
+// (filtre orangé « multiply »), pour que le traducteur de scans lise l'image telle qu'elle est vraiment
+function unveil(img, v) {
+  try {
+    if (!img || img.isEmpty() || !v || (!v.lights && !v.eye)) return img;
+    const { width: w, height: h } = img.getSize(), bm = Buffer.from(img.toBitmap());
+    const op = v.lights ? Math.max(0, Math.min(0.97, +v.lights.op || 0)) : 0;
+    const hex = v.lights && /^#[0-9a-f]{6}$/i.test(v.lights.color) ? v.lights.color : '#000000';
+    const col = [parseInt(hex.slice(5, 7), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(1, 3), 16)]; // ordre BGRA
+    const a = Math.max(0, Math.min(0.6, +v.eye || 0)), eyeF = [1 - a * 215 / 255, 1 - a * 105 / 255, 1]; // B, G, R
+    for (let i = 0; i < bm.length; i += 4) for (let c = 0; c < 3; c++) {
+      let x = bm[i + c];
+      // le filtre des yeux est posé par-dessus tout : on le retire en premier
+      if (a) x = x / eyeF[c];
+      if (op) x = (x - op * col[c]) / (1 - op);
+      bm[i + c] = x < 0 ? 0 : x > 255 ? 255 : x;
+    }
+    return require('electron').nativeImage.createFromBitmap(bm, { width: w, height: h });
+  } catch { return img; }
+}
+
 class WebBrowser {
   constructor({ main, settings, userDir, onDownload, onTorrent, getPassword, assetsDir }) {
     Object.assign(this, { main, settings, userDir, onDownload, onTorrent, getPassword, assetsDir });
@@ -73,6 +95,7 @@ class WebBrowser {
     this.vault = new Vault({ userDir, enc: main.enc, dec: main.dec, settings, getWc: () => this.wc, privatePartition: PART_PRIV, hello: M.windowsHello });
     this.pendingLogins = new Map();
     this.setupIpc();
+    require('./work')(this);
     this.setupPages();
   }
   B() { return this.settings.get().browser; }
@@ -84,7 +107,7 @@ class WebBrowser {
   onQuit() {
     this.quitting = true; this.saveStoreSync();
     try { session.fromPartition(PART_PRIV).clearStorageData(); } catch {}
-    if (this.B().clearOnExit) { try { session.fromPartition(PART).clearStorageData(); } catch {} this.store.history = []; this.saveStoreSync(); }
+    if (this.B().clearOnExit) { try { session.fromPartition(PART).clearStorageData(); } catch {} this.store.history = []; this.saveStoreSync(); try { fs.unlinkSync(path.join(this.userDir, 'history-text.json')); } catch {} }
   }
   // couleur d'accent « Windows » : celle choisie dans les paramètres de Windows (violet DrYAE sinon)
   theme() {
@@ -121,7 +144,7 @@ class WebBrowser {
     return f;
   }
   saveStore() { clearTimeout(this._st); this._st = setTimeout(() => fsp.writeFile(this.storeFile, JSON.stringify(this.store)).catch(() => {}), 500); }
-  sessions() { return [session.fromPartition(PART), session.fromPartition(PART_PRIV)]; }
+  sessions() { return [session.fromPartition(PART), session.fromPartition(PART_PRIV), ...(this.containerSessions ? this.containerSessions() : [])]; }
 
   async init() {
     const B = this.B();
@@ -139,6 +162,7 @@ class WebBrowser {
       if (patch.browser && ('ua' in patch.browser)) { this.sessions().forEach(s => s.setUserAgent(this.ua())); try { app.userAgentFallback = this.ua(); } catch {} }
       if (patch.browser && ('filterLists' in patch.browser || 'hostsSources' in patch.browser || 'customFilters' in patch.browser || 'adLists' in patch.browser)) this.updateBlocker(true);
       if (patch.browser || 'restoreSession' in patch || patch.theme) this.pushCfg();
+      if ((patch.browser && 'spell' in patch.browser) || 'lang' in patch) this.sessions().forEach(s => this.spellSetup?.(s));
     });
     // mise à jour des listes en arrière-plan (tous les 4 jours)
     setTimeout(() => this.updateBlocker(false), 20000);
@@ -397,6 +421,7 @@ class WebBrowser {
   // ---------- sessions ----------
   setupSession(ses) {
     ses.setUserAgent(this.ua());
+    this.spellSetup?.(ses);
     pages.handleSession(ses);
     if (ses.registerPreloadScript) {
       for (const [id, filePath] of [['dryae-page', PAGE_PRELOAD], ['dryae-adblock', PRELOAD_PATH]]) {
@@ -417,6 +442,7 @@ class WebBrowser {
       this.askPermission(wc, host, kinds).then(cb, () => cb(false));
     });
     ses.setPermissionCheckHandler((wc, perm, origin) => {
+      if (perm === 'notifications' && this.present) return false; // mode présentation : notifications coupées
       const k = PERM_OF[perm]; if (!k) return perm !== 'midi-sysex';
       let host = ''; try { host = new URL(origin || wc?.getURL() || '').hostname; } catch {}
       return this.permOf(host, k) === 'allow';
@@ -699,7 +725,7 @@ class WebBrowser {
     wc.once('destroyed', () => this.loginTabs.delete(wc.id));
     try { const w = BrowserWindow.fromWebContents(wc); w?.setMenu(null); } catch {}
   }
-  isWebSession(ses) { return ses === session.fromPartition(PART) || ses === session.fromPartition(PART_PRIV); }
+  isWebSession(ses) { return this.sessions().includes(ses); }
 
   contextMenu(wc, p) {
     const T = [];
@@ -708,6 +734,15 @@ class WebBrowser {
     const cmd = (c, extra = {}) => this.wc?.send('page-cmd', { wcId: wc.id, cmd: c, ...extra });
     const dl = async (url, name) => this.quickFile({ url, name, page: wc.getURL(), incognito: ses !== session.fromPartition(PART), headers: { Cookie: await this.cookieHeader(ses, url), 'User-Agent': this.ua(), Referer: wc.getURL() } });
     const cap = this.modOn('capture');
+    // 0) correcteur d'orthographe : propositions pour le mot souligné
+    if (p.isEditable && p.misspelledWord) {
+      (p.dictionarySuggestions || []).slice(0, 6).forEach(w => T.push({ label: w, click: () => wc.replaceMisspelling(w) }));
+      if (!(p.dictionarySuggestions || []).length) T.push({ label: 'Aucune suggestion', enabled: false });
+      T.push({ label: 'Ajouter au dictionnaire', click: () => { try { ses.addWordToSpellCheckerDictionary(p.misspelledWord); } catch {} } }, { type: 'separator' });
+    }
+    // collections : liste des collections + « Nouvelle collection »
+    const colMenu = item => [...(this.store.cols || []).slice(0, 12).map(c => ({ label: c.name, click: () => this.colAdd(c.id, item) })), ...((this.store.cols || []).length ? [{ type: 'separator' }] : []), { label: 'Nouvelle collection', click: () => this.colAdd(null, item) }];
+    const pageItem = { type: 'page', url: wc.getURL(), title: wc.getTitle() };
     // 1) le lien : ouvrir, onglet privé, copier
     const link = p.linkURL && !/^dryae:/.test(p.linkURL) ? p.linkURL : '';
     if (link) {
@@ -737,6 +772,8 @@ class WebBrowser {
       // lecture du texte de l'image, sans traduction, copié dans le presse-papiers (lu sur ce PC)
       if (p.mediaType === 'image') T.push({ label: "Copier le texte de l'image", click: () => this.copyImageText(wc, p) });
       if (p.mediaType === 'video' && this.modOn('pip')) T.push({ label: 'Image dans l\'image', click: () => this.pipToggle(wc) });
+      if (p.mediaType === 'video' || p.mediaType === 'audio') T.push({ label: 'Vitesse de lecture', submenu: [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3].map(r => ({ label: '× ' + r, click: () => this.setSpeed(wc, r) })) });
+      if (p.mediaType === 'image' && /^(https?|data):/.test(p.srcURL) && !internal) T.push({ label: 'Ajouter l\'image à une collection', submenu: colMenu({ type: 'image', src: p.srcURL, url: wc.getURL(), title: wc.getTitle() }) });
     }
     if (T.length > before) T.push({ type: 'separator' });
     if (p.selectionText) {
@@ -745,13 +782,20 @@ class WebBrowser {
       if (this.modOn('translate') && !internal) T.push({ label: `Traduire « ${s.slice(0, 24)}${s.length > 24 ? '…' : ''} »`, click: () => cmd('translate-selection') });
       if (/^(https?:\/\/|magnet:)\S+$/i.test(s)) { if (cap) T.push({ label: 'Télécharger ce lien avec DrYAE', click: () => (s.startsWith('magnet:') ? this.onTorrent(s, {}) : dl(s)) }); }
       else T.push({ label: `Rechercher « ${s.slice(0, 30)}${s.length > 30 ? '…' : ''} »`, click: () => this.wc?.send('open-url', { url: this.searchUrl(s) }) });
+      if (!internal && !p.isEditable && /^https?:/.test(wc.getURL())) {
+        const HL = [['yellow', 'Jaune'], ['green', 'Vert'], ['blue', 'Bleu'], ['pink', 'Rose']];
+        T.push({ label: 'Surligner', submenu: HL.map(([c, l]) => ({ label: l, click: () => cmd('hl', { color: c }) })) });
+        T.push({ label: 'Surligner et ajouter une note…', click: () => cmd('hl', { color: 'yellow', note: true }) });
+        T.push({ label: 'Ajouter à une collection', submenu: colMenu({ type: 'text', text: p.selectionText, url: wc.getURL(), title: wc.getTitle() }) });
+      }
     }
     if (p.isEditable) T.push({ label: 'Couper', role: 'cut' }, { label: 'Copier', role: 'copy' }, { label: 'Coller', role: 'paste' }, { type: 'separator' });
     T.push({ label: 'Précédent', enabled: wc.canGoBack(), click: () => wc.goBack() }, { label: 'Actualiser', click: () => wc.reload() });
     if (!internal) {
       if (this.modOn('translate') && !p.selectionText) T.push({ label: 'Traduire la page', click: () => cmd('translate-page') });
+      if (!p.selectionText && /^https?:/.test(wc.getURL())) { T.push({ label: 'Ajouter la page à une collection', submenu: colMenu(pageItem) }); T.push({ label: 'Citer cette page…', click: () => this.wc?.send('ui-cmd', { wcId: wc.id, cmd: 'cite' }) }); }
       if (cap) T.push({ label: 'Extraire les liens de la page', click: () => this.wc?.send('grab-links', { wcId: wc.id }) });
-      if (this.modOn('adblock')) T.push({ label: 'Masquer cet élément…', click: () => cmd('picker', { x: p.x, y: p.y }) });
+      T.push({ label: 'Masquer cet élément…', click: () => cmd('picker', { x: p.x, y: p.y }) });
     }
     T.push({ label: 'Inspecter', click: () => wc.inspectElement(p.x, p.y) });
     try { const extItems = this.ext && !internal ? this.ext.getContextMenuItems(wc, p) : []; if (extItems.length) { T.push({ type: 'separator' }); extItems.forEach(i => T.push(i)); } } catch {}
@@ -968,7 +1012,9 @@ class WebBrowser {
   }
   histDays(q, mode) {
     const f = String(q || '').trim().toLowerCase(), F = this.store.favs || {};
-    return this.store.history.filter(h => !f || (h.title + ' ' + h.url).toLowerCase().includes(f)).map(h => { const x = F[hostOf(h.url)]; return x ? { ...h, fav: x } : h; });
+    // recherche aussi dans le texte des pages visitées (gardé sur ce PC) : l'extrait trouvé est affiché sous le titre
+    const inText = f ? (this.htSearch?.(q) || new Map()) : new Map();
+    return this.store.history.filter(h => !f || (h.title + ' ' + h.url).toLowerCase().includes(f) || inText.has(h.url.split('#')[0])).map(h => { const x = F[hostOf(h.url)], sn = inText.get(h.url.split('#')[0]); const o = x ? { ...h, fav: x } : h; return sn && !(h.title + ' ' + h.url).toLowerCase().includes(f) ? { ...o, snippet: sn } : o; });
   }
   // icônes des sites : récupérées par DrYAE avec la session du navigateur puis gardées en image intégrée (data:),
   // car beaucoup de sites interdisent qu'on affiche leur icône depuis une autre page (onglets, historique vides)
@@ -1006,7 +1052,7 @@ class WebBrowser {
   histDelete(keys) {
     const set = new Set([].concat(keys)); const removed = [];
     this.store.history = this.store.history.filter(h => { const k = h.t + '|' + h.url; if (set.has(k)) { removed.push(h); return false; } return true; });
-    this.saveStore(); this.histChanged(); return removed;
+    this.saveStore(); this.histChanged(); clearTimeout(this._hp); this._hp = setTimeout(() => this.htPrune?.(), 60000); return removed;
   }
   histRestore(list) { this.store.history = [...this.store.history, ...[].concat(list)].sort((a, b) => b.t - a.t); this.saveStore(); this.histChanged(); }
   histChanged() { pages.broadcast('history'); }
@@ -1096,6 +1142,27 @@ class WebBrowser {
     P('setRoot', patch => { const ok = ['restoreSession', 'theme', 'lang', 'a11y', 'autoUpdateCheck', 'torrent']; const p = {}; for (const k of ok) if (k in (patch || {})) p[k] = patch[k]; this.settings.set(p); if (p.lang) this.main.setLang?.(p.lang); return this.cfg(); });
     P('resetBrowser', () => { const def = this.settings.def.browser; const keep = { modules: this.B().modules, filterLists: this.B().filterLists, customFilters: this.B().customFilters }; this.settings.set({ browser: { ...JSON.parse(JSON.stringify(def)), ...keep } }); return this.cfg(); });
     P('about', () => ({ version: app.getVersion(), chrome: process.versions.chrome, electron: process.versions.electron, update: this.main.updateInfo?.() }));
+    // 1.7.0 : nombre de téléchargements de DrYAE, compté par GitHub (rien sur l'utilisateur n'est envoyé) ; gardé un jour
+    P('downloads', async () => {
+      const now = Date.now(); if (this._dlc && now - this._dlc.t < 864e5) return this._dlc.n;
+      try {
+        const r = await require('electron').net.fetch('https://api.github.com/repos/DrYAE-FPA/DrYAE/releases?per_page=100', { headers: { Accept: 'application/vnd.github+json' } });
+        if (!r.ok) return this._dlc ? this._dlc.n : null;
+        const list = await r.json(); let n = 0;
+        for (const rel of list) for (const a of rel.assets || []) if (/\.(exe|zip)$/i.test(a.name) && !/code-source|blockmap/i.test(a.name)) n += a.download_count || 0;
+        this._dlc = { t: now, n }; return n;
+      } catch { return this._dlc ? this._dlc.n : null; }
+    });
+    // 1.7.0 : DrYAE navigateur par défaut (option activable / désactivable)
+    P('defaultInfo', async () => { const D = require('./defaultbrowser'); const c = this.B().defaultBrowser || {}; return { on: !!c.on, pdf: !!c.pdf, supported: D.supported(), portable: D.portable(), isDefault: await D.isDefault().catch(() => false) }; });
+    P('defaultSet', async patch => {
+      const D = require('./defaultbrowser'); const c = { ...(this.B().defaultBrowser || {}) };
+      if (patch && 'on' in patch) c.on = !!patch.on; if (patch && 'pdf' in patch) c.pdf = !!patch.pdf;
+      this.settings.set({ browser: { defaultBrowser: c } });
+      if (c.on) { await D.register(c.pdf); if (patch && patch.open) await D.openWindowsSettings(); } else await D.unregister();
+      return { on: !!c.on, pdf: !!c.pdf, supported: D.supported(), portable: D.portable(), isDefault: await D.isDefault().catch(() => false) };
+    });
+    P('defaultOpen', () => require('./defaultbrowser').openWindowsSettings());
     P('updateCheck', () => this.main.updateCheck?.());
     P('updateInstall', () => this.main.updateInstall?.());
     P('pickDir', async def => { const r = await dialog.showOpenDialog(this.win, { properties: ['openDirectory', 'createDirectory'], defaultPath: def || app.getPath('downloads') }); return r.canceled ? null : r.filePaths[0]; });
@@ -1116,7 +1183,7 @@ class WebBrowser {
     });
     P('clearData', async (from, what) => {
       const ses = session.fromPartition(PART);
-      if (what.history) { this.store.history = this.store.history.filter(h => h.t < from); if (!from) this.store.typed = []; else this.store.typed = this.store.typed.filter(x => x.t < from); this.store.closed = []; this.saveStore(); this.histChanged(); }
+      if (what.history) { this.store.history = this.store.history.filter(h => h.t < from); if (!from) this.store.typed = []; else this.store.typed = this.store.typed.filter(x => x.t < from); this.store.closed = []; this.saveStore(); this.histChanged(); if (!from) this.htClear?.(); else this.htPrune?.(); }
       if (what.cookies) { await ses.clearStorageData({ storages: ['cookies', 'localstorage', 'indexdb', 'websql', 'filesystem', 'serviceworkers', 'cachestorage'] }).catch(() => {}); }
       if (what.cache) { await ses.clearCache().catch(() => {}); await ses.clearStorageData({ storages: ['shadercache', 'cachestorage'] }).catch(() => {}); }
       if (what.downloads) { this.nd = this.nd.filter(d => d.state === 'progressing'); this.sendNd(); this.main.manager.clearFinished(); }
@@ -1209,7 +1276,7 @@ class WebBrowser {
       this.saveStore();
       clearTimeout(this._hb); this._hb = setTimeout(() => this.histChanged(), 1500);
     });
-    ipcMain.handle('br:clearHistory', () => { this.store.history = []; this.store.typed = []; this.saveStore(); this.histChanged(); });
+    ipcMain.handle('br:clearHistory', () => { this.store.history = []; this.store.typed = []; this.saveStore(); this.histChanged(); this.htClear?.(); });
     ipcMain.handle('br:typed', (_e, text) => {
       text = String(text || '').trim(); if (!text || text.length > 500) return;
       this.store.typed = [{ text, t: Date.now(), n: ((this.store.typed.find(x => x.text === text) || {}).n || 0) + 1 }, ...this.store.typed.filter(x => x.text !== text)].slice(0, 500);
@@ -1341,7 +1408,8 @@ class WebBrowser {
     ipcMain.handle('br:shot', async (_e, wcId, r) => {
       try {
         const wc = webContents.fromId(wcId); if (!wc || !r) return '';
-        const img = await wc.capturePage({ x: Math.max(0, Math.round(r.x)), y: Math.max(0, Math.round(r.y)), width: Math.max(1, Math.round(r.w)), height: Math.max(1, Math.round(r.h)) });
+        let img = await wc.capturePage({ x: Math.max(0, Math.round(r.x)), y: Math.max(0, Math.round(r.y)), width: Math.max(1, Math.round(r.w)), height: Math.max(1, Math.round(r.h)) });
+        img = unveil(img, o.veil);
         if (img.isEmpty()) return '';
         const dir = path.join(app.getPath('pictures'), 'DrYAE'); await fsp.mkdir(dir, { recursive: true });
         const d = new Date(), pad = n => String(n).padStart(2, '0');
@@ -1471,7 +1539,7 @@ class WebBrowser {
       const f = e.senderFrame; let host = ''; try { host = new URL(f?.url || '').hostname; } catch {}
       const B = this.B();
       const T = global.DRYAE_T || (s => s);
-      const keys = ['Télécharger cette vidéo', 'Masquer', 'Remplir avec mon profil', 'mon profil', '(sans identifiant)', '— mot de passe enregistré', 'Suggérer un mot de passe fort', 'Utiliser ce mot de passe', 'Carte enregistrée', 'Remplir avec la carte', 'Image dans l\'image', 'Masquer le bouton sur ce site', 'Placer le bouton à gauche', 'Placer le bouton à droite', 'Traduire', 'Copier', 'Écouter', 'Fermer', 'Traduction…', 'Traduit de {0}', 'Afficher l\'original', 'Masquer les traductions', 'Arrêter', 'Lecture des images…', '{0} bulle(s) traduite(s)', 'Aucun texte trouvé dans cette image', 'Cliquez sur un élément à masquer. Molette ou ↑ ↓ : agrandir / réduire. Échap : annuler.', 'Masquer cet élément', 'Annuler', 'Traduction impossible : {0}', 'Adresse', 'Cliquez à côté pour rallumer', 'Traducteur de scans', 'Texte d\'origine', 'Échap pour rallumer', 'Aucune vidéo sur cette page', 'Boucle activée', 'Boucle désactivée', 'Sans filtre', 'Opacité gardée : {0} %', 'Protection des yeux activée', 'Protection des yeux désactivée', 'Aucune image à traduire sur cette page', 'Afficher la traduction', 'Original / traduction', 'Comparer', 'Relire cette image', 'Copier le texte traduit', 'Retirer la traduction', 'Dessinez un rectangle autour du texte à traduire. Échap : annuler.', 'Traduire la zone', 'Compte enregistré', 'Garder cette image pour l\'améliorer', 'Enregistre l\'image dans un dossier de votre PC (rien n\'est envoyé)', 'Image gardée dans {0}', 'Image non disponible : relisez la page puis réessayez'];
+      const keys = ['Télécharger cette vidéo', 'Masquer', 'Remplir avec mon profil', 'mon profil', '(sans identifiant)', '— mot de passe enregistré', 'Suggérer un mot de passe fort', 'Utiliser ce mot de passe', 'Carte enregistrée', 'Remplir avec la carte', 'Image dans l\'image', 'Masquer le bouton sur ce site', 'Placer le bouton à gauche', 'Placer le bouton à droite', 'Traduire', 'Copier', 'Écouter', 'Fermer', 'Traduction…', 'Traduit de {0}', 'Afficher l\'original', 'Masquer les traductions', 'Arrêter', 'Lecture des images…', '{0} bulle(s) traduite(s)', 'Aucun texte trouvé dans cette image', 'Cliquez sur un élément à masquer. Molette ou ↑ ↓ : agrandir / réduire. Échap : annuler.', 'Masquer cet élément', 'Annuler', 'Traduction impossible : {0}', 'Adresse', 'Cliquez à côté pour rallumer', 'Traducteur de scans', 'Texte d\'origine', 'Échap pour rallumer', 'Aucune vidéo sur cette page', 'Boucle activée', 'Boucle désactivée', 'Sans filtre', 'Opacité gardée : {0} %', 'Protection des yeux activée', 'Protection des yeux désactivée', 'Aucune image à traduire sur cette page', 'Afficher la traduction', 'Original / traduction', 'Comparer', 'Relire cette image', 'Copier le texte traduit', 'Retirer la traduction', 'Dessinez un rectangle autour du texte à traduire. Échap : annuler.', 'Traduire la zone', 'Compte enregistré', 'Garder cette image pour l\'améliorer', 'Enregistre l\'image dans un dossier de votre PC (rien n\'est envoyé)', 'Image gardée dans {0}', 'Image non disponible : relisez la page puis réessayez', 'Votre note sur ce passage…', 'Retirer le surlignage', 'Enregistrer', 'Mode présentation : maintenez Alt et bougez la souris pour montrer un passage. Échap pour quitter.'];
       const pip = B.pip || {};
       const isInt = pages.isPageUrl(f?.url);
       e.returnValue = {
@@ -1482,7 +1550,9 @@ class WebBrowser {
         translate: this.modOn('translate') && !isInt ? (() => { const t = B.translate || {}; return { selection: t.selection || 'button', off: (t.offSites || []).includes(host), hideSame: t.hideSame !== false, delay: Math.max(0, Math.min(3000, +t.delay || 0)), target: target(), second: t.second || '', pageAuto: (t.autoSites || []).includes(host) }; })() : null,
         lights: this.modOn('lights') && !isInt ? (() => { const l = B.lights || {}; return { ...l, global: !!this.lightsGlobal, night: (l.nightHosts || []).includes(host) || this.nightBySchedule(host), nightOff: (l.nightExcept || []).includes(host) }; })() : null,
         scan: this.modOn('scan') && !isInt ? (() => { const sc = B.scan || {}; return { auto: false, font: sc.font || 'auto', icons: sc.icons !== false, minSize: 250 }; })() : null,
-        hides: this.modOn('adblock') && !this.loginTabs.has(e.sender.id) ? ((this.store.hides || {})[host] || []) : [],
+        hides: !this.loginTabs.has(e.sender.id) ? ((this.store.hides || {})[host] || []) : [],
+        marks: !isInt && f === e.sender.mainFrame ? this.marksFor?.(f.url) || [] : [],
+        speed: (B.videoSpeed || {})[hostOf(e.sender.getURL())] || 1,
         a11y: this.main.a11y?.() || {},
         reader: B.reader || {},
         dataSaver: !!B.dataSaver,
@@ -1622,7 +1692,7 @@ class WebBrowser {
     ipcMain.handle('scan:retranslate', async (_e, text, to) => (await M.translate([String(text || '')], to || target(), 'auto', this.B().translate || {})).texts[0]);
     // lexique : « mot d'origine » -> « traduction voulue » (noms des personnages, mots de la série)
     ipcMain.handle('scan:glossary', (_e, list) => {
-      if (Array.isArray(list)) this.settings.set({ browser: { scan: { ...(this.B().scan || {}), glossary: list.filter(x => x && x.s && x.t).slice(0, 500).map(x => ({ s: String(x.s).slice(0, 100), t: String(x.t).slice(0, 100) })) } } });
+      if (Array.isArray(list)) this.settings.set({ browser: { scan: { ...(this.B().scan || {}), glossary: list.filter(x => x && x.s && x.t).slice(0, 500).map(x => ({ s: String(x.s).slice(0, 100), t: String(x.t).slice(0, 100), ...(x.n ? { n: true } : {}) })) } } });
       if (Array.isArray(list)) this.pushCfg();
       return (this.B().scan || {}).glossary || [];
     });
@@ -1664,6 +1734,7 @@ class WebBrowser {
         // (l'image affichée est souvent réduite par le site : on retrouve presque la netteté du fichier d'origine)
         img = await this.hdCapture(wc, o.rect, o.natural).catch(() => null);
         if (!img || img.isEmpty()) img = await wc.capturePage({ x: Math.max(0, Math.round(o.rect.x)), y: Math.max(0, Math.round(o.rect.y)), width: Math.round(o.rect.w), height: Math.round(o.rect.h) });
+        img = unveil(img, o.veil);
         if (img.isEmpty()) throw new Error('Image inaccessible');
         scale = 0;
       }
@@ -1717,6 +1788,8 @@ class WebBrowser {
         groups = await M.readImage(img.toPNG(), src + (S.withEng && !/^eng/.test(src) ? '+eng' : ''));
       }
       if (!groups.length) return { blocks: [], w, needModel, unreadable: (groups.unread || 0) >= 3 && !groups.model };
+      // 1.7.0 : page en anglais ou en français lue sans le modèle « langues latines » : DrYAE propose de le télécharger
+      if (!needModel && (groups.lang === 'en' || groups.lang === 'fr') && !require('./paddle-ocr').installed().includes('latin')) needModel = 'latin';
       const usedModel = groups.model || '', quality = groups.quality ?? 1, odd = groups.odd || 0, pageLang = groups.lang || '';
       // couleurs des bulles telles que le navigateur les affiche (image avec un profil de couleur : ProPhoto, Adobe RGB…)
       if (buf && scale !== 0) { try { const dc = require('./icc').displayColor(buf); if (dc) for (const g of groups) if (g.bg) g.bg = dc(g.bg); } catch {} }
@@ -1724,7 +1797,7 @@ class WebBrowser {
       // langue d'arrivée : celle choisie (par défaut celle du traducteur) ; texte déjà dans cette langue → 2e langue
       // toutes les bulles de l'image partent ensemble, dans l'ordre de lecture (le traducteur a le contexte),
       // et les mots du lexique sont remplacés avant (noms des personnages, mots propres à la série)
-      const gl = (S.glossary || []).filter(x => x && x.s && x.t);
+      const gl = (S.glossary || []).filter(x => x && x.s && x.t && !x.n), never = (S.glossary || []).filter(x => x && x.n && x.s).map(x => x.s);
       const prep = t => gl.reduce((a, x) => a.split(x.s).join(x.t), t);
       let to = o.to || S.target || target();
       // texte lu remis en forme (majuscules, points de suspension) ; pour la traduction, en minuscules « normales »
@@ -1737,7 +1810,9 @@ class WebBrowser {
       } catch {}
       // cris et onomatopées (AHHH, HEHE, FUFU, HMM…) : gardés tels quels, pas traduits
       const keep = groups.map(g => M.interjection(g.text));
-      const mt = () => groups.map(g => prep(M.forMT(g.text, g.caps, pageLang)));
+      // cris et noms dans une phrase : marques [1], [2]… recopiées par le traducteur puis remplacées (jamais traduits)
+      const prot = groups.map(g => M.protect(prep(g.text), pageLang, never));
+      const mt = () => groups.map((g, i) => M.forMT(prot[i].t, g.caps, pageLang));
       let tr = null, ai = '';
       // traduction par IA (facultative, clé personnelle) : elle voit l'image, corrige la lecture et traduit avec le contexte
       const AI = this.aiCfg();
@@ -1763,7 +1838,7 @@ class WebBrowser {
         tr = await M.translate(mt(), to, 'auto', this.B().translate || {});
         if (!o.to && same(tr.from, to)) { to = second(to); tr = await M.translate(mt(), to, tr.from, this.B().translate || {}); }
       }
-      const res = { blocks: groups.map((g, i) => ({ x0: g.x0, y0: g.y0, x1: g.x1, y1: g.y1, text: g.text, tr: keep[i] ? g.text : (tr.texts[i] || ''), vertical: g.vertical, bg: g.bg || '', bubble: g.bubble || null, caps: !!g.caps, lh: g.lh || 0, n: g.n || 1 })), w, captured: scale === 0, from: tr.from, to, needModel, model: usedModel, ai };
+      const res = { blocks: groups.map((g, i) => ({ x0: g.x0, y0: g.y0, x1: g.x1, y1: g.y1, text: g.text, tr: keep[i] ? g.text : ai === 'ok' ? (tr.texts[i] || '') : M.unprotect(tr.texts[i] || '', prot[i].keep), vertical: g.vertical, bg: g.bg || '', bubble: g.bubble || null, caps: !!g.caps, lh: g.lh || 0, n: g.n || 1 })), w, captured: scale === 0, from: tr.from, to, needModel, model: usedModel, ai };
       // traduction habituelle après un échec de l'IA : gardée sous la clé du traducteur habituel (l'IA reprendra demain)
       const skey = ai && ai !== 'ok' ? ckey.replace(/\|ai$/, '|' + ((this.B().translate || {}).provider || 'google')) : ckey;
       if (scale !== 0 && ai !== 'error') this.scanCache().set(skey, res, true);

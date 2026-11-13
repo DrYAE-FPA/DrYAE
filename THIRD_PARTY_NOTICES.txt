@@ -136,7 +136,7 @@ Text recognition data (downloaded on first use, not bundled)
 
 tessdata_fast language data — Apache-2.0 —
   https://github.com/tesseract-ocr/tessdata_fast
-Extra PP-OCRv5 recognition models (Korean, East Slavic, Cyrillic, Arabic,
+Extra PP-OCRv5 recognition models (Latin, Korean, East Slavic, Cyrillic, Arabic,
   Thai, Devanagari), ONNX copies published by PT Perkasa Pilar Utama in
   ppu-paddle-ocr-models — Apache-2.0 —
   https://github.com/PT-Perkasa-Pilar-Utama/ppu-paddle-ocr-models

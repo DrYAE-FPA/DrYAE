@@ -13,6 +13,8 @@ const crypto = require('crypto');
 // ---- modèles de lecture supplémentaires (PaddleOCR PP-OCRv5, Apache-2.0), téléchargés la première fois ----
 // coréen, cyrillique, arabe, thaï, devanagari : écritures que le modèle multilingue ne lit pas
 const EXTRA = {
+  // 1.7.0 : langues latines (anglais, français, espagnol, portugais…) : moins de confusions U/L, G/6 que le modèle « toutes langues »
+  latin: { label: 'Langues latines (anglais, français, espagnol, portugais…)', size: 8066518, sha: '497dbed20b7fd86334c9deb5082c2958982a316bb16e3589ebc6502cd85cae79', dsha: '7274e68c7675355e45dd75c360c83faa0d0624de33a704c799a7da8897662201' },
   korean: { label: 'Coréen', size: 13443278, sha: 'ee0dfde503d787c91fd0455daae2eb85311b4b5bdcddf85a54d8c1e0adc157de', dsha: 'a3792cbb41215a43e555e16ff4a7f7b18db5dd80cd058637098f0d872f2dd9d6' },
   eslav: { label: 'Russe, ukrainien, biélorusse', size: 7912122, sha: 'bb86cdbd09c21d6bd73c0c0d5dc50379a6f94fc0078f7200a192ed1087f3e6ac', dsha: '1bbd3d43860503821debcbba74fe9bf3f9e42caf50dcf6d2f5365d7f75769c91' },
   cyrillic: { label: 'Autres langues cyrilliques (bulgare, serbe…)', size: 8073294, sha: '0d91040605ef7bdca6868fad6cad1664840d031e9f6d40d54607df5b50fa280a', dsha: '90822a96058eb83f8e637ace75f90cbd36c41253f9dbdfb88fcf5a2bdd50d669' },
@@ -134,7 +136,7 @@ async function detect(img, maxSide = 1280) {
 }
 
 // --- lecture d'une ligne ---
-async function recognize(img, b, R, enh) {
+async function recognize(img, b, R, enh, shear) {
   R = R || { sess: rec, dict };
   const { width: W, data } = img;
   let bw = Math.round(b.x1 - b.x0), bh = Math.round(b.y1 - b.y0);
@@ -158,7 +160,8 @@ async function recognize(img, b, R, enh) {
     for (let x = 0; x < Wt; x++) {
       // coordonnées dans la ligne (tournée de 90° pour une colonne)
       const u = (x + 0.5) * cw / Wt - 0.5, v = (y + 0.5) * ch / H - 0.5;
-      const px = vertical ? b.x0 + (ch - 1 - v) : b.x0 + u, py = vertical ? b.y0 + u : b.y0 + v;
+      // 1.7.0 : lettres penchées (italique) : la ligne est « redressée » en décalant chaque rangée
+      const px = vertical ? b.x0 + (ch - 1 - v) : b.x0 + u + (shear ? shear * (ch / 2 - v) : 0), py = vertical ? b.y0 + u : b.y0 + v;
       const o = y * Wt + x;
       for (let c = 0; c < 3; c++) { const val = smp(px, py, c); buf[c * H * Wt + o] = val; if (enh) { if (val < lo) lo = val; if (val > hi) hi = val; } }
     }
@@ -391,7 +394,13 @@ async function readBubbles(img, opts = {}) {
     const sample = boxes.slice().sort((a, b) => (b.x1 - b.x0) * (b.y1 - b.y0) - (a.x1 - a.x0) * (a.y1 - a.y0)).slice(0, 6);
     const mean = async RR => { let s = 0; for (const b of sample) s += (await recognize(img, b, RR)).score; return s / sample.length; };
     let best = await mean(null);
-    if (best < 0.9) for (const id of installed()) { const RR = await recOf(id); const m = await mean(RR); if (m > best + 0.04) { best = m; R = RR; used = id; } }
+    // 1.7.0 : page en écriture latine et modèle « langues latines » installé : il est préféré (moins de U/L, G/6)
+    if (installed().includes('latin')) {
+      const smp = []; for (const b of sample.slice(0, 3)) smp.push((await recognize(img, b, null)).text);
+      const s = smp.join(''), lat = (s.match(/[A-Za-zÀ-ÿ]/g) || []).length;
+      if (lat >= 6 && lat >= s.replace(/[\s\p{P}\d]/gu, '').length * 0.8) { const RR = await recOf('latin'); const m = await mean(RR); if (m >= best - 0.02) { best = Math.max(best, m); R = RR; used = 'latin'; } }
+    }
+    if (best < 0.9 && used !== 'latin') for (const id of installed()) { const RR = await recOf(id); const m = await mean(RR); if (m > best + 0.04) { best = m; R = RR; used = id; } }
   }
   let bm = null; try { bm = bubbleMap(img); bm.dk = bubbleMap(img, true); } catch {}
   const lines = [], fails = new Map(), kept = new Map();
@@ -404,6 +413,11 @@ async function readBubbles(img, opts = {}) {
       const p = Math.max(1, (b.y1 - b.y0) * 0.08);
       const r2 = await recognize(img, { x0: Math.max(0, b.x0 - p), y0: Math.max(0, b.y0 - p), x1: Math.min(img.width, b.x1 + p), y1: Math.min(img.height, b.y1 + p) }, R, true);
       if (r2.score > r.score + 0.02) r = r2;
+      // 1.7.0 : toujours peu sûre : peut-être de l'italique (cris, pensées, voix lointaines) → relue redressée
+      if (r.score < 0.9 && b.x1 - b.x0 > (b.y1 - b.y0) * 1.5) for (const sh of [0.22, -0.18]) {
+        const r3 = await recognize(img, b, R, true, sh);
+        if (r3.score > r.score + 0.03) r = r3;
+      }
     }
     const l = { ...b, ...r };
     const c = bm ? (bm.of(l) || bm.dk.of(l)) : null, k = bkey(c);

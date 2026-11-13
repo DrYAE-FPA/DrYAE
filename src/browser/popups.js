@@ -97,15 +97,18 @@ const MOD_ACTION = {
 function drawExtPop() {
   const M = CFG.mods || {};
   const ord = k => { const i = tbOrder().indexOf(k); return i < 0 ? 1000 : i; };
-  const mods = MODS.filter(([id]) => M[id]?.installed !== false).map((m, i) => [m, i]).sort((a, b) => (ord('mod:' + a[0][0]) - ord('mod:' + b[0][0])) || a[1] - b[1]).map(x => x[0]);
+  // 1.7.0 : seules les extensions activées apparaissent ici ; les autres se réactivent dans « Gérer les extensions »
+  const allMods = MODS.filter(([id]) => M[id]?.installed !== false), offN = allMods.filter(([id]) => !modOn(id)).length + EXTS.filter(x => !x.enabled).length;
+  const mods = allMods.filter(([id]) => modOn(id)).map((m, i) => [m, i]).sort((a, b) => (ord('mod:' + a[0][0]) - ord('mod:' + b[0][0])) || a[1] - b[1]).map(x => x[0]);
   const row = (o) => `<div class="prow clk" draggable="true" data-key="${o.kind === 'mod' ? 'mod:' : 'ext:'}${esc(o.id)}" data-${o.kind}="${esc(o.id)}"><span class="grip" title="${esc(T('Glisser pour déplacer'))}">${ic('drag')}</span>${o.img}<span class="grow"><span class="nm ${o.kind === 'cx' ? 'notr' : ''}">${esc(o.name)}</span><small>${esc(o.sub)}</small></span>${o.extra || ''}<button class="pin ${o.pinned ? 'on' : ''}" data-pin title="${esc(T(o.pinned ? 'Retirer de la barre d\'outils' : 'Épingler dans la barre d\'outils'))}">${ic(o.pinned ? 'pushpin-f' : 'pushpin')}</button>${o.more ? `<button class="pin" data-more title="${esc(T('Plus d\'options'))}">${ic('more')}</button>` : ''}</div>`;
-  const chrome = EXTS.map((x, i) => [x, i]).sort((a, b) => (ord('ext:' + a[0].id) - ord('ext:' + b[0].id)) || a[1] - b[1]).map(x => x[0]);
+  const chrome = EXTS.filter(x => x.enabled).map((x, i) => [x, i]).sort((a, b) => (ord('ext:' + a[0].id) - ord('ext:' + b[0].id)) || a[1] - b[1]).map(x => x[0]);
   popEl.innerHTML = `<div class="ph">${ic('ext')}<b>${esc(T('Extensions'))}</b><button class="icon-btn" data-go="manage" title="${esc(T('Gérer les extensions'))}">${ic('gear')}</button></div>
     <div class="psec">${esc(T('Intégrées à DrYAE'))}</div>
     ${mods.map(([id, name, icon]) => row({ kind: 'mod', id, name: T(name), sub: T(modOn(id) ? 'Activée' : 'Désactivée'), img: `<span class="xi">${ic(icon)}</span>`, pinned: M[id]?.pinned !== false, extra: tg('mod:' + id, modOn(id), 'Activer ou désactiver') })).join('')}
     <div class="psec">${esc(T('Extensions Chrome'))}</div>
     ${chrome.length ? chrome.map(x => row({ kind: 'cx', id: x.id, name: x.name, sub: x.enabled ? (x.popup ? T('Cliquez pour ouvrir') : T('Version {0}').replace('{0}', x.version)) : T('Désactivée'), img: x.icon ? `<img src="${esc(x.icon)}" alt="">` : `<span class="xi">${esc((x.name || '?')[0])}</span>`, pinned: x.enabled && extPinned(x), more: true })).join('')
-      : `<div class="prow"><span class="grow"><small style="white-space:normal">${esc(T('Aucune extension Chrome. Ajoutez-en depuis le Chrome Web Store.'))}</small></span></div>`}
+      : `<div class="prow"><span class="grow"><small style="white-space:normal">${esc(T(EXTS.length ? 'Aucune extension Chrome activée.' : 'Aucune extension Chrome. Ajoutez-en depuis le Chrome Web Store.'))}</small></span></div>`}
+    ${offN ? `<div class="prow clk" data-go="manage"><span class="grow"><small style="white-space:normal">${esc(T('{0} extension(s) désactivée(s) : à réactiver dans « Gérer les extensions »').replace('{0}', offN))}</small></span><span class="xi">${ic('gear')}</span></div>` : ''}
     <div class="pfoot"><button class="btn sm" data-go="manage">${ic('ext')}${esc(T('Gérer les extensions'))}</button><button class="btn sm" data-go="store">${ic('store')}${esc(T('Chrome Web Store'))}</button></div>`;
   for (const [id] of mods) TOGGLES['mod:' + id] = async on => { await setModule(id, { enabled: on }); popRender(); };
 }
@@ -249,13 +252,15 @@ async function drawScanPop() {
       <div class="prow"><button class="btn sm" id="scAiGet">${esc(T('Obtenir une clé gratuite'))}</button>${AI.hasKey ? `<button class="btn sm" id="scAiDel">${esc(T('Effacer la clé'))}</button>` : ''}</div>
       ${AI.off ? `<small style="color:#f59e0b;display:block;white-space:normal">${esc(T('Limite gratuite du jour atteinte ou clé refusée : traduction habituelle pour le moment.'))}</small>` : ''}
     </details>
-    <details class="pdet"><summary>${esc(T('Lexique'))} (${(s.glossary || []).length})</summary><small style="color:var(--dim);display:block;margin:2px 0 4px">${esc(T('Mots toujours traduits de la même façon (noms des personnages…). Ajout : clic droit sur une bulle traduite.'))}</small>${(s.glossary || []).map((g, i) => `<div class="prow"><span class="grow notr">${esc(g.s)} → ${esc(g.t)}</span><button class="icon-btn" data-gdel="${i}" title="${esc(T('Supprimer'))}">${ic('x')}</button></div>`).join('') || `<small style="color:var(--dim)">${esc(T('Vide'))}</small>`}</details>
+    <details class="pdet"><summary>${esc(T('Lexique'))} (${(s.glossary || []).length})</summary><small style="color:var(--dim);display:block;margin:2px 0 4px">${esc(T('Mots toujours traduits de la même façon (noms des personnages…). Ajout : clic droit sur une bulle traduite.'))}</small><div class="prow"><input id="scNever" class="grow" placeholder="${esc(T('Ne jamais traduire (nom, expression)…'))}" maxlength="100"><button class="btn" id="scNeverAdd">${esc(T('Ajouter'))}</button></div>${(s.glossary || []).map((g, i) => `<div class="prow"><span class="grow notr">${g.n ? esc(g.s) + ' — <i>' + esc(T('jamais traduit')) + '</i>' : esc(g.s) + ' → ' + esc(g.t)}</span><button class="icon-btn" data-gdel="${i}" title="${esc(T('Supprimer'))}">${ic('x')}</button></div>`).join('') || `<small style="color:var(--dim)">${esc(T('Vide'))}</small>`}</details>
     <div class="pfoot"><small style="color:var(--dim);white-space:normal">${esc(T('Astuce : clic droit sur une image → « Traduire le texte de l\'image ».'))}</small></div>`;
   popEl.onclick = async e => {
     const g = e.target.closest('[data-mget]'); if (g) { g.disabled = true; return getScanModel(g.dataset.mget); }
     const d = e.target.closest('[data-mdel]'); if (d) { await B.call('scan:modelDel', d.dataset.mdel); return popRender(); }
     const x = e.target.closest('[data-gdel]'); if (x) { const l = [...(CFG.scan?.glossary || [])]; l.splice(+x.dataset.gdel, 1); await B.call('scan:glossary', l); CFG.scan = { ...(CFG.scan || {}), glossary: l }; return popRender(); }
   };
+  const addNever = async () => { const v = $('#scNever').value.trim(); if (!v) return; const l = [...(CFG.scan?.glossary || [])].filter(x => x.s !== v); l.push({ s: v, t: v, n: true }); await B.call('scan:glossary', l); CFG.scan = { ...(CFG.scan || {}), glossary: l }; popRender(); };
+  $('#scNeverAdd').onclick = addNever; $('#scNever').onkeydown = e => { if (e.key === 'Enter') addNever(); };
   $('#scPage').onclick = () => { popClose(); pageCmd('scan'); };
   $('#scZone').onclick = () => { popClose(); pageCmd('scan-region'); };
   $('#scSrc').onchange = e => setB({ scan: { source: e.target.value } });

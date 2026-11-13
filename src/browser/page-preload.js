@@ -722,6 +722,9 @@ function pageFeatures() {
     return best;
   }
   const opNow = () => Math.max(0.3, Math.min(0.97, LC.opacity / 100));
+  // 1.7.0 : voile posé sur la page (lumières tamisées, protection des yeux) : le traducteur de scans le retire de la photo
+  // de la page, pour lire l'image normale — l'écran, lui, reste tamisé
+  var veilInfo = () => ({ lights: lights ? { op: opNow(), color: LC.color } : null, eye: eyeEl ? eyeA : 0 });
   function lightsOn(auto, quiet) {
     if (lights) return;
     const t = lightsTarget();
@@ -776,21 +779,22 @@ function pageFeatures() {
   const hint = txt => { if (!hintEl || !hintEl.isConnected) hintEl = el('<div class="card" style="left:50%;top:50%;transform:translate(-50%,-50%);padding:8px 16px;font-size:16px;font-weight:700"></div>'); hintEl.textContent = txt; clearTimeout(hintT); hintT = setTimeout(() => { hintEl?.remove(); hintEl = null; }, 900); };
   // protection des yeux : filtre orangé au-dessus de la page (ne bloque pas les clics)
   // (feuille de style ajoutée par le navigateur : ne touche pas à la page, fonctionne dès le début du chargement)
-  let eyeEl = null;
+  let eyeEl = null, eyeA = 0;
   function eye(on, level) {
     if (!TOP) return;
     if (eyeEl) { try { webFrame.removeInsertedCSS(eyeEl); } catch {} eyeEl = null; }
-    if (on) { const a = Math.max(5, Math.min(60, +level || 30)) / 100; try { eyeEl = webFrame.insertCSS(`html::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:2147483646;background:rgba(255,150,40,${a});mix-blend-mode:multiply}`); } catch {} }
+    eyeA = 0;
+    if (on) { const a = Math.max(5, Math.min(60, +level || 30)) / 100; eyeA = a; try { eyeEl = webFrame.insertCSS(`html::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:2147483646;background:rgba(255,150,40,${a});mix-blend-mode:multiply}`); } catch {} }
   }
   if (CFG.lights && L.eye) eye(true, L.eyeLevel);
   // outils vidéo
   const VS = { rate: 1, loop: false, zoom: 1, filter: '', full: false };
-  const SPEEDS = [1, 1.25, 1.5, 2, 0.5, 0.75], ZOOMS = [1, 1.25, 1.5, 2], FILTERS = ['', 'grayscale(1)', 'sepia(.8)', 'contrast(1.35)', 'saturate(1.8)', 'brightness(1.3)'];
+  const SPEEDS = [1, 1.25, 1.5, 2, 2.5, 3, 0.5, 0.75], ZOOMS = [1, 1.25, 1.5, 2], FILTERS = ['', 'grayscale(1)', 'sepia(.8)', 'contrast(1.35)', 'saturate(1.8)', 'brightness(1.3)'];
   let fullSave = null;
   function videoAct(act) {
     const v = pickVideo(120); if (!v) return hint(pt('Aucune vidéo sur cette page'));
     const next = (arr, x) => arr[(arr.indexOf(x) + 1) % arr.length];
-    if (act === 'speed') { VS.rate = next(SPEEDS, VS.rate); v.playbackRate = VS.rate; hint('× ' + VS.rate); }
+    if (act === 'speed') { setRate(next(SPEEDS, VS.rate), true); return; }
     else if (act === 'loop') { VS.loop = !VS.loop; v.loop = VS.loop; hint(pt(VS.loop ? 'Boucle activée' : 'Boucle désactivée')); }
     else if (act === 'zoom') { VS.zoom = next(ZOOMS, VS.zoom); v.style.transform = VS.zoom === 1 ? '' : `scale(${VS.zoom})`; hint('× ' + VS.zoom); }
     else if (act === 'filter') { VS.filter = next(FILTERS, VS.filter); v.style.filter = VS.filter; hint(VS.filter ? VS.filter.replace(/\(.*/, '') : pt('Sans filtre')); }
@@ -891,7 +895,7 @@ function pageFeatures() {
       // on la recopie depuis la page elle-même (possible quand elle vient du même site ou autorise le partage)
       if (!data && !/^https?:/.test(src)) data = await imgBytes(img);
       const vis = { x: Math.max(0, r.left) * dpr, y: Math.max(0, r.top) * dpr, w: (Math.min(innerWidth, r.right) - Math.max(0, r.left)) * dpr, h: (Math.min(innerHeight, r.bottom) - Math.max(0, r.top)) * dpr };
-      const res = await ipcRenderer.invoke('scan:image', { src: /^https?:/.test(src) ? src : '', data, page: location.href, fresh: !!scan?.items.get(img)?.fresh, rect: r.top >= 0 && r.bottom <= innerHeight ? vis : (vis.h > 60 ? vis : null), natural: { w: img.naturalWidth, h: img.naturalHeight } });
+      const res = await ipcRenderer.invoke('scan:image', { src: /^https?:/.test(src) ? src : '', data, page: location.href, veil: typeof veilInfo === 'function' ? veilInfo() : null, fresh: !!scan?.items.get(img)?.fresh, rect: r.top >= 0 && r.bottom <= innerHeight ? vis : (vis.h > 60 ? vis : null), natural: { w: img.naturalWidth, h: img.naturalHeight } });
       const it = scan?.items.get(img);
       if (it) {
         it.blocks = res.blocks; it.w = res.w; it.key = res.key; it.captured = res.captured ? { left: Math.max(0, r.left) - r.left, top: Math.max(0, r.top) - r.top, w: vis.w / dpr } : null;
@@ -1072,7 +1076,7 @@ function pageFeatures() {
       // la zone est lue à l'écran juste après la disparition du cadre
       await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
       try {
-        const res = await ipcRenderer.invoke('scan:image', { region: true, rect: { x: b.x * z, y: b.y * z, w: b.w * z, h: b.h * z }, page: location.href });
+        const res = await ipcRenderer.invoke('scan:image', { region: true, rect: { x: b.x * z, y: b.y * z, w: b.w * z, h: b.h * z }, page: location.href, veil: typeof veilInfo === 'function' ? veilInfo() : null });
         wait.remove();
         if (!res.blocks.length) { hint(pt('Aucun texte trouvé dans cette image')); return; }
         scanInit();
@@ -1089,6 +1093,111 @@ function pageFeatures() {
     }
   }
   // 1.6.9 : le traducteur de scans ne démarre que quand on clique dessus (jamais tout seul)
+
+  // ---------- 1.7.0 : surlignages et notes dans la page ----------
+  // Les surlignages sont gardés sur ce PC (par adresse de page) et retrouvés à la prochaine visite :
+  // DrYAE recherche le même passage dans le texte de la page (avec quelques lettres avant et après).
+  let hlCss = null;
+  const hlStyle = () => { if (hlCss) return; try { hlCss = webFrame.insertCSS('mark.dryae-hl{color:inherit!important;border-radius:2px;padding:0 1px;cursor:pointer;-webkit-box-decoration-break:clone;box-decoration-break:clone}mark.dryae-hl[data-c=yellow]{background:#fde68a!important}mark.dryae-hl[data-c=green]{background:#bbf7d0!important}mark.dryae-hl[data-c=blue]{background:#bfdbfe!important}mark.dryae-hl[data-c=pink]{background:#fbcfe8!important}mark.dryae-hl.has-note{border-bottom:2px dotted #b45309!important}'); } catch {} };
+  const txtNodes = root => { const out = []; if (!root) return out; const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: n => n.parentElement && !n.parentElement.closest('script,style,noscript,textarea,select,dryae-ui') ? 1 : 2 }); let n; while ((n = w.nextNode())) out.push(n); return out; };
+  const flat = () => { let s = ''; const pos = []; for (const n of txtNodes(document.body)) { pos.push([n, s.length]); s += n.data; } return { s, pos }; };
+  const flatPos = (F, node, off) => { if (node.nodeType !== 3) { const r = document.createRange(); r.setStart(node, off); const n = F.pos.find(([t]) => r.comparePoint(t, 0) >= 0); return n ? n[1] : F.s.length; } const e = F.pos.find(([t]) => t === node); return e ? e[1] + off : -1; };
+  const nodeAt = (F, i, end) => { let lo = 0, hi = F.pos.length - 1, k = 0; while (lo <= hi) { const m = (lo + hi) >> 1; if (F.pos[m][1] <= i - (end ? 1 : 0)) { k = m; lo = m + 1; } else hi = m - 1; } const [n, b] = F.pos[k] || []; return n ? [n, Math.min(n.data.length, i - b)] : null; };
+  function wrapRange(range, m) {
+    hlStyle();
+    const c = range.commonAncestorContainer; const nodes = txtNodes(c.nodeType === 3 ? c.parentNode : c).filter(n => range.intersectsNode(n));
+    const out = [];
+    for (const n of nodes) {
+      const s = n === range.startContainer ? range.startOffset : 0, e = n === range.endContainer ? range.endOffset : n.data.length;
+      if (e <= s || !n.data.slice(s, e).trim()) continue;
+      let t = n; if (s > 0) t = t.splitText(s); if (e - s < t.data.length) t.splitText(e - s);
+      const mk = document.createElement('mark'); mk.className = 'dryae-hl' + (m.note ? ' has-note' : ''); mk.dataset.id = m.id; mk.dataset.c = m.color || 'yellow'; if (m.note) mk.title = m.note;
+      t.parentNode.insertBefore(mk, t); mk.appendChild(t); out.push(mk);
+    }
+    return out;
+  }
+  const HL = new Map((CFG.marks || []).map(m => [m.id, m]));
+  const marksOf = id => [...document.querySelectorAll('mark.dryae-hl')].filter(x => x.dataset.id === id);
+  function hlFind(m) {
+    if (marksOf(m.id).length) return true;
+    const F = flat(); const t = m.text; if (!t) return false;
+    let best = -1, score = -1;
+    for (let i = F.s.indexOf(t); i >= 0 && i < F.s.length; i = F.s.indexOf(t, i + 1)) {
+      const sc = (m.pre && F.s.slice(Math.max(0, i - m.pre.length), i) === m.pre ? 2 : 0) + (m.post && F.s.slice(i + t.length, i + t.length + m.post.length) === m.post ? 1 : 0);
+      if (sc > score) { score = sc; best = i; } if (sc === 3) break;
+    }
+    if (best < 0) return false;
+    const a = nodeAt(F, best), b = nodeAt(F, best + t.length, true); if (!a || !b) return false;
+    const r = document.createRange(); try { r.setStart(a[0], a[1]); r.setEnd(b[0], b[1]); } catch { return false; }
+    return wrapRange(r, m).length > 0;
+  }
+  function hlApplyAll() { for (const m of HL.values()) try { hlFind(m); } catch {} }
+  if (TOP && HL.size) { const go = () => { hlApplyAll(); setTimeout(hlApplyAll, 1500); setTimeout(hlApplyAll, 5000); }; if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go, { once: true }); else go(); }
+  function hlUnwrap(id) { for (const mk of marksOf(id)) { const p = mk.parentNode; while (mk.firstChild) p.insertBefore(mk.firstChild, mk); mk.remove(); p.normalize(); } }
+  function hlCreate(color, withNote) {
+    const sel = getSelection(); if (!sel || sel.isCollapsed || !sel.rangeCount) return;
+    const r = sel.getRangeAt(0); const text = r.toString(); if (!text.trim()) return;
+    const F = flat(); const a = flatPos(F, r.startContainer, r.startOffset), b = a + text.length;
+    const m = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), text, pre: a >= 0 ? F.s.slice(Math.max(0, a - 30), a) : '', post: a >= 0 ? F.s.slice(b, b + 30) : '', color, note: '' };
+    const mks = wrapRange(r, m); sel.removeAllRanges(); if (!mks.length) return;
+    HL.set(m.id, m); ipcRenderer.invoke('hl:save', m).catch(() => {});
+    if (withNote) hlPop(mks[0], m, true);
+  }
+  let hlCard = null;
+  const hlClose = () => { hlCard?.remove(); hlCard = null; };
+  function hlPop(mk, m, focus) {
+    hlClose();
+    const r = mk.getBoundingClientRect();
+    hlCard = el(`<div class="card" style="left:${Math.min(innerWidth - 300, Math.max(8, r.left))}px;top:${Math.min(innerHeight - 210, r.bottom + 6)}px;width:290px;padding:10px">
+      <div style="display:flex;gap:6px;margin-bottom:8px">${['yellow', 'green', 'blue', 'pink'].map(c => `<button class="btn" data-c="${c}" title="${c}" style="width:22px;height:22px;padding:0;border-radius:50%;background:${{ yellow: '#fde68a', green: '#bbf7d0', blue: '#bfdbfe', pink: '#fbcfe8' }[c]};${m.color === c ? 'outline:2px solid #fff' : ''}"></button>`).join('')}<span style="flex:1"></span><button class="btn x" title="${esc(pt('Fermer'))}">${ICO.x}</button></div>
+      <textarea rows="4" style="width:100%;resize:vertical;background:#0f131b;color:#e9ebf1;border:1px solid #2c3242;border-radius:8px;padding:6px;font:13px 'Segoe UI',sans-serif" placeholder="${esc(pt('Votre note sur ce passage…'))}"></textarea>
+      <div style="display:flex;gap:6px;margin-top:8px;justify-content:space-between"><button class="btn del">${esc(pt('Retirer le surlignage'))}</button><button class="btn pri ok">${esc(pt('Enregistrer'))}</button></div></div>`);
+    const ta = hlCard.querySelector('textarea'); ta.value = m.note || '';
+    ta.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Escape') hlClose(); if (e.key === 'Enter' && e.ctrlKey) hlCard.querySelector('.ok').click(); });
+    hlCard.querySelector('.x').onclick = hlClose;
+    hlCard.querySelectorAll('[data-c]').forEach(b => b.onclick = () => { m.color = b.dataset.c; marksOf(m.id).forEach(x => x.dataset.c = m.color); ipcRenderer.invoke('hl:save', m).catch(() => {}); hlPop(mk, m); });
+    hlCard.querySelector('.ok').onclick = () => { m.note = ta.value.trim(); marksOf(m.id).forEach(x => { x.classList.toggle('has-note', !!m.note); x.title = m.note; }); ipcRenderer.invoke('hl:save', m).catch(() => {}); hlClose(); };
+    hlCard.querySelector('.del').onclick = () => { hlUnwrap(m.id); HL.delete(m.id); ipcRenderer.invoke('hl:del', m.id).catch(() => {}); hlClose(); };
+    if (focus) setTimeout(() => ta.focus(), 30);
+  }
+  if (TOP) document.addEventListener('click', e => {
+    const mk = e.target.closest?.('mark.dryae-hl'); if (!mk) { if (hlCard && !e.composedPath().includes(uiHost)) hlClose(); return; }
+    if (mk.closest('a[href]') && !e.altKey) return; // dans un lien : Alt + clic pour la note
+    const m = HL.get(mk.dataset.id); if (!m || String(getSelection())) return;
+    e.preventDefault(); hlPop(mk, m);
+  }, true);
+
+  // ---------- 1.7.0 : vitesse des vidéos (mémorisée par site) ----------
+  let vRate = +CFG.speed || 1;
+  const setRate = (r, saveIt) => {
+    vRate = Math.max(0.25, Math.min(4, +r || 1)); VS.rate = vRate;
+    document.querySelectorAll('video,audio').forEach(v => { try { v.playbackRate = vRate; } catch {} });
+    if (TOP) { hint('× ' + String(vRate).replace('.', (0.5).toLocaleString(CFG.lang || 'fr').charAt(1))); if (saveIt) ipcRenderer.invoke('speed:pref', vRate).catch(() => {}); }
+    toHost('dryae-vstate', { ...VS });
+  };
+  const keepRate = e => { const v = e.target; if (vRate !== 1 && (v.tagName === 'VIDEO' || v.tagName === 'AUDIO') && v.playbackRate !== vRate) try { v.playbackRate = vRate; } catch {} };
+  ['play', 'loadedmetadata'].forEach(ev => document.addEventListener(ev, keepRate, true));
+  if (vRate !== 1) { const all = () => document.querySelectorAll('video,audio').forEach(v => keepRate({ target: v })); if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', all, { once: true }); else all(); }
+
+  // ---------- 1.7.0 : mode présentation (gros curseur, surligneur temporaire avec Alt) ----------
+  let present = null;
+  function presentMode(on) {
+    if (!TOP) return;
+    if (!on) { if (present) { try { webFrame.removeInsertedCSS(present.css); } catch {} present.cv.remove(); present.tip?.remove(); removeEventListener('mousemove', present.mv, true); removeEventListener('keydown', present.kd, true); present = null; } return; }
+    if (present) return;
+    const cur = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24"><path d="M4 2l14 11-6.5.8L15 21l-3 1.3-3.4-7.3L4 19z" fill="#fff" stroke="#000" stroke-width="1.2" stroke-linejoin="round"/></svg>');
+    const css = webFrame.insertCSS(`html,html *{cursor:url("${cur}") 6 3,auto!important}`);
+    const cv = el('<canvas style="position:fixed;inset:0;pointer-events:none"></canvas>');
+    const fit = () => { cv.width = innerWidth; cv.height = innerHeight; }; fit();
+    const pts = []; let raf = 0;
+    const draw = () => { const g = cv.getContext('2d'), now = Date.now(); while (pts.length && now - pts[0].t > 2500) pts.shift(); g.clearRect(0, 0, cv.width, cv.height); g.lineCap = g.lineJoin = 'round'; g.lineWidth = 18; for (let i = 1; i < pts.length; i++) { const a = pts[i - 1], b = pts[i]; if (b.t - a.t > 120) continue; g.strokeStyle = `rgba(250,204,21,${0.55 * (1 - (now - b.t) / 2500)})`; g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.stroke(); } raf = pts.length ? requestAnimationFrame(draw) : 0; };
+    const mv = e => { if (!e.altKey) return; pts.push({ x: e.clientX, y: e.clientY, t: Date.now() }); if (!raf) raf = requestAnimationFrame(draw); };
+    const kd = e => { if (e.key === 'Escape') { e.preventDefault(); toHost('dryae-present', false); } if (e.key === 'Alt') e.preventDefault(); };
+    addEventListener('mousemove', mv, true); addEventListener('keydown', kd, true); addEventListener('resize', fit);
+    const tip = el(`<div class="card" style="left:50%;bottom:20px;transform:translateX(-50%);padding:8px 14px;font-size:13px">${esc(pt('Mode présentation : maintenez Alt et bougez la souris pour montrer un passage. Échap pour quitter.'))}</div>`);
+    setTimeout(() => { tip.style.transition = 'opacity .6s'; tip.style.opacity = 0; setTimeout(() => tip.remove(), 700); }, 4500);
+    present = { css, cv, mv, kd, tip };
+  }
 
   // ---------- commandes envoyées par le navigateur ----------
   ipcRenderer.on('dryae-cmd', (_e, c = {}) => {
@@ -1111,6 +1220,9 @@ function pageFeatures() {
       case 'video': return videoAct(c.act);
       case 'night': return night(c.on === undefined ? !nightKey : !!c.on) || ipcRenderer.invoke('lights:night', !!nightKey).catch(() => {});
       case 'picker': return picker(c.x, c.y);
+      case 'hl': return TOP && hlCreate(c.color || 'yellow', !!c.note);
+      case 'speed': return setRate(c.rate, !!c.save);
+      case 'present': return presentMode(!!c.on);
       case 'scan': return scan ? scanStop() : scanStart();
       case 'scan-auto': return scan || scanStart();
       case 'scan-one': return scanStart(c.src);

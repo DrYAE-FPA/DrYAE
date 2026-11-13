@@ -75,9 +75,10 @@ async function toUrl(s) {
 // ---------- onglets ----------
 function newTab(url = '', opts = {}) {
   const id = ++seq;
-  const tab = { id, url: '', title: 'Nouvel onglet', fav: '', incognito: !!opts.incognito, loading: false, media: [], blocked: 0, wv: null, wcId: null, zoom: 0 };
+  const tab = { id, url: '', title: 'Nouvel onglet', fav: '', incognito: !!opts.incognito, container: !opts.incognito && /^c[1-4]$/.test(opts.container || '') ? opts.container : null, loading: false, media: [], blocked: 0, wv: null, wcId: null, zoom: 0, seen: Date.now() };
   const el = document.createElement('div');
-  el.className = 'tab' + (tab.incognito ? ' priv' : '');
+  el.className = 'tab' + (tab.incognito ? ' priv' : '') + (tab.container ? ' ctn' : '');
+  if (tab.container) el.style.setProperty('--ctn', (window.WORK?.ctnColor?.(tab.container)) || '#3b82f6');
   el.innerHTML = `<span class="fav">${tab.incognito ? '🕶' : '•'}</span><span class="t"></span><button class="x" title="Fermer (Ctrl+W)">${ic('x')}</button>`;
   el.onmousedown = e => { if (e.button === 1) { e.preventDefault(); closeTab(tab); } };
   el.onclick = e => { if (e.target.closest('.x')) closeTab(tab); else select(tab); };
@@ -109,7 +110,7 @@ function newTab(url = '', opts = {}) {
 function ensureWebview(tab) {
   if (tab.wv) return tab.wv;
   const wv = document.createElement('webview');
-  wv.setAttribute('partition', tab.incognito ? CFG.partitions.incognito : CFG.partitions.normal);
+  wv.setAttribute('partition', tab.incognito ? CFG.partitions.incognito : tab.container ? 'persist:dryae-' + tab.container : CFG.partitions.normal);
   wv.setAttribute('allowpopups', '');
   wv.setAttribute('webpreferences', 'contextIsolation=yes, sandbox=yes, nodeIntegrationInSubFrames=yes');
   $('#views').appendChild(wv);
@@ -155,6 +156,7 @@ function ensureWebview(tab) {
     else if (e.channel === 'dryae-lights') { tab.lit = !!a; if (tab === cur) drawMods(); }
     else if (e.channel === 'dryae-night') { tab.night = !!a; }
     else if (e.channel === 'dryae-vstate') { tab.video = a || {}; }
+    else if (e.channel === 'dryae-present') { window.WORK?.present(false); }
     else if (e.channel === 'dryae-scanlang') { tab.scanLang = a; if (tab === cur && typeof POP !== 'undefined' && POP.kind === 'scan') popRender(); }
     else if (e.channel === 'dryae-shot') { B.call('br:shot', tab.wcId, a).then(f => f && toast('Capture enregistrée dans Images', { label: 'Ouvrir', fn: () => B.call('br:showItem', f) })); }
   });
@@ -174,7 +176,7 @@ async function navigate(tab, input) {
 }
 function showStart(tab) { tab.url = ''; tab.title = 'Nouvel onglet'; if (tab.wv) { tab.wv.remove(); tab.wv = null; tab.wcId = null; } updTab(tab); if (tab === cur) showView(tab); }
 function select(tab) {
-  cur = tab;
+  cur = tab; tab.seen = Date.now();
   hideBmEdit();
   if (tab.url && document.activeElement === $('#url')) $('#url').blur();
   if (tab.wcId) B.call('br:selectTab', tab.wcId);
@@ -210,7 +212,7 @@ function closeTab(tab) {
   if (cur === tab) select(tabs[Math.min(i, tabs.length - 1)]);
 }
 let sessT = null;
-function saveSession() { clearTimeout(sessT); sessT = setTimeout(() => { const list = tabs.filter(t => !t.incognito && t.url); B.call('br:session', { tabs: list.map(t => ({ url: t.url, title: t.title, group: t.group || undefined })), active: Math.max(0, list.indexOf(cur)) }); }, 800); }
+function saveSession() { clearTimeout(sessT); sessT = setTimeout(() => { const list = tabs.filter(t => !t.incognito && t.url); B.call('br:session', { tabs: list.map(t => ({ url: t.url, title: t.title, group: t.group || undefined, container: t.container || undefined, seen: t.seen || undefined })), active: Math.max(0, list.indexOf(cur)) }); }, 800); }
 function updTab(tab) {
   saveSession();
   tab.el.querySelector('.t').textContent = tab.title || tab.url || 'Nouvel onglet';
@@ -303,6 +305,7 @@ function mainMenu() {
   return [
     { label: 'Nouvel onglet', icon: 'plus', key: 'Ctrl+T', fn: () => newTab() },
     { label: 'Nouvel onglet privé', icon: 'mask', key: 'Ctrl+Maj+N', fn: () => newTab('', { incognito: true }) },
+    window.WORK && { label: 'Nouvel onglet dans un conteneur', icon: 'box', adv: true, sub: () => WORK.ctnMenu(null) },
     '-',
     { label: 'Mots de passe et saisie automatique', icon: 'key', sub: () => [
       { label: 'Gestionnaire de mots de passe', icon: 'key', fn: () => openPage('passwords') },
@@ -319,6 +322,8 @@ function mainMenu() {
     { label: 'Téléchargements', icon: 'dl', key: 'Ctrl+J', hl: true, fn: openDownloads },
     { label: 'Rechercher dans les onglets…', icon: 'search', key: 'Ctrl+Maj+A', fn: () => window.TABSX?.tabSearch() },
     { label: 'Panneau latéral', icon: 'list', fn: () => window.TABSX?.toggleSide() },
+    { label: 'Espaces de travail', icon: 'spaces', fn: () => window.TABSX?.toggleSide('ws') },
+    { label: 'Collections', icon: 'col', fn: () => window.TABSX?.toggleSide('col') },
     { label: 'Favoris', icon: 'star', sub: bmMenu },
     { label: 'Extensions', icon: 'puzzle', adv: true, sub: () => [
       { label: 'Gérer les extensions', icon: 'puzzle', key: 'Ctrl+Maj+X', fn: () => openPage('extensions') },
@@ -337,6 +342,11 @@ function mainMenu() {
     { label: 'Lire la page à voix haute', icon: 'sound', key: 'F8', fn: () => readAloud(), disabled: !web },
     { label: 'Enregistrer sous…', icon: 'save', key: 'Ctrl+S', fn: savePage, disabled: !cur?.wcId },
     { label: 'Outils supplémentaires', icon: 'tools', adv: true, sub: () => [
+      { label: 'Palette de commandes', icon: 'cmd', key: 'Ctrl+K', fn: () => window.WORK?.palette() },
+      { label: 'Citer cette page…', icon: 'quote', fn: () => window.WORK?.cite(), disabled: !web },
+      { label: 'Mode présentation', icon: 'present', check: !!window.WORK?.isPresent(), fn: () => window.WORK?.present() },
+      { label: 'Vitesse des vidéos', icon: 'speed', sub: () => window.WORK?.speedMenu() || [], disabled: !web },
+      '-',
       { label: 'Capture de la page entière', icon: 'crop', fn: () => window.TABSX?.fullShot(), disabled: !web },
       { label: 'Garder la page pour la lire hors ligne', icon: 'save', fn: () => window.TABSX?.saveOffline(), disabled: !web },
       { label: 'Code QR de la page', icon: 'phone', fn: () => window.TABSX?.showQrPop(), disabled: !web },
@@ -347,7 +357,7 @@ function mainMenu() {
       modOn('capture') && { label: 'Enregistrer la page avec DrYAE', icon: 'dl', fn: () => cur.url && B.call('br:download', { url: cur.url, page: cur.url, allowPage: true, incognito: cur.incognito }) },
       modOn('capture') && { label: 'Fichiers détectés sur cette page', icon: 'video', key: 'Ctrl+Maj+Y', fn: () => togglePanel('media', true) },
       !modOn('capture') && { label: 'Téléchargements du navigateur', icon: 'dl', fn: () => togglePanel('nd', true) },
-      modOn('adblock') && { label: 'Masquer un élément de la page…', icon: 'eye', fn: () => pageCmd('picker'), disabled: !web },
+      { label: 'Masquer un élément de la page…', icon: 'eye', fn: () => pageCmd('picker'), disabled: !web },
       modOn('lights') && { label: 'Mode nuit sur ce site', icon: 'moon', check: !!cur?.night, fn: () => pageCmd('night'), disabled: !web },
       { label: CFG.ua === 'mobile' ? 'Passer en mode ordinateur' : 'Passer en mode mobile', icon: 'phone', fn: async () => { CFG = { ...CFG, ...(await B.call('br:setSettings', { ua: CFG.ua === 'mobile' ? 'desktop' : 'mobile' })) }; cur.wv?.reload(); } },
       { label: cur?.muted ? 'Réactiver le son de l\'onglet' : 'Couper le son de l\'onglet', icon: 'sound', key: 'Ctrl+M', fn: toggleMute, disabled: !cur?.wcId },
@@ -637,7 +647,7 @@ $('#findX').onclick = closeFind;
 const BR_SHORTCUTS = [
   ['Ctrl + T', 'Nouvel onglet'], ['Ctrl + Maj + P  /  Ctrl + Maj + N', 'Nouvel onglet privé'], ['Ctrl + W  /  Ctrl + F4', "Fermer l'onglet"], ['Ctrl + Maj + T', "Rouvrir l'onglet fermé"],
   ['Ctrl + Tab  /  Ctrl + Maj + Tab', 'Onglet suivant / précédent'], ['Ctrl + 1 … 8  /  Ctrl + 9', "Aller à l'onglet n° / au dernier"], ['Ctrl + Maj + Page ↑/↓', "Déplacer l'onglet"],
-  ['Ctrl + L  /  Alt + D  /  F6', "Aller à la barre d'adresse"], ['Ctrl + K  /  Ctrl + E', 'Rechercher sur le web'], ['Ctrl + F  /  F3', 'Rechercher dans la page'], ['Ctrl + G  /  Ctrl + Maj + G', 'Résultat suivant / précédent'],
+  ['Ctrl + L  /  Alt + D  /  F6', "Aller à la barre d'adresse"], ['Ctrl + K', 'Palette de commandes'], ['Ctrl + E', 'Rechercher sur le web'], ['Ctrl + F  /  F3', 'Rechercher dans la page'], ['Ctrl + G  /  Ctrl + Maj + G', 'Résultat suivant / précédent'],
   ['F5  /  Ctrl + R', 'Actualiser'], ['Ctrl + F5  /  Ctrl + Maj + R', 'Actualiser sans le cache'], ['Alt + ←  /  Alt + →', 'Précédent / suivant'], ['Alt + Début', "Page d'accueil"],
   ['Ctrl + D', 'Ajouter cet onglet aux favoris'], ['Ctrl + Maj + D', 'Ajouter tous les onglets aux favoris'], ['Ctrl + Maj + B', 'Afficher / masquer la barre de favoris'], ['Ctrl + Maj + O', 'Gestionnaire de favoris'],
   ['Ctrl + H', 'Historique'], ['Ctrl + J', 'Téléchargements'], ['Ctrl + Maj + Y', 'Fichiers détectés sur cette page'],
@@ -681,7 +691,7 @@ const KEY_ACTIONS = () => ({
   bookmark: starClick, bookmarks: () => openPage('bookmarks'), bar: toggleBar, history: () => openPage('history'), downloads: openDownloads, extensions: () => openPage('extensions'), settings: () => openPage('settings'),
   zoomIn: () => zoom(1), zoomOut: () => zoom(-1), zoomReset: () => zoom(0), fullscreen: () => B.call('br:fullscreen'), print: () => cur?.wcId && B.call('br:print', cur.wcId), mute: toggleMute,
   reader: () => readerMode(), speak: () => readAloud(), translate: () => modOn('translate') && pageCmd('translate-selection'), scanZone: () => modOn('scan') && pageCmd('scan-region'), lights: () => modOn('lights') && pageCmd('lights'),
-  side: () => window.TABSX?.toggleSide(), shot: () => window.TABSX?.fullShot(), offline: () => window.TABSX?.saveOffline(), qr: () => window.TABSX?.showQrPop(), tasks: () => openPage('tasks'), manager: () => B.call('br:openMain'),
+  side: () => window.TABSX?.toggleSide(), palette: () => window.WORK?.palette(), present: () => window.WORK?.present(), spaces: () => window.TABSX?.toggleSide('ws'), cols: () => window.TABSX?.toggleSide('col'), cite: () => window.WORK?.cite(), shot: () => window.TABSX?.fullShot(), offline: () => window.TABSX?.saveOffline(), qr: () => window.TABSX?.showQrPop(), tasks: () => openPage('tasks'), manager: () => B.call('br:openMain'),
 });
 function customKey(k, ctrl, shift, alt) {
   const map = Object.fromEntries((CFG.keyList || []).map(x => [x.id, x.c])); if (!Object.keys(map).length) return false;
@@ -720,6 +730,7 @@ function onKey(k, ctrl, shift, alt) {
     if (k === 't') return go(() => newTab());
     if (k === 'w' || k === 'f4') return go(() => closeTab(cur));
     if (k === 'l') return go(() => $('#url').focus());
+    if (k === 'k' && window.WORK) return go(() => WORK.palette());
     if (k === 'k' || k === 'e') return go(() => { $('#url').focus(); $('#url').value = ''; });
     if (k === 'f') return go(openFind);
     if (k === 'g') return go(() => find(true));
@@ -776,7 +787,7 @@ B.on('open-url', async ({ url, incognito, background, from }) => {
   await ready;
   const src = from ? tabByWc(from) : null;
   if (!url && tabs.length) return newTab('', { incognito });
-  newTab(url, { incognito: incognito ?? src?.incognito, background });
+  newTab(url, { incognito: incognito ?? src?.incognito, background, container: src && !incognito ? src.container : undefined });
 });
 function applyTheme(t) {
   let mode = t.mode || 'dark'; if (mode === 'system') mode = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
@@ -803,7 +814,7 @@ function drawSug() {
   const host = sugFor.closest('.addr, .sbox') || sugFor;
   const hr = host.getBoundingClientRect();
   sugBox.style.left = hr.left + 'px'; sugBox.style.top = (hr.bottom + 4) + 'px'; sugBox.style.width = hr.width + 'px';
-  const icn = { search: 'search', history: 'clock', bookmark: 'star', url: 'link' };
+  const icn = { search: 'search', history: 'clock', bookmark: 'star', url: 'link', calc: 'calc' };
   sugBox.innerHTML = sugItems.map((x, i) => `<button data-s="${i}" style="${i === sugIdx ? 'background:var(--accent-soft)' : ''}">${ic(icn[x.kind] || 'search')}<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(x.text)}${x.url && x.url !== x.text ? ` <span style="color:var(--muted);font-size:11px">— ${esc(x.url)}</span>` : ''}</span></button>`).join('');
   sugBox.classList.add('on');
 }
@@ -814,16 +825,16 @@ function bindSuggest(inp, go) {
     const q = inp.value;
     t = setTimeout(async () => {
       sugFor = inp;
-      const list = q.trim() ? await B.call('br:suggest', q) : [];
+      const [list, calc] = await Promise.all([q.trim() ? B.call('br:suggest', q) : [], window.WORK?.calc ? WORK.calc(q).catch(() => null) : null]);
       if (inp.value !== q) return;
-      sugItems = [{ kind: isUrlLike(q.trim()) ? 'url' : 'search', text: q.trim(), url: '' }, ...list.filter(x => x.text !== q.trim())].filter(x => x.text);
+      sugItems = [...(calc ? [{ kind: 'calc', text: calc.text, copy: calc.copy, url: '' }] : []), { kind: isUrlLike(q.trim()) ? 'url' : 'search', text: q.trim(), url: '' }, ...list.filter(x => x.text !== q.trim())].filter(x => x.text);
       sugIdx = -1; drawSug();
     }, 120);
   });
   inp.addEventListener('keydown', e => {
     if (e.key === 'ArrowDown' && sugItems.length) { e.preventDefault(); sugIdx = (sugIdx + 1) % sugItems.length; drawSug(); }
     else if (e.key === 'ArrowUp' && sugItems.length) { e.preventDefault(); sugIdx = (sugIdx - 1 + sugItems.length) % sugItems.length; drawSug(); }
-    else if (e.key === 'Enter') { e.preventDefault(); const x = sugItems[sugIdx]; go(x ? (x.url || x.text) : inp.value); hideSug(); }
+    else if (e.key === 'Enter') { e.preventDefault(); const x = sugItems[sugIdx]; if (x?.kind === 'calc') { navigator.clipboard.writeText(x.copy); toast('Résultat copié'); hideSug(); return; } go(x ? (x.url || x.text) : inp.value); hideSug(); }
     else if (e.key === 'Escape') { hideSug(); if (inp.id === 'url') { inp.value = cur.url; inp.blur(); } }
   });
   inp.addEventListener('blur', () => setTimeout(hideSug, 150));
@@ -832,6 +843,7 @@ sugBox.addEventListener('mousedown', e => {
   const b = e.target.closest('[data-s]'); if (!b) return;
   e.preventDefault();
   const x = sugItems[+b.dataset.s];
+  if (x?.kind === 'calc') { navigator.clipboard.writeText(x.copy); toast('Résultat copié'); hideSug(); return; }
   if (x) { const inp = sugFor; if (inp === $('#url')) { goTyped(x.url || x.text); inp.blur(); } else { goTyped(x.url || x.text); inp.value = ''; } }
 });
 
@@ -1054,7 +1066,7 @@ function onMedia(m) {
 B.on('media', onMedia);
 B.on('restore-session', async sess => {
   await ready;
-  const made = sess.tabs.map(t => { const n = newTab(t.url, { background: true, lazy: true, title: t.title }); if (t.group) n.group = t.group; return n; });
+  const made = sess.tabs.map(t => { const n = newTab(t.url, { background: true, lazy: true, title: t.title, container: t.container }); if (t.group) n.group = t.group; if (t.seen) n.seen = t.seen; return n; });
   window.TABSX?.drawGroups();
   if (made.length) select(made[Math.min(sess.active || 0, made.length - 1)]);
 });
@@ -1159,10 +1171,12 @@ async function bookmarkAll() {
   toast(T('{0} onglet(s) ajouté(s) aux favoris').replace('{0}', list.length));
 }
 // écriture lue sans son modèle (coréen, russe…) : proposer de le télécharger une fois
-const MODEL_NAMES = { korean: 'Coréen', eslav: 'Russe, ukrainien, biélorusse', cyrillic: 'Autres langues cyrilliques (bulgare, serbe…)', arabic: 'Arabe, persan, ourdou', th: 'Thaï', devanagari: 'Hindi, marathi, népalais' };
+const MODEL_NAMES = { latin: 'Anglais, français, espagnol, portugais', korean: 'Coréen', eslav: 'Russe, ukrainien, biélorusse', cyrillic: 'Autres langues cyrilliques (bulgare, serbe…)', arabic: 'Arabe, persan, ourdou', th: 'Thaï', devanagari: 'Hindi, marathi, népalais' };
 async function offerScanModel(id) {
   if (id === '?') return toast(T("Le texte de cette image n'a pas pu être lu. Si c'est du coréen, du russe, de l'arabe ou du thaï, télécharge son modèle de lecture."), { label: 'Choisir', fn: () => popOpen('scan', $('#tbItems [data-mod="scan"]') || $('#bExt')) });
   if (!MODEL_NAMES[id]) return;
+  // une seule proposition par modèle tant que DrYAE reste ouvert
+  offerScanModel.done = offerScanModel.done || new Set(); if (offerScanModel.done.has(id)) return; offerScanModel.done.add(id);
   const list = await B.call('scan:models').catch(() => []); const m = list.find(x => x.id === id); if (!m || m.installed) return;
   toast(T('Pour mieux lire « {0} », DrYAE peut télécharger son modèle de lecture ({1}).').replace('{0}', T(MODEL_NAMES[id])).replace('{1}', fmt(m.size)), { label: 'Télécharger', fn: () => getScanModel(id) });
 }
