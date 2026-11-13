@@ -12,7 +12,7 @@
 - 👥 **Conteneurs** : deux comptes du même site en même temps ; correcteur d'orthographe ; onglets inactifs rangés sans les perdre.
 - 🎓 **Mode présentation** pour la classe, **vitesse des vidéos** ×0,5 à ×3 (aussi dans le lecteur du gestionnaire), **rappels de pause**.
 - 🌐 **DrYAE navigateur par défaut** : les liens de Word, Discord ou des e-mails s'ouvrent dans DrYAE.
-- 🖼️ Traducteur de scans : noms et cris jamais traduits, case « Ne jamais traduire », lettres mal lues mieux corrigées, modèle « langues latines », lecture correcte avec les lumières tamisées.
+- 🖼️ Traducteur de scans : noms et cris jamais traduits, case « Ne jamais traduire », lettres mal lues mieux corrigées, modèle « langues latines », lecture correcte avec les lumières tamisées ; texte d'origine sélectionnable dans les bulles pour l'ajouter au lexique ou le corriger.
 - 🧩 Le panneau des extensions n'affiche plus que les extensions activées.
 - ⭐ Barre de favoris cachée tant qu'aucun favori n'y est placé (version refaite).
 

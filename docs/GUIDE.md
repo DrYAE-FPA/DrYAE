@@ -154,6 +154,7 @@ Les vidéos protégées par DRM (Netflix, Disney+…) ne peuvent pas être tél�
 - **Correcteur d'orthographe** dans les zones de texte des pages, avec des propositions au clic droit.
 - **Navigateur par défaut** : Paramètres → Système → **Navigateur par défaut**, puis **Choisir DrYAE dans Windows** (Windows demande toujours de confirmer). Les liens ouverts depuis Word, Discord ou vos e-mails s'ouvrent alors dans DrYAE. Pas possible avec la version portable.
 - **Traducteur de scans :** les noms des personnages et les cris ne sont plus traduits ; dans **Lexique**, la case **Ne jamais traduire** garde une expression telle quelle. Pour l'anglais et le français, le **modèle de lecture « langues latines »** (proposé une fois) lit mieux les bulles. Le traducteur ne voit plus le voile des **lumières tamisées** : elles restent allumées à l'écran pendant la traduction.
+- **Traducteur de scans, corriger depuis la page :** une fois le traducteur activé, double-cliquez sur un mot d'une bulle (ou sélectionnez plusieurs mots) : **Ajouter au lexique**, **Ne jamais traduire** ou **Corriger la bulle**. Le bouton **Texte lu** de la barre du traducteur affiche le texte d'origine dans toutes les bulles.
 - Le panneau du bouton **Extensions** n'affiche plus que les extensions activées ; les autres se réactivent dans **Gérer les extensions**.
 - La **barre de favoris** (Ctrl+Maj+B) reste cachée tant qu'aucun favori n'y est placé ; elle apparaît dès que vous y ajoutez un favori.
 

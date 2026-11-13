@@ -849,10 +849,17 @@ function pageFeatures() {
   function scanInit() {
     if (scan) return;
     const layer = el('<div style="position:fixed;inset:0;pointer-events:none;z-index:0"></div>');
-    const bar = el(`<div class="card" style="right:16px;bottom:16px;padding:8px 10px;display:flex;align-items:center;gap:8px;font-size:12px"><span style="color:#c4b5fd;display:flex">${ICO.tr}</span><b>${esc(pt('Traducteur de scans'))}</b><span class="st" style="color:#8f97aa"></span><button class="btn tg">${esc(pt('Afficher l\'original'))}</button><button class="btn st2">${esc(pt('Arrêter'))}</button></div>`);
+    const bar = el(`<div class="card" style="right:16px;bottom:16px;padding:8px 10px;display:flex;align-items:center;gap:8px;font-size:12px"><span style="color:#c4b5fd;display:flex">${ICO.tr}</span><b>${esc(pt('Traducteur de scans'))}</b><span class="st" style="color:#8f97aa"></span><button class="btn sel" title="${esc(pt('Affiche le texte lu dans les bulles : sélectionnez un mot pour le corriger ou l\'ajouter au lexique'))}">${esc(pt('Texte lu'))}</button><button class="btn tg">${esc(pt('Afficher l\'original'))}</button><button class="btn st2">${esc(pt('Arrêter'))}</button></div>`);
     scan = { layer, bar, items: new Map(), queue: [], busy: false, shown: true, n: 0, io: null, tools: null, hover: null };
     bar.querySelector('.tg').onclick = () => { scan.shown = !scan.shown; layer.style.display = scan.shown ? '' : 'none'; bar.querySelector('.tg').textContent = pt(scan.shown ? 'Afficher l\'original' : 'Afficher la traduction'); };
     bar.querySelector('.st2').onclick = scanStop;
+    // 1.7.0 refaite : toutes les bulles montrent le texte lu (sélectionnable), ou de nouveau la traduction
+    bar.querySelector('.sel').onclick = () => {
+      scan.orig = !scan.orig;
+      for (const it of scan.items.values()) if (it.box) for (const d of it.box.children) if (d._b) { d.textContent = scan.orig ? d._b.text : (d._b.tr || d._b.text); d._w = 0; }
+      bar.querySelector('.sel').textContent = pt(scan.orig ? 'Traduction' : 'Texte lu');
+      if (scan.orig) status(pt('Sélectionnez un mot du texte lu : corriger, ajouter au lexique, ne jamais traduire'));
+    };
     const loop = () => { if (!scan) return; for (const [img, it] of scan.items) placeScan(img, it); placeTools(); scan.raf = requestAnimationFrame(loop); };
     loop();
     scan.io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { scanQueue(e.target); scan.io.unobserve(e.target); } }), { rootMargin: '1600px 0px' });
@@ -928,7 +935,7 @@ function pageFeatures() {
     it.blocks.forEach((b, i) => {
       const d = document.createElement('div');
       d.title = b.text + '\n' + pt('Clic : original / traduction · clic droit : corriger');
-      d.textContent = b.tr || b.text;
+      d.textContent = scan.orig ? b.text : (b.tr || b.text);
       // 1.6.9 : le texte d'origine est effacé avec la couleur de la bulle, seulement là où il est écrit (plus d'ovale géant) ;
       // les mots ne sont jamais coupés (le texte rétrécit), majuscules si la bulle d'origine était en majuscules
       const bg = b.bg || '#fff';
@@ -936,8 +943,11 @@ function pageFeatures() {
       const er = document.createElement('div');
       er.style.cssText = `position:absolute;pointer-events:none;background:${bg};border-radius:6px;box-shadow:0 0 2px 2px ${bg}`;
       box.appendChild(er); d._e = er;
-      d.style.cssText = `position:absolute;pointer-events:auto;display:flex;align-items:center;justify-content:center;text-align:center;background:${b.bubble ? 'transparent' : bg};color:${inkOn(bg)};border-radius:8px;padding:1px 2px;font:700 12px/1.12 ${FONT};overflow:hidden;cursor:default;word-break:normal;overflow-wrap:normal;hyphens:manual;letter-spacing:0;${b.caps ? 'text-transform:uppercase;' : ''}`;
-      d.onclick = () => { d.textContent = d.textContent === b.text ? (b.tr || b.text) : b.text; d._w = 0; };
+      d.style.cssText = `position:absolute;pointer-events:auto;display:flex;align-items:center;justify-content:center;text-align:center;background:${b.bubble ? 'transparent' : bg};color:${inkOn(bg)};border-radius:8px;padding:1px 2px;font:700 12px/1.12 ${FONT};overflow:hidden;cursor:text;user-select:text;-webkit-user-select:text;word-break:normal;overflow-wrap:normal;hyphens:manual;letter-spacing:0;${b.caps ? 'text-transform:uppercase;' : ''}`;
+      // clic : original / traduction (pas après une sélection de texte) ; sélection : petite fenêtre d'actions
+      d.onclick = e => { if (e.detail > 1) return; clearTimeout(d._t); d._t = setTimeout(() => { if (scanSel().trim()) return; d.textContent = d.textContent === b.text ? (b.tr || b.text) : b.text; d._w = 0; }, 280); };
+      d.ondblclick = () => clearTimeout(d._t);
+      d.onmouseup = e => setTimeout(() => selAction(it, i, d, e), 0);
       d.oncontextmenu = e => { e.preventDefault(); e.stopPropagation(); editBubble(it, i, d); };
       d._b = b;
       box.appendChild(d);
@@ -945,8 +955,8 @@ function pageFeatures() {
     return box;
   }
   // correction d'une bulle : texte lu, traduction, retraduire, ajouter au lexique
-  function editBubble(it, i, d) {
-    scan.editor?.remove();
+  function editBubble(it, i, d, word) {
+    scan.editor?.remove(); scan.selCard?.remove();
     const b = it.blocks[i], r = d.getBoundingClientRect();
     const ed = el(`<div class="card" style="left:${Math.max(8, Math.min(innerWidth - 340, r.left))}px;top:${Math.max(8, Math.min(innerHeight - 300, r.bottom + 6))}px;width:320px;padding:10px;font-size:12.5px;display:grid;gap:6px">
       <b>${esc(pt('Corriger la bulle'))}</b>
@@ -956,11 +966,12 @@ function pageFeatures() {
       <div class="glx" style="display:none;gap:6px;grid-template-columns:1fr 1fr auto"><input class="gs" placeholder="${esc(pt('Mot d\'origine'))}" style="all:unset;background:#0d0f14;border:1px solid #2a3040;border-radius:6px;padding:4px;color:#e7e9ef"><input class="gt" placeholder="${esc(pt('Toujours traduire par'))}" style="all:unset;background:#0d0f14;border:1px solid #2a3040;border-radius:6px;padding:4px;color:#e7e9ef"><button class="btn gok">OK</button></div></div>`);
     scan.editor = ed;
     ed.querySelector('.o').value = b.text; ed.querySelector('.t').value = b.tr || '';
+    if (word) { const o = ed.querySelector('.o'), k = b.text.indexOf(word); if (k >= 0) setTimeout(() => { o.focus(); o.setSelectionRange(k, k + word.length); }, 30); }
     ed.addEventListener('mousedown', e => e.stopPropagation(), true);
     const close = () => { ed.remove(); if (scan) scan.editor = null; };
     ed.querySelector('.no').onclick = close;
     ed.querySelector('.rt').onclick = async () => { ed.querySelector('.t').value = await ipcRenderer.invoke('scan:retranslate', ed.querySelector('.o').value, null).catch(() => ed.querySelector('.t').value); };
-    ed.querySelector('.gl').onclick = () => { const g = ed.querySelector('.glx'); g.style.display = 'grid'; const sel = String(getSelection() || '').trim(); ed.querySelector('.gs').value = sel; ed.querySelector('.gs').focus(); };
+    ed.querySelector('.gl').onclick = () => { const g = ed.querySelector('.glx'); g.style.display = 'grid'; const o = ed.querySelector('.o'); const sel = (o.value.slice(o.selectionStart, o.selectionEnd) || scanSel() || '').trim(); ed.querySelector('.gs').value = sel; (sel ? ed.querySelector('.gt') : ed.querySelector('.gs')).focus(); };
     ed.querySelector('.kp').onclick = async () => {
       const r = await ipcRenderer.invoke('scan:keep', it.key || '', it.blocks.map(x => ({ text: x.text, tr: x.tr }))).catch(() => null);
       hint(r && r.ok ? pt('Image gardée dans {0}').replace('{0}', r.dir) : pt('Image non disponible : relisez la page puis réessayez'));
@@ -977,6 +988,36 @@ function pageFeatures() {
       if (it.key) ipcRenderer.invoke('scan:edit', it.key, i, { text: b.text, tr: b.tr }).catch(() => {});
       close();
     };
+  }
+  // 1.7.0 refaite : texte des bulles sélectionnable (dans la zone de DrYAE, invisible pour la page)
+  const scanSel = () => { try { const s = uiRoot && uiRoot.getSelection ? uiRoot.getSelection() : getSelection(); return s ? String(s) : ''; } catch { return ''; } };
+  const addGlossary = async item => { const list = await ipcRenderer.invoke('scan:glossary').catch(() => []); await ipcRenderer.invoke('scan:glossary', [...list.filter(x => x.s !== item.s), item]).catch(() => {}); };
+  async function reBubble(it, i, d) {
+    const b = it.blocks[i]; if (!b) return;
+    b.tr = await ipcRenderer.invoke('scan:retranslate', b.text, null).catch(() => b.tr);
+    if (!scan?.orig) d.textContent = b.tr || b.text; d._w = 0;
+    if (it.key) ipcRenderer.invoke('scan:edit', it.key, i, { text: b.text, tr: b.tr }).catch(() => {});
+  }
+  function selAction(it, i, d, e) {
+    const w = scanSel().replace(/\s+/g, ' ').trim();
+    scan?.selCard?.remove(); if (!scan || !w || w.length > 100) return;
+    const b = it.blocks[i], orig = d.textContent === b.text;
+    const card = el(`<div class="card" style="left:${Math.max(8, Math.min(innerWidth - 330, e.clientX - 20))}px;top:${Math.max(8, Math.min(innerHeight - 170, e.clientY + 14))}px;width:310px;padding:9px 10px;font-size:12.5px;display:grid;gap:7px">
+      <div style="color:#c4b5fd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">« ${esc(w)} »</div>
+      ${orig ? `<div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn gl">${esc(pt('Ajouter au lexique'))}</button><button class="btn nv">${esc(pt('Ne jamais traduire'))}</button><button class="btn fx">${esc(pt('Corriger la bulle'))}</button></div>
+      <div class="glx" style="display:none;gap:6px;grid-template-columns:1fr auto"><input class="gt" placeholder="${esc(pt('Toujours traduire par'))}" style="all:unset;background:#0d0f14;border:1px solid #2a3040;border-radius:6px;padding:4px 6px;color:#e7e9ef"><button class="btn pri gok">OK</button></div>`
+      : `<div style="color:#8f97aa">${esc(pt('C\'est la traduction : cliquez sur la bulle (ou « Texte lu ») pour sélectionner le texte d\'origine.'))}</div><div style="display:flex;gap:6px"><button class="btn sh">${esc(pt('Voir le texte lu'))}</button><button class="btn fx">${esc(pt('Corriger la bulle'))}</button></div>`}</div>`);
+    scan.selCard = card;
+    card.addEventListener('mousedown', ev => ev.stopPropagation(), true);
+    const close = () => { card.remove(); if (scan) scan.selCard = null; };
+    // clic ailleurs : fermer (les clics dans la fenêtre s'arrêtent sur elle et n'arrivent pas ici)
+    const off = () => { close(); removeEventListener('mousedown', off); };
+    setTimeout(() => addEventListener('mousedown', off), 0);
+    card.querySelector('.fx').onclick = () => { close(); editBubble(it, i, d, w); };
+    card.querySelector('.sh')?.addEventListener('click', () => { d.textContent = b.text; d._w = 0; close(); });
+    card.querySelector('.nv')?.addEventListener('click', async () => { await addGlossary({ s: w, t: w, n: true }); close(); hint(pt('Ne sera jamais traduit')); reBubble(it, i, d); });
+    card.querySelector('.gl')?.addEventListener('click', () => { card.querySelector('.glx').style.display = 'grid'; const g = card.querySelector('.gt'); g.focus(); g.onkeydown = ev => { ev.stopPropagation(); if (ev.key === 'Enter') card.querySelector('.gok').click(); if (ev.key === 'Escape') close(); }; });
+    card.querySelector('.gok')?.addEventListener('click', async () => { const t = card.querySelector('.gt').value.trim(); if (!t) return; await addGlossary({ s: w, t }); close(); hint(pt('Ajouté au lexique')); reBubble(it, i, d); });
   }
   function placeScan(img, it) {
     if (!it.box) return;
