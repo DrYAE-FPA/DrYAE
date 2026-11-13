@@ -6,7 +6,8 @@
 Une version pour les longues sessions de travail (étudiants, professeurs, travailleurs), un traducteur de scans plus juste et DrYAE comme navigateur par défaut.
 
 **Version refaite**
-- **Barre de favoris** : elle reste cachée tant qu'aucun favori n'y est placé (plus de barre vide avec seulement « Autres favoris ») et réapparaît dès qu'un favori y est ajouté.
+- **Nouvelle fenêtre** (Ctrl+N, ou menu ⋮ → Nouvelle fenêtre) : une autre fenêtre du navigateur avec ses propres onglets. Clic droit sur un onglet → **Déplacer vers une nouvelle fenêtre**.
+- **Barre de favoris** : elle reste cachée tant qu'aucun favori n'y est placé et réapparaît dès qu'un favori y est ajouté. Le bouton « Autres favoris » n'est plus dans la barre : on y accède par le menu ⋮ → Favoris.
 - **Traducteur de scans : texte d'origine sélectionnable.** Une fois le traducteur activé, le texte des bulles se sélectionne (double-clic sur un mot, ou glisser). Une petite fenêtre propose **Ajouter au lexique** (« Toujours traduire par… »), **Ne jamais traduire** ou **Corriger la bulle** ; la bulle est retraduite tout de suite. Le bouton **Texte lu** de la barre du traducteur montre le texte d'origine dans toutes les bulles.
 
 **Travail et études**
@@ -45,7 +46,8 @@ Ne téléchargez que ce que vous avez le droit de copier.
 A release for long work sessions (students, teachers, workers), a more accurate image text translator, and DrYAE as your default browser.
 
 **Rebuilt version**
-- **Bookmarks bar**: it stays hidden as long as no bookmark is placed on it (no more empty bar with only "Other bookmarks") and comes back as soon as a bookmark is added.
+- **New window** (Ctrl+N, or ⋮ menu → New window): another browser window with its own tabs. Right-click a tab → **Move to a new window**.
+- **Bookmarks bar**: it stays hidden as long as no bookmark is placed on it and comes back as soon as one is added. The "Other bookmarks" button is no longer on the bar: open it from the ⋮ menu → Bookmarks.
 - **Image text translator: selectable original text.** Once the translator is on, the bubble text can be selected (double-click a word, or drag). A small window offers **Add to glossary** ("Always translate as…"), **Never translate** or **Fix the bubble**; the bubble is translated again right away. The **Text read** button in the translator bar shows the original text in every bubble.
 
 **Work and study**

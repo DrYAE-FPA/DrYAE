@@ -232,7 +232,8 @@ module.exports = function work(br) {
   // ---------------------------------------------------------------- mode présentation
   ipcMain.handle('br:present', (_e, on) => {
     br.present = !!on;
-    if (br.win && !br.win.isDestroyed() && br.win.isFullScreen() !== !!on) br.win.setFullScreen(!!on);
+    const w = BrowserWindow.fromWebContents(_e.sender) || br.win;
+    if (w && !w.isDestroyed() && w.isFullScreen() !== !!on) w.setFullScreen(!!on);
     return br.present;
   });
 };

@@ -161,7 +161,8 @@ DRM-protected videos (Netflix, Disney+…) cannot be downloaded.
 - **Image text translator:** character names and shouts are no longer translated; in **Glossary**, **Never translate** keeps a phrase as it is. For English and French, the **"Latin-script languages" reading model** (offered once) reads bubbles better. The translator no longer sees the **dimmed lights** veil: the lights stay on screen during translation.
 - **Image text translator, fix from the page:** once the translator is on, double-click a word in a bubble (or select several words): **Add to glossary**, **Never translate** or **Fix the bubble**. The **Text read** button in the translator bar shows the original text in every bubble.
 - The **Extensions** button panel now only shows turned-on extensions; turn the others back on in **Manage extensions**.
-- The **bookmarks bar** (Ctrl+Shift+B) stays hidden as long as no bookmark is placed on it; it appears as soon as you add one.
+- The **bookmarks bar** (Ctrl+Shift+B) stays hidden as long as no bookmark is placed on it; it appears as soon as you add one. **Other bookmarks**: ⋮ menu → Bookmarks.
+- **New window**: Ctrl+N (or ⋮ menu → New window). To send a tab to a new window: right-click the tab → **Move to a new window**.
 
 ## 5b. Accessibility
 Settings → **Accessibility**: DrYAE text size (up to 200%), **high contrast** (or as Windows), **easy reading** (simple font and wider letter spacing, helpful for dyslexia), **reduce animations**, **simple mode** (only the essential buttons). Everything also works from the keyboard: Tab, arrows, Esc, F6 (address bar → buttons → page), Alt+F (menu). DrYAE works with screen readers (NVDA, Narrator). Your own shortcuts: Settings → **Keyboard shortcuts**.

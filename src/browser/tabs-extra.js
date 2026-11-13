@@ -27,6 +27,7 @@ $('#tabs').addEventListener('contextmenu', e => {
     t.group ? { label: 'Retirer du groupe', icon: 'x', fn: () => { t.group = null; drawGroups(); saveGroups(); } } : null,
     { label: 'Regrouper les onglets par site', icon: 'list', fn: groupBySite },
     window.WORK && !t.incognito ? { label: 'Rouvrir dans un conteneur', icon: 'box', sub: () => WORK.ctnMenu(t) } : null,
+    t.url ? { label: 'Déplacer vers une nouvelle fenêtre', icon: 'newwin', fn: () => { B.call('br:newWindow', t.url, t.incognito); if (tabs.length > 1) closeTab(t); } } : null,
     '-',
     { label: 'Fermer', icon: 'x', key: 'Ctrl+W', fn: () => closeTab(t) },
     { label: 'Fermer les autres onglets', icon: 'x', fn: () => tabs.filter(x => x !== t).forEach(closeTab), disabled: tabs.length < 2 },

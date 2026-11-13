@@ -304,6 +304,7 @@ function mainMenu() {
   const web = /^https?:/.test(cur?.url || '');
   return [
     { label: 'Nouvel onglet', icon: 'plus', key: 'Ctrl+T', fn: () => newTab() },
+    { label: 'Nouvelle fenêtre', icon: 'newwin', key: 'Ctrl+N', fn: () => B.call('br:newWindow', '') },
     { label: 'Nouvel onglet privé', icon: 'mask', key: 'Ctrl+Maj+N', fn: () => newTab('', { incognito: true }) },
     window.WORK && { label: 'Nouvel onglet dans un conteneur', icon: 'box', adv: true, sub: () => WORK.ctnMenu(null) },
     '-',
@@ -647,7 +648,7 @@ $('#findX').onclick = closeFind;
 const BR_SHORTCUTS = [
   ['Ctrl + T', 'Nouvel onglet'], ['Ctrl + Maj + P  /  Ctrl + Maj + N', 'Nouvel onglet privé'], ['Ctrl + W  /  Ctrl + F4', "Fermer l'onglet"], ['Ctrl + Maj + T', "Rouvrir l'onglet fermé"],
   ['Ctrl + Tab  /  Ctrl + Maj + Tab', 'Onglet suivant / précédent'], ['Ctrl + 1 … 8  /  Ctrl + 9', "Aller à l'onglet n° / au dernier"], ['Ctrl + Maj + Page ↑/↓', "Déplacer l'onglet"],
-  ['Ctrl + L  /  Alt + D  /  F6', "Aller à la barre d'adresse"], ['Ctrl + K', 'Palette de commandes'], ['Ctrl + E', 'Rechercher sur le web'], ['Ctrl + F  /  F3', 'Rechercher dans la page'], ['Ctrl + G  /  Ctrl + Maj + G', 'Résultat suivant / précédent'],
+  ['Ctrl + L  /  Alt + D  /  F6', "Aller à la barre d'adresse"], ['Ctrl + N', 'Nouvelle fenêtre'], ['Ctrl + K', 'Palette de commandes'], ['Ctrl + E', 'Rechercher sur le web'], ['Ctrl + F  /  F3', 'Rechercher dans la page'], ['Ctrl + G  /  Ctrl + Maj + G', 'Résultat suivant / précédent'],
   ['F5  /  Ctrl + R', 'Actualiser'], ['Ctrl + F5  /  Ctrl + Maj + R', 'Actualiser sans le cache'], ['Alt + ←  /  Alt + →', 'Précédent / suivant'], ['Alt + Début', "Page d'accueil"],
   ['Ctrl + D', 'Ajouter cet onglet aux favoris'], ['Ctrl + Maj + D', 'Ajouter tous les onglets aux favoris'], ['Ctrl + Maj + B', 'Afficher / masquer la barre de favoris'], ['Ctrl + Maj + O', 'Gestionnaire de favoris'],
   ['Ctrl + H', 'Historique'], ['Ctrl + J', 'Téléchargements'], ['Ctrl + Maj + Y', 'Fichiers détectés sur cette page'],
@@ -691,7 +692,7 @@ const KEY_ACTIONS = () => ({
   bookmark: starClick, bookmarks: () => openPage('bookmarks'), bar: toggleBar, history: () => openPage('history'), downloads: openDownloads, extensions: () => openPage('extensions'), settings: () => openPage('settings'),
   zoomIn: () => zoom(1), zoomOut: () => zoom(-1), zoomReset: () => zoom(0), fullscreen: () => B.call('br:fullscreen'), print: () => cur?.wcId && B.call('br:print', cur.wcId), mute: toggleMute,
   reader: () => readerMode(), speak: () => readAloud(), translate: () => modOn('translate') && pageCmd('translate-selection'), scanZone: () => modOn('scan') && pageCmd('scan-region'), lights: () => modOn('lights') && pageCmd('lights'),
-  side: () => window.TABSX?.toggleSide(), palette: () => window.WORK?.palette(), present: () => window.WORK?.present(), spaces: () => window.TABSX?.toggleSide('ws'), cols: () => window.TABSX?.toggleSide('col'), cite: () => window.WORK?.cite(), shot: () => window.TABSX?.fullShot(), offline: () => window.TABSX?.saveOffline(), qr: () => window.TABSX?.showQrPop(), tasks: () => openPage('tasks'), manager: () => B.call('br:openMain'),
+  side: () => window.TABSX?.toggleSide(), newWindow: () => B.call('br:newWindow', ''), palette: () => window.WORK?.palette(), present: () => window.WORK?.present(), spaces: () => window.TABSX?.toggleSide('ws'), cols: () => window.TABSX?.toggleSide('col'), cite: () => window.WORK?.cite(), shot: () => window.TABSX?.fullShot(), offline: () => window.TABSX?.saveOffline(), qr: () => window.TABSX?.showQrPop(), tasks: () => openPage('tasks'), manager: () => B.call('br:openMain'),
 });
 function customKey(k, ctrl, shift, alt) {
   const map = Object.fromEntries((CFG.keyList || []).map(x => [x.id, x.c])); if (!Object.keys(map).length) return false;
@@ -730,6 +731,7 @@ function onKey(k, ctrl, shift, alt) {
     if (k === 't') return go(() => newTab());
     if (k === 'w' || k === 'f4') return go(() => closeTab(cur));
     if (k === 'l') return go(() => $('#url').focus());
+    if (k === 'n') return go(() => B.call('br:newWindow', ''));
     if (k === 'k' && window.WORK) return go(() => WORK.palette());
     if (k === 'k' || k === 'e') return go(() => { $('#url').focus(); $('#url').value = ''; });
     if (k === 'f') return go(openFind);
@@ -1195,13 +1197,13 @@ function closeFloating() {
 function drawBmBar() {
   if (bmDrag) { drawBmBar.later = true; return; } // pas de redessin pendant un glisser (il annulerait le déplacement)
   const bar = $('#bmbar');
-  // 1.7.0 : la barre n'apparaît que si au moins un favori y est placé (sinon rien, pas même « Autres favoris »)
+  // 1.7.0 : la barre n'apparaît que si au moins un favori y est placé
   const show = !!CFG.showBookmarksBar && BM.bar.children.length > 0;
   bar.classList.toggle('on', show);
   if (!show) { bar.innerHTML = ''; return; }
   const item = n => `<button class="bi" draggable="true" data-bm="${esc(n.id)}" title="${esc(n.title + (n.url ? '\n' + n.url : ''))}">${n.type === 'folder' ? ic('folder') : n.fav ? `<img src="${esc(n.fav)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('i')))">` : ic('globe')}<span>${esc(n.title || n.url)}</span></button>`;
-  bar.innerHTML = BM.bar.children.map(item).join('') +
-    `<span class="sp"></span>${BM.other.children.length ? `<button class="bi" data-bm="other">${ic('folder')}<span>${esc(T('Autres favoris'))}</span></button>` : ''}`;
+  // « Autres favoris » n'est plus dans la barre : on y accède par le menu (⋮ → Favoris)
+  bar.innerHTML = BM.bar.children.map(item).join('');
 }
 const bmNode = id => { let r = null; const w = l => l.forEach(n => { if (n.id === id) r = n; if (n.children) w(n.children); }); w([BM.bar, BM.other]); return r; };
 $('#bmbar').addEventListener('click', e => {

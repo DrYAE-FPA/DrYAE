@@ -102,7 +102,37 @@ class WebBrowser {
   // extension intégrée installée et activée
   modOn(id) { const m = (this.B().modules || {})[id] || {}; if (id === 'adblock' && this.B().adblock === false) return false; return m.installed !== false && m.enabled !== false; }
   saveStoreSync() { clearTimeout(this._st); try { fs.writeFileSync(this.storeFile, JSON.stringify(this.store)); } catch {} }
-  get wc() { return this.view && !this.view.webContents.isDestroyed() ? this.view.webContents : null; }
+  // fenêtre principale (vue posée sur le gestionnaire) ou, si elle a le focus, une fenêtre ouverte par « Nouvelle fenêtre »
+  get wc() {
+    const x = this._activeUi;
+    if (x && !x.isDestroyed()) return x;
+    return this.view && !this.view.webContents.isDestroyed() ? this.view.webContents : null;
+  }
+  get mainWc() { return this.view && !this.view.webContents.isDestroyed() ? this.view.webContents : null; }
+  uiAll() { return [this.mainWc, ...[...(this.extraWins || [])].map(w => (w.isDestroyed() ? null : w.webContents))].filter(Boolean); }
+  isUi(wc) { return this.uiAll().includes(wc); }
+  isExtraUi(wc) { return !!wc && wc !== this.mainWc && this.isUi(wc); }
+  // 1.7.0 : « Nouvelle fenêtre » (Ctrl+N) — une autre fenêtre du navigateur, avec ses propres onglets
+  newWindow(url = '', opts = {}) {
+    if (!this.mainWc) { this.open(url, opts); return; }
+    const { BrowserWindow: BW } = require('electron');
+    const base = this.win && !this.win.isDestroyed() ? this.win.getBounds() : { width: 1240, height: 800 };
+    const w = new BW({ width: base.width, height: base.height, x: base.x != null ? base.x + 30 : undefined, y: base.y != null ? base.y + 30 : undefined, minWidth: 700, minHeight: 480,
+      title: (global.DRYAE_T || (s => s))('DrYAE — Navigateur'), backgroundColor: '#0d0f14', autoHideMenuBar: true, show: false,
+      icon: this.win?.getIcon?.() || undefined,
+      webPreferences: { preload: this.uiPreload(), webviewTag: true, contextIsolation: true, sandbox: true } });
+    w.setMenu(null);
+    (this.extraWins || (this.extraWins = new Set())).add(w);
+    const wc = w.webContents;
+    wc.on('will-attach-webview', (_e, prefs) => { prefs.contextIsolation = true; prefs.sandbox = true; prefs.nodeIntegration = false; prefs.nodeIntegrationInSubFrames = true; delete prefs.preload; });
+    wc.on('dom-ready', () => { try { const e = this.main.a11y?.(); if (e) wc.setZoomFactor(e.scale / 100); } catch {} });
+    w.on('focus', () => { this._activeUi = wc; });
+    w.on('app-command', (_e, cmd) => { if (!wc.isDestroyed()) wc.send('app-cmd', cmd); });
+    w.on('closed', () => { this.extraWins.delete(w); if (this._activeUi === wc || this._activeUi?.isDestroyed?.()) this._activeUi = null; });
+    wc.loadFile(path.join(__dirname, '..', 'browser', 'browser.html'), { query: { win: 'extra' } });
+    wc.once('did-finish-load', () => { wc.send('open-url', { url: url || '', incognito: !!opts.incognito }); w.show(); w.focus(); this._activeUi = wc; });
+    return w;
+  }
   visible() { return !!(this.view && this.view.getVisible && this.view.getVisible()); }
   onQuit() {
     this.quitting = true; this.saveStoreSync();
@@ -117,11 +147,10 @@ class WebBrowser {
   }
   // accessibilité : taille du texte de la barre du navigateur, styles des fenêtres DrYAE et des pages
   applyA11y(e) {
-    try { this.wc?.setZoomFactor(e.scale / 100); } catch {}
-    this.wc?.send('a11y', e); pages.broadcast('a11y', e);
+    this.uiAll().forEach(w => { try { w.setZoomFactor(e.scale / 100); } catch {} w.send('a11y', e); }); pages.broadcast('a11y', e);
     for (const wc of webContents.getAllWebContents()) { try { if (wc.getType() === 'webview' && /^https?:/.test(wc.getURL())) wc.send('dryae-cmd', { cmd: 'a11y', ...e }); } catch {} }
   }
-  sendTheme() { this.wc?.send('theme', this.theme()); pages.broadcast('theme', this.theme()); }
+  sendTheme() { this.uiAll().forEach(w => w.send('theme', this.theme())); pages.broadcast('theme', this.theme()); }
   // fichier de cookies (format Netscape) pour yt-dlp, à partir de la session du navigateur
   async cookieFile(url) {
     if (!this.B().cookies) return null;
@@ -171,7 +200,7 @@ class WebBrowser {
   }
   // réglages envoyés à l'interface du navigateur
   cfg() { return { ...this.B(), theme: this.theme(), rawTheme: this.settings.get().theme || {}, restoreSession: this.settings.get().restoreSession, searchUrl: SEARCH[this.B().search] || SEARCH.google, ua: this.B().ua, partitions: { normal: PART, incognito: PART_PRIV }, mods: Object.fromEntries(M.MODULES.map(m => [m.id, { ...M.MOD_DEFAULT, ...(this.B().modules || {})[m.id], on: this.modOn(m.id) }])), lang: this.settings.get().lang, a11y: this.main.a11y?.() || {}, a11yRaw: this.settings.get().a11y || {}, root: { autoUpdateCheck: this.settings.get().autoUpdateCheck !== false, fetchTrackers: (this.settings.get().torrent || {}).fetchTrackers !== false, trackersUrl: (this.settings.get().torrent || {}).trackersUrl || '' } }; }
-  pushCfg() { clearTimeout(this._pc); this._pc = setTimeout(() => { this.wc?.send('cfg', this.cfg()); pages.broadcast('cfg', this.cfg()); }, 50); }
+  pushCfg() { clearTimeout(this._pc); this._pc = setTimeout(() => { const c = this.cfg(); this.uiAll().forEach(w => w.send('cfg', c)); pages.broadcast('cfg', c); }, 50); }
 
   // ---------- extensions Chrome (Chrome Web Store + dossiers) ----------
   async setupExtensions() {
@@ -609,6 +638,7 @@ class WebBrowser {
     if (!this._layoutHooked) {
       this._layoutHooked = true;
       // boutons latéraux de la souris et touches multimédia du clavier (précédent / suivant / actualiser)
+      host.on('focus', () => { this._activeUi = null; });
       host.on('app-command', (_e, cmd) => { if (this.view && this.view.getVisible?.() !== false && this.wc) this.wc.send('app-cmd', cmd); });
       const lay = () => this.layout();
       host.on('resize', lay); host.on('maximize', lay); host.on('unmaximize', lay); host.on('enter-full-screen', lay); host.on('leave-full-screen', lay);
@@ -653,7 +683,7 @@ class WebBrowser {
       // dans les pages internes, Ctrl+F et Ctrl+A restent à la page (recherche et sélection de la liste)
       if (pages.isPageUrl(wc.getURL()) && c && !i.shift && ['f', 'a'].includes(k)) return;
       const fkey = /^f(1|3|5|6|11|12)$/.test(k) || (/^f[89]$/.test(k) && !i.alt);
-      const plain = ['t', 'w', 'p', 'l', 'k', 'e', 'f', 'g', 'j', 'h', 'd', 'r', 's', 'u', 'm', 'tab', 'pageup', 'pagedown', 'f4', 'f5', '+', '=', '-', '0', '/'];
+      const plain = ['t', 'n', 'w', 'p', 'l', 'k', 'e', 'f', 'g', 'j', 'h', 'd', 'r', 's', 'u', 'm', 'tab', 'pageup', 'pagedown', 'f4', 'f5', '+', '=', '-', '0', '/'];
       const withShift = ['t', 'n', 'p', 'o', 'a', 'x', 'y', 'i', 'q', 'r', 'g', 'b', 'd', 'e', 's', 'l', 'u', 'delete', 'tab', 'pageup', 'pagedown'];
       const hit = fkey || (i.shift && !c && !i.alt && k === 'escape') || (i.alt && !c && ['arrowleft', 'arrowright', 'home', 'd', 'f', 'e'].includes(k)) || (c && (i.shift ? withShift.includes(k) : (plain.includes(k) || /^[1-9]$/.test(k))));
       // raccourcis personnalisés : transmis aussi au navigateur
@@ -1294,7 +1324,8 @@ class WebBrowser {
       [...counts.values()].sort((a, b) => (hostOf(b.url).startsWith(q) - hostOf(a.url).startsWith(q)) || b.n - a.n || b.t - a.t).slice(0, 6).forEach(h => add({ kind: 'history', text: h.title || h.url, url: h.url }));
       return out.slice(0, 9);
     });
-    ipcMain.handle('br:session', (_e, sess) => { if (sess && Array.isArray(sess.tabs)) { this.store.session = { tabs: sess.tabs.filter(t => /^(https?|dryae):/.test(t.url)).slice(0, 50), active: sess.active | 0 }; this.saveStore(); } });
+    ipcMain.handle('br:newWindow', (_e, url, inc) => { this.newWindow(typeof url === 'string' ? url : '', { incognito: !!inc }); });
+    ipcMain.handle('br:session', (_e, sess) => { if (this.isExtraUi(_e.sender)) return; if (sess && Array.isArray(sess.tabs)) { this.store.session = { tabs: sess.tabs.filter(t => /^(https?|dryae):/.test(t.url)).slice(0, 50), active: sess.active | 0 }; this.saveStore(); } });
     ipcMain.handle('br:torCancel', (_e, h) => { if (h) this.main.manager.torrents.probeCancel.add(String(h).toLowerCase()); });
     ipcMain.handle('br:torTrackers', (_e, id, list) => this.main.manager.get(id)?.addTrackers(list || []));
     ipcMain.handle('br:firewall', () => require('child_process').spawn('control.exe', ['/name', 'Microsoft.WindowsFirewall', '/page', 'pageConfigureApps'], { detached: true }));
@@ -1325,7 +1356,7 @@ class WebBrowser {
       if (r.canceled) return false;
       await wc.savePage(r.filePath, /\.htm$/i.test(r.filePath) ? 'HTMLOnly' : 'HTMLComplete'); return true;
     });
-    ipcMain.handle('br:fullscreen', () => { if (this.win) this.win.setFullScreen(!this.win.isFullScreen()); });
+    ipcMain.handle('br:fullscreen', e => { const w = require('electron').BrowserWindow.fromWebContents(e.sender) || this.win; if (w) w.setFullScreen(!w.isFullScreen()); });
     ipcMain.handle('br:devtools', (_e, wcId) => { try { webContents.fromId(wcId)?.toggleDevTools(); } catch {} });
     ipcMain.handle('br:mute', (_e, wcId) => { try { const wc = webContents.fromId(wcId); wc.setAudioMuted(!wc.isAudioMuted()); return wc.isAudioMuted(); } catch { return false; } });
     ipcMain.handle('br:quit', () => this.main.quit?.());
@@ -1705,7 +1736,7 @@ class WebBrowser {
     });
     // traduction IA des scans : réglages (la clé est chiffrée par Windows quand c'est possible)
     ipcMain.handle('scan:ai', (e, patch) => {
-      if (e.sender !== this.wc) patch = null; // réglage seulement depuis la fenêtre du navigateur (jamais depuis une page web)
+      if (!this.isUi(e.sender)) patch = null; // réglage seulement depuis la fenêtre du navigateur (jamais depuis une page web)
       const { safeStorage } = require('electron'); const cur = { ...((this.B().scan || {}).ai || {}) };
       if (patch && typeof patch === 'object') {
         if ('on' in patch) cur.on = !!patch.on;

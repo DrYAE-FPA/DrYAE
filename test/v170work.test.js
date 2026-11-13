@@ -26,9 +26,11 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
 
   // --- barre de favoris : invisible tant qu'aucun favori n'y est placé
   const bar0 = await b.evaluate(() => ({ on: document.querySelector('#bmbar').classList.contains('on'), h: document.querySelector('#bmbar').offsetHeight, txt: document.querySelector('#bmbar').textContent }));
+  await b.evaluate(u => B.call('br:bmAdd', { parentId: 'other', type: 'url', title: 'Rangé ailleurs', url: u + '/autre' }), base);
   await b.evaluate(u => B.call('br:bmAdd', { parentId: 'bar', type: 'url', title: 'Mon favori', url: u + '/fav' }), base); await wait(600);
   const bar1 = await b.evaluate(() => ({ on: document.querySelector('#bmbar').classList.contains('on'), txt: document.querySelector('#bmbar').textContent }));
-  ok('barre de favoris cachée sans favori, visible dès qu\'un favori y est placé', !bar0.on && bar0.h === 0 && !/Autres favoris/.test(bar0.txt) && bar1.on && /Mon favori/.test(bar1.txt), { bar0, bar1 });
+  ok('barre de favoris cachée sans favori, visible dès qu\'un favori y est placé', !bar0.on && bar0.h === 0 && !/Autres favoris/.test(bar0.txt) && bar1.on && /Mon favori/.test(bar1.txt) && !/Autres favoris/.test(bar1.txt), { bar0, bar1 });
+  ok('« Autres favoris » seulement dans le menu', await b.evaluate(() => bmMenu().some(e => e && e.label === 'Autres favoris')));
   await b.evaluate(() => B.call('br:bmRemove', [BM.bar.children[0].id])); await wait(600);
   ok('barre de favoris de nouveau cachée quand elle est vide', !(await b.evaluate(() => document.querySelector('#bmbar').classList.contains('on'))));
 
@@ -143,6 +145,15 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
   await wait(300);
   const tt = await b.evaluate(() => document.querySelector('#toast').textContent);
   ok('rappel de pause affiché', /Repos des yeux/.test(tt), tt);
+
+  // --- nouvelle fenêtre
+  const nW = app.windows().length;
+  await b.evaluate(u => B.call('br:newWindow', u + '/fenetre'), base); await wait(3000);
+  const nw2 = app.windows().find(x => /browser\.html\?win=extra/.test(x.url()));
+  const nt2 = nw2 ? await nw2.evaluate(() => tabs.map(t => t.url)) : null;
+  ok('Nouvelle fenêtre : une 2e fenêtre avec son propre onglet', !!nw2 && nt2.length === 1 && /fenetre$/.test(nt2[0]) && !(await b.evaluate(() => tabs.some(t => /fenetre$/.test(t.url)))), nt2);
+  if (nw2) { await nw2.evaluate(() => closeTab(tabs[0])); await wait(800); }
+  ok('fermer son dernier onglet ferme la 2e fenêtre', app.windows().length === nW, app.windows().length);
 
   // --- paramètres : section Travail et études
   await b.evaluate(() => openPage('settings')); await wait(2000);
