@@ -6,6 +6,7 @@
 Une version pour les longues sessions de travail (étudiants, professeurs, travailleurs), un traducteur de scans plus juste et DrYAE comme navigateur par défaut.
 
 **Version refaite**
+- **Fenêtres toujours entières et déplaçables** : les petites fenêtres de DrYAE dans la page (corriger la bulle, lexique, note…) restent entières à l'écran même en bas de la page, et se déplacent en glissant une partie vide. Les fenêtres des extensions restent entières et se déplacent en maintenant **Alt**.
 - **Mode concentration** (menu ⋮ → Outils supplémentaires) : minuteur de travail (25 min) puis pause (5 min), en boucle ; pendant le travail, les sites qui distraient (liste au choix) sont bloqués dans tous les onglets. Le minuteur s'affiche dans la barre d'outils.
 - **Nouvelle fenêtre** (Ctrl+N, ou menu ⋮ → Nouvelle fenêtre) : une autre fenêtre du navigateur avec ses propres onglets. Clic droit sur un onglet → **Déplacer vers une nouvelle fenêtre**.
 - **Barre de favoris** : elle reste cachée tant qu'aucun favori n'y est placé et réapparaît dès qu'un favori y est ajouté. Le bouton « Autres favoris » n'est plus dans la barre : on y accède par le menu ⋮ → Favoris.
@@ -47,6 +48,7 @@ Ne téléchargez que ce que vous avez le droit de copier.
 A release for long work sessions (students, teachers, workers), a more accurate image text translator, and DrYAE as your default browser.
 
 **Rebuilt version**
+- **Windows always whole and movable**: DrYAE's small windows in the page (fix the bubble, glossary, note…) stay whole on screen even at the bottom of the page, and move by dragging an empty part. Extension windows stay whole and move while holding **Alt**.
 - **Focus mode** (⋮ menu → More tools): a work timer (25 min) then a break (5 min), over and over; during work, distracting sites (your own list) are blocked in every tab. The timer shows in the toolbar.
 - **New window** (Ctrl+N, or ⋮ menu → New window): another browser window with its own tabs. Right-click a tab → **Move to a new window**.
 - **Bookmarks bar**: it stays hidden as long as no bookmark is placed on it and comes back as soon as one is added. The "Other bookmarks" button is no longer on the bar: open it from the ⋮ menu → Bookmarks.

@@ -234,10 +234,13 @@ class WebBrowser {
       popup.updatePosition = function () {
         const bw = this.browserWindow, par = this.parent;
         if (!bw || bw.isDestroyed() || !par || par.isDestroyed()) return;
+        if (this._moved) { const v = bw.getBounds(); const wa = screen.getDisplayMatching(v).workArea; if (v.height > wa.height - 8) bw.setBounds({ ...v, height: wa.height - 8 }); return; } // déplacée par l'utilisateur : on ne la replace plus
         const c = par.getContentBounds(), v = bw.getBounds(), a = this.anchorRect || { x: 0, y: 0, width: 0, height: 0 };
         let x = c.x + a.x + a.width - v.width, y = c.y + a.y + a.height + 4;
         const wa = screen.getDisplayMatching({ x: c.x + a.x, y: c.y + a.y, width: Math.max(1, a.width), height: Math.max(1, a.height) }).workArea;
         x = Math.max(wa.x + 4, Math.min(x, wa.x + wa.width - v.width - 4));
+        // plus haute que l'écran : réduite pour rester entière (la page de l'extension défile)
+        if (v.height > wa.height - 8) { v.height = wa.height - 8; }
         if (y + v.height > wa.y + wa.height - 4) y = Math.max(wa.y + 4, wa.y + wa.height - v.height - 4);
         if (process.env.DRYAE_DEBUG_POPUP) console.log('popup', JSON.stringify({ c, v, a, wa, x, y }));
         bw.setBounds({ ...v, x: Math.floor(x), y: Math.floor(y) });
@@ -245,6 +248,18 @@ class WebBrowser {
       try { popup.updatePosition(); } catch {}
       // secours : si la taille demandée par la fenêtre n'arrive pas, on la mesure nous-mêmes puis on l'affiche
       const bw = popup.browserWindow;
+      // déplaçable : maintenir Alt puis glisser la fenêtre de l'extension avec la souris
+      if (bw) {
+        let dragCss = null;
+        bw.webContents.on('before-input-event', async (_e, i) => {
+          if (i.key !== 'Alt') return;
+          try {
+            if (i.type === 'keyDown' && !dragCss) dragCss = await bw.webContents.insertCSS('html,body,body *{-webkit-app-region:drag!important;cursor:move!important}');
+            else if (i.type === 'keyUp' && dragCss) { const k = dragCss; dragCss = null; await bw.webContents.removeInsertedCSS(k); }
+          } catch {}
+        });
+        bw.on('will-move', () => { popup._moved = true; });
+      }
       bw?.webContents.once('did-finish-load', () => setTimeout(async () => {
         if (popup.isDestroyed() || !popup.hidden) return;
         try {

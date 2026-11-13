@@ -52,7 +52,7 @@ function pageFeatures() {
   };
   const UI_CSS = `:host{all:initial}
     *{box-sizing:border-box;font-family:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif}
-    .card{position:fixed;pointer-events:auto;background:#151922;color:#e9ebf1;border:1px solid #2c3242;border-radius:12px;box-shadow:0 14px 40px #0009;font-size:13.5px;line-height:1.45}
+    .card input,.card textarea{cursor:text}.card button,.card a{cursor:pointer}.card{position:fixed;pointer-events:auto;background:#151922;color:#e9ebf1;border:1px solid #2c3242;border-radius:12px;box-shadow:0 14px 40px #0009;font-size:13.5px;line-height:1.45}
     .btn{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:8px;background:#232938;color:#e9ebf1;font-size:12.5px;font-weight:600}
     .btn:hover{background:#2e3546}.btn.pri{background:var(--a,#8b5cf6);color:#fff}
     svg{width:16px;height:16px;flex:none}`;
@@ -67,7 +67,45 @@ function pageFeatures() {
     if (!uiHost.isConnected) { if (document.documentElement) document.documentElement.appendChild(uiHost); else document.addEventListener('readystatechange', () => { if (!uiHost.isConnected && document.documentElement) document.documentElement.appendChild(uiHost); }, { once: true }); }
     return uiRoot;
   };
-  const el = (html, parent) => { const d = document.createElement('div'); setHTML(d, html.trim()); const n = d.firstElementChild; (parent || ui()).appendChild(n); return n; };
+  // 1.7.0 : une fenêtre de DrYAE dans la page (corriger la bulle, lexique, note…) reste toujours entière à l'écran,
+  // même en bas de la page : elle remonte (ou se décale) et défile à l'intérieur si elle est plus haute que l'écran
+  const fitCard = n => {
+    if (!n.isConnected || !n.classList || !n.classList.contains('card')) return;
+    const cs = n.style; const M = 8;
+    cs.maxHeight = `calc(100vh - ${2 * M}px)`; cs.overflowY = 'auto'; cs.maxWidth = `calc(100vw - ${2 * M}px)`;
+    const r = n.getBoundingClientRect();
+    if (r.bottom > innerHeight - M) { if (cs.bottom && cs.bottom !== 'auto') cs.bottom = M + 'px'; else cs.top = Math.max(M, innerHeight - r.height - M) + 'px'; }
+    if (r.top < M && !(cs.bottom && cs.bottom !== 'auto')) cs.top = M + 'px';
+    if (!/translate/.test(cs.transform || '')) {
+      if (r.right > innerWidth - M) cs.left = Math.max(M, innerWidth - r.width - M) + 'px';
+      if (r.left < M) cs.left = M + 'px';
+    }
+  };
+  // déplaçable : maintenir le clic sur une partie vide de la fenêtre (pas sur un bouton ni un champ) et glisser
+  const dragCard = n => {
+    n.addEventListener('pointerdown', e => {
+      if (e.button !== 0 || e.target.closest('input,textarea,select,button,a,label,[contenteditable],.nodrag')) return;
+      const x0 = e.clientX, y0 = e.clientY; let r = null, dx = 0, dy = 0, on = false;
+      // le déplacement ne commence qu'après quelques pixels : un simple clic garde son effet (choisir un compte…)
+      const mv = ev => {
+        if (!on) {
+          if (Math.abs(ev.clientX - x0) + Math.abs(ev.clientY - y0) < 6) return;
+          on = true; r = n.getBoundingClientRect(); dx = x0 - r.left; dy = y0 - r.top;
+          Object.assign(n.style, { left: r.left + 'px', top: r.top + 'px', bottom: 'auto', right: 'auto', transform: 'none' });
+          try { getSelection().removeAllRanges(); } catch {}
+        }
+        ev.preventDefault();
+        n.style.left = Math.min(innerWidth - 40, Math.max(-r.width + 60, ev.clientX - dx)) + 'px';
+        n.style.top = Math.min(innerHeight - 30, Math.max(0, ev.clientY - dy)) + 'px';
+      };
+      const up = () => { removeEventListener('pointermove', mv, true); removeEventListener('pointerup', up, true); if (on) fitCard(n); };
+      addEventListener('pointermove', mv, true); addEventListener('pointerup', up, true);
+    });
+    n.style.cursor = 'move';
+  };
+  const fitWatch = n => { if (!n.classList || !n.classList.contains('card')) return; requestAnimationFrame(() => fitCard(n)); try { new ResizeObserver(() => fitCard(n)).observe(n); } catch {} dragCard(n); };
+  addEventListener('resize', () => { try { uiRoot?.querySelectorAll('.card').forEach(fitCard); } catch {} });
+  const el = (html, parent) => { const d = document.createElement('div'); setHTML(d, html.trim()); const n = d.firstElementChild; (parent || ui()).appendChild(n); fitWatch(n); return n; };
   const ICO = {
     tr: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 5h9M8.5 3v2M6 5c.6 3 2.6 5.6 5 7M11 5c-.8 3.6-3.2 6.8-7 8.5"/><path d="M13 20l4-9 4 9M14.5 17h5"/></svg>',
     pip: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><rect x="12" y="11" width="7" height="6" rx="1" fill="currentColor"/></svg>',
