@@ -185,6 +185,8 @@ async function recognize(img, b, R, enh) {
 
 // note de bruitage : « SFX: … », « SFX - … », « S.F.X »
 // notes des traducteurs pour les bruitages (« SFX: FWIP »), y compris mal lues : « SFC:FOOM », « 5FX », « SPX », « SeX: », « 5FIX », « X:ROOM »
+// bruitages anglais courants (dessinés sur la page, pas dits par un personnage)
+const SFX_WORDS = new Set('stomp bam boom crash thud slam whoosh swoosh bang crack snap grab clench rumble thump whack smack splash zoom wham pow clang click clack drip ding dong creak growl roar shake shuffle tap knock stab slash swish fwip fwoom whirl twirl poom foom fwoosh shing shink fwap thwack thwip krak kaboom vroom vrooom zing zap ziiing slurp gulp munch chomp crunch rustle rattle clatter tremble jolt flinch twitch nod glare stare squeeze grip step stand stomp gasp sniff sob tremble flutter flap whirr whirrr buzz bzz shff shf tmp tmp dash ba dum badum'.split(' '));
 const SFX = /^\W*S\W?F\W?[XY]?\b|^\W*[S5$]\s?[FPE3]\s?I?[XKC]|^\W*[S5$]?[FPE3]?X\s?[:;]|^\W*(EFFETS? SONORES?|SOUND EFFECTS?)\W/i;
 const isCJK = s => /[぀-ヿ㐀-鿿가-힯]/.test(s);
 // ligne à garder : assez sûre, avec de vraies lettres (pas un dessin lu comme du texte)
@@ -199,6 +201,45 @@ function good(l, min = 0.6) {
 // ---- bulles : zones claires fermées autour du texte (repérées sur une image réduite) ----
 // Deux lignes dans la même zone claire = même bulle ; deux bulles collées restent séparées.
 // Donne aussi le contour et la couleur de fond de la bulle (pour effacer proprement le texte d'origine).
+
+// Zone de couleur unie autour d'un texte (bulle colorée) : remplissage par couleur voisine sur une image réduite.
+// Refusée si elle est trop grande (fond de case, fond de page) ou trop peu remplie.
+function colorRegion(img, g) {
+  const { width: W, height: H, data } = img;
+  let G = img._cg;
+  if (!G) {
+    const k = Math.min(1, 480 / W), w = Math.max(1, Math.round(W * k)), h = Math.max(1, Math.round(H * k)), rgb = new Uint8Array(w * h * 3);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const p = (Math.min(H - 1, Math.floor(y / k)) * W + Math.min(W - 1, Math.floor(x / k))) * 4, q = (y * w + x) * 3; rgb[q] = data[p]; rgb[q + 1] = data[p + 1]; rgb[q + 2] = data[p + 2]; }
+    G = img._cg = { k, w, h, rgb };
+  }
+  const { k, w, h, rgb } = G;
+  const bx0 = Math.max(0, Math.floor(g.x0 * k)), by0 = Math.max(0, Math.floor(g.y0 * k)), bx1 = Math.min(w - 1, Math.ceil(g.x1 * k)), by1 = Math.min(h - 1, Math.ceil(g.y1 * k));
+  // couleur du fond : la plus fréquente (arrondie) dans le cadre du texte
+  const hist = new Map();
+  for (let y = by0; y <= by1; y++) for (let x = bx0; x <= bx1; x++) { const q = (y * w + x) * 3, key = (rgb[q] >> 4) << 8 | (rgb[q + 1] >> 4) << 4 | (rgb[q + 2] >> 4); hist.set(key, (hist.get(key) || 0) + 1); }
+  let best = -1, bn = 0; for (const [key, n] of hist) if (n > bn) { bn = n; best = key; }
+  const tot = (bx1 - bx0 + 1) * (by1 - by0 + 1); if (best < 0 || bn < tot * 0.3) return null;
+  let r = 0, gg = 0, b = 0, m = 0;
+  for (let y = by0; y <= by1; y++) for (let x = bx0; x <= bx1; x++) { const q = (y * w + x) * 3; if (((rgb[q] >> 4) << 8 | (rgb[q + 1] >> 4) << 4 | (rgb[q + 2] >> 4)) === best) { r += rgb[q]; gg += rgb[q + 1]; b += rgb[q + 2]; m++; } }
+  r /= m; gg /= m; b /= m;
+  const near = q => { const dr = rgb[q] - r, dg = rgb[q + 1] - gg, db = rgb[q + 2] - b; return dr * dr + dg * dg + db * db < 38 * 38; };
+  const seen = new Uint8Array(w * h), st = [];
+  for (let y = by0; y <= by1; y++) for (let x = bx0; x <= bx1; x++) { const i = y * w + x; if (near(i * 3)) { seen[i] = 1; st.push(i); } }
+  const max = w * h * 0.2; let n = 0, x0 = w, y0 = h, x1 = 0, y1 = 0, edge = 0;
+  while (st.length) {
+    const i = st.pop(), x = i % w, y = (i / w) | 0; n++;
+    if (n > max) return null;
+    if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+    if (x === 0 || y === 0 || x === w - 1 || y === h - 1) edge++;
+    for (const j of [x > 0 ? i - 1 : -1, x < w - 1 ? i + 1 : -1, y > 0 ? i - w : -1, y < h - 1 ? i + w : -1]) if (j >= 0 && !seen[j] && near(j * 3)) { seen[j] = 1; st.push(j); }
+  }
+  const bw = x1 - x0 + 1, bh = y1 - y0 + 1;
+  // zone trop peu remplie (décor), qui touche le bord de la page, ou à peine plus grande que le texte
+  if (n < bw * bh * 0.45 || edge > 2 || bw * bh < tot * 1.3) return null;
+  const lum = r * 0.3 + gg * 0.59 + b * 0.11;
+  return { box: { x0: x0 / k, y0: y0 / k, x1: (x1 + 1) / k, y1: (y1 + 1) / k }, bg: `rgb(${r | 0},${gg | 0},${b | 0})`, dark: lum < 90 };
+}
+
 // dark : bulles noires à texte blanc (pages sombres, souvenirs, nuit)
 function bubbleMap(img, dark) {
   const { width: W, height: H, data } = img;
@@ -397,6 +438,8 @@ async function readBubbles(img, opts = {}) {
   groups = groups.filter(g => !(!g.bubble && /^\W*[S5]?[FP]?X\p{Lu}{3,}\W*$/u.test(g.text)));
   // 1.6.9 : texte blanc sur fond sombre hors d'une bulle reconnue (bulles noires aux bords flous) :
   // la couleur du fond est prise autour du texte, pour l'effacer et écrire la traduction en blanc
+  // 1.6.9 : bulles de couleur unie (vertes, jaunes, roses… des BD) : zone de la même couleur que le fond du texte, fermée
+  for (const g of groups) { if (!g.bubble && !g.vertical) { const r = colorRegion(img, g); if (r) { g.bubble = r.box; g.bg = r.bg; g.dark = r.dark; } } }
   for (const g of groups) {
     if (g.bubble || g.vertical) continue;
     const { width: W, height: H, data } = img; const lv = [];
@@ -419,7 +462,13 @@ async function readBubbles(img, opts = {}) {
   // zone devenue du charabia après correction (petites lettres d'une affiche floue) : laissée telle quelle
   try {
     const SF = require('./scan-fix');
-    if (SF.englishRatio(groups.map(g => g.text)) >= 0.35) {
+    const txs = groups.map(g => g.text), er = SF.englishRatio(txs), fr = er >= 0.6 ? 0 : SF.frenchRatio(txs);
+    // 1.6.9 : page en français (BD, mangas en VF) : confusions U/L, O/Q, petit « i » des lettrages, « Δ » pour À, mots collés
+    if (fr >= 0.35 && fr > er) {
+      for (const g of groups) if (!isCJK(g.text) && !g.vertical) { const p = g.parts || [g.text]; g.text = SF.fixFrench(p.reduce((a, s) => !a ? s : /\p{L}[-‐‑]$/u.test(a) && /^\p{L}/u.test(s) ? a.slice(0, -1) + s : a + ' ' + s, '')); }
+      groups.lang = 'fr';
+    } else if (er >= 0.35) {
+      groups.lang = 'en';
       for (const g of groups) if (!isCJK(g.text) && !g.vertical) g.text = SF.fixParts(g.parts || [g.text]);
       // mots ni anglais ni noms japonais (« FERFOOMNNCE ») : charabia
       let odd = 0, all = 0;
@@ -431,6 +480,17 @@ async function readBubbles(img, opts = {}) {
       groups.odd = all ? odd / all : 0;
     }
   } catch {}
+  // 1.6.9 : bruitages dessinés en lettres latines (« GWH », « STOMP », « BAM ») : jamais traduits, le dessin reste intact
+  {
+    const hs2 = groups.filter(g => !g.vertical).map(g => g.lh || 0).filter(Boolean).sort((a, b) => a - b), md = hs2.length ? hs2[hs2.length >> 1] : 0;
+    groups = Object.assign(groups.filter(g => {
+      const ws = (g.text.match(/\p{L}+/gu) || []); if (!ws.length || ws.length > 2 || isCJK(g.text)) return true;
+      if (ws.length === 1 && ws[0].length <= 6 && !/[aeiouyàâéèêëîïôûù]/i.test(ws[0]) && !/^(hmm+|pff+|grr+|tch|psst)$/i.test(ws[0])) return false;
+      const sfx = ws.every(w => SFX_WORDS.has(w.toLowerCase()));
+      if (sfx && (groups.lang === 'fr' || !g.bubble || (md && (g.lh || 0) > md * 1.6))) return false;
+      return true;
+    }), { lang: groups.lang, odd: groups.odd, quality: groups.quality, unread: groups.unread });
+  }
   groups.model = used;
   // page en écriture latine : on ignore les petits signes japonais/chinois isolés (bruitages dessinés)
   const latin = groups.filter(g => !isCJK(g.text)).length, cjk = groups.length - latin;
@@ -438,7 +498,7 @@ async function readBubbles(img, opts = {}) {
   groups.unread = boxes.length - lines.length;
   // page anglaise ou française : les lettres japonaises sont des bruitages dessinés → jamais traduites
   const res = latin > cjk && used !== 'korean' ? groups.filter(g => !(isCJK(g.text) && (latin >= 2 * cjk || !g.bubble || g.text.replace(/[\s\p{P}]/gu, '').length <= 2))) : groups;
-  res.model = used; res.unread = groups.unread; res.quality = groups.quality; res.odd = groups.odd || 0;
+  res.model = used; res.unread = groups.unread; res.quality = groups.quality; res.odd = groups.odd || 0; res.lang = groups.lang || '';
   return res;
 }
 

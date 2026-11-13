@@ -193,3 +193,112 @@ function fixNames(text, names) {
   });
 }
 module.exports = { learnNames, fixNames, plausible, ROMAJI, isName, load, correct, fixParts, fixWords, englishRatio };
+
+// ===================== français =====================
+// Liste de mots français (an-array-of-french-words, MIT, voir assets/dict/FR-WORDS-LICENSE.txt), chargée seulement
+// pour une page en français. Pas de fréquences dans cette liste : les mots les plus courants sont donnés ici à la main.
+const FR_TOP = ("à a au aux avec avoir ai as avez avons ont alors aussi autre autres avant après assez ah allez allons aller aime aimes " +
+  "bien bon bonne beaucoup bas besoin bientôt " +
+  "ça ce ces cet cette c'est ceux celui celle chez comme comment contre cœur coup crois croit " +
+  "dans de des du deux dit dis dire donc dont depuis déjà devant doit dois " +
+  "elle elles en encore entre es est et été êtes être eu " +
+  "faire fais fait faut fois fin fort " +
+  "grand grande gens " +
+  "hein hé ici il ils " +
+  "je jamais jour jusqu juste " +
+  "la le les leur leurs lui là " +
+  "ma mais me même merci mes mieux moi mon monde mort moins " +
+  "ne ni non nos notre nous nouveau nouvelle " +
+  "on ont ou où oui " +
+  "par parce pas peu peut peux plus pour pourquoi pouvoir premier près puis puisque " +
+  "qu que quel quelle quelque quoi qui quand " +
+  "rien " +
+  "sa sans se sera ses si sois soit son sont sous suis sur sûr " +
+  "ta te tes toi ton tous tout toute toutes très trop tu " +
+  "un une vais va vas veux veut vie viens voilà voir vos votre vous vrai vraiment").split(' ');
+let FR = null, FRK = null, FRT = null;
+const strip = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/œ/g, 'oe').replace(/æ/g, 'ae');
+function loadFr() {
+  if (FR) return FR;
+  FR = new Set(); FRK = new Map(); FRT = new Set(FR_TOP.map(strip));
+  try {
+    for (const w of fs.readFileSync(path.join(__dirname, '..', '..', 'assets', 'dict', 'fr-words.txt'), 'utf8').split('\n')) {
+      if (!w) continue; FR.add(w); const k = strip(w); if (!FRK.has(k)) FRK.set(k, w);
+    }
+  } catch {}
+  for (const w of FR_TOP) { FR.add(w); const k = strip(w); if (!FRK.has(k) || FRT.has(k)) FRK.set(k, w); }
+  return FR;
+}
+// mot français connu, avec ou sans accents (les lettrages en majuscules oublient souvent les accents)
+const frKnown = w => { loadFr(); return FRK.has(strip(w.toLowerCase())); };
+// confusions de lettres fréquentes dans les lettrages français : U lu L, O lu Q, I lu L, À lu Δ
+const FR_CONF = { l: 'ui', q: 'o', i: 'l', o: 'q', u: 'l', e: 'c', c: 'e', n: 'u', h: 'n', m: 'n' };
+function frCorrect(w) {
+  const k = strip(w.toLowerCase());
+  if (k.length < 2) return '';
+  const cands = [];
+  // une ou deux confusions de lettres
+  // deux lettres lues pour une (« LI » pour U, « RN » pour M, « CL » pour D)
+  const PAIRS = { li: 'u', ll: 'u', rn: 'm', cl: 'd', vv: 'w', ii: 'u' };
+  const step = s => { const o = []; for (let i = 0; i < s.length; i++) { for (const c of FR_CONF[s[i]] || '') o.push(s.slice(0, i) + c + s.slice(i + 1)); const p2 = PAIRS[s.slice(i, i + 2)]; if (p2) o.push(s.slice(0, i) + p2 + s.slice(i + 2)); } return o; };
+  const e1 = step(k);
+  for (const c of e1) if (FRK.has(c)) cands.push([c, (FRT.has(c) ? 0 : 1) + (c.length !== k.length ? 0.5 : 0)]);
+  // lettre oubliée (« M'NVITER » → M'INVITER)
+  if (!cands.length && k.length >= 5) for (let i = 0; i < k.length; i++) for (const c of 'iuel') { const s = k.slice(0, i) + c + k.slice(i); if (FRK.has(s)) cands.push([s, FRT.has(s) ? 1 : 2]); }
+  if (!cands.length && k.length >= 5) for (const c1 of e1) for (const c2 of step(c1)) if (FRK.has(c2)) cands.push([c2, FRT.has(c2) ? 1 : 2]);
+  if (!cands.length) return '';
+  cands.sort((a, b) => a[1] - b[1]);
+  // mot court (noms coréens ou japonais : « JU-HEE ») : seulement vers un mot très courant (« QLE » → QUE)
+  if (k.length <= 3 && !FRT.has(cands[0][0])) return '';
+  // plusieurs propositions également probables : on ne choisit pas au hasard
+  if (cands.length > 1 && cands[1][1] === cands[0][1] && cands[1][0] !== cands[0][0]) return '';
+  return FRK.get(cands[0][0]);
+}
+// part des mots français reconnus : le texte est-il du français ?
+function frenchRatio(texts) {
+  loadFr(); let n = 0, k = 0;
+  for (const t of texts) for (const w of String(t).toLowerCase().match(/[\p{L}']{2,}/gu) || []) { n++; if (frKnown(w.replace(/^[a-z]'/, ''))) k++; }
+  return n ? k / n : 0;
+}
+const PRON = new Set(['je', 'tu', 'il', 'elle', 'on', 'nous', 'vous', 'ils', 'elles', 'moi', 'toi', 'lui', 'le', 'la', 'les', 'en', 'y']);
+// mots collés : « TIENSA » → TIENS À, « DISTU » → DIS-TU, « MORDSMOI » → MORDS-MOI
+function frSplit(k) {
+  for (let i = k.length - 1; i >= 2; i--) {
+    const a = k.slice(0, i), b = k.slice(i);
+    if (!FRK.has(a)) continue;
+    if (PRON.has(b) && i >= 3) return FRK.get(a) + '-' + b;
+    if (b === 'a' && a.length >= 3) return FRK.get(a) + ' à';
+    if (FRT.has(b) && FRT.has(a) && b.length >= 2) return FRK.get(a) + ' ' + FRK.get(b);
+  }
+  // « AFORCE » → À FORCE
+  if (k[0] === 'a' && k.length >= 5 && FRK.has(k.slice(1))) return 'à ' + FRK.get(k.slice(1));
+  return '';
+}
+function fixFrench(text) {
+  loadFr();
+  // « TUES » en début de phrase : TU ES
+  text = String(text).replace(/(^|[.!?…]\s*)TUES\b/g, '$1TU ES');
+  text = String(text)
+    .replace(/[Δ∆]/g, 'À').replace(/(?<!\p{L})À(?=\p{L}{2,})/gu, 'À ')
+    // petit « i » des lettrages de BD dans un mot en majuscules : « CiEL » → CIEL
+    .replace(/\p{L}+/gu, m => /\p{Lu}/u.test(m) && /i/.test(m) && m.replace(/i/g, '') === m.replace(/i/g, '').toUpperCase() ? m.replace(/i/g, 'I') : m);
+  return text.replace(/[\p{L}'’]+/gu, m => {
+    const core = m.replace(/^[\p{L}]['’]/u, ''), pre = m.slice(0, m.length - core.length);
+    if (core.length < 2 || !/^[\p{L}]+$/u.test(core)) return m;
+    const k = strip(core.toLowerCase()), up = core === core.toUpperCase();
+    // lettrage sans accents : on n'en ajoute pas (« DESQLE » → DESOLE, pas « DÉSOLE »)
+    const acc = strip(core) !== core;
+    const out = s => pre + (up ? (acc ? s : s.split(' ').map(x => x === 'à' ? x : strip(x)).join(' ')).toUpperCase() : s);
+    // « ? » lu comme un P collé au mot (« HEINP » → HEIN?)
+    if (/p$/.test(k) && k.length >= 3 && !FRK.has(k) && FRK.has(k.slice(0, -1))) return pre + core.slice(0, -1) + '?';
+    // mot connu mais rare, alors qu'un mot très courant n'est qu'à une confusion U/L ou O/Q (« VOLS » → VOUS, « NOLS » → NOUS, « QLE » → QUE)
+    if (FRK.has(k)) {
+      if (!FRT.has(k)) { const c = frCorrect(core); if (c && FRT.has(strip(c)) && /[lq]/.test(k)) return out(c); }
+      return m;
+    }
+    const c = frCorrect(core); if (c) return out(c);
+    const s = k.length >= 5 ? frSplit(k) : ''; if (s) return out(s);
+    return m;
+  });
+}
+module.exports.fixFrench = fixFrench; module.exports.frenchRatio = frenchRatio; module.exports.frKnown = frKnown;

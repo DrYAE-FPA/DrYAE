@@ -116,14 +116,14 @@ function cleanScan(s) {
   if (caps) t = t.toUpperCase();
   return { text: t, caps };
 }
-function forMT(s, caps) {
+function forMT(s, caps, lang) {
   if (!caps) return s;
   let t = s.toLowerCase();
   // majuscule en début de phrase ; « i » anglais
   t = t.replace(/(^|[.!?…]\s+|["«“]\s*)(\p{L})/gu, (m, a, b) => a + b.toUpperCase()).replace(/\bi\b(?=['’\s,.!?]|$)/g, 'I');
   // mots inconnus du dictionaire anglais (noms des personnages, des lieux) : gardés avec une majuscule,
   // pour que le traducteur ne les traduise pas comme des mots ordinaires
-  try { const SF = require('./scan-fix'); SF.load(); t = t.replace(/\b\p{Ll}[\p{L}]{2,}\b/gu, w => SF.isName(w) ? w[0].toUpperCase() + w.slice(1) : w); } catch {}
+  if (lang === 'en') try { const SF = require('./scan-fix'); SF.load(); t = t.replace(/\b\p{Ll}[\p{L}]{2,}\b/gu, w => SF.isName(w) ? w[0].toUpperCase() + w.slice(1) : w); } catch {}
   return t;
 }
 

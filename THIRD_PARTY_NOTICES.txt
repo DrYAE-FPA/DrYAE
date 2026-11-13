@@ -98,6 +98,10 @@ SCOWL English word lists (assets/dict/en-words.txt, built from the npm
   package wordlist-english) — Copyright 2000-2016 Kevin Atkinson, permissive
   license (assets/dict/SCOWL-LICENSE.txt) — http://wordlist.aspell.net/
   (used to fix letters misread in English scans)
+an-array-of-french-words (assets/dict/fr-words.txt) — MIT — Copyright (c) 2016
+  Zeke Sikelianos — https://github.com/words/an-array-of-french-words
+  (license in assets/dict/FR-WORDS-LICENSE.txt; used to fix letters misread
+  in French comics)
 
 ------------------------------------------------------------------------
 PDF viewer (folder resources/app/assets/pdfjs)

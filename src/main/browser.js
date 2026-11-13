@@ -1717,7 +1717,9 @@ class WebBrowser {
         groups = await M.readImage(img.toPNG(), src + (S.withEng && !/^eng/.test(src) ? '+eng' : ''));
       }
       if (!groups.length) return { blocks: [], w, needModel, unreadable: (groups.unread || 0) >= 3 && !groups.model };
-      const usedModel = groups.model || '', quality = groups.quality ?? 1, odd = groups.odd || 0;
+      const usedModel = groups.model || '', quality = groups.quality ?? 1, odd = groups.odd || 0, pageLang = groups.lang || '';
+      // couleurs des bulles telles que le navigateur les affiche (image avec un profil de couleur : ProPhoto, Adobe RGB…)
+      if (buf && scale !== 0) { try { const dc = require('./icc').displayColor(buf); if (dc) for (const g of groups) if (g.bg) g.bg = dc(g.bg); } catch {} }
       groups = readingOrder(groups);
       // langue d'arrivée : celle choisie (par défaut celle du traducteur) ; texte déjà dans cette langue → 2e langue
       // toutes les bulles de l'image partent ensemble, dans l'ordre de lecture (le traducteur a le contexte),
@@ -1731,11 +1733,11 @@ class WebBrowser {
       // noms de la série (appris sur ce site) : « TSUKLMOGAMI » → TSUKUMOGAMI quand ce nom a déjà été bien lu souvent
       try {
         const SF = require('./scan-fix'); const host = (() => { try { return new URL(o.page).hostname; } catch { return ''; } })();
-        if (host) { const NM = this.scanNames(); const names = NM.get(host); groups = groups.map(g => ({ ...g, text: SF.fixNames(g.text, names) })); SF.learnNames(groups.map(g => g.text), names); NM.save(); }
+        if (host && pageLang === 'en') { const NM = this.scanNames(); const names = NM.get(host); groups = groups.map(g => ({ ...g, text: SF.fixNames(g.text, names) })); SF.learnNames(groups.map(g => g.text), names); NM.save(); }
       } catch {}
       // cris et onomatopées (AHHH, HEHE, FUFU, HMM…) : gardés tels quels, pas traduits
       const keep = groups.map(g => M.interjection(g.text));
-      const mt = () => groups.map(g => prep(M.forMT(g.text, g.caps)));
+      const mt = () => groups.map(g => prep(M.forMT(g.text, g.caps, pageLang)));
       let tr = null, ai = '';
       // traduction par IA (facultative, clé personnelle) : elle voit l'image, corrige la lecture et traduit avec le contexte
       const AI = this.aiCfg();
