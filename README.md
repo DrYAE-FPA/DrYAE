@@ -14,6 +14,7 @@
 - 🌐 **DrYAE navigateur par défaut** : les liens de Word, Discord ou des e-mails s'ouvrent dans DrYAE.
 - 🖼️ Traducteur de scans : noms et cris jamais traduits, case « Ne jamais traduire », lettres mal lues mieux corrigées, modèle « langues latines », lecture correcte avec les lumières tamisées.
 - 🧩 Le panneau des extensions n'affiche plus que les extensions activées.
+- ⭐ Barre de favoris cachée tant qu'aucun favori n'y est placé (version refaite).
 
 ### Version 1.6.9
 

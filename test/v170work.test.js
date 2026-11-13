@@ -14,7 +14,7 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
   }).listen(0);
   const base = `http://127.0.0.1:${srv.address().port}`;
   const HOME = '/tmp/claude-0/uihome-v170'; fs.rmSync(HOME, { recursive: true, force: true }); fs.mkdirSync(HOME + '/.config/DrYAE', { recursive: true });
-  fs.writeFileSync(HOME + '/.config/DrYAE/settings.json', JSON.stringify({ lang: 'fr', langChosen: true }));
+  fs.writeFileSync(HOME + '/.config/DrYAE/settings.json', JSON.stringify({ lang: 'fr', langChosen: true, browser: { showBookmarksBar: true } }));
   const app = await _electron.launch({ args: ['.', '--no-sandbox'], cwd: ROOT, executablePath: ROOT + '/node_modules/electron/dist/electron', env: { ...process.env, HOME, XDG_CONFIG_HOME: HOME + '/.config' } });
   app.on('console', m => { if (/Error|error/.test(m.text())) console.log('[main]', m.text().slice(0, 300)); });
   await app.firstWindow(); await wait(2500);
@@ -23,6 +23,14 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
   await b.evaluate(u => navigate(cur, u + '/un'), base);
   await b.evaluate(u => { newTab(u + '/deux', { background: true }); }, base);
   await wait(2500);
+
+  // --- barre de favoris : invisible tant qu'aucun favori n'y est placé
+  const bar0 = await b.evaluate(() => ({ on: document.querySelector('#bmbar').classList.contains('on'), h: document.querySelector('#bmbar').offsetHeight, txt: document.querySelector('#bmbar').textContent }));
+  await b.evaluate(u => B.call('br:bmAdd', { parentId: 'bar', type: 'url', title: 'Mon favori', url: u + '/fav' }), base); await wait(600);
+  const bar1 = await b.evaluate(() => ({ on: document.querySelector('#bmbar').classList.contains('on'), txt: document.querySelector('#bmbar').textContent }));
+  ok('barre de favoris cachée sans favori, visible dès qu\'un favori y est placé', !bar0.on && bar0.h === 0 && !/Autres favoris/.test(bar0.txt) && bar1.on && /Mon favori/.test(bar1.txt), { bar0, bar1 });
+  await b.evaluate(() => B.call('br:bmRemove', [BM.bar.children[0].id])); await wait(600);
+  ok('barre de favoris de nouveau cachée quand elle est vide', !(await b.evaluate(() => document.querySelector('#bmbar').classList.contains('on'))));
 
   // --- espaces de travail
   await b.evaluate(() => TABSX.toggleSide('ws')); await wait(400);

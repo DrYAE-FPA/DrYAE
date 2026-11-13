@@ -160,6 +160,7 @@ DRM-protected videos (Netflix, Disney+…) cannot be downloaded.
 - **Default browser**: Settings → System → **Default browser**, then **Choose DrYAE in Windows** (Windows always asks you to confirm). Links opened from Word, Discord or your e-mails then open in DrYAE. Not possible with the portable version.
 - **Image text translator:** character names and shouts are no longer translated; in **Glossary**, **Never translate** keeps a phrase as it is. For English and French, the **"Latin-script languages" reading model** (offered once) reads bubbles better. The translator no longer sees the **dimmed lights** veil: the lights stay on screen during translation.
 - The **Extensions** button panel now only shows turned-on extensions; turn the others back on in **Manage extensions**.
+- The **bookmarks bar** (Ctrl+Shift+B) stays hidden as long as no bookmark is placed on it; it appears as soon as you add one.
 
 ## 5b. Accessibility
 Settings → **Accessibility**: DrYAE text size (up to 200%), **high contrast** (or as Windows), **easy reading** (simple font and wider letter spacing, helpful for dyslexia), **reduce animations**, **simple mode** (only the essential buttons). Everything also works from the keyboard: Tab, arrows, Esc, F6 (address bar → buttons → page), Alt+F (menu). DrYAE works with screen readers (NVDA, Narrator). Your own shortcuts: Settings → **Keyboard shortcuts**.

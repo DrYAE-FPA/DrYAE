@@ -1162,7 +1162,7 @@ function bmMenu() {
     ...(BM.other.children.length ? ['-', { label: 'Autres favoris', icon: 'folder', sub: () => bmItems(BM.other.children) }] : []),
   ];
 }
-async function toggleBar() { CFG = { ...CFG, ...(await B.call('br:setSettings', { showBookmarksBar: !CFG.showBookmarksBar })) }; drawBmBar(); }
+async function toggleBar() { CFG = { ...CFG, ...(await B.call('br:setSettings', { showBookmarksBar: !CFG.showBookmarksBar })) }; drawBmBar(); if (CFG.showBookmarksBar && !BM.bar.children.length) toast('La barre de favoris apparaîtra dès qu\'un favori y sera placé'); }
 async function bookmarkAll() {
   const list = tabs.filter(t => /^https?:/.test(t.url) && !t.incognito).map(t => ({ url: t.url, title: t.title }));
   if (!list.length) return toast('Aucun onglet à ajouter');
@@ -1195,10 +1195,12 @@ function closeFloating() {
 function drawBmBar() {
   if (bmDrag) { drawBmBar.later = true; return; } // pas de redessin pendant un glisser (il annulerait le déplacement)
   const bar = $('#bmbar');
-  bar.classList.toggle('on', !!CFG.showBookmarksBar);
-  if (!CFG.showBookmarksBar) return;
+  // 1.7.0 : la barre n'apparaît que si au moins un favori y est placé (sinon rien, pas même « Autres favoris »)
+  const show = !!CFG.showBookmarksBar && BM.bar.children.length > 0;
+  bar.classList.toggle('on', show);
+  if (!show) { bar.innerHTML = ''; return; }
   const item = n => `<button class="bi" draggable="true" data-bm="${esc(n.id)}" title="${esc(n.title + (n.url ? '\n' + n.url : ''))}">${n.type === 'folder' ? ic('folder') : n.fav ? `<img src="${esc(n.fav)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('i')))">` : ic('globe')}<span>${esc(n.title || n.url)}</span></button>`;
-  bar.innerHTML = (BM.bar.children.length ? BM.bar.children.map(item).join('') : `<span class="empty">${esc(T('Pour un accès rapide, placez vos favoris ici, dans la barre de favoris.'))}</span>`) +
+  bar.innerHTML = BM.bar.children.map(item).join('') +
     `<span class="sp"></span>${BM.other.children.length ? `<button class="bi" data-bm="other">${ic('folder')}<span>${esc(T('Autres favoris'))}</span></button>` : ''}`;
 }
 const bmNode = id => { let r = null; const w = l => l.forEach(n => { if (n.id === id) r = n; if (n.children) w(n.children); }); w([BM.bar, BM.other]); return r; };
