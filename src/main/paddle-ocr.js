@@ -186,7 +186,7 @@ async function recognize(img, b, R, enh) {
 // note de bruitage : « SFX: … », « SFX - … », « S.F.X »
 // notes des traducteurs pour les bruitages (« SFX: FWIP »), y compris mal lues : « SFC:FOOM », « 5FX », « SPX », « SeX: », « 5FIX », « X:ROOM »
 // bruitages anglais courants (dessinés sur la page, pas dits par un personnage)
-const SFX_WORDS = new Set('stomp bam boom crash thud slam whoosh swoosh bang crack snap grab clench rumble thump whack smack splash zoom wham pow clang click clack drip ding dong creak growl roar shake shuffle tap knock stab slash swish fwip fwoom whirl twirl poom foom fwoosh shing shink fwap thwack thwip krak kaboom vroom vrooom zing zap ziiing slurp gulp munch chomp crunch rustle rattle clatter tremble jolt flinch twitch nod glare stare squeeze grip step stand stomp gasp sniff sob tremble flutter flap whirr whirrr buzz bzz shff shf tmp tmp dash ba dum badum'.split(' '));
+const SFX_WORDS = new Set('clap claps cap ting ling ding dring tink clink stomp bam bäm boom crash thud slam whoosh swoosh bang crack snap grab clench rumble thump whack smack splash zoom wham pow clang click clack drip ding dong creak growl roar shake shuffle tap knock stab slash swish fwip fwoom whirl twirl poom foom fwoosh shing shink fwap thwack thwip krak kaboom vroom vrooom zing zap ziiing slurp gulp munch chomp crunch rustle rattle clatter tremble jolt flinch twitch nod glare stare squeeze grip step stand stomp gasp sniff sob tremble flutter flap whirr whirrr buzz bzz shff shf tmp tmp dash ba dum badum'.split(' '));
 const SFX = /^\W*S\W?F\W?[XY]?\b|^\W*[S5$]\s?[FPE3]\s?I?[XKC]|^\W*[S5$]?[FPE3]?X\s?[:;]|^\W*(EFFETS? SONORES?|SOUND EFFECTS?)\W/i;
 const isCJK = s => /[぀-ヿ㐀-鿿가-힯]/.test(s);
 // ligne à garder : assez sûre, avec de vraies lettres (pas un dessin lu comme du texte)
@@ -484,13 +484,18 @@ async function readBubbles(img, opts = {}) {
   {
     const hs2 = groups.filter(g => !g.vertical).map(g => g.lh || 0).filter(Boolean).sort((a, b) => a - b), md = hs2.length ? hs2[hs2.length >> 1] : 0;
     groups = Object.assign(groups.filter(g => {
-      const ws = (g.text.match(/\p{L}+/gu) || []); if (!ws.length || ws.length > 2 || isCJK(g.text)) return true;
+      const ws = (g.text.match(/\p{L}+/gu) || []); if (!ws.length || isCJK(g.text)) return true;
+      // « CLAP CLAP CLAP CAP CLAP » : surtout des bruitages (même si un mot est mal lu)
+      const ns = ws.filter(w => SFX_WORDS.has(w.toLowerCase()) || w.length === 1).length;
+      if (ws.length > 2) return !(ns >= ws.length * 0.6 && (groups.lang === 'fr' || !g.bubble || (md && (g.lh || 0) > md * 1.6)));
       if (ws.length === 1 && ws[0].length <= 6 && !/[aeiouyàâéèêëîïôûù]/i.test(ws[0]) && !/^(hmm+|pff+|grr+|tch|psst)$/i.test(ws[0])) return false;
       const sfx = ws.every(w => SFX_WORDS.has(w.toLowerCase()));
       if (sfx && (groups.lang === 'fr' || !g.bubble || (md && (g.lh || 0) > md * 1.6))) return false;
       return true;
     }), { lang: groups.lang, odd: groups.odd, quality: groups.quality, unread: groups.unread });
   }
+  // caractère japonais isolé au milieu d'un texte latin (« hegr分my ») : lecture parasite, retiré
+  for (const g of groups) if ((g.text.match(/[a-zA-Z]/g) || []).length > 3 * (g.text.match(/[\u3040-\u30ff\u3400-\u9fff]/g) || []).length && /[a-zA-Z]{3}/.test(g.text)) g.text = g.text.replace(/\s*[\u3040-\u30ff\u3400-\u9fff]+\s*/g, ' ').replace(/\s{2,}/g, ' ').trim();
   groups.model = used;
   // page en écriture latine : on ignore les petits signes japonais/chinois isolés (bruitages dessinés)
   const latin = groups.filter(g => !isCJK(g.text)).length, cjk = groups.length - latin;

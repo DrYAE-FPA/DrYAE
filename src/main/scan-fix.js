@@ -21,6 +21,8 @@ function load() {
     }
   } catch {}
   for (const c of CONTR.split(' ')) DICT.set(c, 0);
+  // mots courants absents des listes américaines
+  for (const w of 'axe axes colour honour favour armour grey okay barkeep gosh darn'.split(' ')) if (!DICT.has(w)) DICT.set(w, 1);
   // « ISNT », « DONT » (apostrophe non lue) : retrouvés grâce à la forme sans apostrophe
   APOS = new Map(); for (const c of CONTR.split(' ')) { const s = c.replace(/'/g, ''); if (!DICT.has(s)) APOS.set(s, c); }
   return DICT;
@@ -43,6 +45,8 @@ function edits(w) {
     for (const c of CONF[w[i]] || '') out.push([w.slice(0, i) + c + w.slice(i + 1), 1]);
     if (w.length > 3) out.push([w.slice(0, i) + w.slice(i + 1), 1.4]);
   }
+  // mot de 3 lettres avec une voyelle (« AXE », « REA ») : pas de lettre ajoutée (seulement « WLL » → WILL, « WTH » → WITH)
+  if (w.length <= 3 && /[aeiouy]/.test(w)) return out;
   for (let i = 0; i <= w.length; i++) {
     for (const c of 'il') out.push([w.slice(0, i) + c + w.slice(i), 1]);
     for (const c of 'aeouwrdt') out.push([w.slice(0, i) + c + w.slice(i), 1.6]);
@@ -136,8 +140,12 @@ function fixParts(parts) {
 }
 function fixWords(text) {
   load();
-  text = String(text).replace(/[\p{L}']+/gu, m => {
+  text = halfwidth(text);
+  const mixed = /\p{Ll}{3,}/u.test(text);
+  text = String(text).replace(/[\p{L}']+/gu, (m, off, all) => {
     let w = m.toLowerCase().replace(/^'+|'+$/g, '');
+    // texte en minuscules : un mot à majuscule au milieu d'une phrase est un nom propre (« Rea », « Chaosah ») : pas touché
+    if (mixed && /^\p{Lu}\p{Ll}+$/u.test(m) && off > 0 && !/[.!?…:"“«]\s*$/.test(all.slice(Math.max(0, off - 3), off)) && !known(w)) return m;
     if (!/^[a-z']+$/.test(w)) return m;
     // apostrophe ou « I » non lus dans les formes courtes : « TS » → IT'S, « TVE » → I'VE, « DINT » → DIDN'T
     if (SPECIAL[w]) { const core = m.replace(/^'+|'+$/g, ''); return m.replace(core, likeCase(core, SPECIAL[w])); }
@@ -194,6 +202,8 @@ function fixNames(text, names) {
 }
 module.exports = { learnNames, fixNames, plausible, ROMAJI, isName, load, correct, fixParts, fixWords, englishRatio };
 
+// ponctuation « pleine largeur » (！？，) lue par le modèle multilingue dans un texte latin
+function halfwidth(s) { return String(s).replace(/[！-～]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xfee0)).replace(/　/g, ' '); }
 // ===================== français =====================
 // Liste de mots français (an-array-of-french-words, MIT, voir assets/dict/FR-WORDS-LICENSE.txt), chargée seulement
 // pour une page en français. Pas de fréquences dans cette liste : les mots les plus courants sont donnés ici à la main.
@@ -232,7 +242,7 @@ function loadFr() {
 // mot français connu, avec ou sans accents (les lettrages en majuscules oublient souvent les accents)
 const frKnown = w => { loadFr(); return FRK.has(strip(w.toLowerCase())); };
 // confusions de lettres fréquentes dans les lettrages français : U lu L, O lu Q, I lu L, À lu Δ
-const FR_CONF = { l: 'ui', q: 'o', i: 'l', o: 'q', u: 'l', e: 'c', c: 'e', n: 'u', h: 'n', m: 'n' };
+const FR_CONF = { l: 'ui', q: 'o', i: 'l', o: 'q', u: 'l', e: 'c', c: 'e', n: 'u', h: 'n', m: 'n', d: 'c' };
 function frCorrect(w) {
   const k = strip(w.toLowerCase());
   if (k.length < 2) return '';
@@ -243,6 +253,8 @@ function frCorrect(w) {
   const step = s => { const o = []; for (let i = 0; i < s.length; i++) { for (const c of FR_CONF[s[i]] || '') o.push(s.slice(0, i) + c + s.slice(i + 1)); const p2 = PAIRS[s.slice(i, i + 2)]; if (p2) o.push(s.slice(0, i) + p2 + s.slice(i + 2)); } return o; };
   const e1 = step(k);
   for (const c of e1) if (FRK.has(c)) cands.push([c, (FRT.has(c) ? 0 : 1) + (c.length !== k.length ? 0.5 : 0)]);
+  // lettre doublée par erreur (« ILLS » → ILS)
+  if (!cands.length) for (let i = 1; i < k.length; i++) if (k[i] === k[i - 1]) { const s = k.slice(0, i) + k.slice(i + 1); if (FRK.has(s)) cands.push([s, FRT.has(s) ? 0.5 : 1.5]); }
   // lettre oubliée (« M'NVITER » → M'INVITER)
   if (!cands.length && k.length >= 5) for (let i = 0; i < k.length; i++) for (const c of 'iuel') { const s = k.slice(0, i) + c + k.slice(i); if (FRK.has(s)) cands.push([s, FRT.has(s) ? 1 : 2]); }
   if (!cands.length && k.length >= 5) for (const c1 of e1) for (const c2 of step(c1)) if (FRK.has(c2)) cands.push([c2, FRT.has(c2) ? 1 : 2]);
@@ -276,6 +288,7 @@ function frSplit(k) {
 }
 function fixFrench(text) {
   loadFr();
+  text = halfwidth(text);
   // « TUES » en début de phrase : TU ES
   text = String(text).replace(/(^|[.!?…]\s*)TUES\b/g, '$1TU ES');
   text = String(text)
@@ -288,16 +301,22 @@ function fixFrench(text) {
     const k = strip(core.toLowerCase()), up = core === core.toUpperCase();
     // lettrage sans accents : on n'en ajoute pas (« DESQLE » → DESOLE, pas « DÉSOLE »)
     const acc = strip(core) !== core;
-    const out = s => pre + (up ? (acc ? s : s.split(' ').map(x => x === 'à' ? x : strip(x)).join(' ')).toUpperCase() : s);
+    const cap = /^\p{Lu}\p{Ll}/u.test(core);
+    const out = s => pre + (up ? (acc ? s : s.split(' ').map(x => x === 'à' ? x : strip(x)).join(' ')).toUpperCase() : cap ? s[0].toUpperCase() + s.slice(1) : s);
     // « ? » lu comme un P collé au mot (« HEINP » → HEIN?)
     if (/p$/.test(k) && k.length >= 3 && !FRK.has(k) && FRK.has(k.slice(0, -1))) return pre + core.slice(0, -1) + '?';
     // mot connu mais rare, alors qu'un mot très courant n'est qu'à une confusion U/L ou O/Q (« VOLS » → VOUS, « NOLS » → NOUS, « QLE » → QUE)
+    // « I'air » → l'air (L minuscule lu I devant l'apostrophe)
+    const pre2 = /^I['’]$/.test(pre) && /^\p{Ll}/u.test(core) ? 'l' + pre.slice(1) : pre;
+    if (pre2 !== pre) return pre2 + core;
     if (FRK.has(k)) {
+      // texte en minuscules : accent mal lu (« mème » → même, « etre » → être)
+      if (!up && !FR.has(core.toLowerCase()) && /^\p{Ll}+$/u.test(core)) return pre + FRK.get(k);
       if (!FRT.has(k)) { const c = frCorrect(core); if (c && FRT.has(strip(c)) && /[lq]/.test(k)) return out(c); }
       return m;
     }
     const c = frCorrect(core); if (c) return out(c);
-    const s = k.length >= 5 ? frSplit(k) : ''; if (s) return out(s);
+    const s = k.length >= 4 ? frSplit(k) : ''; if (s) return out(s);
     return m;
   });
 }

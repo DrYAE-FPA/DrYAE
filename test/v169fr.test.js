@@ -11,6 +11,8 @@ eq('petit « i » des lettrages et Δ', SF.fixFrench('JADiNA! COMBiEN DE TEMPS P
 eq('mots collés (TIENSA, MORDSMOI, DISTU)', SF.fixFrench('SI TU TIENSA LA VIE, MORDSMOI! QUE DISTU DE M\'NVITER'), 'SI TU TIENS À LA VIE, MORDS-MOI! QUE DIS-TU DE M\'INVITER');
 eq('noms laissés tels quels (ABYSS, JU-HEE, DEL)', SF.fixFrench('JE SUIS ABYSS. MISS JU-HEE. ARTEMUS DEL'), 'JE SUIS ABYSS. MISS JU-HEE. ARTEMUS DEL');
 eq('« ? » lu P, TUES en début de phrase', SF.fixFrench('TUES DESQLE? HEINP'), 'TU ES DESOLE? HEIN?');
+eq('minuscules : accents, l\', lettre doublée, ponctuation pleine largeur', SF.fixFrench('Ills ont I\'air d\'etre de vraies brutes, elle m\'écoute mème pas. une vraie sordiere ! DEUX！'), 'Ils ont l\'air d\'être de vraies brutes, elle m\'écoute même pas. une vraie sorcière ! DEUX!');
+eq('noms propres anglais en minuscules gardés, AXE gardé', SF.fixWords('you\'re out of Rea. I THREW MY AXE!'), 'you\'re out of Rea. I THREW MY AXE!');
 ok('page française reconnue', SF.frenchRatio(['COMME JE SUIS RAVI DE VOUS SAVOIR EN VIE']) > 0.8 && SF.englishRatio(['COMME JE SUIS RAVI DE VOUS SAVOIR EN VIE']) < 0.35);
 eq('anglais toujours corrigé', SF.fixWords('ISNT THAT THE OUTSIOER. WE ARE TQULY SORRY IFYOU'), "ISN'T THAT THE OUTSIDER. WE ARE TRULY SORRY IF YOU");
 ok('cris gardés (AHHH, FUFU AHAHA)', M.interjection('AHHH...') && M.interjection('FUFU, AHAHA HA!') && !M.interjection('AHHH, IS THAT SOOO?'));

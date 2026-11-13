@@ -21,6 +21,7 @@ Grosse mise à jour : téléchargements plus sûrs, navigateur plus complet, sé
 - Clic droit sur une bulle → **« Garder cette image pour l'améliorer »** : l'image est enregistrée dans Documents\DrYAE\Images à améliorer (rien n'est envoyé).
 - **Vue côte à côte** : menu pour inverser les côtés, choisir la largeur, faire défiler les deux côtés ensemble, séparer ou fermer un côté.
 - **BD et mangas en français** : bulles de couleur unie (vertes, jaunes, roses…) reconnues et effacées avec leur vraie couleur (même pour les images avec un profil de couleur) ; lecture du français corrigée avec un dictionnaire (« SLIS » → SUIS, « VOLS » → VOUS, « ALQRS » → ALORS, « CiEL » → CIEL, « Δ » → À, « MORDSMOI » → MORDS-MOI) ; bruitages dessinés en lettres latines (« STOMP », « GWH ») laissés intacts.
+- **Lecture plus juste** (vérifiée sur un épisode libre en anglais et en français, comparé au texte exact) : noms propres en minuscules et mots courts (« Rea », « AXE ») plus jamais « corrigés » à tort ; accents rétablis en minuscules (« mème » → même, « etre » → être), « I'air » → l'air, « Ills » → Ils ; ponctuation japonaise (！) et caractères japonais parasites retirés d'un texte latin ; bruitages répétés (« CLAP CLAP CLAP ») laissés intacts.
 
 **Téléchargements**
 - **Doublons enfin signalés** : si un fichier est déjà dans la liste ou déjà téléchargé, DrYAE le dit et propose de l'ouvrir, de le télécharger quand même ou de le remplacer. Ça marche aussi pour une liste de liens et pour les torrents (DrYAE propose d'ajouter les nouveaux trackers au torrent existant).
@@ -76,6 +77,7 @@ A big update: safer downloads, a more complete browser, security and accessibili
 - Right-click a bubble → **"Keep this image to improve it"**: the image is saved in Documents\DrYAE\Images à améliorer (nothing is sent).
 - **Side-by-side view**: menu to swap sides, choose the width, scroll both sides together, separate or close one side.
 - **Comics and manga in French**: solid-colour bubbles (green, yellow, pink…) recognized and erased with their true colour (even for images with a colour profile); French reading fixed with a dictionary ("SLIS" → SUIS, "VOLS" → VOUS, "ALQRS" → ALORS, "CiEL" → CIEL, "Δ" → À, "MORDSMOI" → MORDS-MOI); sound effects drawn in Latin letters ("STOMP", "GWH") left intact.
+- **More accurate reading** (checked on a free episode in English and French, compared with the exact text): proper nouns in lowercase and short words ("Rea", "AXE") are no longer wrongly "fixed"; accents restored in lowercase French ("mème" → même, "etre" → être), "I'air" → l'air, "Ills" → Ils; Japanese punctuation (！) and stray Japanese characters removed from Latin text; repeated sound effects ("CLAP CLAP CLAP") left intact.
 
 **Downloads**
 - **Duplicates are now reported**: if a file is already in the list or already downloaded, DrYAE says so and offers to open it, download it anyway or replace it. This also works for a list of links and for torrents (DrYAE offers to add the new trackers to the existing torrent).
