@@ -88,6 +88,18 @@ Other dependencies — MIT, ISC, BSD-2-Clause, BSD-3-Clause, Apache-2.0,
   resources/app/node_modules/<package>/.
 
 ------------------------------------------------------------------------
+Fonts and word lists (folder resources/app/assets)
+------------------------------------------------------------------------
+
+Comic Neue (assets/fonts/comic-neue) by The Comic Neue Project Authors
+  — SIL Open Font License 1.1 — https://github.com/crozynski/comicneue
+  (font of the translated bubbles; license in assets/fonts/comic-neue/LICENSE)
+SCOWL English word lists (assets/dict/en-words.txt, built from the npm
+  package wordlist-english) — Copyright 2000-2016 Kevin Atkinson, permissive
+  license (assets/dict/SCOWL-LICENSE.txt) — http://wordlist.aspell.net/
+  (used to fix letters misread in English scans)
+
+------------------------------------------------------------------------
 PDF viewer (folder resources/app/assets/pdfjs)
 ------------------------------------------------------------------------
 

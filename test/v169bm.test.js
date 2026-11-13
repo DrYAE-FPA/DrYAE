@@ -54,5 +54,9 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
   const lit = await b.evaluate(() => cur.lit);
   ok('lumières éteintes gardées sur la page suivante', lit === true, lit);
   await b.evaluate(() => newTab(location.href.startsWith('file') ? '' : '')); 
+  // 1.6.9 : les boutons des téléchargements se déplacent comme les extensions
+  const tb = await b.evaluate(async () => { const box = $('#tbItems'); const d = $('#bDrYAE'), n = $('#bNd'); const ok1 = box.contains(d) && box.contains(n) && d.draggable && n.draggable;
+    await saveOrder(['dl:browser', 'dl:found', 'mod:adblock']); const keys = [...box.children].map(x => x.dataset.key); return { ok1, keys }; });
+  ok('boutons des téléchargements déplaçables (ordre enregistré)', tb.ok1 && tb.keys.indexOf('dl:browser') < tb.keys.indexOf('dl:found') && tb.keys.indexOf('dl:found') < tb.keys.indexOf('mod:adblock'), tb);
   await Promise.race([app.close(), wait(5000)]); srv.close(); process.exit(0);
 })().catch(e => { console.error(e); process.exit(1); });

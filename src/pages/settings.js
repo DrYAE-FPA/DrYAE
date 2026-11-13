@@ -56,6 +56,7 @@ function draw() {
     ['Trackers supplémentaires pour les torrents', 'Au démarrage, une liste publique de serveurs de contact (rend les torrents plus rapides).', `<label class="sw"><input type="checkbox" data-root="torrent.fetchTrackers" ${R.fetchTrackers !== false ? 'checked' : ''}><i></i></label>`],
     ['Traduction', 'Seulement quand vous traduisez : le texte choisi est envoyé au service de traduction choisi (Paramètres → Traducteur).', ''],
     ['Lecture des images et modèles de lecture', 'Seulement la première fois qu\'une langue est utilisée ou téléchargée : les données de lecture sont téléchargées puis gardées sur ce PC. Les images, elles, ne quittent jamais ce PC.', ''],
+    ['Traduction IA des scans (facultative)', 'Seulement si vous l\'activez avec votre propre clé : l\'image de la page et le texte lu sont envoyés à Google Gemini.', ''],
     ['Vérification des mots de passe divulgués', 'Seulement quand vous la lancez : 5 caractères de l\'empreinte de chaque mot de passe (jamais le mot de passe lui-même).', ''],
     ['Icônes des sites', 'Demandées au site que vous visitez, comme le ferait la page elle-même.', ''],
   ];
@@ -156,8 +157,8 @@ function draw() {
       ${row('Traduire vers', '', sel('scTo', langOpts(true), S.target || ''))}
       ${row('Lire aussi l\'anglais', 'Pour les images qui mélangent deux langues (plus lent).', swk('scan.withEng', !!S.withEng))}
       ${row('Icônes d\'action sur les images', 'Au survol d\'une image traduite : original / traduction, comparer, relire, copier, retirer.', swk('scan.icons', S.icons !== false))}
-      ${row('Police des bulles', '', selk('scan.font', [['auto', 'Standard'], ['comic', 'Bande dessinée'], ['serif', 'Avec empattements']], S.font || 'auto'))}
-      ${row('Sites traduits automatiquement', 'Fenêtre du traducteur de scans → « Traduire automatiquement les images de ce site ».', '')}${sites('scan.autoSites', S.autoSites)}
+      ${row('Police des bulles', '', selk('scan.font', [['auto', 'Bande dessinée'], ['sans', 'Standard'], ['serif', 'Avec empattements']], S.font === 'comic' ? 'auto' : S.font || 'auto'))}
+
       <div class="prow"><div class="tx"><span>${esc(TR('Utilisation : bouton du traducteur de scans dans la barre d\'outils pour toutes les images de la page, Ctrl+Maj+S pour traduire une zone de l\'écran, ou clic droit sur une image → « Traduire le texte de l\'image ». Cliquez sur une bulle traduite pour revoir le texte d\'origine.'))}</span></div></div>`, 'Lit le texte des images (mangas, manhwas, webtoons…) et place la traduction sur chaque bulle. La lecture se fait sur ce PC ; seul le texte trouvé est envoyé au service de traduction.') +
     sec('lights', 'Lumières tamisées', `
       ${modRow('lights')}

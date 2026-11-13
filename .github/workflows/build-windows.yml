@@ -32,6 +32,11 @@ jobs:
       - name: Installer les dépendances
         run: npm ci
 
+      # date de construction : une version refaite avec le même numéro est reconnue comme une mise à jour
+      - name: Date de construction
+        shell: bash
+        run: npm pkg set dryaeBuild="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
       - name: Télécharger les outils inclus (ffmpeg, yt-dlp, aria2, QuickJS, 7-Zip)
         shell: pwsh
         run: ./tools/fetch-win-tools.ps1

@@ -165,11 +165,13 @@ async function recognize(img, b, R) {
   return { text: text.trim(), score: n ? sc / n : 0, vertical };
 }
 
+// note de bruitage : « SFX: … », « SFX - … », « S.F.X »
+const SFX = /^\W*S\W?F\W?[XY]?\b|^\W*(EFFETS? SONORES?|SOUND EFFECTS?)\W/i;
 const isCJK = s => /[぀-ヿ㐀-鿿가-힯]/.test(s);
 // ligne à garder : assez sûre, avec de vraies lettres (pas un dessin lu comme du texte)
-function good(l) {
+function good(l, min = 0.6) {
   const s = l.text.replace(/\s+/g, '');
-  if (!s || l.score < 0.6) return false;
+  if (!s || l.score < min) return false;
   const letters = (s.match(/\p{L}/gu) || []).length;
   if (isCJK(s)) return letters >= 1;
   return letters >= 2 && letters / s.length >= 0.5;
@@ -183,9 +185,15 @@ function bubbleMap(img) {
   const k = Math.min(1, 700 / Math.max(W, 1), 2400 / Math.max(H, 1));
   const w = Math.max(1, Math.round(W * k)), h = Math.max(1, Math.round(H * k));
   const lum = new Uint8Array(w * h), col = new Uint32Array(w * h);
+  // 1.6.9 : chaque point de la carte réduite garde le pixel le plus sombre de son carré
+  // (un trait fin — bord d'une bulle, cadre — n'est plus perdu à la réduction : deux cadres voisins restent séparés)
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-    const p = (Math.min(H - 1, Math.floor(y / k)) * W + Math.min(W - 1, Math.floor(x / k))) * 4;
-    lum[y * w + x] = (data[p] * 0.3 + data[p + 1] * 0.59 + data[p + 2] * 0.11) | 0;
+    const ya = Math.min(H - 1, Math.floor(y / k)), yb = Math.min(H, Math.max(ya + 1, Math.floor((y + 1) / k)));
+    const xa = Math.min(W - 1, Math.floor(x / k)), xb = Math.min(W, Math.max(xa + 1, Math.floor((x + 1) / k)));
+    let m = 255, mp = (ya * W + xa) * 4;
+    for (let yy = ya; yy < yb; yy++) for (let xx = xa; xx < xb; xx++) { const q = (yy * W + xx) * 4, v = (data[q] * 0.3 + data[q + 1] * 0.59 + data[q + 2] * 0.11) | 0; if (v < m) { m = v; } }
+    const p = (Math.min(H - 1, (ya + yb) >> 1) * W + Math.min(W - 1, (xa + xb) >> 1)) * 4; void mp;
+    lum[y * w + x] = m;
     col[y * w + x] = (data[p] << 16) | (data[p + 1] << 8) | data[p + 2];
   }
   const lab = new Int32Array(w * h).fill(-1), comps = [], st = [];
@@ -214,6 +222,10 @@ function bubbleMap(img) {
     const c = comps[best];
     // trop grande (fond de la page) ou trop petite : pas une bulle
     if (!c || c.n > w * h * 0.35 || (c.x1 - c.x0) < (l.x1 - l.x0) * 0.9 || (c.y1 - c.y0) < (l.y1 - l.y0) * 0.9) return null;
+    // 1.6.9 : zone qui couvre une grande partie de la page (fond, grande case blanche) ou peu remplie
+    // (forme découpée, pas une bulle) : ce n'est pas une bulle
+    const bw = (c.x1 - c.x0) * k, bh = (c.y1 - c.y0) * k;
+    if ((bw > w * 0.6 && bh > h * 0.3) || bw * bh > w * h * 0.22 || c.n < bw * bh * 0.35) return null;
     return { id: best, ...c };
   };
   return { of };
@@ -225,22 +237,36 @@ function group(lines, bm) {
     // d'abord par bulle repérée ; les lignes hors bulle sont regroupées par proximité (plus bas)
     const by = new Map(), rest = [];
     for (const l of lines) { const c = bm.of(l); if (c) { if (!by.has(c.id)) by.set(c.id, { c, ls: [] }); by.get(c.id).ls.push(l); } else rest.push(l); }
-    const out = [];
+    const merged = [];
     for (const { c, ls } of by.values()) {
-      const vert = ls.filter(l => l.vertical).length > ls.length / 2;
-      for (const g of group(ls)) out.push({ ...g, bubble: { x0: c.x0, y0: c.y0, x1: c.x1, y1: c.y1 }, bg: c.bg });
-      void vert;
-    }
-    // lignes d'une même bulle encore séparées (trop espacées) : on les réunit
-    const merged = [], seen = new Set();
-    for (const g of out) {
-      if (seen.has(g)) continue;
-      const same = out.filter(o => o.bubble && g.bubble && o.bubble.x0 === g.bubble.x0 && o.bubble.y0 === g.bubble.y0);
-      same.forEach(o => seen.add(o));
-      if (same.length === 1) { merged.push(g); continue; }
-      const v = same.every(o => o.vertical);
-      same.sort((a, b) => v ? b.x1 - a.x1 : a.y0 - b.y0);
-      merged.push({ ...g, x0: Math.min(...same.map(o => o.x0)), y0: Math.min(...same.map(o => o.y0)), x1: Math.max(...same.map(o => o.x1)), y1: Math.max(...same.map(o => o.y1)), text: same.map(o => o.text).join(/[぀-ヿ㐀-鿿]/.test(same[0].text) ? '' : ' '), vertical: v });
+      const gs = group(ls), v = gs.every(o => o.vertical);
+      // 1.6.9 : dans une même zone claire, les groupes de lignes proches forment une bulle ;
+      // un grand espace vide entre eux (deux cadres collés, deux bulles qui se touchent) les garde séparés
+      gs.sort((a, b) => v ? b.x1 - a.x1 : a.y0 - b.y0);
+      const clusters = [];
+      for (const g of gs) {
+        const last = clusters[clusters.length - 1], lh = Math.max(g.lh || 0, last ? last.lh : 0) || 20;
+        const gap = !last ? Infinity : v ? last.x0 - g.x1 : g.y0 - last.y1;
+        if (last && gap < lh * 2.2) { last.items.push(g); last.y1 = Math.max(last.y1, g.y1); last.x0 = Math.min(last.x0, g.x0); last.lh = Math.max(last.lh, g.lh || 0); }
+        else clusters.push({ items: [g], y1: g.y1, x0: g.x0, lh: g.lh || 0 });
+      }
+      clusters.forEach((cl, ci) => {
+        const same = cl.items, cj = /[぀-ヿ㐀-鿿]/.test(same[0].text);
+        const parts = same.flatMap(o => o.parts || [o.text]);
+        const txt = same.map(o => o.text).reduce((a, s) => !a ? s : cj ? a + s : /\p{L}[-‐‑]$/u.test(a) && /^\p{L}/u.test(s) ? a.slice(0, -1) + s : a + ' ' + s, '');
+        const g = { x0: Math.min(...same.map(o => o.x0)), y0: Math.min(...same.map(o => o.y0)), x1: Math.max(...same.map(o => o.x1)), y1: Math.max(...same.map(o => o.y1)), text: txt, parts, vertical: v, lh: Math.max(...same.map(o => o.lh || 0)), n: same.reduce((a, o) => a + (o.n || 1), 0), bg: c.bg, ck: Math.round(c.x0) + ',' + Math.round(c.y0) };
+        // bulle partagée : chaque groupe n'a que sa part de la zone (jusqu'au milieu de l'espace qui le sépare du voisin)
+        const bb = { x0: c.x0, y0: c.y0, x1: c.x1, y1: c.y1 };
+        if (clusters.length > 1) {
+          const prev = clusters[ci - 1], next = clusters[ci + 1];
+          const lo = it => Math.min(...it.items.map(o => v ? o.x0 : o.y0)), hi = it => Math.max(...it.items.map(o => v ? o.x1 : o.y1));
+          // largeur : celle du texte, un peu élargie (la zone claire voisine peut appartenir à l'autre cadre)
+          const m = (g.lh || 20) * 0.6;
+          if (!v) { if (prev) bb.y0 = (hi(prev) + g.y0) / 2; if (next) bb.y1 = (g.y1 + lo(next)) / 2; bb.x0 = Math.max(bb.x0, g.x0 - m); bb.x1 = Math.min(bb.x1, g.x1 + m); }
+          else { if (prev) bb.x1 = (lo(prev) + g.x1) / 2; if (next) bb.x0 = (g.x0 + hi(next)) / 2; bb.y0 = Math.max(bb.y0, g.y0 - m); bb.y1 = Math.min(bb.y1, g.y1 + m); }
+        }
+        g.bubble = bb; merged.push(g);
+      });
     }
     return [...merged, ...group(rest)];
   }
@@ -250,14 +276,14 @@ function group(lines, bm) {
   hor.sort((a, b) => a.y0 - b.y0);
   for (const it of hor) {
     const g = out.find(g => !g.vertical && (() => { const gap = it.y0 - g.y1, lh = Math.max(g.lh, it.h), cx = (it.x0 + it.x1) / 2, gcx = (g.x0 + g.x1) / 2; const overlap = Math.min(g.x1, it.x1) - Math.max(g.x0, it.x0); return gap < lh * 0.9 && gap > -lh * 0.6 && (overlap > -lh * 0.3 || Math.abs(cx - gcx) < lh * 2); })());
-    if (g) { g.x0 = Math.min(g.x0, it.x0); g.x1 = Math.max(g.x1, it.x1); g.y1 = Math.max(g.y1, it.y1); g.parts.push(it.text); g.lh = Math.max(g.lh, it.h); }
-    else out.push({ x0: it.x0, y0: it.y0, x1: it.x1, y1: it.y1, parts: [it.text], lh: it.h, vertical: false });
+    if (g) { g.x0 = Math.min(g.x0, it.x0); g.x1 = Math.max(g.x1, it.x1); g.y1 = Math.max(g.y1, it.y1); g.parts.push(it.text); g.lh = Math.max(g.lh, it.h); g.hs.push(it.h); }
+    else out.push({ x0: it.x0, y0: it.y0, x1: it.x1, y1: it.y1, parts: [it.text], lh: it.h, hs: [it.h], vertical: false });
   }
   vert.sort((a, b) => b.x1 - a.x1);
   for (const it of vert) {
     const g = out.find(g => g.vertical && (() => { const gap = g.x0 - it.x1, cw = Math.max(g.cw, it.w); const ov = Math.min(g.y1, it.y1) - Math.max(g.y0, it.y0); return gap < cw * 1.0 && gap > -cw && ov > -cw; })());
-    if (g) { g.x0 = Math.min(g.x0, it.x0); g.x1 = Math.max(g.x1, it.x1); g.y0 = Math.min(g.y0, it.y0); g.y1 = Math.max(g.y1, it.y1); g.parts.push(it.text); g.cw = Math.max(g.cw, it.w); }
-    else out.push({ x0: it.x0, y0: it.y0, x1: it.x1, y1: it.y1, parts: [it.text], cw: it.w, vertical: true });
+    if (g) { g.x0 = Math.min(g.x0, it.x0); g.x1 = Math.max(g.x1, it.x1); g.y0 = Math.min(g.y0, it.y0); g.y1 = Math.max(g.y1, it.y1); g.parts.push(it.text); g.cw = Math.max(g.cw, it.w); g.hs.push(it.w); }
+    else out.push({ x0: it.x0, y0: it.y0, x1: it.x1, y1: it.y1, parts: [it.text], cw: it.w, hs: [it.w], vertical: true });
   }
   return out.map(g => {
     // japonais / chinois : lignes collées ; coréen : séparées par une espace (comme les mots)
@@ -267,11 +293,14 @@ function group(lines, bm) {
     for (const p of g.parts) {
       if (!text) text = p;
       else if (cjk) text += p;
-      else if (/-$/.test(text) && /^\p{Ll}/u.test(p)) text = text.slice(0, -1) + p;
+      // 1.6.9 : aussi en majuscules (« EXCEL- » + « LENT », « TSUKUMO- » + « GAMI »)
+      else if (/\p{L}[-‐‑]$/u.test(text) && /^\p{L}/u.test(p)) text = text.slice(0, -1) + p;
       else if (/^\p{L}{1,2}$/u.test(p) && /\p{L}$/.test(text) && p === p.toUpperCase() && text === text.toUpperCase() && p.length === 1) text += p;
       else text += ' ' + p;
     }
-    return { x0: g.x0, y0: g.y0, x1: g.x1, y1: g.y1, text: text.trim(), vertical: g.vertical };
+    // hauteur d'une ligne d'origine : la traduction ne sera jamais écrite plus gros
+    const hs = g.hs.slice().sort((a, b) => a - b), lh = hs[hs.length >> 1] || 0;
+    return { x0: g.x0, y0: g.y0, x1: g.x1, y1: g.y1, text: text.trim(), parts: g.parts, vertical: g.vertical, lh, n: g.parts.length };
   }).filter(g => g.text.replace(/\s/g, '').length >= (isCJK(g.text) ? 1 : 2));
 }
 
@@ -292,7 +321,7 @@ async function readBubbles(img, opts = {}) {
     // doublons dans les zones de chevauchement
     boxes.sort((a, b) => (b.x1 - b.x0) * (b.y1 - b.y0) - (a.x1 - a.x0) * (a.y1 - a.y0));
     boxes = boxes.filter((b, i) => !boxes.slice(0, i).some(a => { const ix = Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0), iy = Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0); return ix > 0 && iy > 0 && ix * iy > 0.5 * (b.x1 - b.x0) * (b.y1 - b.y0); }));
-  } else boxes = await detect(img);
+  } else boxes = await detect(img, 2048);
   // choix du modèle de lecture : imposé, ou celui qui lit le mieux un échantillon de lignes
   let R = null, used = '';
   if (opts.model && installed().includes(opts.model)) { R = await recOf(opts.model); used = opts.model; }
@@ -302,14 +331,25 @@ async function readBubbles(img, opts = {}) {
     let best = await mean(null);
     if (best < 0.9) for (const id of installed()) { const RR = await recOf(id); const m = await mean(RR); if (m > best + 0.04) { best = m; R = RR; used = id; } }
   }
-  const lines = [];
+  let bm = null; try { bm = bubbleMap(img); } catch {}
+  const lines = [], fails = new Map(), kept = new Map();
+  const bkey = c => c ? Math.round(c.x0) + ',' + Math.round(c.y0) : '';
   for (const b of boxes) {
     const r = await recognize(img, b, R);
     const l = { ...b, ...r };
-    if (good(l)) lines.push(l);
+    const c = bm ? bm.of(l) : null, k = bkey(c);
+    // ligne un peu moins sûre (« IN », « GUT ») : gardée si elle est dans une vraie bulle
+    if (good(l) || (good(l, 0.45) && c)) { lines.push(l); if (k) kept.set(k, (kept.get(k) || 0) + 1); }
+    else if (k) fails.set(k, (fails.get(k) || 0) + 1);
   }
-  let bm = null; try { bm = bubbleMap(img); } catch {}
-  const groups = group(lines, bm);
+  // notes ajoutées par les traducteurs (« SFX: FWIP », « SFX : debout ») : bruitages, non traduits ;
+  // zone surtout illisible (petites lettres d'une affiche, d'un panneau) : laissée telle quelle plutôt que traduite au hasard
+  const groups = group(lines, bm).filter(g => !SFX.test(g.text) && !(g.ck && (fails.get(g.ck) || 0) >= 3 && (fails.get(g.ck) || 0) >= (kept.get(g.ck) || 0)));
+  // 1.6.9 : page en anglais : lettres mal lues corrigées, mots coupés en fin de ligne recollés (même sans tiret lu)
+  try {
+    const SF = require('./scan-fix');
+    if (SF.englishRatio(groups.map(g => g.text)) >= 0.5) for (const g of groups) if (!isCJK(g.text) && !g.vertical) g.text = SF.fixParts(g.parts || [g.text]);
+  } catch {}
   groups.model = used;
   // page en écriture latine : on ignore les petits signes japonais/chinois isolés (bruitages dessinés)
   const latin = groups.filter(g => !isCJK(g.text)).length, cjk = groups.length - latin;
@@ -320,4 +360,4 @@ async function readBubbles(img, opts = {}) {
   return res;
 }
 
-module.exports = { readBubbles, load, EXTRA, EXTRA_OF, installed, download, removeModel, setDir };
+module.exports = { detect, recognize, readBubbles, SFX, load, EXTRA, EXTRA_OF, installed, download, removeModel, setDir };

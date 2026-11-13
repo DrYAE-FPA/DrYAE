@@ -3,6 +3,18 @@ const fs = require('fs');
 const path = require('path');
 const { app, shell } = require('electron');
 
+// date de construction de cette copie de DrYAE (écrite par la construction sur GitHub) :
+// une version refaite avec le même numéro (ex. 1.6.9 corrigée) est reconnue comme une mise à jour
+function buildDate() {
+  try { const d = Date.parse(require('../../package.json').dryaeBuild || ''); if (!isNaN(d)) return d; } catch {}
+  // copie construite avant cette option (1.6.9 d'origine) : date d'installation de l'application
+  try { return fs.statSync(path.join(process.resourcesPath || '', 'app.asar')).mtimeMs || 0; } catch { return 0; }
+}
+// version publiée plus récente : numéro plus grand, ou même numéro construit au moins 30 minutes après cette copie
+function rebuilt(version, date) {
+  const b = buildDate(), d = Date.parse(date || '');
+  return !!(b && !isNaN(d) && version === app.getVersion() && d > b + 30 * 60e3);
+}
 function readConfig() {
   for (const p of [path.join(process.resourcesPath || '', 'dryae.config.json'), path.join(__dirname, '..', '..', 'dryae.config.json')]) {
     try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch {}
@@ -41,11 +53,14 @@ class Updater {
         try { fs.writeFileSync(alt, yml); autoUpdater.updateConfigPath = alt; } catch {}
       }
       autoUpdater.setFeedURL({ provider: 'github', owner: g.owner, repo: g.repo });
+      // même numéro de version mais construction plus récente (version refaite) : proposée aussi
+      const orig = autoUpdater.isUpdateAvailable.bind(autoUpdater);
+      autoUpdater.isUpdateAvailable = async info => (await orig(info)) || rebuilt(info && info.version, info && info.releaseDate);
       autoUpdater.on('checking-for-update', () => this.set({ status: 'checking', error: null }));
-      autoUpdater.on('update-available', i => { this.set({ status: 'available', version: i.version }); this.notify(this.T('Mise à jour disponible'), 'DrYAE ' + i.version); });
+      autoUpdater.on('update-available', i => { const fix = i.version === app.getVersion(); this.set({ status: 'available', version: fix ? i.version + ' (' + this.T('version corrigée') + ')' : i.version, rebuilt: fix }); this.notify(this.T('Mise à jour disponible'), 'DrYAE ' + i.version + (fix ? ' — ' + this.T('version corrigée') : '')); });
       autoUpdater.on('update-not-available', () => this.set({ status: 'latest' }));
       autoUpdater.on('download-progress', p => this.set({ status: 'downloading', progress: p.percent || 0, transferred: p.transferred || 0, total: p.total || 0, speed: p.bytesPerSecond || 0 }));
-      autoUpdater.on('update-downloaded', i => this.set({ status: 'ready', version: i.version, progress: 100, speed: 0 }));
+      autoUpdater.on('update-downloaded', i => this.set({ status: 'ready', version: i.version === app.getVersion() ? i.version + ' (' + this.T('version corrigée') + ')' : i.version, progress: 100, speed: 0 }));
       autoUpdater.on('error', e => this.set({ status: 'error', error: String(e && e.message || e).split('\n')[0] }));
       this.au = autoUpdater;
       // vérification automatique (désactivable dans Paramètres → À propos)
@@ -58,7 +73,7 @@ class Updater {
     if (!this.au) { // version non installée : on lit simplement la dernière version publiée
       try {
         const r = await fetch(`https://api.github.com/repos/${this.cfg.github.owner}/${this.cfg.github.repo}/releases/latest`, { headers: { Accept: 'application/vnd.github+json' } });
-        if (r.ok) { const j = await r.json(); const v = String(j.tag_name || '').replace(/^v/, ''); this.set({ status: v && newer(v, app.getVersion()) ? 'available' : 'latest', version: v }); }
+        if (r.ok) { const j = await r.json(); const v = String(j.tag_name || '').replace(/^v/, ''); const fix = rebuilt(v, j.published_at || j.created_at); this.set({ status: v && (newer(v, app.getVersion()) || fix) ? 'available' : 'latest', version: fix ? v + ' (' + this.T('version corrigée') + ')' : v, rebuilt: fix }); }
         else this.set({ status: 'error', error: 'GitHub ' + r.status });
       } catch (e) { this.set({ status: 'error', error: e.message }); }
       return this.info();
@@ -79,4 +94,4 @@ function newer(a, b) {
   for (let i = 0; i < 3; i++) { if ((pa[i] || 0) > (pb[i] || 0)) return true; if ((pa[i] || 0) < (pb[i] || 0)) return false; }
   return false;
 }
-module.exports = { Updater };
+module.exports = { Updater, rebuilt, buildDate };

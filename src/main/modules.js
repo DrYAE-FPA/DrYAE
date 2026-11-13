@@ -103,6 +103,62 @@ async function translate(texts, to, from, cfg) {
   return { texts: out, from: det };
 }
 
+// ---------- traducteur de scans : préparation du texte lu ----------
+// Bulles écrites en MAJUSCULES : les petites lettres lues par erreur (« YOue », « GuT ») sont remises en majuscules ;
+// pour la traduction, le texte passe en minuscules « normales » (les traducteurs comprennent mal les majuscules).
+const capsOf = s => { const L = s.match(/\p{L}/gu) || []; return L.length >= 3 && L.filter(c => c === c.toUpperCase() && c !== c.toLowerCase()).length / L.length > 0.7; };
+function cleanScan(s) {
+  let t = String(s || '').replace(/\s+/g, ' ').trim();
+  t = t.replace(/(\p{L})\s*\.\s*\.(?!\.)/gu, '$1...').replace(/\.{4,}/g, '...').replace(/\s+([,.!?…])/g, '$1')
+    // « CADETS.IN » → « CADETS. IN » ; « .EXORCISTS » (points de suspension mal lus) → « ...EXORCISTS »
+    .replace(/(\p{L}{2})([.,!?])(\p{L}{2})/gu, '$1$2 $3').replace(/^[.·]\s*(?=\p{L})/u, '...');
+  const caps = capsOf(t);
+  if (caps) t = t.toUpperCase();
+  return { text: t, caps };
+}
+function forMT(s, caps) {
+  if (!caps) return s;
+  let t = s.toLowerCase();
+  // majuscule en début de phrase ; « i » anglais
+  t = t.replace(/(^|[.!?…]\s+|["«“]\s*)(\p{L})/gu, (m, a, b) => a + b.toUpperCase()).replace(/\bi\b(?=['’\s,.!?]|$)/g, 'I');
+  // mots inconnus du dictionaire anglais (noms des personnages, des lieux) : gardés avec une majuscule,
+  // pour que le traducteur ne les traduise pas comme des mots ordinaires
+  try { const SF = require('./scan-fix'); SF.load(); t = t.replace(/\b\p{Ll}[\p{L}]{2,}\b/gu, w => SF.isName(w) ? w[0].toUpperCase() + w.slice(1) : w); } catch {}
+  return t;
+}
+
+// ---------- traducteur de scans : traduction par IA (facultative, clé personnelle Gemini) ----------
+// L'image et le texte lu partent chez Google (Gemini) ; l'IA corrige la lecture et traduit en tenant compte de l'histoire.
+// En cas d'erreur (limite gratuite du jour atteinte, pas de connexion…), l'appelant revient à la traduction habituelle.
+const LANG_NAMES = { fr: 'French', en: 'English', es: 'Spanish', pt: 'Portuguese', de: 'German', it: 'Italian', ru: 'Russian', ar: 'Arabic', ja: 'Japanese', ko: 'Korean', zh: 'Chinese', 'zh-CN': 'Simplified Chinese', 'zh-TW': 'Traditional Chinese', tr: 'Turkish', pl: 'Polish', vi: 'Vietnamese', id: 'Indonesian', th: 'Thai', hi: 'Hindi', nl: 'Dutch', uk: 'Ukrainian' };
+async function aiScan(image, mime, texts, to, cfg) {
+  const key = String(cfg.key || '').trim();
+  if (!key) throw new Error('clé IA manquante');
+  const model = String(cfg.model || 'gemini-flash-latest').replace(/[^\w.-]/g, '');
+  const base = String(cfg.url || 'https://generativelanguage.googleapis.com').replace(/\/+$/, '');
+  const lang = LANG_NAMES[to] || to;
+  const list = texts.map((t, i) => `${i + 1}. ${t}`).join('\n');
+  const prompt = `This image is a page of a manga, manhwa or comic. Below are its ${texts.length} text bubbles in reading order, as read by an OCR program (it can make reading mistakes).
+For each bubble, using the image: fix the OCR mistakes, then translate it into ${lang}. The translation must be natural and fit the conversation and the characters (casual or polite speech as in the original), short enough to fit in the bubble. Keep character names as they are. Do not add explanations.
+Answer only with JSON: {"source_language": "<ISO 639-1 code>", "items": [{"i": 1, "text": "<corrected original>", "tr": "<translation>"}, ...]} with exactly ${texts.length} items, in the same order.
+
+${list}`;
+  let r;
+  try {
+    r = await net.fetch(`${base}/v1beta/models/${model}:generateContent`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+      body: JSON.stringify({ contents: [{ parts: [{ inline_data: { mime_type: mime, data: Buffer.from(image).toString('base64') } }, { text: prompt }] }], generationConfig: { responseMimeType: 'application/json', temperature: 0.3 } }) });
+  } catch { throw new Error('pas de connexion au service IA'); }
+  if (r.status === 429) { const e = new Error('limite gratuite du jour atteinte'); e.quota = true; throw e; }
+  if (r.status === 400 || r.status === 401 || r.status === 403) { const e = new Error('clé IA refusée'); e.badKey = true; throw e; }
+  if (!r.ok) throw new Error('service IA : HTTP ' + r.status);
+  const j = await r.json();
+  const txt = (j.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('');
+  let o; try { o = JSON.parse(txt.replace(/^```(?:json)?\s*|\s*```$/g, '')); } catch { throw new Error('réponse IA illisible'); }
+  const items = Array.isArray(o.items) ? o.items : [];
+  if (items.length !== texts.length) throw new Error('réponse IA incomplète');
+  return { texts: items.map(x => String(x.tr || '')), fixed: items.map((x, i) => String(x.text || texts[i])), from: String(o.source_language || '').toLowerCase().slice(0, 5) };
+}
+
 // ---------- lecture du texte des images (traducteur de scans) ----------
 // lues par le modèle multilingue (paddle-ocr.js) ; les autres par Tesseract
 const PADDLE_LANGS = ['auto', 'eng', 'fra', 'spa', 'por', 'deu', 'ita', 'jpn', 'jpn_vert', 'chi_sim', 'chi_tra', 'chi_sim_vert', 'chi_tra_vert'];
@@ -247,4 +303,4 @@ function generatePassword(n = 16) {
   return out.join('');
 }
 
-module.exports = { MODULES, MOD_DEFAULT, PROVIDERS, PADDLE_LANGS, OCR_FIX, readRegions, translate, setUserAgent, readImage, OCR_LANGS, ocrDownloaded, windowsHello, pwnedCount, weak, generatePassword };
+module.exports = { cleanScan, forMT, aiScan, MODULES, MOD_DEFAULT, PROVIDERS, PADDLE_LANGS, OCR_FIX, readRegions, translate, setUserAgent, readImage, OCR_LANGS, ocrDownloaded, windowsHello, pwnedCount, weak, generatePassword };

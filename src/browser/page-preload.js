@@ -857,7 +857,7 @@ function pageFeatures() {
     addEventListener('mousemove', scan.move, { passive: true, capture: true });
   }
   function scanStart(onlySrc) {
-    scanInit();
+    scanInit(); loadFont();
     const min = SC.minSize || 250;
     const imgs = [...document.querySelectorAll('img')].filter(i => (onlySrc ? (i.currentSrc || i.src) === onlySrc : i.naturalWidth >= min && i.naturalHeight >= min * 0.6));
     if (!imgs.length && !onlySrc) { status(pt('Aucune image à traduire sur cette page')); return; }
@@ -866,7 +866,7 @@ function pageFeatures() {
     if (!onlySrc && !scan.mo) { scan.mo = new MutationObserver(() => { clearTimeout(scan.mt); scan.mt = setTimeout(() => { if (!scan) return; document.querySelectorAll('img').forEach(i => { if (!scan.items.has(i) && i.naturalWidth >= min && i.naturalHeight >= min * 0.6) scan.io.observe(i); }); }, 700); }); scan.mo.observe(document.body, { childList: true, subtree: true }); }
   }
   const status = s => { if (scan) scan.bar.querySelector('.st').textContent = s; };
-  function scanQueue(img, first) { if (!scan) return; if (scan.items.has(img)) { const it = scan.items.get(img); if (!first || it.blocks) return; } scan.items.set(img, { blocks: null, box: null }); first ? scan.queue.unshift(img) : scan.queue.push(img); scanNext(); }
+  function scanQueue(img, first, fresh) { if (!scan) return; if (scan.items.has(img)) { const it = scan.items.get(img); if (!first || it.blocks) return; } scan.items.set(img, { blocks: null, box: null, fresh: !!fresh }); first ? scan.queue.unshift(img) : scan.queue.push(img); scanNext(); }
   const retry = new WeakMap();
   async function imgBytes(img) {
     try {
@@ -891,7 +891,7 @@ function pageFeatures() {
       // on la recopie depuis la page elle-même (possible quand elle vient du même site ou autorise le partage)
       if (!data && !/^https?:/.test(src)) data = await imgBytes(img);
       const vis = { x: Math.max(0, r.left) * dpr, y: Math.max(0, r.top) * dpr, w: (Math.min(innerWidth, r.right) - Math.max(0, r.left)) * dpr, h: (Math.min(innerHeight, r.bottom) - Math.max(0, r.top)) * dpr };
-      const res = await ipcRenderer.invoke('scan:image', { src: /^https?:/.test(src) ? src : '', data, page: location.href, rect: r.top >= 0 && r.bottom <= innerHeight ? vis : (vis.h > 60 ? vis : null), natural: { w: img.naturalWidth, h: img.naturalHeight } });
+      const res = await ipcRenderer.invoke('scan:image', { src: /^https?:/.test(src) ? src : '', data, page: location.href, fresh: !!scan?.items.get(img)?.fresh, rect: r.top >= 0 && r.bottom <= innerHeight ? vis : (vis.h > 60 ? vis : null), natural: { w: img.naturalWidth, h: img.naturalHeight } });
       const it = scan?.items.get(img);
       if (it) {
         it.blocks = res.blocks; it.w = res.w; it.key = res.key; it.captured = res.captured ? { left: Math.max(0, r.left) - r.left, top: Math.max(0, r.top) - r.top, w: vis.w / dpr } : null;
@@ -910,7 +910,13 @@ function pageFeatures() {
     if (scan) { scan.busy = false; scanNext(); }
   }
   // police et mise en forme des bulles : texte noir sur fond blanc, coins arrondis, centré, sans bordure visible
-  const FONT = SC.font === 'comic' ? '"Comic Sans MS","Comic Neue",cursive' : SC.font === 'serif' ? 'Georgia,serif' : '"Segoe UI","Arial",sans-serif';
+  // 1.6.9 : police « bande dessinée » par défaut (fournie avec DrYAE), sinon standard ou avec empattements
+  const FONT = SC.font === 'sans' ? '"Segoe UI","Arial",sans-serif' : SC.font === 'serif' ? 'Georgia,serif' : '"DrYAE Comic","Comic Neue","Comic Sans MS","Segoe UI",sans-serif';
+  let fontLoaded = false;
+  async function loadFont() {
+    if (fontLoaded || SC.font === 'sans' || SC.font === 'serif') return; fontLoaded = true;
+    try { const b = await ipcRenderer.invoke('scan:font'); if (b) { const f = new FontFace('DrYAE Comic', b, { weight: '100 900' }); await f.load(); document.fonts.add(f); } } catch {}
+  }
   // couleur du texte lisible sur le fond de la bulle
   const inkOn = bg => { const m = /(\d+),\s*(\d+),\s*(\d+)/.exec(bg || ''); if (!m) return '#111'; return (+m[1] * 0.3 + +m[2] * 0.59 + +m[3] * 0.11) > 140 ? '#111' : '#fff'; };
   function drawScan(it) {
@@ -919,9 +925,14 @@ function pageFeatures() {
       const d = document.createElement('div');
       d.title = b.text + '\n' + pt('Clic : original / traduction · clic droit : corriger');
       d.textContent = b.tr || b.text;
-      // le texte d'origine est recouvert par la couleur de fond de la bulle (blanc, jaune…)
+      // 1.6.9 : le texte d'origine est effacé avec la couleur de la bulle, seulement là où il est écrit (plus d'ovale géant) ;
+      // les mots ne sont jamais coupés (le texte rétrécit), majuscules si la bulle d'origine était en majuscules
       const bg = b.bg || '#fff';
-      d.style.cssText = `position:absolute;pointer-events:auto;display:flex;align-items:center;justify-content:center;text-align:center;background:${bg};color:${inkOn(bg)};border-radius:${b.bubble ? '40%' : '14px'};padding:3px 5px;font:700 12px/1.18 ${FONT};overflow:hidden;cursor:default;word-break:break-word;hyphens:auto;letter-spacing:-.01em;box-shadow:0 0 6px 4px ${bg}`;
+      // gomme : un rectangle de la couleur de la bulle sur le texte d'origine seulement
+      const er = document.createElement('div');
+      er.style.cssText = `position:absolute;pointer-events:none;background:${bg};border-radius:6px;box-shadow:0 0 2px 2px ${bg}`;
+      box.appendChild(er); d._e = er;
+      d.style.cssText = `position:absolute;pointer-events:auto;display:flex;align-items:center;justify-content:center;text-align:center;background:${b.bubble ? 'transparent' : bg};color:${inkOn(bg)};border-radius:8px;padding:1px 2px;font:700 12px/1.12 ${FONT};overflow:hidden;cursor:default;word-break:normal;overflow-wrap:normal;hyphens:manual;letter-spacing:0;${b.caps ? 'text-transform:uppercase;' : ''}`;
       d.onclick = () => { d.textContent = d.textContent === b.text ? (b.tr || b.text) : b.text; d._w = 0; };
       d.oncontextmenu = e => { e.preventDefault(); e.stopPropagation(); editBubble(it, i, d); };
       d._b = b;
@@ -970,23 +981,31 @@ function pageFeatures() {
     // comparer : seule la partie gauche (jusqu'au curseur) montre la traduction
     Object.assign(it.box.style, { left: base.left + 'px', top: base.top + 'px', width: (r.right - base.left) + 'px', height: (r.bottom - base.top) + 'px', clipPath: it.cmp < 100 ? `inset(0 ${100 - it.cmp}% 0 0)` : '' });
     for (const d of it.box.children) {
-      const b = d._b; const pad = 5;
+      const b = d._b; if (!b) continue; const pad = 4;
+      if (d._e) Object.assign(d._e.style, { left: (b.x0 * k - 3) + 'px', top: (b.y0 * k - 3) + 'px', width: ((b.x1 - b.x0) * k + 6) + 'px', height: ((b.y1 - b.y0) * k + 6) + 'px' });
       // zone de dessin : le texte d'origine, agrandie à l'intérieur de la bulle quand elle a été repérée
       let X0 = b.x0, Y0 = b.y0, X1 = b.x1, Y1 = b.y1;
+      // la zone d'écriture s'agrandit dans la bulle repérée (sans en sortir), un peu en retrait de son bord
       if (b.bubble) {
-        const bb = b.bubble, ix = (bb.x1 - bb.x0) * 0.14, iy = (bb.y1 - bb.y0) * 0.14;
-        X0 = Math.min(X0, bb.x0 + ix); Y0 = Math.min(Y0, bb.y0 + iy); X1 = Math.max(X1, bb.x1 - ix); Y1 = Math.max(Y1, bb.y1 - iy);
+        const bb = b.bubble, ix = (bb.x1 - bb.x0) * 0.16, iy = (bb.y1 - bb.y0) * 0.16;
+        X0 = Math.min(X0, Math.max(bb.x0, bb.x0 + ix)); Y0 = Math.min(Y0, bb.y0 + iy); X1 = Math.max(X1, bb.x1 - ix); Y1 = Math.max(Y1, bb.y1 - iy);
       }
       const w = (X1 - X0) * k + pad * 2, h = (Y1 - Y0) * k + pad * 2;
-      if (d._w !== w) {
+      if (d._w !== w || d._t !== d.textContent) {
         // bulle verticale étroite (japonais, coréen) : un peu plus large pour un texte traduit horizontal
         const ww = b.vertical && !b.bubble ? Math.max(w, h * 0.55) : w, dx = (ww - w) / 2;
         Object.assign(d.style, { left: (X0 * k - pad - dx) + 'px', top: (Y0 * k - pad) + 'px', width: ww + 'px', height: h + 'px' });
-        // taille du texte : la plus grande qui tient dans la bulle
-        let lo = 7, hi = Math.min(26, Math.max(9, h * 0.6)), fs = lo;
-        for (let n = 0; n < 7; n++) { const mid = (lo + hi) / 2; d.style.fontSize = mid + 'px'; if (d.scrollHeight <= h + 1 && d.scrollWidth <= ww + 1) { fs = mid; lo = mid; } else hi = mid; }
+        // taille du texte : la plus grande qui tient dans la bulle sans couper un mot,
+        // et jamais plus grande que le texte d'origine (un peu plus pour rester lisible)
+        const orig = b.lh ? b.lh * k * (b.vertical ? 0.75 : 1.08) : h * 0.5;
+        let lo = 5, hi = Math.max(lo + 0.5, Math.min(24, Math.max(8, orig))), fs = 0;
+        d.style.overflowWrap = 'normal';
+        const fits = () => d.scrollHeight <= h + 1 && d.scrollWidth <= ww + 1;
+        for (let n = 0; n < 8; n++) { const mid = (lo + hi) / 2; d.style.fontSize = mid + 'px'; if (fits()) { fs = mid; lo = mid; } else hi = mid; }
+        // même au plus petit, un mot trop long pour la bulle : seulement alors il peut être coupé
+        if (!fs) { fs = 5; d.style.fontSize = fs + 'px'; if (!fits()) d.style.overflowWrap = 'anywhere'; }
         d.style.fontSize = fs + 'px';
-        d._w = w;
+        d._w = w; d._t = d.textContent;
       }
     }
   }
@@ -1003,7 +1022,7 @@ function pageFeatures() {
         const a = e.target.closest('[data-a]')?.dataset.a; const img = scan.hover, it = img && scan.items.get(img); if (!a || !it) return;
         if (a === 'flip') it.hidden = !it.hidden;
         else if (a === 'cmp') compare(img, it);
-        else if (a === 'redo') { it.box?.remove(); scan.n -= (it.blocks || []).length; scan.items.delete(img); scanQueue(img, true); }
+        else if (a === 'redo') { it.box?.remove(); scan.n -= (it.blocks || []).length; scan.items.delete(img); scanQueue(img, true, true); }
         else if (a === 'copy') { try { navigator.clipboard.writeText((it.blocks || []).map(b => b.tr || b.text).join('\n\n')); } catch {} }
         else if (a === 'del') { it.box?.remove(); it.box = null; scan.hover = null; drawTools(); }
       };
@@ -1065,8 +1084,7 @@ function pageFeatures() {
       } catch (e) { wait.remove(); hint(ptf('Traduction impossible : {0}', String(e.message || e).replace(/^.*Error: /, '').slice(0, 80))); }
     }
   }
-  // site choisi : les images sont traduites automatiquement
-  if (SC.auto && TOP) { const go = () => setTimeout(() => scanStart(), 1200); if (document.readyState === 'complete') go(); else addEventListener('load', go, { once: true }); }
+  // 1.6.9 : le traducteur de scans ne démarre que quand on clique dessus (jamais tout seul)
 
   // ---------- commandes envoyées par le navigateur ----------
   ipcRenderer.on('dryae-cmd', (_e, c = {}) => {

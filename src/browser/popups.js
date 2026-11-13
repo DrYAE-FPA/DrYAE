@@ -67,7 +67,7 @@ function drawExtPins() {
   for (const id of want) {
     if (box.querySelector(`[id="${id}"]`)) continue;
     const b = document.createElement('button', { is: 'browser-action' });
-    b.className = 'tb ext';
+    b.className = 'tb ext adv';
     b.dataset.key = 'ext:' + id;
     b.setAttribute('partition', PARTITION);
     b.setAttribute('alignment', 'bottom');
@@ -224,12 +224,13 @@ async function drawSitePop() {
 // ---------- traducteur de scans ----------
 let OCRL = null, MODELS = [];
 async function drawScanPop() {
-  const s = CFG.scan || {}, h = curHost(), auto = (s.autoSites || []).includes(h);
+  const s = CFG.scan || {}, h = curHost();
   if (!OCRL) { try { OCRL = await B.call('br:ocrLangs'); } catch { OCRL = { langs: { eng: 'Anglais' }, have: [] }; } }
   try { MODELS = await B.call('scan:models'); } catch { MODELS = []; }
+  let AI = { on: false, hasKey: false }; try { AI = await B.call('scan:ai'); } catch {}
   const ocrOpts = Object.entries(OCRL.langs).map(([k, n]) => `<option value="${k}" ${k === (s.source || 'eng') ? 'selected' : ''}>${esc(T(n))}${OCRL.have.includes(k) ? '' : ' ↓'}</option>`).join('');
   popEl.innerHTML = `<div class="ph">${ic('scan')}<b>${esc(T('Traducteur de scans'))}</b><button class="icon-btn" data-set title="${esc(T('Paramètres du traducteur de scans'))}">${ic('gear')}</button></div>
-    ${h ? `<div class="prow"><span class="grow">${esc(T('Traduire automatiquement les images de ce site'))}<small class="notr">${esc(h)}</small></span>${tg('scanAuto', auto)}</div>` : ''}
+
     <div class="tools" style="grid-template-columns:1fr 1fr;margin:6px 0">
       <button id="scPage" ${h ? '' : 'disabled'}>${ic('scan')}<span>${esc(T('Traduire les images de la page'))}</span></button>
       <button id="scZone" ${h ? '' : 'disabled'}>${ic('crop')}<span>${esc(T('Capture d\'une zone'))} <kbd>Ctrl+Maj+S</kbd></span></button>
@@ -240,6 +241,13 @@ async function drawScanPop() {
     <div class="prow"><span class="grow">${esc(T('Icônes d\'action sur les images'))}<small>${esc(T('Original / traduction, comparer, relire'))}</small></span>${tg('scIcons', s.icons !== false)}</div>
     <div class="prow"><span class="grow">${esc(T('Lire aussi l\'anglais'))}<small>${esc(T('Pour les pages qui mélangent deux langues'))}</small></span>${tg('scEng', !!s.withEng)}</div>
     <details class="pdet"><summary>${esc(T('Modèles de lecture supplémentaires'))}</summary><small style="color:var(--dim);display:block;margin:2px 0 4px">${esc(T('Pour les écritures que la lecture automatique connaît mal. Téléchargés une seule fois, utilisés sur ce PC.'))}</small>${(MODELS || []).map(m => `<div class="prow" data-mdl="${m.id}"><span class="grow">${esc(T(m.label))}<small>${fmt(m.size)}</small></span>${m.installed ? `<button class="btn sm" data-mdel="${m.id}">${esc(T('Supprimer'))}</button>` : `<button class="btn sm" data-mget="${m.id}"><span class="mp">${esc(T('Télécharger'))}</span></button>`}</div>`).join('')}</details>
+    <details class="pdet" ${AI.on ? 'open' : ''}><summary>${esc(T('Traduction IA (facultatif)'))}${AI.on && AI.hasKey ? ' ✓' : ''}</summary>
+      <small style="color:var(--dim);display:block;margin:2px 0 4px;white-space:normal">${esc(T('Meilleure traduction : l\'IA voit la page, corrige la lecture et comprend la conversation. Il faut votre propre clé gratuite Google Gemini (aucun paiement). Les images de la page et le texte lu sont alors envoyés à Google. Quand la limite gratuite du jour est atteinte, la traduction habituelle prend le relais.'))}</small>
+      <div class="prow"><span class="grow">${esc(T('Utiliser l\'IA pour les scans'))}</span>${tg('scAi', !!AI.on)}</div>
+      <div class="prow"><input id="scAiKey" type="password" placeholder="${esc(T(AI.hasKey ? 'Clé enregistrée (taper pour la remplacer)' : 'Coller votre clé ici'))}" style="flex:1;min-width:0" autocomplete="off" spellcheck="false"><button class="btn sm" id="scAiSave">${esc(T('Enregistrer'))}</button></div>
+      <div class="prow"><button class="btn sm" id="scAiGet">${esc(T('Obtenir une clé gratuite'))}</button>${AI.hasKey ? `<button class="btn sm" id="scAiDel">${esc(T('Effacer la clé'))}</button>` : ''}</div>
+      ${AI.off ? `<small style="color:#f59e0b;display:block;white-space:normal">${esc(T('Limite gratuite du jour atteinte ou clé refusée : traduction habituelle pour le moment.'))}</small>` : ''}
+    </details>
     <details class="pdet"><summary>${esc(T('Lexique'))} (${(s.glossary || []).length})</summary><small style="color:var(--dim);display:block;margin:2px 0 4px">${esc(T('Mots toujours traduits de la même façon (noms des personnages…). Ajout : clic droit sur une bulle traduite.'))}</small>${(s.glossary || []).map((g, i) => `<div class="prow"><span class="grow notr">${esc(g.s)} → ${esc(g.t)}</span><button class="icon-btn" data-gdel="${i}" title="${esc(T('Supprimer'))}">${ic('x')}</button></div>`).join('') || `<small style="color:var(--dim)">${esc(T('Vide'))}</small>`}</details>
     <div class="pfoot"><small style="color:var(--dim);white-space:normal">${esc(T('Astuce : clic droit sur une image → « Traduire le texte de l\'image ».'))}</small></div>`;
   popEl.onclick = async e => {
@@ -252,7 +260,10 @@ async function drawScanPop() {
   $('#scSrc').onchange = e => setB({ scan: { source: e.target.value } });
   $('#scTo').onchange = e => setB({ scan: { target: e.target.value } });
   popEl.querySelector('[data-set]').onclick = () => { popClose(); openPage('settings', 'scan'); };
-  TOGGLES.scanAuto = async on => { await setSite('scanAuto', on); if (on) pageCmd('scan-auto', { on: true }); };
+  TOGGLES.scAi = async on => { await B.call('scan:ai', { on }); popRender(); };
+  $('#scAiSave').onclick = async () => { const k = $('#scAiKey').value.trim(); if (!k) return; await B.call('scan:ai', { key: k, on: true }); toast(T('Clé enregistrée')); popRender(); };
+  $('#scAiGet').onclick = () => { popClose(); newTab('https://aistudio.google.com/app/apikey'); };
+  if ($('#scAiDel')) $('#scAiDel').onclick = async () => { await B.call('scan:ai', { key: '', on: false }); popRender(); };
   TOGGLES.scIcons = on => setB({ scan: { icons: on } }).then(() => pageCmd('scan-icons', { on }));
   TOGGLES.scEng = on => setB({ scan: { withEng: on } });
   if (window.I18N?.translateDom) try { I18N.translateDom(popEl); } catch {}

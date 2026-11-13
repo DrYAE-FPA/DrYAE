@@ -1345,7 +1345,7 @@ function drawMods() {
     let b = box.querySelector(`[data-mod="${id}"]`);
     const show = M[id]?.on && M[id]?.pinned !== false;
     if (!show) { b?.remove(); continue; }
-    if (!b) { b = document.createElement('button'); b.className = 'tb mod'; b.dataset.mod = id; b.dataset.key = 'mod:' + id; b.innerHTML = `<svg><use href="#i-${icon}"/></svg>`; b.title = T(title); box.appendChild(b); }
+    if (!b) { b = document.createElement('button'); b.className = 'tb mod adv'; b.dataset.mod = id; b.dataset.key = 'mod:' + id; b.innerHTML = `<svg><use href="#i-${icon}"/></svg>`; b.title = T(title); box.appendChild(b); }
     b.classList.toggle('act', !!act);
   }
   sortToolbar();

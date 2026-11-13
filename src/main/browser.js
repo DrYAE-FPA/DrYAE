@@ -877,7 +877,7 @@ class WebBrowser {
       let img = buf ? nativeImage.createFromBuffer(buf) : null;
       if (buf && (!img || img.isEmpty())) img = await this.decodeImage(buf).catch(() => null);
       if (!img || img.isEmpty()) return say("Image illisible");
-      let sz = img.getSize(); if (sz.width < 700) { img = img.resize({ width: sz.width * 2, quality: 'best' }); sz = img.getSize(); }
+      let sz = img.getSize(); img = upscale(img); sz = img.getSize();
       const bm = img.toBitmap(); for (let i = 0; i < bm.length; i += 4) { const t = bm[i]; bm[i] = bm[i + 2]; bm[i + 2] = t; }
       const gs = await require('./paddle-ocr').readBubbles({ width: sz.width, height: sz.height, data: bm });
       const text = readingOrder(gs).map(g => g.text).join('\n');
@@ -942,6 +942,13 @@ class WebBrowser {
     });
   }
   // mémoire des images traduites (300 dernières), gardée sur le disque
+  // réglages de la traduction IA des scans, ou null si elle n'est pas activée
+  aiCfg() {
+    const A = (this.B().scan || {}).ai || {}; if (!A.on) return null;
+    let key = A.key || '';
+    if (A.keyEnc) { try { key = require('electron').safeStorage.decryptString(Buffer.from(A.keyEnc, 'base64')); } catch { key = ''; } }
+    return key ? { key, model: A.model || '', url: A.url || '' } : null;
+  }
   scanCache() {
     if (this._sc) return this._sc;
     const file = path.join(this.userDir, 'scan-cache.json'); let m = new Map();
@@ -1449,7 +1456,7 @@ class WebBrowser {
         pip: this.modOn('pip') && !isInt && !(pip.hidden || []).includes(host) ? { side: pip.side || 'left' } : null,
         translate: this.modOn('translate') && !isInt ? (() => { const t = B.translate || {}; return { selection: t.selection || 'button', off: (t.offSites || []).includes(host), hideSame: t.hideSame !== false, delay: Math.max(0, Math.min(3000, +t.delay || 0)), target: target(), second: t.second || '', pageAuto: (t.autoSites || []).includes(host) }; })() : null,
         lights: this.modOn('lights') && !isInt ? (() => { const l = B.lights || {}; return { ...l, global: !!this.lightsGlobal, night: (l.nightHosts || []).includes(host) || this.nightBySchedule(host), nightOff: (l.nightExcept || []).includes(host) }; })() : null,
-        scan: this.modOn('scan') && !isInt ? (() => { const sc = B.scan || {}; return { auto: (sc.autoSites || []).includes(host), icons: sc.icons !== false, minSize: 250 }; })() : null,
+        scan: this.modOn('scan') && !isInt ? (() => { const sc = B.scan || {}; return { auto: false, font: sc.font || 'auto', icons: sc.icons !== false, minSize: 250 }; })() : null,
         hides: this.modOn('adblock') && !this.loginTabs.has(e.sender.id) ? ((this.store.hides || {})[host] || []) : [],
         a11y: this.main.a11y?.() || {},
         reader: B.reader || {},
@@ -1581,6 +1588,23 @@ class WebBrowser {
       if (Array.isArray(list)) this.pushCfg();
       return (this.B().scan || {}).glossary || [];
     });
+    // traduction IA des scans : réglages (la clé est chiffrée par Windows quand c'est possible)
+    ipcMain.handle('scan:ai', (e, patch) => {
+      if (e.sender !== this.wc) patch = null; // réglage seulement depuis la fenêtre du navigateur (jamais depuis une page web)
+      const { safeStorage } = require('electron'); const cur = { ...((this.B().scan || {}).ai || {}) };
+      if (patch && typeof patch === 'object') {
+        if ('on' in patch) cur.on = !!patch.on;
+        if (typeof patch.key === 'string') {
+          const k = patch.key.trim().slice(0, 200); delete cur.key; delete cur.keyEnc;
+          if (k) { if (safeStorage.isEncryptionAvailable()) cur.keyEnc = safeStorage.encryptString(k).toString('base64'); else cur.key = k; }
+        }
+        if (typeof patch.model === 'string') cur.model = patch.model.replace(/[^\w.-]/g, '').slice(0, 60);
+        this.settings.set({ browser: { scan: { ...(this.B().scan || {}), ai: cur } } }); this.aiOffUntil = 0;
+      }
+      return { on: !!cur.on, hasKey: !!(cur.keyEnc || cur.key), model: cur.model || '', off: this.aiOffUntil > Date.now() };
+    });
+    // police « bande dessinée » des bulles traduites (Comic Neue, licence SIL OFL 1.1)
+    ipcMain.handle('scan:font', () => { try { return fs.readFileSync(path.join(__dirname, '..', '..', 'assets', 'fonts', 'comic-neue', 'comic-neue-latin-700-normal.woff2')); } catch { return null; } });
     ipcMain.handle('scan:image', async (e, o) => {
       if (!this.modOn('scan')) throw new Error('Traducteur de scans désactivé');
       if (o.region && o.rect) { o.src = ''; o.data = null; } // capture d'une zone choisie à l'écran
@@ -1604,21 +1628,21 @@ class WebBrowser {
       const src = o.lang && /^[a-z_]+$/.test(o.lang) ? o.lang : (S.source || 'auto');
       const PO = require('./paddle-ocr');
       // image déjà traduite (même image, mêmes langues) : réponse immédiate, avec les corrections faites à la main
-      const ckey = crypto.createHash('sha1').update(buf || img.toPNG()).digest('hex').slice(0, 20) + '|' + src + '|' + (o.to || S.target || target()) + '|' + ((this.B().translate || {}).provider || 'google');
+      const ckey = crypto.createHash('sha1').update(buf || img.toPNG()).digest('hex').slice(0, 20) + '|' + src + '|' + (o.to || S.target || target()) + '|' + (this.aiCfg() && !(this.aiOffUntil > Date.now()) ? 'ai' : ((this.B().translate || {}).provider || 'google'));
       if (!o.fresh) { const c = this.scanCache().get(ckey); if (c) return { ...c, key: ckey, cached: true }; }
       const modelFor = MODEL_OF_SRC[src];
       let groups, w, needModel = '';
       if (modelFor && PO.installed().includes(modelFor)) {
         // coréen, russe, arabe, thaï… avec le modèle de cette écriture (téléchargé une fois)
         let sz = img.getSize();
-        if (sz.width < 700) { img = img.resize({ width: sz.width * 2, quality: 'best' }); sz = img.getSize(); }
+        img = upscale(img); sz = img.getSize();
         const bm = img.toBitmap(); for (let i = 0; i < bm.length; i += 4) { const t = bm[i]; bm[i] = bm[i + 2]; bm[i + 2] = t; }
         groups = await PO.readBubbles({ width: sz.width, height: sz.height, data: bm }, { model: modelFor });
         w = sz.width;
       } else if (M.PADDLE_LANGS.includes(src)) {
         // lecture « automatique » (modèle multilingue) : la langue n'a pas besoin d'être choisie
         let sz = img.getSize();
-        if (sz.width < 700) { img = img.resize({ width: sz.width * 2, quality: 'best' }); sz = img.getSize(); }
+        img = upscale(img); sz = img.getSize();
         const bm = img.toBitmap(); // BGRA
         for (let i = 0; i < bm.length; i += 4) { const t = bm[i]; bm[i] = bm[i + 2]; bm[i + 2] = t; }
         const RGBA = { width: sz.width, height: sz.height, data: bm };
@@ -1657,15 +1681,49 @@ class WebBrowser {
       const gl = (S.glossary || []).filter(x => x && x.s && x.t);
       const prep = t => gl.reduce((a, x) => a.split(x.s).join(x.t), t);
       let to = o.to || S.target || target();
-      let tr = await M.translate(groups.map(g => prep(g.text)), to, 'auto', this.B().translate || {});
-      if (!o.to && same(tr.from, to)) { to = second(to); tr = await M.translate(groups.map(g => prep(g.text)), to, tr.from, this.B().translate || {}); }
-      const res = { blocks: groups.map((g, i) => ({ x0: g.x0, y0: g.y0, x1: g.x1, y1: g.y1, text: g.text, tr: tr.texts[i] || '', vertical: g.vertical, bg: g.bg || '', bubble: g.bubble || null })), w, captured: scale === 0, from: tr.from, to, needModel, model: usedModel };
-      if (scale !== 0) this.scanCache().set(ckey, res, true);
-      return { ...res, key: ckey };
+      // texte lu remis en forme (majuscules, points de suspension) ; pour la traduction, en minuscules « normales »
+      const cl = groups.map(g => M.cleanScan(g.text));
+      groups = groups.map((g, i) => ({ ...g, text: cl[i].text, caps: cl[i].caps }));
+      const mt = () => groups.map(g => prep(M.forMT(g.text, g.caps)));
+      let tr = null, ai = '';
+      // traduction par IA (facultative, clé personnelle) : elle voit l'image, corrige la lecture et traduit avec le contexte
+      const AI = this.aiCfg();
+      if (AI && !(this.aiOffUntil > Date.now())) {
+        try {
+          const mime = buf && /^\x89PNG/.test(buf.subarray(0, 4).toString('latin1')) ? 'image/png' : buf && buf[0] === 0xff && buf[1] === 0xd8 ? 'image/jpeg' : '';
+          const pic = mime && scale !== 0 ? buf : img.toJPEG(90);
+          const r = await M.aiScan(pic, mime && scale !== 0 ? mime : 'image/jpeg', groups.map(g => prep(g.text)), to, AI);
+          if (!o.to && same(r.from, to)) { const r2 = await M.aiScan(pic, mime && scale !== 0 ? mime : 'image/jpeg', groups.map(g => prep(g.text)), second(to), AI); to = second(to); tr = r2; } else tr = r;
+          groups = groups.map((g, i) => ({ ...g, text: tr.fixed[i] ? (g.caps ? tr.fixed[i].toUpperCase() : tr.fixed[i]) : g.text }));
+          ai = 'ok';
+        } catch (err) {
+          // limite du jour atteinte : retour à la traduction habituelle jusqu'à demain ; clé refusée : jusqu'à ce qu'elle change
+          if (err.quota) { const d = new Date(); d.setHours(24, 0, 0, 0); this.aiOffUntil = d.getTime(); ai = 'quota'; }
+          else if (err.badKey) { this.aiOffUntil = Date.now() + 3600e3; ai = 'badkey'; }
+          else ai = 'error';
+          tr = null;
+        }
+      }
+      if (!tr) {
+        tr = await M.translate(mt(), to, 'auto', this.B().translate || {});
+        if (!o.to && same(tr.from, to)) { to = second(to); tr = await M.translate(mt(), to, tr.from, this.B().translate || {}); }
+      }
+      const res = { blocks: groups.map((g, i) => ({ x0: g.x0, y0: g.y0, x1: g.x1, y1: g.y1, text: g.text, tr: tr.texts[i] || '', vertical: g.vertical, bg: g.bg || '', bubble: g.bubble || null, caps: !!g.caps, lh: g.lh || 0, n: g.n || 1 })), w, captured: scale === 0, from: tr.from, to, needModel, model: usedModel, ai };
+      // traduction habituelle après un échec de l'IA : gardée sous la clé du traducteur habituel (l'IA reprendra demain)
+      const skey = ai && ai !== 'ok' ? ckey.replace(/\|ai$/, '|' + ((this.B().translate || {}).provider || 'google')) : ckey;
+      if (scale !== 0 && ai !== 'error') this.scanCache().set(skey, res, true);
+      return { ...res, key: skey };
     });
   }
 }
 
+// petite image (page réduite, capture d'écran) : agrandie avant la lecture (lettres de 8 px illisibles sinon)
+function upscale(img) {
+  const { width: w } = img.getSize();
+  if (w >= 1100) return img;
+  const k = Math.min(3, 1400 / w);
+  return img.resize({ width: Math.round(w * k), quality: 'best' });
+}
 // langue choisie pour les images -> modèle de lecture supplémentaire
 const MODEL_OF_SRC = { kor: 'korean', kor_vert: 'korean', rus: 'eslav', ukr: 'eslav', bel: 'eslav', bul: 'cyrillic', srp: 'cyrillic', ara: 'arabic', fas: 'arabic', urd: 'arabic', tha: 'th', hin: 'devanagari', mar: 'devanagari', nep: 'devanagari' };
 // ordre de lecture des bulles : de haut en bas ; dans une même rangée, de droite à gauche pour un manga

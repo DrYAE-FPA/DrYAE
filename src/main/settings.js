@@ -131,6 +131,12 @@ class Settings extends EventEmitter {
       this.data.v168 = true;
       try { fs.writeFileSync(this.file, JSON.stringify(this.data, null, 2)); } catch {}
     }
+    // 1.6.9 (refaite) : le traducteur de scans ne démarre plus jamais tout seul (seulement quand on clique dessus)
+    if (!saved.v169b) {
+      if (this.data.browser.scan) this.data.browser.scan.autoSites = [];
+      this.data.v169b = true;
+      try { fs.writeFileSync(this.file, JSON.stringify(this.data, null, 2)); } catch {}
+    }
   }
   get() { return this.data; }
   set(patch) {

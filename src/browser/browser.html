@@ -342,11 +342,10 @@ body.vtabs .tab{max-width:none;flex:none;border-radius:8px;border:1px solid var(
   <button class="tb" id="bReload" title="Actualiser (F5)"><svg><use href="#i-reload" id="reloadIc"/></svg></button>
   <button class="tb" id="bHome" title="Accueil"><svg><use href="#i-home"/></svg></button>
   <div class="addr"><button class="lockb" id="lockB" title="Informations sur le site et autorisations" aria-label="Informations sur le site et autorisations"><svg class="lock no" id="lock"><use href="#i-lock" id="lockIc"/></svg></button><input id="url" placeholder="Rechercher ou saisir une adresse" spellcheck="false"><span class="zoom" id="zoom"></span><button class="ab adv" id="bQr" title="Code QR de la page (ouvrir sur un téléphone)"><svg><use href="#i-phone"/></svg></button><button class="tb" id="bStar" title="Ajouter aux favoris"><svg><use href="#i-star" id="starIc"/></svg></button></div>
-  <!-- extensions épinglées (ordre au choix, glisser pour déplacer), toujours à gauche du bouton des extensions -->
-  <span id="tbItems" class="adv" style="display:contents"><button class="tb shield" id="bShield" data-key="mod:adblock" title="Bloqueur de publicités"><svg><use href="#i-shield"/></svg><span class="n" id="shieldN"></span></button></span>
+  <!-- extensions épinglées et boutons des téléchargements (ordre au choix, glisser pour déplacer) -->
+  <!-- 1.6.9 : les boutons des téléchargements se déplacent aussi -->
+  <span id="tbItems" style="display:contents"><button class="tb shield adv" id="bShield" data-key="mod:adblock" title="Bloqueur de publicités"><svg><use href="#i-shield"/></svg><span class="n" id="shieldN"></span></button><button class="tb dl" id="bDrYAE" data-key="dl:found" title="Fichiers détectés sur cette page"><svg><use href="#i-dl"/></svg><span class="n" id="dlN"></span></button><button class="tb nd" id="bNd" data-key="dl:browser" title="Téléchargements du navigateur"><svg><use href="#i-dl"/></svg><i class="ring"></i><span class="n" id="ndN"></span></button></span>
   <button class="tb adv" id="bExt" title="Extensions"><svg><use href="#i-ext"/></svg></button>
-  <button class="tb dl" id="bDrYAE" title="Fichiers détectés sur cette page"><svg><use href="#i-dl"/></svg><span class="n" id="dlN"></span></button>
-  <button class="tb nd" id="bNd" title="Téléchargements du navigateur"><svg><use href="#i-dl"/></svg><i class="ring"></i><span class="n" id="ndN"></span></button>
   <button class="tb upd" id="bUpd" title="Mise à jour de DrYAE disponible"><svg><use href="#i-upd"/></svg><i class="dot"></i></button>
   <button class="tb" id="bMedia" title="Lecture en cours (sons et vidéos des onglets)" style="display:none"><svg><use href="#i-music"/></svg></button>
   <button class="tb" id="bLeaf" title="Économiseur d'énergie actif (sur batterie)" style="display:none"><svg><use href="#i-power"/></svg></button>
