@@ -134,7 +134,7 @@ async function detect(img, maxSide = 1280) {
 }
 
 // --- lecture d'une ligne ---
-async function recognize(img, b, R) {
+async function recognize(img, b, R, enh) {
   R = R || { sess: rec, dict };
   const { width: W, data } = img;
   let bw = Math.round(b.x1 - b.x0), bh = Math.round(b.y1 - b.y0);
@@ -144,14 +144,32 @@ async function recognize(img, b, R) {
   const cw = vertical ? bh : bw, ch = vertical ? bw : bh;
   const H = 48, Wt = Math.max(48, Math.min(1600, Math.ceil(H * cw / ch)));
   const t = new Float32Array(3 * H * Wt);
+  const IH = img.height;
+  // 1.6.9 : échantillonnage lissé (bilinéaire) au lieu du pixel le plus proche : les petites lettres agrandies
+  // restent nettes au lieu de devenir des escaliers
+  const at = (x, y, c) => data[((Math.min(IH - 1, Math.max(0, y))) * W + Math.min(W - 1, Math.max(0, x))) * 4 + c];
+  const smp = (px, py, c) => {
+    const x0 = Math.floor(px), y0 = Math.floor(py), fx = px - x0, fy = py - y0;
+    return (at(x0, y0, c) * (1 - fx) + at(x0 + 1, y0, c) * fx) * (1 - fy) + (at(x0, y0 + 1, c) * (1 - fx) + at(x0 + 1, y0 + 1, c) * fx) * fy;
+  };
+  const buf = new Float32Array(3 * H * Wt);
+  let lo = 255, hi = 0;
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < Wt; x++) {
       // coordonnées dans la ligne (tournée de 90° pour une colonne)
-      const u = x * cw / Wt, v = y * ch / H;
+      const u = (x + 0.5) * cw / Wt - 0.5, v = (y + 0.5) * ch / H - 0.5;
       const px = vertical ? b.x0 + (ch - 1 - v) : b.x0 + u, py = vertical ? b.y0 + u : b.y0 + v;
-      const p = ((Math.min(img.height - 1, Math.max(0, Math.floor(py)))) * W + Math.min(W - 1, Math.max(0, Math.floor(px)))) * 4, o = y * Wt + x;
-      t[o] = data[p + 2] / 127.5 - 1; t[H * Wt + o] = data[p + 1] / 127.5 - 1; t[2 * H * Wt + o] = data[p] / 127.5 - 1;
+      const o = y * Wt + x;
+      for (let c = 0; c < 3; c++) { const val = smp(px, py, c); buf[c * H * Wt + o] = val; if (enh) { if (val < lo) lo = val; if (val > hi) hi = val; } }
     }
+  }
+  // deuxième lecture (lignes peu sûres) : contraste étiré au maximum (texte bien noir sur fond bien blanc)
+  const k = enh && hi - lo > 30 ? 255 / (hi - lo) : 1, off = enh && hi - lo > 30 ? lo : 0;
+  for (let i = 0; i < H * Wt; i++) {
+    // ordre des couleurs attendu par le modèle : bleu, vert, rouge
+    t[i] = Math.min(255, (buf[2 * H * Wt + i] - off) * k) / 127.5 - 1;
+    t[H * Wt + i] = Math.min(255, (buf[H * Wt + i] - off) * k) / 127.5 - 1;
+    t[2 * H * Wt + i] = Math.min(255, (buf[i] - off) * k) / 127.5 - 1;
   }
   const out = await R.sess.run({ [R.sess.inputNames[0]]: new ort.Tensor('float32', t, [1, 3, H, Wt]) });
   const o = out[rec.outputNames[0]], [, T, C] = o.dims, p = o.data;
@@ -166,7 +184,8 @@ async function recognize(img, b, R) {
 }
 
 // note de bruitage : « SFX: … », « SFX - … », « S.F.X »
-const SFX = /^\W*S\W?F\W?[XY]?\b|^\W*(EFFETS? SONORES?|SOUND EFFECTS?)\W/i;
+// notes des traducteurs pour les bruitages (« SFX: FWIP »), y compris mal lues : « SFC:FOOM », « 5FX », « SPX », « SeX: », « 5FIX », « X:ROOM »
+const SFX = /^\W*S\W?F\W?[XY]?\b|^\W*[S5$]\s?[FPE3]\s?I?[XKC]|^\W*[S5$]?[FPE3]?X\s?[:;]|^\W*(EFFETS? SONORES?|SOUND EFFECTS?)\W/i;
 const isCJK = s => /[぀-ヿ㐀-鿿가-힯]/.test(s);
 // ligne à garder : assez sûre, avec de vraies lettres (pas un dessin lu comme du texte)
 function good(l, min = 0.6) {
@@ -180,7 +199,8 @@ function good(l, min = 0.6) {
 // ---- bulles : zones claires fermées autour du texte (repérées sur une image réduite) ----
 // Deux lignes dans la même zone claire = même bulle ; deux bulles collées restent séparées.
 // Donne aussi le contour et la couleur de fond de la bulle (pour effacer proprement le texte d'origine).
-function bubbleMap(img) {
+// dark : bulles noires à texte blanc (pages sombres, souvenirs, nuit)
+function bubbleMap(img, dark) {
   const { width: W, height: H, data } = img;
   const k = Math.min(1, 700 / Math.max(W, 1), 2400 / Math.max(H, 1));
   const w = Math.max(1, Math.round(W * k)), h = Math.max(1, Math.round(H * k));
@@ -190,10 +210,11 @@ function bubbleMap(img) {
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
     const ya = Math.min(H - 1, Math.floor(y / k)), yb = Math.min(H, Math.max(ya + 1, Math.floor((y + 1) / k)));
     const xa = Math.min(W - 1, Math.floor(x / k)), xb = Math.min(W, Math.max(xa + 1, Math.floor((x + 1) / k)));
-    let m = 255, mp = (ya * W + xa) * 4;
-    for (let yy = ya; yy < yb; yy++) for (let xx = xa; xx < xb; xx++) { const q = (yy * W + xx) * 4, v = (data[q] * 0.3 + data[q + 1] * 0.59 + data[q + 2] * 0.11) | 0; if (v < m) { m = v; } }
+    // bulles noires : on garde au contraire le pixel le plus clair (un bord blanc fin n'est pas perdu)
+    let m = dark ? 0 : 255, mp = (ya * W + xa) * 4;
+    for (let yy = ya; yy < yb; yy++) for (let xx = xa; xx < xb; xx++) { const q = (yy * W + xx) * 4, v = (data[q] * 0.3 + data[q + 1] * 0.59 + data[q + 2] * 0.11) | 0; if (dark ? v > m : v < m) { m = v; } }
     const p = (Math.min(H - 1, (ya + yb) >> 1) * W + Math.min(W - 1, (xa + xb) >> 1)) * 4; void mp;
-    lum[y * w + x] = m;
+    lum[y * w + x] = dark ? 255 - m : m;
     col[y * w + x] = (data[p] << 16) | (data[p + 1] << 8) | data[p + 2];
   }
   const lab = new Int32Array(w * h).fill(-1), comps = [], st = [];
@@ -211,7 +232,7 @@ function bubbleMap(img) {
       if (y < h - 1 && lab[j + w] === -1 && lum[j + w] >= 185) { lab[j + w] = id; st.push(j + w); }
     }
     const m = Math.max(1, Math.floor(n / 7));
-    comps.push({ n, x0: x0 / k, y0: y0 / k, x1: (x1 + 1) / k, y1: (y1 + 1) / k, bg: `rgb(${(r / m) | 0},${(g / m) | 0},${(b / m) | 0})` });
+    comps.push({ n, x0: x0 / k, y0: y0 / k, x1: (x1 + 1) / k, y1: (y1 + 1) / k, dark: !!dark, bg: `rgb(${(r / m) | 0},${(g / m) | 0},${(b / m) | 0})` });
   }
   // zone d'une ligne : la zone claire la plus présente dans son rectangle
   const of = l => {
@@ -236,7 +257,7 @@ function group(lines, bm) {
   if (bm) {
     // d'abord par bulle repérée ; les lignes hors bulle sont regroupées par proximité (plus bas)
     const by = new Map(), rest = [];
-    for (const l of lines) { const c = bm.of(l); if (c) { if (!by.has(c.id)) by.set(c.id, { c, ls: [] }); by.get(c.id).ls.push(l); } else rest.push(l); }
+    for (const l of lines) { const c = bm.of(l) || (bm.dk && bm.dk.of(l)); if (c) { const id = (c.dark ? 'd' : 'l') + c.id; if (!by.has(id)) by.set(id, { c, ls: [] }); by.get(id).ls.push(l); } else rest.push(l); }
     const merged = [];
     for (const { c, ls } of by.values()) {
       const gs = group(ls), v = gs.every(o => o.vertical);
@@ -331,32 +352,93 @@ async function readBubbles(img, opts = {}) {
     let best = await mean(null);
     if (best < 0.9) for (const id of installed()) { const RR = await recOf(id); const m = await mean(RR); if (m > best + 0.04) { best = m; R = RR; used = id; } }
   }
-  let bm = null; try { bm = bubbleMap(img); } catch {}
+  let bm = null; try { bm = bubbleMap(img); bm.dk = bubbleMap(img, true); } catch {}
   const lines = [], fails = new Map(), kept = new Map();
   const bkey = c => c ? Math.round(c.x0) + ',' + Math.round(c.y0) : '';
   for (const b of boxes) {
-    const r = await recognize(img, b, R);
+    let r = await recognize(img, b, R);
+    // 1.6.9 : lecture en deux passes — ligne peu sûre (petites lettres, image floue) relue avec le contraste renforcé
+    // et un cadre un peu plus large ; on garde la lecture la plus sûre
+    if (r.score < 0.9 && r.text.replace(/\s/g, '').length >= 2) {
+      const p = Math.max(1, (b.y1 - b.y0) * 0.08);
+      const r2 = await recognize(img, { x0: Math.max(0, b.x0 - p), y0: Math.max(0, b.y0 - p), x1: Math.min(img.width, b.x1 + p), y1: Math.min(img.height, b.y1 + p) }, R, true);
+      if (r2.score > r.score + 0.02) r = r2;
+    }
     const l = { ...b, ...r };
-    const c = bm ? bm.of(l) : null, k = bkey(c);
+    const c = bm ? (bm.of(l) || bm.dk.of(l)) : null, k = bkey(c);
     // ligne un peu moins sûre (« IN », « GUT ») : gardée si elle est dans une vraie bulle
     if (good(l) || (good(l, 0.45) && c)) { lines.push(l); if (k) kept.set(k, (kept.get(k) || 0) + 1); }
     else if (k) fails.set(k, (fails.get(k) || 0) + 1);
   }
   // notes ajoutées par les traducteurs (« SFX: FWIP », « SFX : debout ») : bruitages, non traduits ;
   // zone surtout illisible (petites lettres d'une affiche, d'un panneau) : laissée telle quelle plutôt que traduite au hasard
-  const groups = group(lines, bm).filter(g => !SFX.test(g.text) && !(g.ck && (fails.get(g.ck) || 0) >= 3 && (fails.get(g.ck) || 0) >= (kept.get(g.ck) || 0)));
-  // 1.6.9 : page en anglais : lettres mal lues corrigées, mots coupés en fin de ligne recollés (même sans tiret lu)
+  let groups = group(lines, bm).filter(g => !SFX.test(g.text) && !(g.ck && (fails.get(g.ck) || 0) >= 3 && (fails.get(g.ck) || 0) >= (kept.get(g.ck) || 0)));
+  // 1.6.9 : mot coupé en fin de ligne (« SUMI- » / « RE ») dont la fin a été prise pour une autre bulle :
+  // les deux morceaux sont réunis avant toute traduction
+  for (let again = true; again;) {
+    again = false;
+    for (const a of groups) {
+      if (a.vertical || !/\p{L}[-‐‑]$/u.test(a.text)) continue;
+      const lh = a.lh || 20;
+      const b = groups.find(o => o !== a && !o.vertical && o.y0 >= a.y1 - lh * 0.5 && o.y0 - a.y1 < lh * 3.5 && Math.min(a.x1, o.x1) - Math.max(a.x0, o.x0) > -lh && /^\p{L}/u.test(o.text));
+      if (!b) continue;
+      a.text = a.text.slice(0, -1) + b.text; a.parts = [...(a.parts || [a.text]).slice(0, -1), String((a.parts || []).slice(-1)[0] || '').replace(/[-‐‑]$/, '') + String((b.parts || [b.text])[0]), ...(b.parts || [b.text]).slice(1)];
+      a.x0 = Math.min(a.x0, b.x0); a.x1 = Math.max(a.x1, b.x1); a.y1 = Math.max(a.y1, b.y1); a.n = (a.n || 1) + (b.n || 1);
+      if (a.bubble && b.bubble) a.bubble = { x0: Math.min(a.bubble.x0, b.bubble.x0), y0: Math.min(a.bubble.y0, b.bubble.y0), x1: Math.max(a.bubble.x1, b.bubble.x1), y1: Math.max(a.bubble.y1, b.bubble.y1) };
+      groups.splice(groups.indexOf(b), 1); again = true; break;
+    }
+  }
+  // 1.6.9 : note de bruitage trop mal lue pour être reconnue (« S MESSY », « X TAN U », « HOO ») : une seule petite ligne,
+  // hors de toute bulle, bien plus petite que le texte des bulles, 3 mots au plus → bruitage, non traduit
+  const hs = groups.filter(g => g.bubble && !g.vertical).map(g => g.lh || 0).filter(Boolean).sort((a, b) => a - b);
+  const med = hs.length ? hs[hs.length >> 1] : 0;
+  if (med) groups = groups.filter(g => !(!g.bubble && (g.n || 1) === 1 && !g.vertical && (g.lh || 0) < med * 0.72 && (g.text.match(/\p{L}+/gu) || []).length <= 3 && !isCJK(g.text)));
+  // « XWHOOSH » (SFX: collé et mal lu), hors bulle
+  groups = groups.filter(g => !(!g.bubble && /^\W*[S5]?[FP]?X\p{Lu}{3,}\W*$/u.test(g.text)));
+  // 1.6.9 : texte blanc sur fond sombre hors d'une bulle reconnue (bulles noires aux bords flous) :
+  // la couleur du fond est prise autour du texte, pour l'effacer et écrire la traduction en blanc
+  for (const g of groups) {
+    if (g.bubble || g.vertical) continue;
+    const { width: W, height: H, data } = img; const lv = [];
+    const x0 = Math.max(0, Math.floor(g.x0)), x1 = Math.min(W - 1, Math.ceil(g.x1)), y0 = Math.max(0, Math.floor(g.y0)), y1 = Math.min(H - 1, Math.ceil(g.y1));
+    const st = Math.max(1, Math.round(Math.sqrt((x1 - x0) * (y1 - y0) / 4000)));
+    for (let y = y0; y <= y1; y += st) for (let x = x0; x <= x1; x += st) { const q = (y * W + x) * 4; lv.push([(data[q] * 0.3 + data[q + 1] * 0.59 + data[q + 2] * 0.11) | 0, q]); }
+    if (lv.length < 20) continue;
+    lv.sort((a, b) => a[0] - b[0]);
+    const md = lv[lv.length >> 1];
+    if (md[0] < 90) {
+      let r = 0, gg = 0, b = 0, n = 0; for (const [, q] of lv.slice(0, lv.length >> 1)) { r += data[q]; gg += data[q + 1]; b += data[q + 2]; n++; }
+      g.bg = `rgb(${(r / n) | 0},${(gg / n) | 0},${(b / n) | 0})`; g.dark = true;
+      const m = (g.lh || 20) * 0.35; g.bubble = { x0: g.x0 - m, y0: g.y0 - m, x1: g.x1 + m, y1: g.y1 + m };
+    }
+  }
+  // qualité de la lecture (sert à n'envoyer à l'IA que les pages difficiles)
+  const sc = lines.map(l => l.score || 0); groups.quality = sc.length ? sc.reduce((a, b) => a + b, 0) / sc.length : 1;
+  // 1.6.9 : page en anglais (au moins un bon tiers de mots anglais : les noms des personnages n'en sont pas) :
+  // lettres mal lues corrigées, mots coupés en fin de ligne recollés (même sans tiret lu) ;
+  // zone devenue du charabia après correction (petites lettres d'une affiche floue) : laissée telle quelle
   try {
     const SF = require('./scan-fix');
-    if (SF.englishRatio(groups.map(g => g.text)) >= 0.5) for (const g of groups) if (!isCJK(g.text) && !g.vertical) g.text = SF.fixParts(g.parts || [g.text]);
+    if (SF.englishRatio(groups.map(g => g.text)) >= 0.35) {
+      for (const g of groups) if (!isCJK(g.text) && !g.vertical) g.text = SF.fixParts(g.parts || [g.text]);
+      // mots ni anglais ni noms japonais (« FERFOOMNNCE ») : charabia
+      let odd = 0, all = 0;
+      for (let i = groups.length - 1; i >= 0; i--) {
+        const ws = groups[i].text.match(/\p{L}{3,}/gu) || [], bad = ws.filter(w => !SF.plausible(w)).length;
+        all += ws.length; odd += bad;
+        if (ws.length >= 6 && bad >= 4 && bad / ws.length >= 0.3) { odd -= bad; all -= ws.length; groups.splice(i, 1); }
+      }
+      groups.odd = all ? odd / all : 0;
+    }
   } catch {}
   groups.model = used;
   // page en écriture latine : on ignore les petits signes japonais/chinois isolés (bruitages dessinés)
   const latin = groups.filter(g => !isCJK(g.text)).length, cjk = groups.length - latin;
   // beaucoup de lignes trouvées mais illisibles : écriture que ce modèle ne connaît pas (coréen, cyrillique…)
   groups.unread = boxes.length - lines.length;
-  const res = latin > cjk && used !== 'korean' ? groups.filter(g => !(isCJK(g.text) && g.text.replace(/[\s\p{P}]/gu, '').length <= 2)) : groups;
-  res.model = used; res.unread = groups.unread;
+  // page anglaise ou française : les lettres japonaises sont des bruitages dessinés → jamais traduites
+  const res = latin > cjk && used !== 'korean' ? groups.filter(g => !(isCJK(g.text) && (latin >= 2 * cjk || !g.bubble || g.text.replace(/[\s\p{P}]/gu, '').length <= 2))) : groups;
+  res.model = used; res.unread = groups.unread; res.quality = groups.quality; res.odd = groups.odd || 0;
   return res;
 }
 

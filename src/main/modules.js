@@ -303,4 +303,11 @@ function generatePassword(n = 16) {
   return out.join('');
 }
 
-module.exports = { cleanScan, forMT, aiScan, MODULES, MOD_DEFAULT, PROVIDERS, PADDLE_LANGS, OCR_FIX, readRegions, translate, setUserAgent, readImage, OCR_LANGS, ocrDownloaded, windowsHello, pwnedCount, weak, generatePassword };
+
+// cris et onomatopées seuls dans une bulle (AHHH, HEHE, FUFU, HMM, GRRR…) : gardés tels quels, pas traduits
+const INTERJ = /^(?:a+h*|o+h*|e+h+|u+h+|h+m+|hu+h+|he+h+|(?:he)+h*|(?:ha)+h*|(?:hi)+|(?:fu)+|(?:ku)+|u?fu+|gr+|tch|ts+k|pf+t?|phew|u+g+h+|a+r+g+h+|e+k|ky+a+|n+|m+|wh?oa+|w+o+w+|a+h*a+|a?(?:ha)+h?|y+a+y*|ya+h+o+|z+|u+m+|e+r+m*|hm+ph|o+p+s+)$/i;
+function interjection(t) {
+  const ws = String(t || '').match(/\p{L}+/gu) || [];
+  return ws.length > 0 && ws.length <= 6 && ws.every(w => INTERJ.test(w));
+}
+module.exports = { interjection, cleanScan, forMT, aiScan, MODULES, MOD_DEFAULT, PROVIDERS, PADDLE_LANGS, OCR_FIX, readRegions, translate, setUserAgent, readImage, OCR_LANGS, ocrDownloaded, windowsHello, pwnedCount, weak, generatePassword };

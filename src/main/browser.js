@@ -947,7 +947,16 @@ class WebBrowser {
     const A = (this.B().scan || {}).ai || {}; if (!A.on) return null;
     let key = A.key || '';
     if (A.keyEnc) { try { key = require('electron').safeStorage.decryptString(Buffer.from(A.keyEnc, 'base64')); } catch { key = ''; } }
-    return key ? { key, model: A.model || '', url: A.url || '' } : null;
+    return key ? { key, model: A.model || '', url: A.url || '', mode: A.mode === 'all' ? 'all' : 'hard' } : null;
+  }
+  // noms propres à une série (personnages, lieux), appris en lisant, par site : un nom mal lu plus loin est corrigé
+  scanNames() {
+    if (this._sn) return this._sn;
+    const file = path.join(this.userDir, 'scan-names.json'); let o = {};
+    try { o = JSON.parse(fs.readFileSync(file, 'utf8')) || {}; } catch {}
+    const save = () => { clearTimeout(this._snT); this._snT = setTimeout(() => fsp.writeFile(file, JSON.stringify(o)).catch(() => {}), 2000); };
+    this._sn = { get: h => o[h] || (o[h] = {}), save };
+    return this._sn;
   }
   scanCache() {
     if (this._sc) return this._sc;
@@ -1382,6 +1391,22 @@ class WebBrowser {
     });
     // petite image de l'onglet (aperçu au survol)
     ipcMain.handle('br:thumb', async (_e, wcId) => { try { const wc = webContents.fromId(wcId); if (!wc || wc.isDestroyed()) return ''; const img = await wc.capturePage(); return img.isEmpty() ? '' : img.resize({ width: 240, quality: 'good' }).toDataURL(); } catch { return ''; } });
+    // capture nette d'une zone de la page (traducteur de scans) : la zone (en pixels de l'écran, zoom compris) est
+    // redessinée à une échelle plus grande ; l'échelle vise la taille réelle de l'image affichée, entre 1,5 et 3
+    this.hdCapture = async (wc, rect, natural) => {
+      const z = wc.getZoomFactor() || 1;
+      const [sx, sy] = await wc.executeJavaScript('[scrollX, scrollY]', true);
+      const cw = rect.w / z, ch = rect.h / z;
+      let s = natural && natural.w > 0 && natural.h > 0 ? Math.max(natural.w / cw, 1) : 2;
+      s = Math.min(3, Math.max(1.5, s)); if (cw * ch * s * s > 5e6 * 1.5) s = Math.max(1, Math.sqrt(5e6 * 1.5 / (cw * ch)));
+      const dbg = wc.debugger; let attached = false;
+      try {
+        if (!dbg.isAttached()) { dbg.attach('1.3'); attached = true; }
+        const r = await dbg.sendCommand('Page.captureScreenshot', { format: 'png', clip: { x: rect.x / z + sx, y: rect.y / z + sy, width: cw, height: ch, scale: s } });
+        const { nativeImage } = require('electron');
+        return nativeImage.createFromBuffer(Buffer.from(r.data, 'base64'));
+      } finally { if (attached) try { dbg.detach(); } catch {} }
+    };
     // capture de la page entière (même la partie qu'il faut faire défiler)
     ipcMain.handle('br:fullshot', async (_e, wcId) => {
       const wc = webContents.fromId(wcId); if (!wc || wc.isDestroyed()) return '';
@@ -1446,7 +1471,7 @@ class WebBrowser {
       const f = e.senderFrame; let host = ''; try { host = new URL(f?.url || '').hostname; } catch {}
       const B = this.B();
       const T = global.DRYAE_T || (s => s);
-      const keys = ['Télécharger cette vidéo', 'Masquer', 'Remplir avec mon profil', 'mon profil', '(sans identifiant)', '— mot de passe enregistré', 'Suggérer un mot de passe fort', 'Utiliser ce mot de passe', 'Carte enregistrée', 'Remplir avec la carte', 'Image dans l\'image', 'Masquer le bouton sur ce site', 'Placer le bouton à gauche', 'Placer le bouton à droite', 'Traduire', 'Copier', 'Écouter', 'Fermer', 'Traduction…', 'Traduit de {0}', 'Afficher l\'original', 'Masquer les traductions', 'Arrêter', 'Lecture des images…', '{0} bulle(s) traduite(s)', 'Aucun texte trouvé dans cette image', 'Cliquez sur un élément à masquer. Molette ou ↑ ↓ : agrandir / réduire. Échap : annuler.', 'Masquer cet élément', 'Annuler', 'Traduction impossible : {0}', 'Adresse', 'Cliquez à côté pour rallumer', 'Traducteur de scans', 'Texte d\'origine', 'Échap pour rallumer', 'Aucune vidéo sur cette page', 'Boucle activée', 'Boucle désactivée', 'Sans filtre', 'Opacité gardée : {0} %', 'Protection des yeux activée', 'Protection des yeux désactivée', 'Aucune image à traduire sur cette page', 'Afficher la traduction', 'Original / traduction', 'Comparer', 'Relire cette image', 'Copier le texte traduit', 'Retirer la traduction', 'Dessinez un rectangle autour du texte à traduire. Échap : annuler.', 'Traduire la zone', 'Compte enregistré'];
+      const keys = ['Télécharger cette vidéo', 'Masquer', 'Remplir avec mon profil', 'mon profil', '(sans identifiant)', '— mot de passe enregistré', 'Suggérer un mot de passe fort', 'Utiliser ce mot de passe', 'Carte enregistrée', 'Remplir avec la carte', 'Image dans l\'image', 'Masquer le bouton sur ce site', 'Placer le bouton à gauche', 'Placer le bouton à droite', 'Traduire', 'Copier', 'Écouter', 'Fermer', 'Traduction…', 'Traduit de {0}', 'Afficher l\'original', 'Masquer les traductions', 'Arrêter', 'Lecture des images…', '{0} bulle(s) traduite(s)', 'Aucun texte trouvé dans cette image', 'Cliquez sur un élément à masquer. Molette ou ↑ ↓ : agrandir / réduire. Échap : annuler.', 'Masquer cet élément', 'Annuler', 'Traduction impossible : {0}', 'Adresse', 'Cliquez à côté pour rallumer', 'Traducteur de scans', 'Texte d\'origine', 'Échap pour rallumer', 'Aucune vidéo sur cette page', 'Boucle activée', 'Boucle désactivée', 'Sans filtre', 'Opacité gardée : {0} %', 'Protection des yeux activée', 'Protection des yeux désactivée', 'Aucune image à traduire sur cette page', 'Afficher la traduction', 'Original / traduction', 'Comparer', 'Relire cette image', 'Copier le texte traduit', 'Retirer la traduction', 'Dessinez un rectangle autour du texte à traduire. Échap : annuler.', 'Traduire la zone', 'Compte enregistré', 'Garder cette image pour l\'améliorer', 'Enregistre l\'image dans un dossier de votre PC (rien n\'est envoyé)', 'Image gardée dans {0}', 'Image non disponible : relisez la page puis réessayez'];
       const pip = B.pip || {};
       const isInt = pages.isPageUrl(f?.url);
       e.returnValue = {
@@ -1575,6 +1600,19 @@ class WebBrowser {
     });
     ipcMain.handle('scan:modelDel', (_e, id) => { require('./paddle-ocr').removeModel(id); return true; });
     // correction d'une bulle à la main : gardée avec l'image (la page revue plus tard garde la correction)
+    // image gardée pour améliorer le traducteur : enregistrée sur le PC (Documents\DrYAE\Images à améliorer), rien n'est envoyé
+    ipcMain.handle('scan:keep', async (_e, key, blocks) => {
+      const R = this._scanImgs || new Map(); const k0 = String(key).split('|')[0], it = R.get(String(key)) || [...R.entries()].reverse().find(([k]) => k0 && k.split('|')[0] === k0)?.[1];
+      if (!it) return { ok: false };
+      const dir = path.join(app.getPath('documents'), 'DrYAE', 'Images à améliorer');
+      await fsp.mkdir(dir, { recursive: true });
+      const st = new Date().toISOString().replace(/[:T]/g, '-').slice(0, 19);
+      const ext = it.buf ? (it.buf[0] === 0xff ? 'jpg' : /^RIFF/.test(it.buf.subarray(0, 4).toString('latin1')) ? 'webp' : 'png') : 'png';
+      await fsp.writeFile(path.join(dir, st + '.' + ext), it.buf || it.img.toPNG());
+      const lines = (Array.isArray(blocks) ? blocks : []).slice(0, 200).map((b, i) => `${i + 1}. ${String(b && b.text || '').slice(0, 500)}\n   → ${String(b && b.tr || '').slice(0, 500)}`);
+      await fsp.writeFile(path.join(dir, st + '.txt'), (it.page ? 'Page : ' + it.page + '\n\n' : '') + lines.join('\n') + '\n', 'utf8');
+      return { ok: true, dir };
+    });
     ipcMain.handle('scan:edit', (_e, key, i, patch) => {
       const c = this.scanCache().get(key); if (!c || !c.blocks[i]) return false;
       if (typeof patch.text === 'string') c.blocks[i].text = patch.text.slice(0, 2000);
@@ -1599,9 +1637,10 @@ class WebBrowser {
           if (k) { if (safeStorage.isEncryptionAvailable()) cur.keyEnc = safeStorage.encryptString(k).toString('base64'); else cur.key = k; }
         }
         if (typeof patch.model === 'string') cur.model = patch.model.replace(/[^\w.-]/g, '').slice(0, 60);
+        if (patch.mode === 'all' || patch.mode === 'hard') cur.mode = patch.mode;
         this.settings.set({ browser: { scan: { ...(this.B().scan || {}), ai: cur } } }); this.aiOffUntil = 0;
       }
-      return { on: !!cur.on, hasKey: !!(cur.keyEnc || cur.key), model: cur.model || '', off: this.aiOffUntil > Date.now() };
+      return { on: !!cur.on, hasKey: !!(cur.keyEnc || cur.key), model: cur.model || '', mode: cur.mode === 'all' ? 'all' : 'hard', off: this.aiOffUntil > Date.now() };
     });
     // police « bande dessinée » des bulles traduites (Comic Neue, licence SIL OFL 1.1)
     ipcMain.handle('scan:font', () => { try { return fs.readFileSync(path.join(__dirname, '..', '..', 'assets', 'fonts', 'comic-neue', 'comic-neue-latin-700-normal.woff2')); } catch { return null; } });
@@ -1621,7 +1660,10 @@ class WebBrowser {
       if (!img || img.isEmpty()) {
         // image illisible directement (protection) : on lit la partie visible à l'écran
         if (!o.rect || o.rect.w < 50 || o.rect.h < 30) throw new Error('Image inaccessible');
-        img = await wc.capturePage({ x: Math.max(0, Math.round(o.rect.x)), y: Math.max(0, Math.round(o.rect.y)), width: Math.round(o.rect.w), height: Math.round(o.rect.h) });
+        // 1.6.9 : capture haute définition — la zone est redessinée 2 à 3 fois plus grande par le moteur du navigateur
+        // (l'image affichée est souvent réduite par le site : on retrouve presque la netteté du fichier d'origine)
+        img = await this.hdCapture(wc, o.rect, o.natural).catch(() => null);
+        if (!img || img.isEmpty()) img = await wc.capturePage({ x: Math.max(0, Math.round(o.rect.x)), y: Math.max(0, Math.round(o.rect.y)), width: Math.round(o.rect.w), height: Math.round(o.rect.h) });
         if (img.isEmpty()) throw new Error('Image inaccessible');
         scale = 0;
       }
@@ -1629,6 +1671,8 @@ class WebBrowser {
       const PO = require('./paddle-ocr');
       // image déjà traduite (même image, mêmes langues) : réponse immédiate, avec les corrections faites à la main
       const ckey = crypto.createHash('sha1').update(buf || img.toPNG()).digest('hex').slice(0, 20) + '|' + src + '|' + (o.to || S.target || target()) + '|' + (this.aiCfg() && !(this.aiOffUntil > Date.now()) ? 'ai' : ((this.B().translate || {}).provider || 'google'));
+      // les 20 dernières images lues restent en mémoire (bouton « Garder cette image pour l'améliorer »)
+      { const R = this._scanImgs || (this._scanImgs = new Map()); R.delete(ckey); R.set(ckey, { buf: buf && scale !== 0 ? buf : null, img, page: o.page || '' }); while (R.size > 20) R.delete(R.keys().next().value); }
       if (!o.fresh) { const c = this.scanCache().get(ckey); if (c) return { ...c, key: ckey, cached: true }; }
       const modelFor = MODEL_OF_SRC[src];
       let groups, w, needModel = '';
@@ -1673,7 +1717,7 @@ class WebBrowser {
         groups = await M.readImage(img.toPNG(), src + (S.withEng && !/^eng/.test(src) ? '+eng' : ''));
       }
       if (!groups.length) return { blocks: [], w, needModel, unreadable: (groups.unread || 0) >= 3 && !groups.model };
-      const usedModel = groups.model || '';
+      const usedModel = groups.model || '', quality = groups.quality ?? 1, odd = groups.odd || 0;
       groups = readingOrder(groups);
       // langue d'arrivée : celle choisie (par défaut celle du traducteur) ; texte déjà dans cette langue → 2e langue
       // toutes les bulles de l'image partent ensemble, dans l'ordre de lecture (le traducteur a le contexte),
@@ -1684,11 +1728,20 @@ class WebBrowser {
       // texte lu remis en forme (majuscules, points de suspension) ; pour la traduction, en minuscules « normales »
       const cl = groups.map(g => M.cleanScan(g.text));
       groups = groups.map((g, i) => ({ ...g, text: cl[i].text, caps: cl[i].caps }));
+      // noms de la série (appris sur ce site) : « TSUKLMOGAMI » → TSUKUMOGAMI quand ce nom a déjà été bien lu souvent
+      try {
+        const SF = require('./scan-fix'); const host = (() => { try { return new URL(o.page).hostname; } catch { return ''; } })();
+        if (host) { const NM = this.scanNames(); const names = NM.get(host); groups = groups.map(g => ({ ...g, text: SF.fixNames(g.text, names) })); SF.learnNames(groups.map(g => g.text), names); NM.save(); }
+      } catch {}
+      // cris et onomatopées (AHHH, HEHE, FUFU, HMM…) : gardés tels quels, pas traduits
+      const keep = groups.map(g => M.interjection(g.text));
       const mt = () => groups.map(g => prep(M.forMT(g.text, g.caps)));
       let tr = null, ai = '';
       // traduction par IA (facultative, clé personnelle) : elle voit l'image, corrige la lecture et traduit avec le contexte
       const AI = this.aiCfg();
-      if (AI && !(this.aiOffUntil > Date.now())) {
+      // « pages difficiles seulement » (par défaut) : lecture peu sûre ou mots inconnus → IA ; sinon traduction habituelle
+      const hard = quality < 0.93 || odd > 0.12 || scale === 0;
+      if (AI && !(this.aiOffUntil > Date.now()) && (AI.mode === 'all' || hard)) {
         try {
           const mime = buf && /^\x89PNG/.test(buf.subarray(0, 4).toString('latin1')) ? 'image/png' : buf && buf[0] === 0xff && buf[1] === 0xd8 ? 'image/jpeg' : '';
           const pic = mime && scale !== 0 ? buf : img.toJPEG(90);
@@ -1708,7 +1761,7 @@ class WebBrowser {
         tr = await M.translate(mt(), to, 'auto', this.B().translate || {});
         if (!o.to && same(tr.from, to)) { to = second(to); tr = await M.translate(mt(), to, tr.from, this.B().translate || {}); }
       }
-      const res = { blocks: groups.map((g, i) => ({ x0: g.x0, y0: g.y0, x1: g.x1, y1: g.y1, text: g.text, tr: tr.texts[i] || '', vertical: g.vertical, bg: g.bg || '', bubble: g.bubble || null, caps: !!g.caps, lh: g.lh || 0, n: g.n || 1 })), w, captured: scale === 0, from: tr.from, to, needModel, model: usedModel, ai };
+      const res = { blocks: groups.map((g, i) => ({ x0: g.x0, y0: g.y0, x1: g.x1, y1: g.y1, text: g.text, tr: keep[i] ? g.text : (tr.texts[i] || ''), vertical: g.vertical, bg: g.bg || '', bubble: g.bubble || null, caps: !!g.caps, lh: g.lh || 0, n: g.n || 1 })), w, captured: scale === 0, from: tr.from, to, needModel, model: usedModel, ai };
       // traduction habituelle après un échec de l'IA : gardée sous la clé du traducteur habituel (l'IA reprendra demain)
       const skey = ai && ai !== 'ok' ? ckey.replace(/\|ai$/, '|' + ((this.B().translate || {}).provider || 'google')) : ckey;
       if (scale !== 0 && ai !== 'error') this.scanCache().set(skey, res, true);

@@ -26,6 +26,20 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
   const sp = await b.evaluate(() => [...document.querySelectorAll('webview.on')].map(w => w.style.width));
   ok('vue côte à côte : deux pages visibles', sp.length === 2 && sp.every(x => x === '50%'), sp);
   await b.screenshot({ path: OUT + '/split.png' });
+  // menu de la vue côte à côte : inverser, largeur 2/3
+  const sm = await b.evaluate(async () => {
+    const before = cur.splitSide; document.querySelector('#splitMenu').click(); await new Promise(r => setTimeout(r, 200));
+    const items = [...document.querySelectorAll('#menu [data-i]')].map(x => x.textContent.trim());
+    [...document.querySelectorAll('#menu [data-i]')].find(x => /Inverser/.test(x.textContent)).click(); await new Promise(r => setTimeout(r, 200));
+    const swapped = cur.splitSide !== before;
+    TABSX.splitMenu(10, 10); await new Promise(r => setTimeout(r, 150));
+    [...document.querySelectorAll('#menu [data-i]')].find(x => /Gauche plus large/.test(x.textContent)).click(); await new Promise(r => setTimeout(r, 200));
+    const ws = [...document.querySelectorAll('webview.on')].map(w => w.style.width).sort();
+    TABSX.splitMenu(10, 10); await new Promise(r => setTimeout(r, 150));
+    [...document.querySelectorAll('#menu [data-i]')].find(x => /Moitié-moitié/.test(x.textContent)).click(); await new Promise(r => setTimeout(r, 150));
+    return { items: items.length, swapped, ws };
+  });
+  ok('menu côte à côte : inverser et largeur 2/3', sm.items >= 8 && sm.swapped && sm.ws.join() === '33.3%,66.7%', sm);
   await b.evaluate(() => TABSX.unsplit(cur)); await wait(300);
   ok('vue côte à côte refermée', (await b.evaluate(() => document.querySelectorAll('webview.on').length)) === 1);
   // recherche dans les onglets

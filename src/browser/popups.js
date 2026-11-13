@@ -244,6 +244,7 @@ async function drawScanPop() {
     <details class="pdet" ${AI.on ? 'open' : ''}><summary>${esc(T('Traduction IA (facultatif)'))}${AI.on && AI.hasKey ? ' ✓' : ''}</summary>
       <small style="color:var(--dim);display:block;margin:2px 0 4px;white-space:normal">${esc(T('Meilleure traduction : l\'IA voit la page, corrige la lecture et comprend la conversation. Il faut votre propre clé gratuite Google Gemini (aucun paiement). Les images de la page et le texte lu sont alors envoyés à Google. Quand la limite gratuite du jour est atteinte, la traduction habituelle prend le relais.'))}</small>
       <div class="prow"><span class="grow">${esc(T('Utiliser l\'IA pour les scans'))}</span>${tg('scAi', !!AI.on)}</div>
+      <div class="prow"><span class="grow">${esc(T('Pages envoyées à l\'IA'))}<small>${esc(T('Pages difficiles : lecture peu sûre ou mots inconnus. La limite gratuite du jour dure plus longtemps.'))}</small></span><select id="scAiMode"><option value="hard" ${AI.mode !== 'all' ? 'selected' : ''}>${esc(T('Seulement les pages difficiles'))}</option><option value="all" ${AI.mode === 'all' ? 'selected' : ''}>${esc(T('Toutes les pages'))}</option></select></div>
       <div class="prow"><input id="scAiKey" type="password" placeholder="${esc(T(AI.hasKey ? 'Clé enregistrée (taper pour la remplacer)' : 'Coller votre clé ici'))}" style="flex:1;min-width:0" autocomplete="off" spellcheck="false"><button class="btn sm" id="scAiSave">${esc(T('Enregistrer'))}</button></div>
       <div class="prow"><button class="btn sm" id="scAiGet">${esc(T('Obtenir une clé gratuite'))}</button>${AI.hasKey ? `<button class="btn sm" id="scAiDel">${esc(T('Effacer la clé'))}</button>` : ''}</div>
       ${AI.off ? `<small style="color:#f59e0b;display:block;white-space:normal">${esc(T('Limite gratuite du jour atteinte ou clé refusée : traduction habituelle pour le moment.'))}</small>` : ''}
@@ -261,6 +262,7 @@ async function drawScanPop() {
   $('#scTo').onchange = e => setB({ scan: { target: e.target.value } });
   popEl.querySelector('[data-set]').onclick = () => { popClose(); openPage('settings', 'scan'); };
   TOGGLES.scAi = async on => { await B.call('scan:ai', { on }); popRender(); };
+  $('#scAiMode').onchange = e => B.call('scan:ai', { mode: e.target.value });
   $('#scAiSave').onclick = async () => { const k = $('#scAiKey').value.trim(); if (!k) return; await B.call('scan:ai', { key: k, on: true }); toast(T('Clé enregistrée')); popRender(); };
   $('#scAiGet').onclick = () => { popClose(); newTab('https://aistudio.google.com/app/apikey'); };
   if ($('#scAiDel')) $('#scAiDel').onclick = async () => { await B.call('scan:ai', { key: '', on: false }); popRender(); };

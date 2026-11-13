@@ -948,7 +948,7 @@ function pageFeatures() {
       <b>${esc(pt('Corriger la bulle'))}</b>
       <label style="color:#8f97aa">${esc(pt('Texte lu'))}</label><textarea class="o" rows="2" style="all:unset;background:#0d0f14;border:1px solid #2a3040;border-radius:6px;padding:5px;color:#e7e9ef;white-space:pre-wrap"></textarea>
       <label style="color:#8f97aa">${esc(pt('Traduction'))}</label><textarea class="t" rows="3" style="all:unset;background:#0d0f14;border:1px solid #2a3040;border-radius:6px;padding:5px;color:#e7e9ef;white-space:pre-wrap"></textarea>
-      <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn rt">${esc(pt('Retraduire'))}</button><button class="btn gl">${esc(pt('Ajouter au lexique'))}</button><span style="flex:1"></span><button class="btn no">${esc(pt('Annuler'))}</button><button class="btn pri ok">${esc(pt('Enregistrer'))}</button></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn rt">${esc(pt('Retraduire'))}</button><button class="btn gl">${esc(pt('Ajouter au lexique'))}</button><button class="btn kp" title="${esc(pt('Enregistre l\'image dans un dossier de votre PC (rien n\'est envoyé)'))}">${esc(pt('Garder cette image pour l\'améliorer'))}</button><span style="flex:1"></span><button class="btn no">${esc(pt('Annuler'))}</button><button class="btn pri ok">${esc(pt('Enregistrer'))}</button></div>
       <div class="glx" style="display:none;gap:6px;grid-template-columns:1fr 1fr auto"><input class="gs" placeholder="${esc(pt('Mot d\'origine'))}" style="all:unset;background:#0d0f14;border:1px solid #2a3040;border-radius:6px;padding:4px;color:#e7e9ef"><input class="gt" placeholder="${esc(pt('Toujours traduire par'))}" style="all:unset;background:#0d0f14;border:1px solid #2a3040;border-radius:6px;padding:4px;color:#e7e9ef"><button class="btn gok">OK</button></div></div>`);
     scan.editor = ed;
     ed.querySelector('.o').value = b.text; ed.querySelector('.t').value = b.tr || '';
@@ -957,6 +957,10 @@ function pageFeatures() {
     ed.querySelector('.no').onclick = close;
     ed.querySelector('.rt').onclick = async () => { ed.querySelector('.t').value = await ipcRenderer.invoke('scan:retranslate', ed.querySelector('.o').value, null).catch(() => ed.querySelector('.t').value); };
     ed.querySelector('.gl').onclick = () => { const g = ed.querySelector('.glx'); g.style.display = 'grid'; const sel = String(getSelection() || '').trim(); ed.querySelector('.gs').value = sel; ed.querySelector('.gs').focus(); };
+    ed.querySelector('.kp').onclick = async () => {
+      const r = await ipcRenderer.invoke('scan:keep', it.key || '', it.blocks.map(x => ({ text: x.text, tr: x.tr }))).catch(() => null);
+      hint(r && r.ok ? pt('Image gardée dans {0}').replace('{0}', r.dir) : pt('Image non disponible : relisez la page puis réessayez'));
+    };
     ed.querySelector('.gok').onclick = async () => {
       const s = ed.querySelector('.gs').value.trim(), t = ed.querySelector('.gt').value.trim(); if (!s || !t) return;
       const list = await ipcRenderer.invoke('scan:glossary').catch(() => []);

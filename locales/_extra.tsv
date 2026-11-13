@@ -1223,3 +1223,21 @@ Clé enregistrée	Key saved	Clave guardada	Chave guardada	Ключ сохран�
 version corrigée	fixed version	versión corregida	versão corrigida	исправленная версия	نسخة مصحّحة
 Traduction IA des scans (facultative)	AI translation of scans (optional)	Traducción de escaneos con IA (opcional)	Tradução de digitalizações com IA (opcional)	Перевод сканов с ИИ (по желанию)	ترجمة المسح بالذكاء الاصطناعي (اختياري)
 Seulement si vous l'activez avec votre propre clé : l'image de la page et le texte lu sont envoyés à Google Gemini.	Only if you turn it on with your own key: the page image and the text read are sent to Google Gemini.	Solo si la activas con tu propia clave: la imagen de la página y el texto leído se envían a Google Gemini.	Só se a ativar com a sua própria chave: a imagem da página e o texto lido são enviados para o Google Gemini.	Только если вы включите его своим ключом: изображение страницы и распознанный текст отправляются в Google Gemini.	فقط إذا فعّلته بمفتاحك الخاص: تُرسل صورة الصفحة والنص المقروء إلى Google Gemini.
+Garder cette image pour l'améliorer	Keep this image to improve it	Guardar esta imagen para mejorarla	Guardar esta imagem para a melhorar	Сохранить изображение для улучшения	الاحتفاظ بهذه الصورة لتحسينها
+Enregistre l'image dans un dossier de votre PC (rien n'est envoyé)	Saves the image in a folder on your PC (nothing is sent)	Guarda la imagen en una carpeta de tu PC (no se envía nada)	Guarda a imagem numa pasta do seu PC (nada é enviado)	Сохраняет изображение в папку на вашем ПК (ничего не отправляется)	يحفظ الصورة في مجلد على حاسوبك (لا يُرسل شيء)
+Image gardée dans {0}	Image kept in {0}	Imagen guardada en {0}	Imagem guardada em {0}	Изображение сохранено в {0}	تم حفظ الصورة في {0}
+Image non disponible : relisez la page puis réessayez	Image not available: read the page again, then try again	Imagen no disponible: vuelve a leer la página y reinténtalo	Imagem indisponível: volte a ler a página e tente novamente	Изображение недоступно: перечитайте страницу и повторите	الصورة غير متاحة: أعد قراءة الصفحة ثم حاول مجددًا
+Pages envoyées à l'IA	Pages sent to the AI	Páginas enviadas a la IA	Páginas enviadas para a IA	Страницы, отправляемые ИИ	الصفحات المرسلة إلى الذكاء الاصطناعي
+Pages difficiles : lecture peu sûre ou mots inconnus. La limite gratuite du jour dure plus longtemps.	Difficult pages: uncertain reading or unknown words. The free daily limit lasts longer.	Páginas difíciles: lectura dudosa o palabras desconocidas. El límite gratuito del día dura más.	Páginas difíceis: leitura duvidosa ou palavras desconhecidas. O limite gratuito do dia dura mais.	Сложные страницы: неуверенное распознавание или незнакомые слова. Бесплатного дневного лимита хватает дольше.	الصفحات الصعبة: قراءة غير مؤكدة أو كلمات مجهولة. يدوم الحد المجاني اليومي أطول.
+Seulement les pages difficiles	Only difficult pages	Solo las páginas difíciles	Só as páginas difíceis	Только сложные страницы	الصفحات الصعبة فقط
+Toutes les pages	All pages	Todas las páginas	Todas as páginas	Все страницы	كل الصفحات
+Organiser la vue côte à côte	Arrange the side-by-side view	Organizar la vista en paralelo	Organizar a vista lado a lado	Настроить просмотр рядом	تنظيم العرض جنبًا إلى جنب
+Vue côte à côte	Side-by-side view	Vista en paralelo	Vista lado a lado	Просмотр рядом	العرض جنبًا إلى جنب
+Inverser les côtés	Swap sides	Intercambiar los lados	Trocar os lados	Поменять стороны	تبديل الجانبين
+Séparer les onglets	Separate the tabs	Separar las pestañas	Separar os separadores	Разделить вкладки	فصل علامات التبويب
+Moitié-moitié	Half and half	Mitad y mitad	Metade-metade	Пополам	نصف ونصف
+Gauche plus large (2/3)	Left wider (2/3)	Izquierda más ancha (2/3)	Esquerda mais larga (2/3)	Левая шире (2/3)	اليسار أعرض (2/3)
+Droite plus large (2/3)	Right wider (2/3)	Derecha más ancha (2/3)	Direita mais larga (2/3)	Правая шире (2/3)	اليمين أعرض (2/3)
+Faire défiler les deux côtés ensemble	Scroll both sides together	Desplazar ambos lados a la vez	Deslocar os dois lados em conjunto	Прокручивать обе стороны вместе	تمرير الجانبين معًا
+Fermer la vue de gauche	Close the left view	Cerrar la vista izquierda	Fechar a vista da esquerda	Закрыть левую сторону	إغلاق العرض الأيسر
+Fermer la vue de droite	Close the right view	Cerrar la vista derecha	Fechar a vista da direita	Закрыть правую сторону	إغلاق العرض الأيمن

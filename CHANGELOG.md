@@ -13,6 +13,13 @@ Grosse mise à jour : téléchargements plus sûrs, navigateur plus complet, sé
 - **Traduction IA (facultative)** avec votre propre clé gratuite Google Gemini, sans paiement : l'IA voit la page et comprend la conversation. Quand la limite gratuite du jour est atteinte, la traduction habituelle prend le relais.
 - Tous les boutons de la barre d'outils se déplacent, y compris ceux des téléchargements.
 - DrYAE reconnaît maintenant une version refaite avec le même numéro et propose de l'installer (« version corrigée »).
+- **Petits caractères mieux lus** : quand un site protège ses images, la zone est redessinée plus grande avant la lecture ; les lignes peu sûres sont relues avec plus de contraste ; plus de corrections (Q lu à la place de R, mots collés « IFYOU », formes courtes « TS » → IT'S, « TVE » → I'VE).
+- **Bulles noires** (texte blanc sur fond sombre) reconnues : la traduction y est écrite en blanc.
+- **Bruitages** : notes « SFX » reconnues même mal lues, lettres japonaises dessinées jamais traduites sur une page anglaise ou française ; **cris et onomatopées** (AHHH, HEHE, FUFU…) gardés tels quels.
+- **Noms coupés en fin de ligne** (« SUMI- / RE ») recollés avant la traduction ; **noms de la série** appris en lisant (un nom mal lu plus loin est corrigé).
+- **Traduction IA** : par défaut, seulement pour les pages difficiles (la limite gratuite du jour dure plus longtemps).
+- Clic droit sur une bulle → **« Garder cette image pour l'améliorer »** : l'image est enregistrée dans Documents\DrYAE\Images à améliorer (rien n'est envoyé).
+- **Vue côte à côte** : menu pour inverser les côtés, choisir la largeur, faire défiler les deux côtés ensemble, séparer ou fermer un côté.
 
 **Téléchargements**
 - **Doublons enfin signalés** : si un fichier est déjà dans la liste ou déjà téléchargé, DrYAE le dit et propose de l'ouvrir, de le télécharger quand même ou de le remplacer. Ça marche aussi pour une liste de liens et pour les torrents (DrYAE propose d'ajouter les nouveaux trackers au torrent existant).
@@ -60,6 +67,13 @@ A big update: safer downloads, a more complete browser, security and accessibili
 - **AI translation (optional)** with your own free Google Gemini key, no payment: the AI sees the page and understands the conversation. When the free daily limit is reached, the usual translation takes over.
 - All toolbar buttons can be moved, including the download ones.
 - DrYAE now recognizes a version rebuilt with the same number and offers to install it ("fixed version").
+- **Small text read better**: when a site protects its images, the area is redrawn larger before reading; uncertain lines are read again with more contrast; more fixes (Q read instead of R, glued words "IFYOU", short forms "TS" → IT'S, "TVE" → I'VE).
+- **Black bubbles** (white text on a dark background) recognized: the translation is written in white.
+- **Sound effects**: "SFX" notes recognized even when misread, drawn Japanese letters never translated on an English or French page; **shouts and onomatopoeia** (AHHH, HEHE, FUFU…) kept as they are.
+- **Names split at the end of a line** ("SUMI- / RE") joined before translating; **series names** learned while reading (a name misread later is fixed).
+- **AI translation**: by default only for difficult pages (the free daily limit lasts longer).
+- Right-click a bubble → **"Keep this image to improve it"**: the image is saved in Documents\DrYAE\Images à améliorer (nothing is sent).
+- **Side-by-side view**: menu to swap sides, choose the width, scroll both sides together, separate or close one side.
 
 **Downloads**
 - **Duplicates are now reported**: if a file is already in the list or already downloaded, DrYAE says so and offers to open it, download it anyway or replace it. This also works for a list of links and for torrents (DrYAE offers to add the new trackers to the existing torrent).

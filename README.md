@@ -6,7 +6,8 @@
 
 ## ✨ Nouveautés de la version 1.6.9 / What's new
 
-- 🖼️ **Traducteur de scans revu** (version refaite) : s'allume seulement quand vous cliquez, plus de grosses bulles, texte effacé et réécrit proprement, corrections de lecture en anglais, **traduction IA facultative** avec votre clé gratuite.
+- 🖼️ **Traducteur de scans revu** (version refaite) : s'allume seulement quand vous cliquez, plus de grosses bulles, texte effacé et réécrit proprement, corrections de lecture en anglais, **traduction IA facultative** avec votre clé gratuite ; petits caractères et bulles noires mieux lus, bruitages et cris laissés intacts.
+- 🪟 **Vue côte à côte** : menu pour inverser, régler la largeur et faire défiler les deux côtés ensemble.
 - ⬇️ **Doublons signalés**, suppression du fichier en option (Corbeille), erreurs expliquées en clair avec reprise automatique, analyse antivirus, aide pour les liens magnet.
 - 🗂️ **Groupes d'onglets, côte à côte, recherche dans les onglets, onglets verticaux**, profils, raccourcis personnalisables.
 - 📖 **Mode lecture, lecture à voix haute, lecteur PDF** (surligner, signer), capture de page entière, code QR, pages hors ligne, notes, panneau latéral.

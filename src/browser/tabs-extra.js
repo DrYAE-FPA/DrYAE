@@ -143,18 +143,54 @@ function layoutSplit() {
     };
     bar.ondblclick = () => { splitRatio = 50; layoutSplit(); localStorage.setItem('dryae-split', 50); };
     bar.onkeydown = e => { if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { splitRatio = Math.max(20, Math.min(80, splitRatio + (e.key === 'ArrowRight' ? 5 : -5))); layoutSplit(); e.preventDefault(); } };
+    // menu de la vue côte à côte : bouton au milieu de la barre (ou clic droit sur la barre)
+    const mb = document.createElement('button'); mb.className = 'splitmenu'; mb.id = 'splitMenu'; mb.innerHTML = ic('more'); mb.title = T('Organiser la vue côte à côte');
+    mb.setAttribute('aria-haspopup', 'menu');
+    mb.onmousedown = e => e.stopPropagation();
+    mb.onclick = e => { e.stopPropagation(); const r = mb.getBoundingClientRect(); splitMenu(r.right + 4, r.top); };
+    bar.appendChild(mb);
+    bar.oncontextmenu = e => { e.preventDefault(); splitMenu(e.clientX, e.clientY); };
     $('#views').appendChild(bar);
   }
   bar.style.left = `calc(${splitRatio}% - 3px)`;
   // côté actif bien visible
   for (const x of [L, R]) x.wv?.classList.toggle('sideon', x === t);
 }
+function setRatio(v) { splitRatio = v; layoutSplit(); localStorage.setItem('dryae-split', v); }
+// défilement lié : les deux pages défilent ensemble (à la même proportion)
+let linkScroll = localStorage.getItem('dryae-split-link') === '1', linkT = 0, linkLast = null;
+function linkTick() {
+  clearTimeout(linkT);
+  if (!linkScroll || !cur?.split || !cur.wv || !cur.split.wv) { linkLast = null; return; }
+  const a = cur, b = cur.split;
+  a.wv.executeJavaScript('(() => { const h = document.documentElement.scrollHeight - innerHeight; return h > 0 ? scrollY / h : 0; })()', false).then(r => {
+    if (linkLast === null || Math.abs(r - linkLast) > 0.002) { linkLast = r; b.wv.executeJavaScript(`(() => { const h = document.documentElement.scrollHeight - innerHeight; if (h > 0) scrollTo(scrollX, ${+r || 0} * h); })()`, false).catch(() => {}); }
+  }).catch(() => {}).finally(() => { linkT = setTimeout(linkTick, 150); });
+}
+function splitMenu(x, y) {
+  const t = cur; if (!t || !t.split) return;
+  const L = t.splitSide === 'l' ? t : t.split, R = L.split;
+  menu(x, y, [
+    { title: 'Vue côte à côte' },
+    { label: T('Inverser les côtés'), icon: 'swap', fn: () => { L.splitSide = 'r'; R.splitSide = 'l'; layoutSplit(); } },
+    { label: T('Séparer les onglets'), icon: 'swap', fn: () => unsplit(t) },
+    '-',
+    { label: T('Moitié-moitié'), check: Math.abs(splitRatio - 50) < 1, fn: () => setRatio(50) },
+    { label: T('Gauche plus large (2/3)'), check: Math.abs(splitRatio - 66.7) < 1, fn: () => setRatio(66.7) },
+    { label: T('Droite plus large (2/3)'), check: Math.abs(splitRatio - 33.3) < 1, fn: () => setRatio(33.3) },
+    '-',
+    { label: T('Faire défiler les deux côtés ensemble'), check: linkScroll, icon: 'link', fn: () => { linkScroll = !linkScroll; localStorage.setItem('dryae-split-link', linkScroll ? '1' : '0'); linkLast = null; linkTick(); } },
+    '-',
+    { label: T('Fermer la vue de gauche'), icon: 'x', fn: () => closeTab(L) },
+    { label: T('Fermer la vue de droite'), icon: 'x', fn: () => closeTab(R) },
+  ]);
+}
 // l'affichage normal, puis la vue côte à côte si l'onglet en fait partie
 const _showView = showView;
 showView = function (tab) {
   $$('webview').forEach(w => { if (!tab.split || (w !== tab.wv && w !== tab.split.wv)) { w.style.left = ''; w.style.width = ''; w.classList.remove('sideon'); } });
   _showView(tab);
-  if (tab.split) layoutSplit(); else $('#splitBar')?.remove();
+  if (tab.split) { layoutSplit(); if (linkScroll) { linkLast = null; linkTick(); } } else $('#splitBar')?.remove();
 };
 // clic dans l'une des deux pages : elle devient l'onglet actif (barre d'adresse, boutons…)
 document.addEventListener('focusin', e => {
@@ -429,4 +465,4 @@ setTimeout(async () => {
   if (!r) return;
   try { const d = await B.call('br:importFrom', list[0].key, { history: r.checked }); toast(T('Importé : {0} favori(s), {1} page(s) d\'historique').replace('{0}', d.bookmarks).replace('{1}', d.history)); } catch (e) { toast(T('Import impossible') + ' : ' + (e.message || e)); }
 }, 4000);
-window.TABSX = { tabSearch, toggleSide, saveOffline, fullShot, showQrPop, splitWith, unsplit, groupBySite, drawGroups, sleepTab, saverTick, GROUPS: () => GROUPS };
+window.TABSX = { splitMenu, tabSearch, toggleSide, saveOffline, fullShot, showQrPop, splitWith, unsplit, groupBySite, drawGroups, sleepTab, saverTick, GROUPS: () => GROUPS };

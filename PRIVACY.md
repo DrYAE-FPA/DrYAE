@@ -14,7 +14,7 @@ DrYAE se connecte à Internet uniquement :
 - pour la **vérification des mots de passe**, seulement quand vous la lancez : les 5 premiers caractères d'une empreinte SHA-1 de chaque mot de passe sont envoyés au service public Pwned Passwords (api.pwnedpasswords.com). Le mot de passe lui-même ne quitte jamais votre PC.
 - pour la **protection contre les sites dangereux** : une fois par semaine, DrYAE télécharge une liste publique de sites d'hameçonnage (Phishing.Database, depuis github.com). La vérification se fait **sur votre PC** : les adresses que vous visitez ne sont envoyées à personne. Cela se désactive dans Paramètres → Confidentialité et sécurité ;
 - pour les **modèles de lecture supplémentaires** du traducteur de scans (coréen, cyrillique, arabe, thaï, devanagari), seulement quand vous les demandez : ils sont téléchargés une fois (depuis huggingface.co ou github.com) puis gardés sur votre PC. Les images ne quittent jamais votre PC ;
-- pour la **traduction IA des scans** (facultative, désactivée par défaut), seulement si vous l'activez avec **votre propre clé** Google Gemini : l'image de la page et le texte lu sont envoyés à Google (generativelanguage.googleapis.com). La clé reste sur votre PC (chiffrée par Windows) ;
+- pour la **traduction IA des scans** (facultative, désactivée par défaut), seulement si vous l'activez avec **votre propre clé** Google Gemini : l'image de la page et le texte lu sont envoyés à Google (generativelanguage.googleapis.com). La clé reste sur votre PC (chiffrée par Windows). Par défaut, seules les pages difficiles à lire sont envoyées ;
 - pour **mettre à jour les extensions Chrome** installées, depuis le Chrome Web Store (désactivable dans les paramètres des extensions) ;
 - pour les **icônes des sites**, demandées au site que vous visitez comme le ferait la page elle-même.
 
@@ -35,7 +35,7 @@ DrYAE only connects to the Internet:
 - for the **password check-up**, only when you run it: the first 5 characters of a SHA-1 hash of each password are sent to the public Pwned Passwords service (api.pwnedpasswords.com). The password itself never leaves your PC.
 - for **dangerous-site protection**: once a week, DrYAE downloads a public list of phishing sites (Phishing.Database, from github.com). The check happens **on your PC**: the addresses you visit are not sent to anyone. You can turn this off in Settings → Privacy and security;
 - for the image text translator's **extra reading models** (Korean, Cyrillic, Arabic, Thai, Devanagari), only when you ask for them: they are downloaded once (from huggingface.co or github.com) and then kept on your PC. Images never leave your PC;
-- for the optional **AI scan translation** (off by default), only if you turn it on with **your own** Google Gemini key: the page image and the text read are sent to Google (generativelanguage.googleapis.com). The key stays on your PC (encrypted by Windows);
+- for the optional **AI scan translation** (off by default), only if you turn it on with **your own** Google Gemini key: the page image and the text read are sent to Google (generativelanguage.googleapis.com). The key stays on your PC (encrypted by Windows). By default, only pages that are hard to read are sent;
 - to **update installed Chrome extensions** from the Chrome Web Store (can be turned off in the extension settings);
 - for **site icons**, requested from the site you visit, as the page itself would.
 
