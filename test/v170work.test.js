@@ -146,6 +146,21 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
   const tt = await b.evaluate(() => document.querySelector('#toast').textContent);
   ok('rappel de pause affiché', /Repos des yeux/.test(tt), tt);
 
+  // --- mode concentration : sites bloqués pendant le travail, libres pendant la pause
+  await b.evaluate(() => WORK.focusDialog()); await wait(500);
+  await b.evaluate(() => { document.querySelector('#fcS').value = '127.0.0.1'; document.querySelector('[data-go]').click(); }); await wait(500);
+  const fb = await b.evaluate(() => ({ shown: getComputedStyle(document.querySelector('#bFocus')).display !== 'none', txt: document.querySelector('#bFocus').textContent }));
+  ok('mode concentration : minuteur affiché dans la barre', fb.shown && /^2[45]:\d\d$/.test(fb.txt), fb);
+  await b.screenshot({ path: OUT + '/focus.png' });
+  await b.evaluate(u => navigate(cur, u + '/bloque'), base); await wait(1500);
+  const fbl = await b.evaluate(() => cur.wv.executeJavaScript('document.body.innerText'));
+  ok('site de la liste bloqué pendant le travail', /Mode concentration/.test(fbl) && /bloqué/.test(fbl), fbl.slice(0, 80));
+  await b.evaluate(() => B.call('br:focus', 'skip')); await wait(300);
+  await b.evaluate(u => navigate(cur, u + '/libre'), base); await wait(1500);
+  ok('pendant la pause, le site s\'ouvre', /Article libre/.test(await b.evaluate(() => cur.wv.executeJavaScript('document.body.innerText'))));
+  await b.evaluate(() => B.call('br:focus', 'stop')); await wait(300);
+  ok('mode concentration arrêté : minuteur caché', await b.evaluate(() => getComputedStyle(document.querySelector('#bFocus')).display === 'none'));
+
   // --- nouvelle fenêtre
   const nW = app.windows().length;
   await b.evaluate(u => B.call('br:newWindow', u + '/fenetre'), base); await wait(3000);

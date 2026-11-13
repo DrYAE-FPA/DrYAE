@@ -195,7 +195,7 @@ module.exports = function work(br) {
   let used = 0, lastEye = 0, lastStand = 0;
   setInterval(() => {
     const R = B().breaks || {}; if (R.on === false || !br.win || br.win.isDestroyed() || !br.view) return;
-    if (!br.win.isVisible() || br.win.isMinimized() || br.present) return;
+    if (!br.win.isVisible() || br.win.isMinimized() || br.present || br.focusOn?.()) return; // le mode concentration a ses propres pauses
     let idle = 0; try { idle = powerMonitor.getSystemIdleTime(); } catch {}
     if (idle > 300) { used = 0; lastEye = 0; lastStand = 0; return; } // 5 minutes sans rien toucher = pause déjà prise
     used += 1;
@@ -227,6 +227,49 @@ module.exports = function work(br) {
       if (j && j.rates) { rates = { base: 'EUR', rates: j.rates, t: (j.time_last_update_unix || 0) * 1000 || Date.now() }; ratesT = Date.now(); }
     } catch {}
     return rates;
+  });
+
+  // ---------------------------------------------------------------- mode concentration (n° 22)
+  // Minuteur de travail (25 min par défaut) puis pause (5 min), en boucle. Pendant le travail, les sites de la liste
+  // sont bloqués dans tous les onglets (pas dans les pages de DrYAE). Tout reste sur ce PC.
+  const FOCUS_SITES = ['facebook.com', 'instagram.com', 'tiktok.com', 'x.com', 'twitter.com', 'youtube.com', 'netflix.com', 'twitch.tv', 'reddit.com', 'snapchat.com'];
+  br.focusSitesDefault = FOCUS_SITES;
+  let F = { on: false }, fT = 0;
+  br.focusOn = () => !!F.on;
+  const focusCfg = () => { const f = B().focus || {}; return { work: Math.min(180, Math.max(5, +f.work || 25)), brk: Math.min(60, Math.max(1, +f.brk || 5)), sites: Array.isArray(f.sites) ? f.sites : FOCUS_SITES }; };
+  const fState = () => ({ ...F, cfg: focusCfg() });
+  const fPush = () => { for (const w of br.uiAll()) w.send('focus-state', fState()); };
+  const hostMatch = (u, list) => { let h = ''; try { h = new URL(u).hostname.replace(/^www\./, ''); } catch { return false; } return list.some(d => { d = String(d).trim().toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/.*$/, ''); return d && (h === d || h.endsWith('.' + d)); }); };
+  br.focusBlocked = u => F.on && F.phase === 'work' && /^https?:/.test(u || '') && hostMatch(u, focusCfg().sites);
+  const blockPage = u => {
+    const end = new Date(F.end).toLocaleTimeString(br.settings.get().lang || 'fr', { hour: '2-digit', minute: '2-digit' });
+    let host = ''; try { host = new URL(u).hostname; } catch {}
+    const e = x => String(x).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+    return 'data:text/html;charset=utf-8,' + encodeURIComponent(`<!doctype html><meta charset="utf-8"><title>${e(T('Mode concentration'))}</title><body style="margin:0;height:100vh;display:grid;place-items:center;background:#0d0f14;color:#e9ebf1;font:16px 'Segoe UI',sans-serif;text-align:center"><div><div style="font-size:52px">🎯</div><h1 style="font-weight:600;margin:10px 0">${e(T('Mode concentration'))}</h1><p style="color:#9aa3b5">${e(T('{0} est bloqué jusqu\'à la pause ({1}).').replace('{0}', host).replace('{1}', end))}</p><p style="color:#9aa3b5;font-size:13px">${e(T('Pour arrêter : bouton du minuteur dans la barre d\'outils.'))}</p></div></body>`);
+  };
+  const enforce = wc => { try { if (!wc.isDestroyed() && br.focusBlocked(wc.getURL())) wc.loadURL(blockPage(wc.getURL())); } catch {} };
+  app.on('web-contents-created', (_e, wc) => {
+    if (wc.getType() !== 'webview') return;
+    wc.on('did-start-navigation', (ev) => { const u = ev.url; if (!ev.isMainFrame || !br.focusBlocked(u)) return; setImmediate(() => { try { wc.stop(); wc.loadURL(blockPage(u)); } catch {} }); });
+  });
+  const phase = (ph) => {
+    clearTimeout(fT);
+    const c = focusCfg();
+    F = { on: true, phase: ph, end: Date.now() + (ph === 'work' ? c.work : c.brk) * 60e3, cycles: (F.cycles || 0) + (ph === 'work' ? 1 : 0) };
+    fT = setTimeout(() => {
+      const next = F.phase === 'work' ? 'break' : 'work';
+      try { br.main.notify(T('Mode concentration'), T(next === 'break' ? 'Pause ! Levez-vous quelques minutes.' : 'La pause est finie : au travail !')); } catch {}
+      phase(next);
+    }, F.end - Date.now());
+    if (ph === 'work') webContents.getAllWebContents().filter(w => w.getType() === 'webview').forEach(enforce);
+    fPush();
+  };
+  ipcMain.handle('br:focus', (_e, act, o) => {
+    if (act === 'start') { if (o) br.settings.set({ browser: { focus: { work: +o.work || 25, brk: +o.brk || 5, sites: (o.sites || []).map(x => String(x).trim()).filter(Boolean).slice(0, 200) } } }); F = { on: false, cycles: 0 }; phase('work'); }
+    else if (act === 'skip' && F.on) phase(F.phase === 'work' ? 'break' : 'work');
+    else if (act === 'stop') { clearTimeout(fT); F = { on: false }; fPush(); }
+    // 'state' : simple lecture
+    return fState();
   });
 
   // ---------------------------------------------------------------- mode présentation

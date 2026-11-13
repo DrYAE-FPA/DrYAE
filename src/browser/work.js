@@ -287,6 +287,7 @@ function commands() {
     web && { label: T('Ajouter cette page à une collection'), icon: 'col', fn: async () => { const l = await B.call('br:cols'); await B.call('br:colAdd', (l.find(x => x.id === colSel) || l[0] || {}).id || null, { type: 'page', url: cur.url, title: cur.title }); } },
     web && { label: T('Citer cette page'), icon: 'quote', fn: () => cite() },
     { label: T('Mode présentation'), icon: 'present', fn: () => present(true) },
+    { label: T('Mode concentration'), icon: 'focus', fn: focusDialog },
     { label: T('Surlignages et notes de la page'), icon: 'file', fn: () => window.TABSX?.toggleSide('notes') },
     ...CTN.map(c => ({ label: TF('Nouvel onglet dans « {0} »', c.name), path: T('Conteneurs'), icon: 'box', fn: () => newTab('', { container: c.id }) })),
     tabs.length > 1 && cur?.url && { label: T('Afficher côte à côte avec l\'onglet précédent'), icon: 'swap', fn: () => { const i = tabs.indexOf(cur); const o = tabs[i > 0 ? i - 1 : 1]; if (o?.url) window.TABSX?.splitWith(cur, o); } },
@@ -395,8 +396,59 @@ async function calc(q) {
   try { const v = evalExpr(s); if (!isFinite(v)) return null; return { text: `${s} = ${nf(v, 10)}`, copy: String(+v.toFixed(10)) }; } catch { return null; }
 }
 
+// ---------------------------------------------------------------- mode concentration (minuteur + sites bloqués)
+let FS = { on: false };
+const mmss = ms => { const t = Math.max(0, Math.round(ms / 1000)); return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'); };
+let fBtn = null;
+function focusBtn() {
+  if (fBtn) return fBtn;
+  fBtn = document.createElement('button'); fBtn.className = 'tb'; fBtn.id = 'bFocus';
+  fBtn.style.cssText = 'width:auto;padding:0 8px;gap:5px;font:600 12px "Segoe UI",sans-serif;display:none;align-items:center';
+  $('#bMenu').before(fBtn);
+  fBtn.onclick = e => { const r = fBtn.getBoundingClientRect(); menu(r.left, r.bottom + 4, [
+    { label: FS.phase === 'work' ? 'Passer à la pause' : 'Reprendre le travail', icon: 'fwd', fn: () => B.call('br:focus', 'skip') },
+    { label: 'Arrêter le mode concentration', icon: 'x', fn: () => B.call('br:focus', 'stop').then(() => toast('Mode concentration arrêté')) },
+  ]); };
+  return fBtn;
+}
+function drawFocus() {
+  const b = focusBtn();
+  if (!FS.on) { b.style.display = 'none'; return; }
+  b.style.display = 'inline-flex';
+  b.style.color = FS.phase === 'work' ? 'var(--accent)' : '#22c55e';
+  b.innerHTML = `${ic(FS.phase === 'work' ? 'focus' : 'clock')}<span class="notr">${mmss(FS.end - Date.now())}</span>`;
+  b.title = T(FS.phase === 'work' ? 'Mode concentration : travail (sites qui distraient bloqués)' : 'Mode concentration : pause');
+}
+B.on('focus-state', st => { const was = FS; FS = st || { on: false }; drawFocus(); if (FS.on && was.phase && was.phase !== FS.phase) _toast(T(FS.phase === 'break' ? 'Pause ! Levez-vous quelques minutes.' : 'La pause est finie : au travail !')); });
+setInterval(() => { if (FS.on) drawFocus(); }, 1000);
+B.call('br:focus', 'state').then(st => { FS = st || FS; drawFocus(); }).catch(() => {});
+function focusDialog() {
+  B.call('br:focus', 'state').then(st => {
+    const c = st.cfg || { work: 25, brk: 5, sites: [] };
+    const M = modal(`<h3 style="display:flex;align-items:center;gap:8px">${ic('focus')}${esc(T('Mode concentration'))}</h3>
+      <p class="hint" style="margin:4px 0 12px">${esc(T('Un minuteur de travail puis une pause, en boucle. Pendant le travail, les sites de la liste sont bloqués dans tous les onglets.'))}</p>
+      <div style="display:grid;grid-template-columns:auto 90px auto;gap:8px 10px;align-items:center">
+        <label>${esc(T('Travail'))}</label><input type="number" id="fcW" min="5" max="180" value="${c.work}"><span>${esc(T('minutes'))}</span>
+        <label>${esc(T('Pause'))}</label><input type="number" id="fcB" min="1" max="60" value="${c.brk}"><span>${esc(T('minutes'))}</span>
+      </div>
+      <label style="display:block;margin:12px 0 4px">${esc(T('Sites bloqués pendant le travail (un par ligne)'))}</label>
+      <textarea id="fcS" rows="7" style="width:100%;font:13px 'Segoe UI',sans-serif;min-height:120px">${esc(c.sites.join('\n'))}</textarea>
+      <div class="modal-foot">${st.on ? `<button class="btn" data-stop>${esc(T('Arrêter'))}</button>` : ''}<button class="btn" data-x>${esc(T('Annuler'))}</button><button class="btn primary" data-go>${esc(T(st.on ? 'Recommencer' : 'Démarrer'))}</button></div>`, 520);
+    const q = x => M.box.querySelector(x);
+    M.box.querySelectorAll('input,textarea').forEach(i => i.onkeydown = e => { if (e.key !== 'Escape') e.stopPropagation(); });
+    M.box.querySelectorAll('input[type=number]').forEach(i => i.style.cssText = 'background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 8px;color:var(--text);width:90px');
+    q('[data-x]').onclick = M.close;
+    if (q('[data-stop]')) q('[data-stop]').onclick = async () => { await B.call('br:focus', 'stop'); M.close(); toast('Mode concentration arrêté'); };
+    q('[data-go]').onclick = async () => {
+      await B.call('br:focus', 'start', { work: +q('#fcW').value, brk: +q('#fcB').value, sites: q('#fcS').value.split(/[\n,;]+/) });
+      M.close(); toast(TF('Mode concentration : {0} minutes de travail', Math.min(180, Math.max(5, +q('#fcW').value || 25))));
+    };
+    setTimeout(() => q('[data-go]').focus(), 30);
+  });
+}
+
 // ---------------------------------------------------------------- panneau latéral : branchement
 async function drawSide(kind, body) { if (kind === 'ws') return drawSpaces(body); if (kind === 'col') return drawCols(body); }
 
-window.WORK = { drawSide, drawMarks, ctnMenu, ctnColor, palette, cite, present, calc, speedMenu, evalExpr, citeFormats, isPresent: () => presOn };
+window.WORK = { focusDialog, isFocus: () => !!FS.on, drawSide, drawMarks, ctnMenu, ctnColor, palette, cite, present, calc, speedMenu, evalExpr, citeFormats, isPresent: () => presOn };
 })();

@@ -153,6 +153,7 @@ DRM-protected videos (Netflix, Disney+…) cannot be downloaded.
 - **Calculations and conversions in the address bar**: "15% of 2400", "5 km in miles", "100 °F in °C", "30 euros in FCFA". The result appears under the bar; click it to copy.
 - **Video speed** (×0.5 to ×3): right-click the video → **Playback speed**, or ⋮ menu → More tools. The speed is remembered for the site. In the **manager's player**, choose the speed at the top right (keys < and >).
 - **Presentation mode** (⋮ menu → More tools): the page full screen, without bars, with a large cursor. Hold **Alt** and move the mouse to point out a passage (the yellow trail fades by itself). Notifications are muted. **Esc** to exit.
+- **Focus mode** (⋮ menu → More tools → Focus mode…): choose the work and break lengths and the list of distracting sites, then **Start**. During work these sites are blocked in every tab; the timer shows in the toolbar (click it to skip to the break or stop). Break reminders are paused during this mode.
 - **Break reminders**: every 20 minutes, "look into the distance for 20 seconds"; every hour, "stand up". Adjust or turn off in Settings → **Work and study**.
 - **Inactive tabs**: DrYAE offers to tidy up tabs you haven't opened for 7 days; they stay in **Workspaces → Inactive tabs** so you can reopen them.
 - **History**: search also finds a page by a word in its text. The text stays on your PC, never for private tabs.

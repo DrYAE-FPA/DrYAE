@@ -1417,3 +1417,20 @@ Ne sera jamais traduit	Will never be translated	No se traducirá nunca	Nunca ser
 Clic : original / traduction · clic droit : corriger	Click: original / translation · right-click: fix	Clic: original / traducción · clic derecho: corregir	Clique: original / tradução · botão direito: corrigir	Щелчок: оригинал / перевод · правый щелчок: исправить	نقرة: الأصل / الترجمة · نقرة بالزر الأيمن: تصحيح
 Nouvelle fenêtre	New window	Nueva ventana	Nova janela	Новое окно	نافذة جديدة
 Déplacer vers une nouvelle fenêtre	Move to a new window	Mover a una nueva ventana	Mover para uma nova janela	Переместить в новое окно	نقل إلى نافذة جديدة
+Mode concentration	Focus mode	Modo concentración	Modo de concentração	Режим концентрации	وضع التركيز
+Mode concentration…	Focus mode…	Modo concentración…	Modo de concentração…	Режим концентрации…	وضع التركيز…
+{0} est bloqué jusqu'à la pause ({1}).	{0} is blocked until the break ({1}).	{0} está bloqueado hasta la pausa ({1}).	{0} está bloqueado até à pausa ({1}).	{0} заблокирован до перерыва ({1}).	{0} محظور حتى الاستراحة ({1}).
+Pour arrêter : bouton du minuteur dans la barre d'outils.	To stop: timer button in the toolbar.	Para detener: botón del temporizador en la barra de herramientas.	Para parar: botão do temporizador na barra de ferramentas.	Чтобы остановить: кнопка таймера на панели инструментов.	للإيقاف: زر المؤقت في شريط الأدوات.
+Pause ! Levez-vous quelques minutes.	Break! Stand up for a few minutes.	¡Pausa! Levántese unos minutos.	Pausa! Levante-se durante alguns minutos.	Перерыв! Встаньте на несколько минут.	استراحة! قف لبضع دقائق.
+La pause est finie : au travail !	The break is over: back to work!	Se acabó la pausa: ¡a trabajar!	A pausa acabou: ao trabalho!	Перерыв окончен: за работу!	انتهت الاستراحة: إلى العمل!
+Passer à la pause	Skip to the break	Pasar a la pausa	Passar à pausa	Перейти к перерыву	الانتقال إلى الاستراحة
+Reprendre le travail	Back to work	Volver al trabajo	Retomar o trabalho	Вернуться к работе	العودة إلى العمل
+Arrêter le mode concentration	Stop focus mode	Detener el modo concentración	Parar o modo de concentração	Остановить режим концентрации	إيقاف وضع التركيز
+Mode concentration arrêté	Focus mode stopped	Modo concentración detenido	Modo de concentração parado	Режим концентрации остановлен	تم إيقاف وضع التركيز
+Mode concentration : travail (sites qui distraient bloqués)	Focus mode: work (distracting sites blocked)	Modo concentración: trabajo (sitios que distraen bloqueados)	Modo de concentração: trabalho (sites que distraem bloqueados)	Режим концентрации: работа (отвлекающие сайты заблокированы)	وضع التركيز: عمل (المواقع المشتتة محظورة)
+Mode concentration : pause	Focus mode: break	Modo concentración: pausa	Modo de concentração: pausa	Режим концентрации: перерыв	وضع التركيز: استراحة
+Un minuteur de travail puis une pause, en boucle. Pendant le travail, les sites de la liste sont bloqués dans tous les onglets.	A work timer then a break, over and over. During work, the sites on the list are blocked in every tab.	Un temporizador de trabajo y luego una pausa, en bucle. Durante el trabajo, los sitios de la lista se bloquean en todas las pestañas.	Um temporizador de trabalho e depois uma pausa, em ciclo. Durante o trabalho, os sites da lista ficam bloqueados em todos os separadores.	Таймер работы, затем перерыв, по кругу. Во время работы сайты из списка блокируются во всех вкладках.	مؤقت للعمل ثم استراحة، بشكل متكرر. أثناء العمل تُحظر المواقع الموجودة في القائمة في جميع علامات التبويب.
+Travail	Work	Trabajo	Trabalho	Работа	العمل
+Sites bloqués pendant le travail (un par ligne)	Sites blocked during work (one per line)	Sitios bloqueados durante el trabajo (uno por línea)	Sites bloqueados durante o trabalho (um por linha)	Сайты, блокируемые во время работы (по одному в строке)	المواقع المحظورة أثناء العمل (موقع في كل سطر)
+Démarrer	Start	Iniciar	Iniciar	Начать	بدء
+Mode concentration : {0} minutes de travail	Focus mode: {0} minutes of work	Modo concentración: {0} minutos de trabajo	Modo de concentração: {0} minutos de trabalho	Режим концентрации: {0} мин работы	وضع التركيز: {0} دقيقة من العمل

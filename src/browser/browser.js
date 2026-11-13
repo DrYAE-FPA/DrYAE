@@ -346,6 +346,7 @@ function mainMenu() {
       { label: 'Palette de commandes', icon: 'cmd', key: 'Ctrl+K', fn: () => window.WORK?.palette() },
       { label: 'Citer cette page…', icon: 'quote', fn: () => window.WORK?.cite(), disabled: !web },
       { label: 'Mode présentation', icon: 'present', check: !!window.WORK?.isPresent(), fn: () => window.WORK?.present() },
+      { label: 'Mode concentration…', icon: 'focus', check: !!window.WORK?.isFocus(), fn: () => window.WORK?.focusDialog() },
       { label: 'Vitesse des vidéos', icon: 'speed', sub: () => window.WORK?.speedMenu() || [], disabled: !web },
       '-',
       { label: 'Capture de la page entière', icon: 'crop', fn: () => window.TABSX?.fullShot(), disabled: !web },
@@ -692,7 +693,7 @@ const KEY_ACTIONS = () => ({
   bookmark: starClick, bookmarks: () => openPage('bookmarks'), bar: toggleBar, history: () => openPage('history'), downloads: openDownloads, extensions: () => openPage('extensions'), settings: () => openPage('settings'),
   zoomIn: () => zoom(1), zoomOut: () => zoom(-1), zoomReset: () => zoom(0), fullscreen: () => B.call('br:fullscreen'), print: () => cur?.wcId && B.call('br:print', cur.wcId), mute: toggleMute,
   reader: () => readerMode(), speak: () => readAloud(), translate: () => modOn('translate') && pageCmd('translate-selection'), scanZone: () => modOn('scan') && pageCmd('scan-region'), lights: () => modOn('lights') && pageCmd('lights'),
-  side: () => window.TABSX?.toggleSide(), newWindow: () => B.call('br:newWindow', ''), palette: () => window.WORK?.palette(), present: () => window.WORK?.present(), spaces: () => window.TABSX?.toggleSide('ws'), cols: () => window.TABSX?.toggleSide('col'), cite: () => window.WORK?.cite(), shot: () => window.TABSX?.fullShot(), offline: () => window.TABSX?.saveOffline(), qr: () => window.TABSX?.showQrPop(), tasks: () => openPage('tasks'), manager: () => B.call('br:openMain'),
+  side: () => window.TABSX?.toggleSide(), newWindow: () => B.call('br:newWindow', ''), palette: () => window.WORK?.palette(), focus: () => window.WORK?.focusDialog(), present: () => window.WORK?.present(), spaces: () => window.TABSX?.toggleSide('ws'), cols: () => window.TABSX?.toggleSide('col'), cite: () => window.WORK?.cite(), shot: () => window.TABSX?.fullShot(), offline: () => window.TABSX?.saveOffline(), qr: () => window.TABSX?.showQrPop(), tasks: () => openPage('tasks'), manager: () => B.call('br:openMain'),
 });
 function customKey(k, ctrl, shift, alt) {
   const map = Object.fromEntries((CFG.keyList || []).map(x => [x.id, x.c])); if (!Object.keys(map).length) return false;
