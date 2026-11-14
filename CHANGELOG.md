@@ -6,6 +6,9 @@
 Une version pour les longues sessions de travail (étudiants, professeurs, travailleurs), un traducteur de scans plus juste et DrYAE comme navigateur par défaut.
 
 **Version refaite**
+- **Correction importante du traducteur de scans sous Windows** : les dictionnaires anglais et français étaient lus de travers sous Windows (fins de ligne propres à Windows) et restaient vides pour DrYAE. Conséquences : les U lus comme des L (« BLT » au lieu de BUT), les G lus comme des 6 (« 6OOD ») et les mots collés n'étaient jamais corrigés, et des mots ordinaires (SOMEONE, AGAIN, SAME HERE) étaient pris pour des noms et laissés en anglais. C'est corrigé. En plus : « IHOPE » → I HOPE, « ILL HELP » → I'LL HELP, « OU ARE » → YOU ARE.
+- **Nouvelle fenêtre vraiment indépendante** : « Téléchargements » ouvre le gestionnaire dans la fenêtre où l'on clique, et le bouton Navigateur de ce gestionnaire revient dans cette même fenêtre. Les données restent les mêmes partout (téléchargements, paramètres, favoris…).
+- **Paramètres** : en bas de la page, la section choisie dans la liste (« À propos de DrYAE », « Réinitialiser »…) est bien marquée.
 - **Nouvelle fenêtre : téléchargements dans la bonne fenêtre** : le bouton Téléchargements d'une fenêtre ouverte avec Ctrl+N affiche la liste des téléchargements dans cette fenêtre (avant, il ouvrait le gestionnaire dans la première fenêtre).
 - **Paramètres** : en bas de la page, la liste de gauche marque bien « Réinitialiser », « Extensions » ou « À propos de DrYAE » (avant, elle restait bloquée sur « Système »).
 - **Traducteur de scans, BD et mangas en français mieux lus** (corrections tirées de vraies pages) : mots collés séparés (« JESUIS » → JE SUIS, « J'AIPEUR » → J'AI PEUR, « N'ESTCEPAS » → N'EST-CE PAS), apostrophe oubliée remise (« CEST » → C'EST), « UINE » → UNE, accents mal lus corrigés (« ÉTRE » → ÊTRE, « SÜR » → SÛR). Pour la traduction, les accents oubliés par le lettrage en majuscules sont remis (« CA » → ça, « ETRE » → être, « BIEN SUR » → bien sûr) : le texte traduit est plus juste.
@@ -53,6 +56,9 @@ Ne téléchargez que ce que vous avez le droit de copier.
 A release for long work sessions (students, teachers, workers), a more accurate image text translator, and DrYAE as your default browser.
 
 **Rebuilt version**
+- **Important fix to the image text translator on Windows**: the English and French dictionaries were read incorrectly on Windows (Windows line endings) and stayed empty for DrYAE. As a result, U read as L ("BLT" instead of BUT), G read as 6 ("6OOD") and stuck-together words were never fixed, and ordinary words (SOMEONE, AGAIN, SAME HERE) were taken for names and left in English. This is fixed. Also: "IHOPE" → I HOPE, "ILL HELP" → I'LL HELP, "OU ARE" → YOU ARE.
+- **New window truly independent**: "Downloads" opens the manager in the window you click in, and that manager's Browser button comes back to the same window. Data stays the same everywhere (downloads, settings, bookmarks…).
+- **Settings**: at the bottom of the page, the section picked in the list ("About DrYAE", "Reset"…) is correctly highlighted.
 - **New window: downloads in the right window**: the Downloads button of a window opened with Ctrl+N shows the downloads list in that window (before, it opened the manager in the first window).
 - **Settings**: at the bottom of the page, the left list now highlights "Reset", "Extensions" or "About DrYAE" (before, it stayed stuck on "System").
 - **Image text translator, French comics and manga read better** (fixes taken from real pages): stuck-together words split ("JESUIS" → JE SUIS, "N'ESTCEPAS" → N'EST-CE PAS), missing apostrophes restored ("CEST" → C'EST), "UINE" → UNE, misread accents fixed ("ÉTRE" → ÊTRE). For translation, accents left out by capital-letter lettering are restored ("CA" → ça, "BIEN SUR" → bien sûr), so the translation is more accurate.

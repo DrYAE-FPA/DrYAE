@@ -91,7 +91,8 @@ const api = {
   },
 };
 
-function send(ch, v) { if (win && !win.isDestroyed()) win.webContents.send(ch, v); }
+// 1.7.0 : envoyé aussi au gestionnaire de chaque fenêtre ouverte avec « Nouvelle fenêtre » (mêmes données partout)
+function send(ch, v) { if (win && !win.isDestroyed()) win.webContents.send(ch, v); try { for (const m of browser?.extraMgrWcs?.() || []) if (!m.isDestroyed()) m.send(ch, v); } catch {} }
 // état de la mise à jour : envoyé au gestionnaire, au navigateur et aux pages internes (icône visible partout)
 function sendUpd(ch, v) { send(ch, v); try { browser?.wc?.send(ch, v); } catch {} pages.broadcast(ch, v); }
 
@@ -318,7 +319,7 @@ async function report() {
 }
 const IPCF = {}; // fonctions IPC appelables aussi depuis le navigateur
 const H = (ch, fn) => { IPCF[ch] = fn; return H0(ch, fn); };
-const H0 = (ch, fn) => ipcMain.handle(ch, async (_e, ...a) => { try { return { ok: true, v: await fn(...a) }; } catch (e) { return { ok: false, error: e.message || String(e) }; } });
+const H0 = (ch, fn) => ipcMain.handle(ch, async (_e, ...a) => { global.DRYAE_SENDER = _e.sender; try { return { ok: true, v: await fn(...a) }; } catch (e) { return { ok: false, error: e.message || String(e) }; } });
 
 H('list', () => manager.views());
 H('undoRemove', () => manager.undoRemove());
@@ -484,7 +485,7 @@ H('openNotices', () => {
   for (const p of [path.join(process.resourcesPath || '', 'THIRD_PARTY_NOTICES.txt'), path.join(__dirname, '..', '..', 'THIRD_PARTY_NOTICES.txt')]) if (fs.existsSync(p)) return shell.openPath(p);
 });
 H('openExternal', u => { if (/^(https?:|mailto:|ms-settings:)/i.test(String(u))) shell.openExternal(u); });
-H('openBrowser', (url, incognito) => browser.open(url, { incognito }));
+H('openBrowser', (url, incognito) => browser.open(url, { incognito, from: global.DRYAE_SENDER }));
 H('cancelShutdown', () => tools.cancelShutdown());
 H('registerMagnet', () => {
   const ok = process.defaultApp ? app.setAsDefaultProtocolClient('magnet', process.execPath, [path.resolve(process.argv[1])]) : app.setAsDefaultProtocolClient('magnet');

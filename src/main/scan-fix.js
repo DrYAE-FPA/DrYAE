@@ -14,7 +14,7 @@ function load() {
   DICT = new Map();
   try {
     let tier = 0;
-    for (const l of fs.readFileSync(path.join(__dirname, '..', '..', 'assets', 'dict', 'en-words.txt'), 'utf8').split('\n')) {
+    for (const l of fs.readFileSync(path.join(__dirname, '..', '..', 'assets', 'dict', 'en-words.txt'), 'utf8').split(/\r?\n/)) {
       if (!l) continue;
       if (l[0] === '#') { tier = { 10: 0, 20: 1, 35: 2, 40: 3, 50: 4, 55: 5, 60: 6 }[l.slice(1)] ?? 6; continue; }
       if (!DICT.has(l)) DICT.set(l, tier);
@@ -157,11 +157,16 @@ function fixWords(text) {
     if (ps && !known(ps[1]) && !APOS.has(w)) { const c = correct1(ps[1]) || (correct(ps[1]) ? { w: correct(ps[1]) } : null); if (c) { const core = m.replace(/['’]s$/i, ''); return likeCase(core, c.w) + m.slice(core.length); } return m; }
     // « T'S » → IT'S
     // mot inconnu : d'abord une lettre mal lue toute simple, sinon des mots collés, sinon une correction plus large
+    // « I » collé au mot suivant : « IHOPE » → I HOPE, « ITHINK » → I THINK (avant : « HOPE », le I perdu)
+    if (/^i[a-z]{3,}$/.test(w) && !known(w) && !APOS.has(w) && known(w.slice(1)) && rank(w.slice(1)) <= 2) { const core = m.replace(/^'+|'+$/g, ''); return m.replace(core, likeCase(core, 'i ' + w.slice(1)).replace(/^i /, 'I ')); }
     const c1 = known(w) || APOS.has(w) ? null : correct1(w);
     const c = (c1 && c1.c <= 1.25 ? c1.w : '') || split(w) || correct(w) || (w.includes("'") && known('i' + w) ? 'i' + w : '');
     const core = m.replace(/^'+|'+$/g, '');
     return c ? m.replace(core, likeCase(core, c)) : m;
   });
+  // apostrophe non lue : « ILL HELP » → I'LL HELP ; « Y » non lu en début de bulle : « OU ARE » → YOU ARE
+  text = String(text).replace(/\b(ill)(\s+)(be|help|go|do|get|take|make|show|tell|kill|find|come|give|need|have|try|protect|never|always|just|see|wait|bring|beat|win|stop|let|keep|leave|return|handle|teach|pay|call|buy)\b/gi, (m, a, s2, v) => (a === a.toUpperCase() ? "I'LL" : "I'll") + s2 + v);
+  text = String(text).replace(/(^|[.…!?"“«\s])(ou)(\s+)(are|were|know|can|can't|don't|will|won't|should|must|have|see|look|need|want|guys|bastard|idiot|again|too)\b/gi, (m, b, a, s2, v) => b + (a === a.toUpperCase() ? 'YOU' : 'you') + s2 + v);
   // lettre isolée après « WILL », « TO »… : « BE » mal lu (« YOU WILL E ENTRUSTING »)
   text = String(text).replace(/\b(will|would|can|could|should|must|might|may|to|not|won't|can't|don't)(\s+)[eb]\b(?!['’])/gi, (m, a, s) => a + s + (a === a.toUpperCase() ? 'BE' : 'be'));
   return text;
@@ -280,7 +285,7 @@ function loadFr() {
   if (FR) return FR;
   FR = new Set(); FRK = new Map(); FRT = new Set(FR_TOP.map(strip));
   try {
-    for (const w of fs.readFileSync(path.join(__dirname, '..', '..', 'assets', 'dict', 'fr-words.txt'), 'utf8').split('\n')) {
+    for (const w of fs.readFileSync(path.join(__dirname, '..', '..', 'assets', 'dict', 'fr-words.txt'), 'utf8').split(/\r?\n/)) {
       if (!w) continue; FR.add(w); const k = strip(w); if (!FRK.has(k)) FRK.set(k, w);
     }
   } catch {}

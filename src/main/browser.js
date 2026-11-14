@@ -109,29 +109,51 @@ class WebBrowser {
     return this.view && !this.view.webContents.isDestroyed() ? this.view.webContents : null;
   }
   get mainWc() { return this.view && !this.view.webContents.isDestroyed() ? this.view.webContents : null; }
-  uiAll() { return [this.mainWc, ...[...(this.extraWins || [])].map(w => (w.isDestroyed() ? null : w.webContents))].filter(Boolean); }
+  uiAll() { return [this.mainWc, ...[...(this.extraWins || [])].map(w => (w.isDestroyed() || !w._view ? null : w._view.webContents))].filter(w => w && !w.isDestroyed()); }
   isUi(wc) { return this.uiAll().includes(wc); }
   isExtraUi(wc) { return !!wc && wc !== this.mainWc && this.isUi(wc); }
   // 1.7.0 : « Nouvelle fenêtre » (Ctrl+N) — une autre fenêtre du navigateur, avec ses propres onglets
   newWindow(url = '', opts = {}) {
     if (!this.mainWc) { this.open(url, opts); return; }
-    const { BrowserWindow: BW } = require('electron');
+    const { BrowserWindow: BW, WebContentsView: WCV } = require('electron');
     const base = this.win && !this.win.isDestroyed() ? this.win.getBounds() : { width: 1240, height: 800 };
-    const w = new BW({ width: base.width, height: base.height, x: base.x != null ? base.x + 30 : undefined, y: base.y != null ? base.y + 30 : undefined, minWidth: 700, minHeight: 480,
+    // 1.7.0 : chaque nouvelle fenêtre a son propre gestionnaire (dessous) et son propre navigateur (dessus), comme la
+    // fenêtre principale. Les données sont les mêmes partout : téléchargements, paramètres, favoris…
+    const w = new BW({ width: base.width, height: base.height, x: base.x != null ? base.x + 30 : undefined, y: base.y != null ? base.y + 30 : undefined, minWidth: 900, minHeight: 560,
       title: (global.DRYAE_T || (s => s))('DrYAE — Navigateur'), backgroundColor: '#0d0f14', autoHideMenuBar: true, show: false,
       icon: this.win?.getIcon?.() || undefined,
-      webPreferences: { preload: this.uiPreload(), webviewTag: true, contextIsolation: true, sandbox: true } });
+      webPreferences: { preload: path.join(__dirname, '..', 'ui', 'preload.js'), contextIsolation: true } });
     w.setMenu(null);
+    w.loadFile(path.join(__dirname, '..', 'ui', 'index.html'));
+    const view = new WCV({ webPreferences: { preload: this.uiPreload(), webviewTag: true, contextIsolation: true, sandbox: true } });
+    w.contentView.addChildView(view); w._view = view;
+    const fit = () => { if (w.isDestroyed()) return; const [cw, ch] = w.getContentSize(); view.setBounds({ x: 0, y: 0, width: cw, height: ch }); };
+    w.on('resize', fit); fit();
     (this.extraWins || (this.extraWins = new Set())).add(w);
-    const wc = w.webContents;
+    const wc = view.webContents;
     wc.on('will-attach-webview', (_e, prefs) => { prefs.contextIsolation = true; prefs.sandbox = true; prefs.nodeIntegration = false; prefs.nodeIntegrationInSubFrames = true; delete prefs.preload; });
     wc.on('dom-ready', () => { try { const e = this.main.a11y?.(); if (e) wc.setZoomFactor(e.scale / 100); } catch {} });
-    w.on('focus', () => { this._activeUi = wc; });
+    w.on('focus', () => { this._activeUi = view.getVisible() ? wc : null; if (view.getVisible()) wc.focus(); });
     w.on('app-command', (_e, cmd) => { if (!wc.isDestroyed()) wc.send('app-cmd', cmd); });
-    w.on('closed', () => { this.extraWins.delete(w); if (this._activeUi === wc || this._activeUi?.isDestroyed?.()) this._activeUi = null; });
+    w.on('closed', () => { this.extraWins.delete(w); if (this._activeUi === wc || this._activeUi?.isDestroyed?.()) this._activeUi = null; try { wc.close(); } catch {} });
+    // le navigateur de cette fenêtre se ferme avec son dernier onglet : la fenêtre entière se ferme
+    wc.on('destroyed', () => { if (!w.isDestroyed()) w.close(); });
     wc.loadFile(path.join(__dirname, '..', 'browser', 'browser.html'), { query: { win: 'extra' } });
-    wc.once('did-finish-load', () => { wc.send('open-url', { url: url || '', incognito: !!opts.incognito }); w.show(); w.focus(); this._activeUi = wc; });
+    wc.once('did-finish-load', () => { wc.send('open-url', { url: url || '', incognito: !!opts.incognito }); w.show(); w.focus(); this._activeUi = wc; wc.focus(); });
     return w;
+  }
+  extraOf(wc) { if (!wc) return null; for (const w of this.extraWins || []) if (!w.isDestroyed() && (w.webContents === wc || w._view?.webContents === wc || wc.hostWebContents === w._view?.webContents)) return w; return null; }
+  extraMgrWcs() { return [...(this.extraWins || [])].filter(w => !w.isDestroyed()).map(w => w.webContents); }
+  // dans une nouvelle fenêtre : passer de son navigateur à son gestionnaire, et inversement
+  extraShow(w, browserSide, url, incognito) {
+    if (!w || w.isDestroyed()) return;
+    if (w.isMinimized()) w.restore();
+    w.show(); w._view.setVisible(!!browserSide);
+    const t = global.DRYAE_T || (s => s);
+    w.setTitle(browserSide ? t('DrYAE — Navigateur') : 'DrYAE');
+    if (browserSide) { this._activeUi = w._view.webContents; w._view.webContents.focus(); if (url || incognito) w._view.webContents.send('open-url', { url: url || '', incognito: !!incognito }); }
+    else { this._activeUi = null; w.webContents.focus(); w.webContents.send('mode', 'manager'); }
+    w.focus();
   }
   visible() { return !!(this.view && this.view.getVisible && this.view.getVisible()); }
   onQuit() {
@@ -617,6 +639,7 @@ class WebBrowser {
   // ---------- fenêtre ----------
   // le navigateur vit dans la même fenêtre que le gestionnaire (une seule fenêtre)
   open(url, opts = {}) {
+    { const x = opts.from && this.extraOf(opts.from); if (x) return this.extraShow(x, true, url, opts.incognito); }
     const host = this.main.hostWindow();
     if (this.wc) {
       this.showView();
@@ -1204,7 +1227,7 @@ class WebBrowser {
       else this.wc?.send('open-url', { url, background: !!o.background, incognito: !!o.incognito });
     });
     P('openPage', (name, hash) => this.openPage(name, hash));
-    P('openManager', () => this.main.showMain());
+    P('openManager', () => { const x = this.extraOf(this._activeUi); if (x) return this.extraShow(x, false); this.main.showMain(); });
     P('setBrowser', patch => { this.settings.set({ browser: patch }); if (patch && 'adblock' in patch) { this.settings.set({ browser: { modules: { adblock: { enabled: !!patch.adblock } } } }); } return this.cfg(); });
     P('showShortcuts', () => this.wc?.send('show-shortcuts'));
     P('setRoot', patch => { const ok = ['restoreSession', 'theme', 'lang', 'a11y', 'autoUpdateCheck', 'torrent']; const p = {}; for (const k of ok) if (k in (patch || {})) p[k] = patch[k]; this.settings.set(p); if (p.lang) this.main.setLang?.(p.lang); return this.cfg(); });
@@ -1504,7 +1527,7 @@ class WebBrowser {
       if (save && user) this.main.savePassword(host, user, pass);
       cb?.(user || undefined, pass || undefined);
     });
-    ipcMain.handle('br:openMain', () => this.main.showMain());
+    ipcMain.handle('br:openMain', e => { const x = this.extraOf(e.sender); if (x) return this.extraShow(x, false); this.main.showMain(); });
     ipcMain.handle('br:openPage', (_e, name, hash) => this.openPage(name, hash));
     ipcMain.handle('br:feedback', () => this.main.openFeedback?.());
     ipcMain.handle('br:closeExtPopups', () => { try { if (this.extPopup && !this.extPopup.isDestroyed()) this.extPopup.destroy(); } catch {} this.extPopup = null; });

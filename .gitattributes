@@ -1,0 +1,2 @@
+assets/dict/*.txt text eol=lf
+locales/*.tsv text eol=lf

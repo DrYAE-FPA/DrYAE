@@ -3,3 +3,4 @@ dist/
 bin/linux/
 *.log
 bin/win/*.exe
+.tmp-crlf/

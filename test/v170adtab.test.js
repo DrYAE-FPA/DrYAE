@@ -36,6 +36,6 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
   await b.evaluate(() => select(tabs[0]));
   await wait(500); await clickIn('#same'); await wait(800); u = await urls(); console.log('toast', await b.evaluate(() => document.querySelector('#toast').textContent), await b.evaluate(() => cur.url)); ok('lien du même site : ouvert', u.includes('/meme'), u);
   await b.evaluate(() => select(tabs[0]));
-  await clickIn('#next'); u = await urls(); ok('bouton qui ouvre une page du même site : ouvert', u.includes('/suivant'), u);
+  await wait(500); await clickIn('#next'); await wait(800); u = await urls(); ok('bouton qui ouvre une page du même site : ouvert', u.includes('/suivant'), u);
   await app.close(); srv.close(); process.exit(0);
 })().catch(e => { console.log('ÉCHEC exception', e.message); process.exit(1); });

@@ -167,9 +167,23 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
   const nw2 = app.windows().find(x => /browser\.html\?win=extra/.test(x.url()));
   const nt2 = nw2 ? await nw2.evaluate(() => tabs.map(t => t.url)) : null;
   ok('Nouvelle fenêtre : une 2e fenêtre avec son propre onglet', !!nw2 && nt2.length === 1 && /fenetre$/.test(nt2[0]) && !(await b.evaluate(() => tabs.some(t => /fenetre$/.test(t.url)))), nt2);
+  // gestionnaire de la 2e fenêtre : dans cette fenêtre, pas dans la première ; mêmes téléchargements partout
+  const vis = () => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().map(w => ({ main: !w._view, view: w._view ? w._view.getVisible() : null, shown: w.isVisible() })));
+  const before = await vis();
   if (nw2) { await nw2.evaluate(() => openDownloads()); await wait(1200); }
-  const pnl = nw2 ? await nw2.evaluate(() => ({ p: panel, t: document.querySelector('#pTitle').textContent })) : null;
-  ok('Nouvelle fenêtre : « Téléchargements » s\'ouvre dans cette fenêtre', pnl && pnl.p === 'mgr' && /Téléchargements/.test(pnl.t), pnl);
+  const after = await vis();
+  const ex = after.find(x => !x.main), mainB = before.find(x => x.main), mainA = after.find(x => x.main);
+  ok('Nouvelle fenêtre : « Téléchargements » ouvre le gestionnaire dans cette fenêtre', ex && ex.view === false && mainA.shown === mainB.shown, { before, after });
+  const mgrs = app.windows().filter(x => /ui\/index\.html/.test(x.url()));
+  const lists = await Promise.all(mgrs.map(m => m.evaluate(() => window.dryae.call('list').then(r => (r || []).length).catch(() => -1)).catch(() => -3)));
+  ok('les deux gestionnaires affichent les mêmes téléchargements', mgrs.length === 2 && lists[0] === lists[1], { n: mgrs.length, lists });
+  // retour au navigateur de la 2e fenêtre depuis son gestionnaire
+  const m2 = mgrs.find(m => m !== mgrs[0]) ;
+  for (const [i, m] of mgrs.entries()) await m.screenshot({ path: OUT + '/mgr' + i + '.png' }).catch(() => {});
+  await app.evaluate(({ BrowserWindow }) => { const w = BrowserWindow.getAllWindows().find(x => x._view); w.webContents.executeJavaScript("window.dryae.call('openBrowser', '')"); });
+  await wait(800);
+  const back = (await vis()).find(x => !x.main);
+  ok('Nouvelle fenêtre : le bouton Navigateur de son gestionnaire revient dans cette fenêtre', back && back.view === true, back);
   if (nw2) { await nw2.evaluate(() => closeTab(tabs[0])); await wait(800); }
   ok('fermer son dernier onglet ferme la 2e fenêtre', app.windows().length === nW, app.windows().length);
 

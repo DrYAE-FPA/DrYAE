@@ -301,7 +301,7 @@ function pageCmd(cmd, extra = {}, tab = cur) { if (tab?.wv && tab.wcId && /^http
 // 1.7.0 : dans une fenêtre ouverte avec « Nouvelle fenêtre », les téléchargements s'affichent dans cette fenêtre
 // (le gestionnaire complet reste dans la fenêtre principale : bouton « Ouvrir le gestionnaire » du panneau)
 const EXTRA_WIN = new URLSearchParams(location.search).get('win') === 'extra';
-function openDownloads() { if (!modOn('capture')) togglePanel('nd', true); else if (EXTRA_WIN) togglePanel('mgr', true); else B.call('br:openMain'); }
+function openDownloads() { if (!modOn('capture')) togglePanel('nd', true); else B.call('br:openMain'); } // fenêtre ouverte avec Ctrl+N : son propre gestionnaire
 // panneau « Téléchargements » d'une nouvelle fenêtre : la liste du gestionnaire (la même pour toutes les fenêtres), affichée ici
 let MGR = [], mgrT = 0;
 async function drawMgr() {
