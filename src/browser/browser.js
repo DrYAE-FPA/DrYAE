@@ -298,7 +298,28 @@ const modOn = id => !!(CFG.mods && CFG.mods[id] && CFG.mods[id].on);
 const MODS = [['adblock', 'Bloqueur de publicités', 'shield'], ['capture', 'Téléchargements par DrYAE', 'dl'], ['translate', 'Traducteur', 'translate'], ['scan', 'Traducteur de scans', 'scan'], ['lights', 'Lumières tamisées', 'bulb'], ['pip', "Image dans l'image", 'pip']];
 function openPage(name, hash) { B.call('br:openPage', name, hash || ''); }
 function pageCmd(cmd, extra = {}, tab = cur) { if (tab?.wv && tab.wcId && /^https?:/.test(tab.url)) tab.wv.send('dryae-cmd', { cmd, ...extra }); else toast('Ouvre une page web d\'abord'); }
-function openDownloads() { if (modOn('capture')) B.call('br:openMain'); else togglePanel('nd', true); }
+// 1.7.0 : dans une fenêtre ouverte avec « Nouvelle fenêtre », les téléchargements s'affichent dans cette fenêtre
+// (le gestionnaire complet reste dans la fenêtre principale : bouton « Ouvrir le gestionnaire » du panneau)
+const EXTRA_WIN = new URLSearchParams(location.search).get('win') === 'extra';
+function openDownloads() { if (!modOn('capture')) togglePanel('nd', true); else if (EXTRA_WIN) togglePanel('mgr', true); else B.call('br:openMain'); }
+// panneau « Téléchargements » d'une nouvelle fenêtre : la liste du gestionnaire (la même pour toutes les fenêtres), affichée ici
+let MGR = [], mgrT = 0;
+async function drawMgr() {
+  if (panel !== 'mgr') { clearInterval(mgrT); mgrT = 0; return; }
+  if (!mgrT) mgrT = setInterval(drawMgr, 1000);
+  const r = await B.call('list').catch(() => null); MGR = (r && r.ok ? r.v : []).slice().reverse().slice(0, 60);
+  if (panel !== 'mgr') return;
+  $('#pTitle').textContent = T('Téléchargements');
+  const pct = d => d.size > 0 ? Math.min(100, Math.round(100 * (d.downloaded || 0) / d.size)) : 0;
+  const st = d => d.status === 'done' || d.status === 'completed' ? fmt(d.size || d.downloaded) : d.status === 'running' ? fmt(d.downloaded || 0) + (d.size > 0 ? ' / ' + fmt(d.size) : '') + (d.speed ? ' · ' + fmt(d.speed) + '/s' : '') : d.status === 'paused' ? T('En pause') + ' · ' + pct(d) + ' %' : d.status === 'error' ? T('Échec') : d.status === 'queued' ? T('En attente') : d.status === 'seeding' ? T('Partage') : '';
+  const done = d => ['done', 'completed', 'seeding'].includes(d.status);
+  $('#pBody').innerHTML = MGR.length ? MGR.map(d => `<div class="nditem"><div class="n notr">${esc(d.name || d.url || '')}</div><div class="s">${esc(st(d))}</div>${d.status === 'running' && d.size > 0 ? `<div class="bar"><i style="width:${pct(d)}%"></i></div>` : ''}
+    <div class="row">${done(d) ? `<button class="btn sm" data-mg="open" data-id="${esc(d.id)}">${esc(T('Ouvrir'))}</button><button class="btn sm" data-mg="showInFolder" data-id="${esc(d.id)}">${esc(T('Afficher dans le dossier'))}</button>` : d.status === 'running' || d.status === 'queued' ? `<button class="btn sm" data-mg="pause" data-id="${esc(d.id)}">${ic('pause')}${esc(T('Pause'))}</button>` : d.status === 'paused' || d.status === 'error' ? `<button class="btn sm" data-mg="resume" data-id="${esc(d.id)}">${ic('play')}${esc(T('Reprendre'))}</button>` : ''}</div></div>`).join('')
+    : `<p class="hint">${esc(T('Aucun téléchargement pour le moment.'))}</p>`;
+  const f = $('#pFoot'); f.style.display = 'flex';
+  if (!f.querySelector('#mgOpen')) { f.innerHTML = `<button class="btn sm" id="mgDir">${ic('folder')}${esc(T('Ouvrir le dossier'))}</button><span class="sp"></span><button class="btn sm" id="mgOpen">${esc(T('Gestionnaire DrYAE'))}</button>`; $('#mgDir').onclick = () => B.call('openDir'); $('#mgOpen').onclick = () => B.call('br:openMain'); }
+  $('#pBody').onclick = async e => { const b = e.target.closest('[data-mg]'); if (!b) return; await B.call(b.dataset.mg, b.dataset.id); drawMgr(); };
+}
 function mainMenu() {
   const zoomPct = cur && cur.zoom ? Math.round(Math.pow(1.2, cur.zoom) * 100) : 100;
   const web = /^https?:/.test(cur?.url || '');
@@ -476,7 +497,7 @@ function togglePanel(name, force) {
   panel = name; el.classList.add('on');
   if (name !== 'media') $('#pFoot').style.display = 'none';
   if (!wasOpen) { el.classList.add('slide'); requestAnimationFrame(() => requestAnimationFrame(() => el.classList.remove('slide'))); }
-  ({ media: drawMedia, links: () => {}, nd: drawNd })[name]?.();
+  ({ media: drawMedia, links: () => {}, nd: drawNd, mgr: drawMgr })[name]?.();
 }
 $('#pClose').onclick = closePanel;
 

@@ -12,7 +12,14 @@ $('#nav').innerHTML = SECS.map(([id, i, l]) => id === '-' ? (l ? `<h5>${esc(TR(l
 $('#nav').onclick = e => { const b = e.target.closest('[data-s]'); if (!b) return; if (b.dataset.s === 'extensions') return D.call('openPage', 'extensions'); show(b.dataset.s); };
 function show(id) { const el = $('#s-' + id); if (!el) return; el.scrollIntoView({ block: 'start' }); mark(id); history.replaceState(null, '', '#' + id); }
 function mark(id) { $$('#nav [data-s]').forEach(b => b.classList.toggle('on', b.dataset.s === id)); }
-$('#main').addEventListener('scroll', () => { const secs = $$('[id^="s-"]'); let cur = secs[0]; for (const s of secs) if (s.getBoundingClientRect().top < 140) cur = s; if (cur) mark(cur.id.slice(2)); });
+// 1.7.0 : en bas de la page, les dernières sections (Réinitialiser, Extensions, À propos) ne remontent jamais en haut :
+// la section marquée est alors la dernière visible, et non plus « Système »
+$('#main').addEventListener('scroll', () => {
+  const m = $('#main'), secs = $$('[id^="s-"]'); let cur = secs[0];
+  for (const s of secs) if (s.getBoundingClientRect().top < 140) cur = s;
+  if (m.scrollTop + m.clientHeight >= m.scrollHeight - 4) { const vis = secs.filter(s => s.getBoundingClientRect().top < m.getBoundingClientRect().bottom - 60); if (vis.length) cur = vis[vis.length - 1]; }
+  if (cur) mark(cur.id.slice(2));
+});
 search.oninput = () => {
   const v = search.value.trim().toLowerCase();
   $$('.pcard .prow, .pcard .cbx').forEach(r => { r.style.display = !v || r.textContent.toLowerCase().includes(v) ? '' : 'none'; });

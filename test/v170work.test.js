@@ -167,6 +167,9 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
   const nw2 = app.windows().find(x => /browser\.html\?win=extra/.test(x.url()));
   const nt2 = nw2 ? await nw2.evaluate(() => tabs.map(t => t.url)) : null;
   ok('Nouvelle fenêtre : une 2e fenêtre avec son propre onglet', !!nw2 && nt2.length === 1 && /fenetre$/.test(nt2[0]) && !(await b.evaluate(() => tabs.some(t => /fenetre$/.test(t.url)))), nt2);
+  if (nw2) { await nw2.evaluate(() => openDownloads()); await wait(1200); }
+  const pnl = nw2 ? await nw2.evaluate(() => ({ p: panel, t: document.querySelector('#pTitle').textContent })) : null;
+  ok('Nouvelle fenêtre : « Téléchargements » s\'ouvre dans cette fenêtre', pnl && pnl.p === 'mgr' && /Téléchargements/.test(pnl.t), pnl);
   if (nw2) { await nw2.evaluate(() => closeTab(tabs[0])); await wait(800); }
   ok('fermer son dernier onglet ferme la 2e fenêtre', app.windows().length === nW, app.windows().length);
 
@@ -175,6 +178,8 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
   let setOk = false;
   try { const t = await b.evaluate(() => cur.wv.executeJavaScript('document.querySelector("#s-work") ? document.querySelector("#s-work").textContent : ""')); setOk = /Rappels de pause/.test(t) && /Conteneurs/.test(t) && /Correcteur/.test(t); } catch {}
   ok('Paramètres : section « Travail et études »', setOk);
+  const navEnd = await b.evaluate(() => cur.wv.executeJavaScript('(async () => { const m = document.querySelector("#main"); m.scrollTop = m.scrollHeight; m.dispatchEvent(new Event("scroll")); await new Promise(r => setTimeout(r, 300)); return document.querySelector("#nav [data-s].on")?.dataset.s; })()'));
+  ok('Paramètres : en bas de la page, « À propos de DrYAE » est marqué dans la liste', navEnd === 'about', navEnd);
   await b.screenshot({ path: OUT + '/settings-work.png' });
 
   await app.close(); srv.close(); process.exit(0);
