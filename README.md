@@ -2,6 +2,7 @@
 <h1 align="center">DrYAE</h1>
 <p align="center">Free download manager with a built-in browser, for Windows<br>Gestionnaire de téléchargements gratuit avec navigateur intégré, pour Windows</p>
 <p align="center"><a href="https://github.com/DrYAE-FPA/DrYAE/releases"><img src="https://img.shields.io/github/downloads/DrYAE-FPA/DrYAE/total?label=T%C3%A9l%C3%A9chargements%20%2F%20Downloads&color=8b5cf6" alt="Téléchargements / Downloads"></a></p>
+<p align="center"><a href="https://github.com/DrYAE-FPA/DrYAE/releases/latest/download/DrYAE-Setup.exe"><img src="https://img.shields.io/badge/T%C3%A9l%C3%A9charger%20pour%20Windows-gratuit-7c3aed?style=for-the-badge" alt="Télécharger DrYAE pour Windows"></a><br><sub>Windows 10 et 11 · installateur · <a href="https://github.com/DrYAE-FPA/DrYAE/releases/latest">version portable et autres fichiers</a></sub></p>
 
 ---
 
