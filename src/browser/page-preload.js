@@ -1173,6 +1173,25 @@ function pageFeatures() {
   }
   // 1.6.9 : le traducteur de scans ne démarre que quand on clique dessus (jamais tout seul)
 
+  // ---------- 1.7.0 : onglets de publicité ouverts par un clic sur la page ----------
+  // DrYAE note sur quoi on clique (un vrai lien ? un calque invisible qui couvre la page ?) ; le processus principal
+  // compare avec l'onglet que la page veut ouvrir juste après.
+  const clickInfo = e => {
+    try {
+      const a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+      let overlay = false;
+      if (a) {
+        const r = a.getBoundingClientRect(), cs = getComputedStyle(a);
+        const txt = (a.innerText || '').trim(), media = a.querySelector('img,video,picture,svg,canvas');
+        overlay = r.width * r.height > innerWidth * innerHeight * 0.35 && !media || (!txt && !media) || +cs.opacity < 0.1;
+      }
+      ipcRenderer.send('click-info', { href: a ? a.href : '', overlay, t: Date.now() });
+    } catch {}
+  };
+  addEventListener('pointerdown', clickInfo, true);
+  addEventListener('click', clickInfo, true);
+  addEventListener('auxclick', clickInfo, true);
+
   // ---------- 1.7.0 : surlignages et notes dans la page ----------
   // Les surlignages sont gardés sur ce PC (par adresse de page) et retrouvés à la prochaine visite :
   // DrYAE recherche le même passage dans le texte de la page (avec quelques lettres avant et après).

@@ -724,6 +724,8 @@ class WebBrowser {
       // fenêtre de connexion (« Se connecter avec Google », etc.) : vraie petite fenêtre, reliée au site qui l'a ouverte
       if (disposition === 'new-window' && (LOGIN_POPUP.test(url) || /width=|height=/i.test(features || ''))) return this.popupWindow(url, features);
       if (disposition === 'new-window' && this.B().blockPopups && !this.loginTabs.has(wc.id) && !(this.B().popupsAllowed || []).includes(hostOf(wc.getURL()))) { this.wc?.send('popup-blocked', { wcId: wc.id, url }); return { action: 'deny' }; }
+      // 1.7.0 : onglet de publicité ouvert par un clic ailleurs que sur un vrai lien (calque invisible, clic n'importe où)
+      if (this.adTab(wc, url)) { this.wc?.send('popup-blocked', { wcId: wc.id, url, kind: 'tab' }); return { action: 'deny' }; }
       this.wc?.send('open-url', { url, background: disposition === 'background-tab', from: wc.id });
       return { action: 'deny' };
     });
@@ -779,6 +781,19 @@ class WebBrowser {
     try { const w = BrowserWindow.fromWebContents(wc); w?.setMenu(null); } catch {}
   }
   isWebSession(ses) { return this.sessions().includes(ses); }
+  // onglet vers un autre site que la page, sans clic sur un vrai lien de ce site : publicité
+  adTab(wc, url) {
+    const B = this.B();
+    if (B.blockClickTabs === false || !/^https?:/i.test(url) || this.loginTabs.has(wc.id)) return false;
+    const page = wc.getURL(); if (!/^https?:/i.test(page)) return false;
+    const site = u => { let h = ''; try { h = new URL(u).hostname.toLowerCase(); } catch { return u; } const p = h.split('.'); const n = p.length >= 3 && /^(co|com|org|net|gov|ac|edu|gouv)$/.test(p[p.length - 2]) && p[p.length - 1].length === 2 ? 3 : 2; return p.slice(-n).join('.'); };
+    if (site(url) === site(page)) return false;
+    if ((B.popupsAllowed || []).includes(hostOf(page))) return false;
+    const c = (this.lastClick || new Map()).get(wc.id);
+    if (!c || Date.now() - c.t > 2500) return false; // pas ouvert par un clic : déjà géré par le blocage des pop-up
+    if (c.href && !c.overlay && (c.href === url || site(c.href) === site(url))) return false; // vrai lien cliqué
+    return true;
+  }
 
   contextMenu(wc, p) {
     const T = [];
@@ -1589,6 +1604,7 @@ class WebBrowser {
 
     // ---- appels venant des pages (script page-preload) ----
     // réglages des extensions intégrées pour cette page
+    ipcMain.on('click-info', (e, c) => { if (!c || typeof c !== 'object') return; (this.lastClick || (this.lastClick = new Map())).set(e.sender.id, { href: String(c.href || '').slice(0, 4000), overlay: !!c.overlay, t: Date.now() }); });
     ipcMain.on('page:init', e => {
       const f = e.senderFrame; let host = ''; try { host = new URL(f?.url || '').hostname; } catch {}
       const B = this.B();

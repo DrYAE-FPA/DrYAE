@@ -154,6 +154,7 @@ DRM-protected videos (Netflix, Disney+…) cannot be downloaded.
 - **Video speed** (×0.5 to ×3): right-click the video → **Playback speed**, or ⋮ menu → More tools. The speed is remembered for the site. In the **manager's player**, choose the speed at the top right (keys < and >).
 - **Presentation mode** (⋮ menu → More tools): the page full screen, without bars, with a large cursor. Hold **Alt** and move the mouse to point out a passage (the yellow trail fades by itself). Notifications are muted. **Esc** to exit.
 - **DrYAE windows in the page** (fix the bubble, glossary, note): always whole on screen; drag an empty part to move them. Extension window: hold **Alt** and drag it.
+- **Ad tabs**: if a click on the page opens another site in a new tab (without you clicking a real link), DrYAE blocks it and offers **Open** just in case. Setting: Settings → Privacy and security.
 - **Focus mode** (⋮ menu → More tools → Focus mode…): choose the work and break lengths and the list of distracting sites, then **Start**. During work these sites are blocked in every tab; the timer shows in the toolbar (click it to skip to the break or stop). Break reminders are paused during this mode.
 - **Break reminders**: every 20 minutes, "look into the distance for 20 seconds"; every hour, "stand up". Adjust or turn off in Settings → **Work and study**.
 - **Inactive tabs**: DrYAE offers to tidy up tabs you haven't opened for 7 days; they stay in **Workspaces → Inactive tabs** so you can reopen them.

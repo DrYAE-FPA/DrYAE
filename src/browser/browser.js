@@ -1095,7 +1095,7 @@ B.on('media-reset', ({ wcId }) => {
   if (t === cur) { updToolbar(); if (panel === 'media') drawMedia(); }
 });
 B.on('adblock:count', ({ wcId, n }) => { const t = tabByWc(wcId); if (t) { t.blocked = n; if (t === cur) updToolbar(); } });
-B.on('popup-blocked', ({ wcId, url }) => { const t = tabByWc(wcId); toast('Fenêtre pop-up bloquée', { label: 'Ouvrir', fn: () => newTab(url, { incognito: t?.incognito }) }); });
+B.on('popup-blocked', ({ wcId, url, kind }) => { const t = tabByWc(wcId); toast(kind === 'tab' ? 'Onglet de publicité bloqué' : 'Fenêtre pop-up bloquée', { label: 'Ouvrir', fn: () => newTab(url, { incognito: t?.incognito, container: t?.container }) }); });
 B.on('grab-links', ({ wcId }) => { const t = tabByWc(wcId); if (t) { select(t); grabLinks(t); } });
 B.on('login', ({ id, host, realm }) => {
   $('#loginHost').textContent = `${host}${realm ? ' — ' + realm : ''}`;
