@@ -106,7 +106,9 @@ function createWindow() {
   win.loadFile(path.join(UI, 'index.html'));
   // lancé avec Windows (--hidden) : DrYAE reste caché dans les icônes de la barre des tâches, sans ouvrir de fenêtre
   win.once('ready-to-show', () => { try { applyA11y(); } catch {} });
-  win.once('ready-to-show', () => { if (!process.argv.includes('--hidden')) { if (settings.get().startView === 'manager' || !browser || (!process.argv.includes('--browse') && process.argv.some(a => /^magnet:|\.torrent$|^https?:\/\//i.test(a)))) win.show(); else browser.open(); } flushArgs(); });
+  // 1.7.0 : « prêt à afficher » peut arriver avant la fin du chargement : les fichiers ouverts au lancement (PDF…) attendaient pour rien
+  win.webContents.once('did-finish-load', () => setTimeout(flushArgs, 0));
+  win.once('ready-to-show', () => { if (!process.argv.includes('--hidden')) { if (!browser || (settings.get().startView === 'manager' && !process.argv.includes('--browse') && !docArg(process.argv)) || (!process.argv.includes('--browse') && !docArg(process.argv) && process.argv.some(a => /^magnet:|\.torrent$|^https?:\/\//i.test(a)))) win.show(); else browser.open(); } flushArgs(); });
   win.on('focus', () => send('focus'));
   win.on('show', () => send('reload', manager.views()));
   win.on('restore', () => send('reload', manager.views()));
@@ -147,7 +149,8 @@ function handleArgs(argv) {
     else if (/\.torrent$/i.test(a) && fs.existsSync(a)) pendingArgs.push({ torrent: a });
     // 1.7.0 : lien envoyé par Windows (DrYAE navigateur par défaut) : ouvert dans un onglet, pas proposé en téléchargement
     else if (/^https?:\/\//i.test(a) && argv.includes('--browse')) pendingArgs.push({ browse: a });
-    else if (/\.(html?|xhtml|svg|pdf)$/i.test(a) && argv.includes('--browse') && fs.existsSync(a)) pendingArgs.push({ browse: require('url').pathToFileURL(a).href });
+    // PDF ou page enregistrée ouverts depuis l'Explorateur (« Ouvrir avec », application par défaut) : même sans --browse
+    else if (/\.(html?|xhtml|svg|pdf)$/i.test(a) && !a.startsWith('-') && fs.existsSync(a)) pendingArgs.push({ browse: require('url').pathToFileURL(a).href });
     else if (/^https?:\/\//i.test(a)) pendingArgs.push({ url: a });
     else if (/^--open=dryae:\/\/\w+/i.test(a)) pendingArgs.push({ page: a.slice(7) });
   }
@@ -165,7 +168,8 @@ function flushArgs() {
   }
 }
 // clic sur l'icône alors que DrYAE tourne déjà : écran d'ouverture choisi ; un lien ou un torrent ouvre le gestionnaire
-app.on('second-instance', (_e, argv) => { if (argv.includes('--browse')) { handleArgs(argv); return; } if (argv.slice(1).some(a => /^magnet:|\.torrent$|^https?:\/\//i.test(a))) api.showMain(); else api.showStart(); handleArgs(argv); });
+const docArg = argv => argv.slice(1).some(a => /\.(html?|xhtml|svg|pdf)$/i.test(a) && !a.startsWith('-'));
+app.on('second-instance', (_e, argv) => { if (argv.includes('--browse') || docArg(argv)) { handleArgs(argv); return; } if (argv.slice(1).some(a => /^magnet:|\.torrent$|^https?:\/\//i.test(a))) api.showMain(); else api.showStart(); handleArgs(argv); });
 app.on('open-url', (e, url) => { e.preventDefault(); pendingArgs.push({ torrent: url }); flushArgs(); });
 
 // --- presse-papiers ---

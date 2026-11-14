@@ -620,6 +620,8 @@ class WebBrowser {
     const host = this.main.hostWindow();
     if (this.wc) {
       this.showView();
+      // 1.7.0 : la fenêtre du navigateur se charge encore (DrYAE lancé par un double-clic sur un PDF) : on attend
+      if (!this._uiReady) { if (url || opts.incognito) (this._uiQueue || (this._uiQueue = [])).push({ url, incognito: !!opts.incognito }); return; }
       if (url) this.wc.send('open-url', { url, incognito: !!opts.incognito });
       else if (opts.incognito) this.wc.send('open-url', { url: '', incognito: true });
       return;
@@ -640,8 +642,13 @@ class WebBrowser {
       prefs.nodeIntegrationInSubFrames = true;
       delete prefs.preload;
     });
+    this._uiReady = false;
     wc.loadFile(path.join(__dirname, '..', 'browser', 'browser.html'));
     wc.once('did-finish-load', () => {
+      this._uiReady = true;
+      const queued = (this._uiQueue || []).splice(0);
+      if (!url && queued.length) { const f = queued.shift(); url = f.url; opts = { ...opts, incognito: f.incognito }; }
+      setTimeout(() => queued.forEach(q => wc.send('open-url', q)), 300);
       const S = this.store.session;
       const B = this.B();
       const restore = B.startup !== 'newtab' && B.startup !== 'pages' && this.settings.get().restoreSession && S && S.tabs && S.tabs.length && !opts.incognito;
@@ -664,6 +671,7 @@ class WebBrowser {
   openPage(name, hash = '') {
     const url = `dryae://${name}/${hash ? '#' + hash : ''}`;
     if (!this.wc) return this.open(url);
+    if (!this._uiReady) return this.open(url);
     this.showView();
     this.wc.send('open-page', { url });
   }

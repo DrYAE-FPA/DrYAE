@@ -109,7 +109,7 @@ module.exports = function work(br) {
       if (it.url) blocks.push({ text: it.url + ' — ' + T('ajouté le {0}').replace('{0}', dateStr(it.t)), small: true, link: it.url });
     }
     if (kind === 'pdf') {
-      const html = `<!doctype html><html lang="${esc(lang)}"><head><meta charset="utf-8"><style>body{font:12pt Calibri,"Segoe UI",sans-serif;margin:0;color:#111}h1{font-size:22pt;margin:0 0 14pt}h2{font-size:14pt;margin:16pt 0 6pt}blockquote{margin:4pt 0 8pt;padding:4pt 10pt;border-left:3pt solid #7c3aed;background:#f5f3ff}.small{color:#555;font-size:9pt;word-break:break-all}.note{background:#fff7d6;padding:6pt 10pt;border-radius:4pt}img{max-width:100%;margin:6pt 0}p{white-space:pre-wrap;margin:4pt 0}</style></head><body>`
+      const html = `<!doctype html><html lang="${esc(lang)}"><head><meta charset="utf-8"><title>${esc(c.name)}</title><style>body{font:12pt Calibri,"Segoe UI",sans-serif;margin:0;color:#111}h1{font-size:22pt;margin:0 0 14pt}h2{font-size:14pt;margin:16pt 0 6pt}blockquote{margin:4pt 0 8pt;padding:4pt 10pt;border-left:3pt solid #7c3aed;background:#f5f3ff}.small{color:#555;font-size:9pt;word-break:break-all}.note{background:#fff7d6;padding:6pt 10pt;border-radius:4pt}img{max-width:100%;margin:6pt 0}p{white-space:pre-wrap;margin:4pt 0}</style></head><body>`
         + blocks.map(b => b.h ? `<h${b.h}>${esc(b.text)}</h${b.h}>` : b.img ? `<img src="${b.img.data}">` : b.quote ? `<blockquote><p>${esc(b.text)}</p></blockquote>` : `<p class="${b.small ? 'small' : b.note ? 'note' : ''}">${esc(b.text)}</p>`).join('') + '</body></html>';
       const tmp = path.join(app.getPath('temp'), 'dryae-col-' + Date.now() + '.html');
       await fsp.writeFile(tmp, html);

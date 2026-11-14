@@ -3,7 +3,7 @@
 # Utilisé par GitHub Actions (.github/workflows/tests.yml) et à la main : ./tools/run-tests.sh
 set -u
 cd "$(dirname "$0")/.."
-TESTS="${TESTS:-v168start v169dl v169tor v169bm v169a11y v169priv v169tabs v169pdf v169scan2 v169scan3 v169fr v170work}"
+TESTS="${TESTS:-v168start v169dl v169tor v169bm v169a11y v169priv v169tabs v169pdf v169scan2 v169scan3 v169fr v170work v170open}"
 fail=0
 for t in $TESTS; do
   echo "::group::$t"

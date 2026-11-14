@@ -6,6 +6,7 @@
 Une version pour les longues sessions de travail (étudiants, professeurs, travailleurs), un traducteur de scans plus juste et DrYAE comme navigateur par défaut.
 
 **Version refaite**
+- **PDF ouverts par un double-clic** (DrYAE visionneuse par défaut) : quand DrYAE n'était pas encore ouvert, le fichier se perdait pendant le démarrage et un onglet vide s'affichait. Le PDF s'ouvre maintenant directement. Même correction pour les liens envoyés par d'autres programmes au démarrage.
 - **Fenêtres toujours entières et déplaçables** : les petites fenêtres de DrYAE dans la page (corriger la bulle, lexique, note…) restent entières à l'écran même en bas de la page, et se déplacent en glissant une partie vide. Les fenêtres des extensions restent entières et se déplacent en maintenant **Alt**.
 - **Mode concentration** (menu ⋮ → Outils supplémentaires) : minuteur de travail (25 min) puis pause (5 min), en boucle ; pendant le travail, les sites qui distraient (liste au choix) sont bloqués dans tous les onglets. Le minuteur s'affiche dans la barre d'outils.
 - **Nouvelle fenêtre** (Ctrl+N, ou menu ⋮ → Nouvelle fenêtre) : une autre fenêtre du navigateur avec ses propres onglets. Clic droit sur un onglet → **Déplacer vers une nouvelle fenêtre**.
@@ -48,6 +49,7 @@ Ne téléchargez que ce que vous avez le droit de copier.
 A release for long work sessions (students, teachers, workers), a more accurate image text translator, and DrYAE as your default browser.
 
 **Rebuilt version**
+- **PDFs opened by double-click** (DrYAE as default viewer): when DrYAE was not open yet, the file was lost during startup and an empty tab appeared. The PDF now opens directly. Same fix for links sent by other programs at startup.
 - **Windows always whole and movable**: DrYAE's small windows in the page (fix the bubble, glossary, note…) stay whole on screen even at the bottom of the page, and move by dragging an empty part. Extension windows stay whole and move while holding **Alt**.
 - **Focus mode** (⋮ menu → More tools): a work timer (25 min) then a break (5 min), over and over; during work, distracting sites (your own list) are blocked in every tab. The timer shows in the toolbar.
 - **New window** (Ctrl+N, or ⋮ menu → New window): another browser window with its own tabs. Right-click a tab → **Move to a new window**.
