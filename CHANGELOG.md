@@ -6,6 +6,7 @@
 Une version pour les longues sessions de travail (étudiants, professeurs, travailleurs), un traducteur de scans plus juste et DrYAE comme navigateur par défaut.
 
 **Version refaite**
+- **Traducteur de scans, BD et mangas en français mieux lus** (corrections tirées de vraies pages) : mots collés séparés (« JESUIS » → JE SUIS, « J'AIPEUR » → J'AI PEUR, « N'ESTCEPAS » → N'EST-CE PAS), apostrophe oubliée remise (« CEST » → C'EST), « UINE » → UNE, accents mal lus corrigés (« ÉTRE » → ÊTRE, « SÜR » → SÛR). Pour la traduction, les accents oubliés par le lettrage en majuscules sont remis (« CA » → ça, « ETRE » → être, « BIEN SUR » → bien sûr) : le texte traduit est plus juste.
 - **Onglets de publicité bloqués** : quand un clic sur la page (ailleurs que sur un vrai lien, ou sur un calque invisible qui couvre la page) ouvre un autre site dans un nouvel onglet, DrYAE le bloque ; un message propose de l'ouvrir quand même. Les vrais liens et les pages du même site s'ouvrent normalement. Réglage : Paramètres → Confidentialité et sécurité.
 - **PDF ouverts par un double-clic** (DrYAE visionneuse par défaut) : quand DrYAE n'était pas encore ouvert, le fichier se perdait pendant le démarrage et un onglet vide s'affichait. Le PDF s'ouvre maintenant directement. Même correction pour les liens envoyés par d'autres programmes au démarrage.
 - **Fenêtres toujours entières et déplaçables** : les petites fenêtres de DrYAE dans la page (corriger la bulle, lexique, note…) restent entières à l'écran même en bas de la page, et se déplacent en glissant une partie vide. Les fenêtres des extensions restent entières et se déplacent en maintenant **Alt**.
@@ -50,6 +51,7 @@ Ne téléchargez que ce que vous avez le droit de copier.
 A release for long work sessions (students, teachers, workers), a more accurate image text translator, and DrYAE as your default browser.
 
 **Rebuilt version**
+- **Image text translator, French comics and manga read better** (fixes taken from real pages): stuck-together words split ("JESUIS" → JE SUIS, "N'ESTCEPAS" → N'EST-CE PAS), missing apostrophes restored ("CEST" → C'EST), "UINE" → UNE, misread accents fixed ("ÉTRE" → ÊTRE). For translation, accents left out by capital-letter lettering are restored ("CA" → ça, "BIEN SUR" → bien sûr), so the translation is more accurate.
 - **Ad tabs blocked**: when a click on the page (anywhere other than a real link, or on an invisible layer covering the page) opens another site in a new tab, DrYAE blocks it; a message offers to open it anyway. Real links and pages of the same site open normally. Setting: Settings → Privacy and security.
 - **PDFs opened by double-click** (DrYAE as default viewer): when DrYAE was not open yet, the file was lost during startup and an empty tab appeared. The PDF now opens directly. Same fix for links sent by other programs at startup.
 - **Windows always whole and movable**: DrYAE's small windows in the page (fix the bubble, glossary, note…) stay whole on screen even at the bottom of the page, and move by dragging an empty part. Extension windows stay whole and move while holding **Alt**.

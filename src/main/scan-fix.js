@@ -303,6 +303,8 @@ function frCorrect(w) {
   for (const c of e1) if (FRK.has(c)) cands.push([c, (FRT.has(c) ? 0 : 1) + (c.length !== k.length ? 0.5 : 0)]);
   // lettre doublée par erreur (« ILLS » → ILS)
   if (!cands.length) for (let i = 1; i < k.length; i++) if (k[i] === k[i - 1]) { const s = k.slice(0, i) + k.slice(i + 1); if (FRK.has(s)) cands.push([s, FRT.has(s) ? 0.5 : 1.5]); }
+  // lettre fine lue en trop (« UINE » → UNE, « VOIUS » → VOUS)
+  if (k.length >= 4 && !FRK.has(k)) for (let i = 0; i < k.length; i++) if ('il'.includes(k[i])) { const s = k.slice(0, i) + k.slice(i + 1); if (FRK.has(s)) cands.push([s, FRT.has(s) ? 0.5 : 1.5]); }
   // lettre oubliée (« M'NVITER » → M'INVITER)
   if (!cands.length && k.length >= 5) for (let i = 0; i < k.length; i++) for (const c of 'iuel') { const s = k.slice(0, i) + c + k.slice(i); if (FRK.has(s)) cands.push([s, FRT.has(s) ? 1 : 2]); }
   if (!cands.length && k.length >= 5) for (const c1 of e1) for (const c2 of step(c1)) if (FRK.has(c2)) cands.push([c2, FRT.has(c2) ? 1 : 2]);
@@ -332,11 +334,60 @@ function frSplit(k) {
   }
   // « AFORCE » → À FORCE
   if (k[0] === 'a' && k.length >= 5 && FRK.has(k.slice(1))) return 'à ' + FRK.get(k.slice(1));
-  return '';
+  return frSplitN(k);
+}
+// 1.7.0 : mots collés plus généraux (« JESUIS » → JE SUIS, « TROUVECA » → TROUVE ÇA, « SIURGEMMENT » → SI URGEMMENT,
+// « SEUUEMENTUN » → SEULEMENT UN) : 2 ou 3 morceaux, chacun courant ou assez long ; un morceau peut avoir une lettre mal lue
+const okPart = p => FRK.has(p) && (FRT.has(p) || p.length >= 4);
+function partFix(p) { if (okPart(p)) return [FRK.get(p), 0]; if (p.length >= 5) { const c = frCorrect(p); if (c) return [c, 1]; } return null; }
+function frSplitN(k) {
+  if (k.length < 5 || k.length > 30) return '';
+  let best = null;
+  const take = (parts, cost) => { if (!parts.some(x => x.length <= 3 && FRT.has(strip(x.toLowerCase())))) return; const sc = cost * 1.5 + parts.length - parts.filter(x => FRT.has(strip(x))).length * 0.6; if (!best || sc < best[1]) best = [parts, sc]; };
+  for (let i = 2; i <= k.length - 2; i++) {
+    const a = partFix(k.slice(0, i)); if (!a) continue;
+    const b = partFix(k.slice(i)); if (b) take([a[0], b[0]], a[1] + b[1]);
+    for (let j = i + 2; j <= k.length - 2; j++) {
+      const b2 = partFix(k.slice(i, j)), c2 = b2 && partFix(k.slice(j));
+      if (b2 && c2 && FRT.has(strip(b2[0])) + FRT.has(strip(c2[0])) + FRT.has(strip(a[0])) >= 2) take([a[0], b2[0], c2[0]], a[1] + b2[1] + c2[1] + 0.2);
+    }
+  }
+  if (!best) return '';
+  const common = best[0].every(x => FRT.has(strip(x.toLowerCase())));
+  if (best[1] > (common ? 4 : 3)) return '';
+  const P = best[0];
+  // verbe + pronom (« DISTU » → DIS-TU), sauf après une conjonction (« MAISTU » → MAIS TU)
+  if (P.length === 2 && PRON.has(strip(P[1].toLowerCase())) && P[0].length >= 3 && !['mais', 'et', 'si', 'que', 'quand', 'comme', 'alors', 'donc', 'car', 'ou', 'puis', 'pour', 'avec', 'sans', 'chez', 'dans'].includes(strip(P[0].toLowerCase()))) return P[0] + '-' + P[1];
+  return P.join(' ').replace(/\best ce\b/i, m => m.replace(' ', '-'));
+}
+// apostrophe oubliée ou mot collé devant l'apostrophe : « QUETAIT » → QU'ÉTAIT, « CEST » → C'EST, « AL'ACCUEIL » → À L'ACCUEIL,
+// « ILN'AVAIT » → IL N'AVAIT, « JEM'ENTRAINAIS » → JE M'ENTRAÎNAIS
+const ELID = ['qu', 'c', 'j', 'l', 'd', 'n', 's', 'm', 't'];
+function frApos(text) {
+  return String(text).replace(/[\p{L}]+(?:['’][\p{L}]+)*/gu, m => {
+    const parts = m.split(/(['’])/);
+    if (parts.length >= 3) {
+      const h = parts[0], k = strip(h.toLowerCase());
+      if (k.length >= 2 && !['qu', 'jusqu', 'lorsqu', 'puisqu', 'quoiqu', 'aujourd', 'presqu', 'quelqu'].includes(k) && 'ljdmnstc'.includes(k.slice(-1)) && FRK.has(k.slice(0, -1)) && FRT.has(k.slice(0, -1)))
+        return h.slice(0, -1) + ' ' + h.slice(-1) + parts.slice(1).join('');
+      return m;
+    }
+    const k = strip(m.toLowerCase());
+    if (k.length < 4 || FRK.has(k)) return m;
+    for (const e of ELID) if (k.startsWith(e) && /^[aeiouyh]/.test(k.slice(e.length)) && FRK.has(k.slice(e.length)) && k.length - e.length >= 2) {
+      const rest = k.slice(e.length); if (!FRT.has(rest) && rest.length < 4) continue;
+      return m.slice(0, e.length) + '\'' + m.slice(e.length);
+    }
+    return m;
+  });
 }
 function fixFrench(text) {
+  return fixFrench0(text).replace(/\b((?:qu|n|c)['’]est) (ce)\b/gi, '$1-$2');
+}
+function fixFrench0(text) {
   loadFr();
   text = digitWords(halfwidth(text), w => FRK.has(strip(w)), w => FRT.has(strip(w)) ? 0 : 3);
+  text = frApos(text);
   // « TUES » en début de phrase : TU ES
   text = String(text).replace(/(^|[.!?…]\s*)TUES\b/g, '$1TU ES');
   text = String(text)
@@ -344,7 +395,7 @@ function fixFrench(text) {
     // petit « i » des lettrages de BD dans un mot en majuscules : « CiEL » → CIEL
     .replace(/\p{L}+/gu, m => /\p{Lu}/u.test(m) && /i/.test(m) && m.replace(/i/g, '') === m.replace(/i/g, '').toUpperCase() ? m.replace(/i/g, 'I') : m);
   return text.replace(/[\p{L}'’]+/gu, m => {
-    const core = m.replace(/^[\p{L}]['’]/u, ''), pre = m.slice(0, m.length - core.length);
+    const core = m.replace(/^(?:[Qq][Uu]|\p{L})['’]/u, ''), pre = m.slice(0, m.length - core.length);
     if (core.length < 2 || !/^[\p{L}]+$/u.test(core)) return m;
     const k = strip(core.toLowerCase()), up = core === core.toUpperCase();
     // lettrage sans accents : on n'en ajoute pas (« DESQLE » → DESOLE, pas « DÉSOLE »)
@@ -358,15 +409,33 @@ function fixFrench(text) {
     const pre2 = /^I['’]$/.test(pre) && /^\p{Ll}/u.test(core) ? 'l' + pre.slice(1) : pre;
     if (pre2 !== pre) return pre2 + core;
     if (FRK.has(k)) {
-      // texte en minuscules : accent mal lu (« mème » → même, « etre » → être)
+      // majuscules avec un accent mal lu (« ÉTRE » → ÊTRE, « TÓI » → TOI)
+      if (up && acc && !FR.has(core.toLowerCase())) { const w = FRK.get(k); return pre + (strip(w) === w ? w : w).toUpperCase(); }
+      // mots collés très courants qui ressemblent à un mot rare (« JESUIS » lu « JESUS ») : séparés seulement s'ils étaient inconnus
       if (!up && !FR.has(core.toLowerCase()) && /^\p{Ll}+$/u.test(core)) return pre + FRK.get(k);
       if (!FRT.has(k)) { const c = frCorrect(core); if (c && FRT.has(strip(c)) && /[lq]/.test(k)) return out(c); }
       return m;
     }
     if (/l/.test(k)) { const u = lToU(k, x => FRK.has(x), x => FRT.has(x) ? 0 : 2, k.length <= 2 ? 0 : 2); if (u) return out(FRK.get(u) || u); }
-    const c = frCorrect(core); if (c) return out(c);
+    // deux mots très courants collés : préférés à une correction vers un mot rare (« JESUIS » → JE SUIS, pas JÉSUS)
+    const s0 = k.length >= 5 ? frSplitN(k) : '';
+    const c = frCorrect(core);
+    if (s0 && s0.split(' ').every(x => FRT.has(strip(x.toLowerCase()))) && !(c && FRT.has(strip(c)))) return out(s0);
+    if (c) return out(c);
     const s = k.length >= 4 ? frSplit(k) : ''; if (s) return out(s);
     return m;
   });
 }
+// 1.7.0 : pour la traduction seulement, accents remis aux mots écrits sans accents (lettrage en majuscules) :
+// « ca » → ça, « etre » → être, « c'etait » → c'était, « bien sur » → bien sûr. Le texte affiché ne change pas.
+function frAccent(text) {
+  loadFr();
+  return String(text).replace(/\b[Bb]ien sur\b/g, m => m.slice(0, 5) + 'sûr').replace(/[\p{L}]+/gu, w => {
+    const lw = w.toLowerCase(); if (lw.length < 2 || FR.has(lw)) return w;
+    const k = strip(lw); if (k !== lw) return w; // déjà accentué
+    const a = FRK.get(k); if (!a || a === lw) return w;
+    return w === lw ? a : w[0] === w[0].toUpperCase() && w.slice(1) === w.slice(1).toLowerCase() ? a[0].toUpperCase() + a.slice(1) : a.toUpperCase();
+  });
+}
+module.exports.frAccent = frAccent; module.exports.frApos = frApos;
 module.exports.fixFrench = fixFrench; module.exports.frenchRatio = frenchRatio; module.exports.frKnown = frKnown;
