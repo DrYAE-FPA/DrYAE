@@ -8,6 +8,8 @@
 
 ## ✨ Nouveautés de la version 1.7.0 / What's new
 
+- 📖 **Lecteur de BD et de mangas** (.cbz, .cbr, .cb7, dossiers d'images), traduction à l'avance et pages traduites enregistrées en .cbz ou PDF. / **Comic and manga reader** with translation ahead and translated pages saved as .cbz or PDF.
+- 🔒 **Traduction sur le PC** : sans service extérieur, avec des modèles libres téléchargés une fois. / **On-device translation** with free models downloaded once.
 - 📚 **Travail et études** : espaces de travail (onglets enregistrés sous un nom), collections exportées en Word ou PDF, citer une page (APA, MLA, ISO 690), surligner et annoter les pages.
 - ⌨️ **Palette de commandes (Ctrl+K)**, calculs et conversions dans la barre d'adresse (« 30 euros en FCFA »), recherche dans le texte des pages visitées.
 - 👥 **Conteneurs** : deux comptes du même site en même temps ; correcteur d'orthographe ; onglets inactifs rangés sans les perdre.

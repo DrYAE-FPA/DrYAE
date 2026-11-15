@@ -150,6 +150,15 @@ Dangerous-site list (downloaded weekly, not bundled)
 Phishing.Database (phishing-domains-ACTIVE) — MIT —
   https://github.com/Phishing-Database/Phishing.Database
 
+fxtranslate (moteur de la « Traduction sur le PC ») — MPL-2.0 —
+  https://github.com/gregtatum/translations (npm : fxtranslate)
+Modèles Firefox Translations (téléchargés à la demande, jamais fournis avec DrYAE) — MPL-2.0 —
+  https://github.com/mozilla/firefox-translations-models
+node-unrar-js (lecture des archives .cbr) — MIT —
+  https://github.com/YuJianrong/node-unrar.js
+  Contient le code UnRAR d'Alexander Roshal : sa licence permet de l'utiliser librement pour
+  extraire des archives RAR (pas pour en créer).
+
 ------------------------------------------------------------------------
 Trademarks / Marques
 ------------------------------------------------------------------------

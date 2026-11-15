@@ -162,6 +162,15 @@ Les vidéos protégées par DRM (Netflix, Disney+…) ne peuvent pas être tél�
 - La **barre de favoris** (Ctrl+Maj+B) reste cachée tant qu'aucun favori n'y est placé ; elle apparaît dès que vous y ajoutez un favori. **Autres favoris** : menu ⋮ → Favoris.
 - **Nouvelle fenêtre** : Ctrl+N (ou menu ⋮ → Nouvelle fenêtre). Pour envoyer un onglet dans une nouvelle fenêtre : clic droit sur l'onglet → **Déplacer vers une nouvelle fenêtre**.
 
+## 5 bis++. BD, mangas et traduction sur le PC (1.7.0)
+
+- **Ouvrir une BD** : menu ⋮ → « Ouvrir une BD ou un manga » → « Fichier (.cbz, .cbr, .cb7) » ou « Dossier d'images ». Dans l'Explorateur de Windows : clic droit sur le fichier → « Ouvrir avec » → DrYAE.
+- **Lire** : en haut, choisissez « Défilement continu », « Page par page » ou « Deux pages », et le sens de lecture (« Droite → gauche » pour les mangas). Flèches ← → du clavier, ou clic sur la moitié gauche / droite de la page. DrYAE retient la page où vous vous êtes arrêté.
+- **Traduire** : bouton « Traducteur de scans » de la barre d'outils. Les pages suivantes sont traduites à l'avance.
+- **Enregistrer la traduction** : fenêtre du Traducteur de scans → « Enregistrer la traduction (.cbz) » ou « (PDF) ». Seulement pour vos fichiers, ou ceux que vous avez le droit de copier.
+- **Traduction sur le PC** : Paramètres → Traduction → « Traduction sur le PC ». Rien n'est envoyé sur internet. Un modèle est téléchargé une seule fois par paire de langues (bouton « Télécharger » pour le préparer à l'avance).
+- **Traduction IA (Gemini)** : fenêtre du Traducteur de scans → « Traduction IA » → « Obtenir une clé gratuite » : les étapes s'affichent. La clé est vérifiée dès que vous l'enregistrez.
+
 ## 5 ter. Accessibilité
 Paramètres → **Accessibilité** : taille du texte de DrYAE (jusqu'à 200 %), **contraste élevé** (ou comme Windows), **lecture facilitée** (police simple et lettres plus espacées, utile pour la dyslexie), **réduire les animations**, **mode simple** (seulement les boutons essentiels). Tout se fait aussi au clavier : Tab, flèches, Échap, F6 (barre d'adresse → boutons → page), Alt+F (menu). DrYAE fonctionne avec les lecteurs d'écran (NVDA, Narrateur). Vos propres raccourcis : Paramètres → **Raccourcis clavier**.
 

@@ -6,6 +6,19 @@
 Une version pour les longues sessions de travail (étudiants, professeurs, travailleurs), un traducteur de scans plus juste et DrYAE comme navigateur par défaut.
 
 **Version refaite**
+- **Lecteur de BD et de mangas** : ouvrez vos fichiers .cbz, .cbr et .cb7 (ou un dossier d'images) dans DrYAE, en défilement continu, page par page ou deux pages, avec le sens de lecture manga au choix. DrYAE se souvient de la page où vous vous êtes arrêté. Menu ⋮ → « Ouvrir une BD ou un manga », ou « Ouvrir avec → DrYAE » dans l'Explorateur.
+- **Enregistrer la traduction** : les pages traduites d'un chapitre peuvent être enregistrées en .cbz ou en PDF (usage personnel seulement, pour des fichiers que vous avez le droit de copier).
+- **Traduction à l'avance** : pendant la lecture, les pages suivantes sont traduites avant d'arriver à l'écran.
+- **Traduction sur le PC** : nouveau choix dans Paramètres → Traduction. Rien n'est envoyé sur internet : des modèles libres (Mozilla, licence MPL-2.0) sont téléchargés une seule fois par paire de langues. Le japonais passe par l'anglais. Le Traducteur et le Traducteur de scans l'utilisent tous les deux.
+- **Traduction IA (Gemini) qui ne bloque plus** : délai maximal, image envoyée plus petite, réflexion du modèle réduite ; une page qui ne répond pas n'arrête plus les suivantes (« Lecture des images… » sans fin corrigé). La raison d'un retour à la traduction habituelle est affichée.
+- **Clé Gemini** : assistant « Obtenir une clé gratuite » pas à pas, vérification de la clé dès qu'elle est collée, compteur des pages traduites par l'IA dans la journée et message sur la confidentialité.
+- **Cris avec des lettres répétées** (« ATTENNNNTION », « VAAAAS Y », « REAAALLY ») ramenés au vrai mot avant la traduction.
+- **« Ne jamais traduire »** directement dans la fenêtre « Corriger la bulle ».
+- **Vieilles BD au lettrage dessiné à la main** mieux lues (V lu Y, G lu O, U lu D, lettre collée en fin de mot).
+- **Extensions** : le panneau n'a plus d'interrupteur (l'activation se fait dans « Gérer les extensions ») ; chaque extension a son épingle et son menu ⋮. Les menus s'affichent au-dessus des fenêtres qui les ont ouverts.
+- **Extensions Chrome** : la connexion à un compte (« identity ») marche aussi depuis le service de fond de l'extension ; la fenêtre de connexion ne reste plus blanche (message clair si la page ne se charge pas).
+- **Mode téléphone** : « Passer en mode téléphone / ordinateur » dans le menu principal, et une icône de téléphone dans la barre d'adresse tant que les sites vous voient comme un téléphone (un clic pour revenir).
+- **Fenêtres** : déplacer un onglet vers une autre fenêtre (clic droit sur l'onglet, ou glisser l'onglet sur l'autre fenêtre ; lâché en dehors, il devient une nouvelle fenêtre). Option « Rouvrir aussi les autres fenêtres » (Paramètres → Au démarrage, éteinte par défaut).
 - **Correction importante du traducteur de scans sous Windows** : les dictionnaires anglais et français étaient lus de travers sous Windows (fins de ligne propres à Windows) et restaient vides pour DrYAE. Conséquences : les U lus comme des L (« BLT » au lieu de BUT), les G lus comme des 6 (« 6OOD ») et les mots collés n'étaient jamais corrigés, et des mots ordinaires (SOMEONE, AGAIN, SAME HERE) étaient pris pour des noms et laissés en anglais. C'est corrigé. En plus : « IHOPE » → I HOPE, « ILL HELP » → I'LL HELP, « OU ARE » → YOU ARE.
 - **Nouvelle fenêtre vraiment indépendante** : « Téléchargements » ouvre le gestionnaire dans la fenêtre où l'on clique, et le bouton Navigateur de ce gestionnaire revient dans cette même fenêtre. Les données restent les mêmes partout (téléchargements, paramètres, favoris…).
 - **Paramètres** : en bas de la page, la section choisie dans la liste (« À propos de DrYAE », « Réinitialiser »…) est bien marquée.
@@ -56,6 +69,19 @@ Ne téléchargez que ce que vous avez le droit de copier.
 A release for long work sessions (students, teachers, workers), a more accurate image text translator, and DrYAE as your default browser.
 
 **Rebuilt version**
+- **Comic and manga reader**: open your .cbz, .cbr and .cb7 files (or an image folder) in DrYAE, scrolling, page by page or two pages, with manga reading order. DrYAE remembers where you stopped. Menu ⋮ → "Open a comic or a manga", or "Open with → DrYAE" in File Explorer.
+- **Save the translation**: the translated pages of a chapter can be saved as .cbz or PDF (personal use only, for files you have the right to copy).
+- **Translation ahead**: while you read, the next pages are translated before they reach the screen.
+- **On-device translation**: new choice in Settings → Translation. Nothing is sent online: free models (Mozilla, MPL-2.0 license) are downloaded once per language pair. Japanese goes through English. Both the Translator and the Image text translator use it.
+- **AI translation (Gemini) no longer gets stuck**: time limit, smaller image sent, reduced model thinking; a page that does not answer no longer stops the next ones (endless "Reading images…" fixed). The reason for falling back to the usual translation is shown.
+- **Gemini key**: step-by-step "Get a free key" guide, key checked as soon as it is pasted, daily counter of AI-translated pages and a privacy notice.
+- **Shouts with repeated letters** ("ATTENNNNTION", "REAAALLY") turned back into the real word before translation.
+- **"Never translate"** right in the "Fix the bubble" window.
+- **Old hand-lettered comics** read better (V read as Y, G as O, U as D, letter stuck at the end of a word).
+- **Extensions**: no more on/off switch in the panel (enable them in "Manage extensions"); each extension has its pin and its ⋮ menu. Menus now appear above the windows that opened them.
+- **Chrome extensions**: account sign-in ("identity") also works from the extension's background service; the sign-in window no longer stays blank (clear message if the page does not load).
+- **Phone mode**: "Switch to phone / computer mode" in the main menu, and a phone icon in the address bar while websites see you as a phone (one click to go back).
+- **Windows**: move a tab to another window (right-click the tab, or drag it onto the other window; dropped outside, it becomes a new window). Option "Also reopen the other windows" (Settings → On startup, off by default).
 - **Important fix to the image text translator on Windows**: the English and French dictionaries were read incorrectly on Windows (Windows line endings) and stayed empty for DrYAE. As a result, U read as L ("BLT" instead of BUT), G read as 6 ("6OOD") and stuck-together words were never fixed, and ordinary words (SOMEONE, AGAIN, SAME HERE) were taken for names and left in English. This is fixed. Also: "IHOPE" → I HOPE, "ILL HELP" → I'LL HELP, "OU ARE" → YOU ARE.
 - **New window truly independent**: "Downloads" opens the manager in the window you click in, and that manager's Browser button comes back to the same window. Data stays the same everywhere (downloads, settings, bookmarks…).
 - **Settings**: at the bottom of the page, the section picked in the list ("About DrYAE", "Reset"…) is correctly highlighted.

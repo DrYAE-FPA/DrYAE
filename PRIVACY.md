@@ -15,10 +15,14 @@ DrYAE se connecte à Internet uniquement :
 - pour la **protection contre les sites dangereux** : une fois par semaine, DrYAE télécharge une liste publique de sites d'hameçonnage (Phishing.Database, depuis github.com). La vérification se fait **sur votre PC** : les adresses que vous visitez ne sont envoyées à personne. Cela se désactive dans Paramètres → Confidentialité et sécurité ;
 - pour les **modèles de lecture supplémentaires** du traducteur de scans (langues latines, coréen, cyrillique, arabe, thaï, devanagari), seulement quand vous les demandez : ils sont téléchargés une fois (depuis huggingface.co ou github.com) puis gardés sur votre PC. Les images ne quittent jamais votre PC ;
 - pour la **traduction IA des scans** (facultative, désactivée par défaut), seulement si vous l'activez avec **votre propre clé** Google Gemini : l'image de la page et le texte lu sont envoyés à Google (generativelanguage.googleapis.com). La clé reste sur votre PC (chiffrée par Windows). Par défaut, seules les pages difficiles à lire sont envoyées ;
+- pour la **traduction sur le PC** (facultative, choisie dans Paramètres → Traduction) : les modèles libres de traduction sont téléchargés une seule fois par paire de langues depuis les serveurs publics de Mozilla (firefox.settings.services.mozilla.com et firefox-settings-attachments.cdn.mozilla.net). Ensuite, les textes sont traduits **sur votre PC** : rien n'est envoyé ;
+- pour **vérifier une clé Gemini**, seulement quand vous la collez ou cliquez sur « Vérifier la clé » : la liste des modèles est demandée à Google avec cette clé (sans image ni texte) ;
 - pour **mettre à jour les extensions Chrome** installées, depuis le Chrome Web Store (désactivable dans les paramètres des extensions) ;
 - pour les **icônes des sites**, demandées au site que vous visitez comme le ferait la page elle-même ;
 - pour le **nombre de téléchargements de DrYAE** (Paramètres → À propos), seulement quand cette ligne est affichée : le total public est demandé à github.com, au plus une fois par jour. Rien ne vous identifie ;
 - pour les **taux de change** de la barre d'adresse, seulement quand vous tapez une conversion de monnaie (par exemple « 30 euros en FCFA ») : les taux du jour sont demandés au site public open.er-api.com, au plus deux fois par jour. Rien d'autre n'est envoyé.
+
+Le **lecteur de BD** lit vos fichiers .cbz, .cbr et .cb7 sur votre PC, sans rien envoyer. Pour la connexion des extensions Chrome (« identity »), DrYAE ouvre un petit service accessible **seulement depuis votre PC** (127.0.0.1), qui n'accepte que les extensions installées.
 
 Le **correcteur d'orthographe** utilise celui de Windows : rien n'est envoyé ni téléchargé. **Navigateur par défaut** : DrYAE s'inscrit seulement dans le registre de Windows (pour votre compte), et ces inscriptions sont retirées à la désinstallation. Les **espaces de travail**, **collections**, **surlignages**, **conteneurs** et la **recherche dans le texte des pages visitées** restent sur votre PC ; le texte des pages n'est jamais gardé pour les onglets privés et il est effacé avec l'historique.
 
@@ -40,10 +44,14 @@ DrYAE only connects to the Internet:
 - for **dangerous-site protection**: once a week, DrYAE downloads a public list of phishing sites (Phishing.Database, from github.com). The check happens **on your PC**: the addresses you visit are not sent to anyone. You can turn this off in Settings → Privacy and security;
 - for the image text translator's **extra reading models** (Latin-script languages, Korean, Cyrillic, Arabic, Thai, Devanagari), only when you ask for them: they are downloaded once (from huggingface.co or github.com) and then kept on your PC. Images never leave your PC;
 - for the optional **AI scan translation** (off by default), only if you turn it on with **your own** Google Gemini key: the page image and the text read are sent to Google (generativelanguage.googleapis.com). The key stays on your PC (encrypted by Windows). By default, only pages that are hard to read are sent;
+- for **on-device translation** (optional, chosen in Settings → Translation): the free translation models are downloaded once per language pair from Mozilla's public servers (firefox.settings.services.mozilla.com and firefox-settings-attachments.cdn.mozilla.net). Then texts are translated **on your PC**: nothing is sent;
+- to **check a Gemini key**, only when you paste it or click "Check the key": the model list is requested from Google with that key (no image or text);
 - to **update installed Chrome extensions** from the Chrome Web Store (can be turned off in the extension settings);
 - for **site icons**, requested from the site you visit, as the page itself would;
 - for the **number of DrYAE downloads** (Settings → About), only when that line is shown: the public total is requested from github.com, at most once a day. Nothing identifies you;
 - for **exchange rates** in the address bar, only when you type a currency conversion (for example "30 euros in FCFA"): the day's rates are requested from the public site open.er-api.com, at most twice a day. Nothing else is sent.
+
+The **comic reader** reads your .cbz, .cbr and .cb7 files on your PC and sends nothing. For Chrome extension sign-in ("identity"), DrYAE opens a small service reachable **only from your PC** (127.0.0.1) that only accepts installed extensions.
 
 The **spell checker** uses the Windows one: nothing is sent or downloaded. **Default browser**: DrYAE only registers itself in the Windows registry (for your account), and these entries are removed on uninstall. **Workspaces**, **collections**, **highlights**, **containers** and **search in the text of visited pages** stay on your PC; page text is never kept for private tabs and is erased with the history.
 
