@@ -295,7 +295,9 @@ function loadFr() {
 // mot français connu, avec ou sans accents (les lettrages en majuscules oublient souvent les accents)
 const frKnown = w => { loadFr(); return FRK.has(strip(w.toLowerCase())); };
 // confusions de lettres fréquentes dans les lettrages français : U lu L, O lu Q, I lu L, À lu Δ
+// 1.7.0 refaite : lettrages dessinés à la main (vieilles BD) : Y lu pour V, O pour G, D pour U
 const FR_CONF = { l: 'ui', q: 'o', i: 'l', o: 'q', u: 'l', e: 'c', c: 'e', n: 'u', h: 'n', m: 'n', d: 'c' };
+const FR_CONF_HAND = { ...FR_CONF, o: 'qg', d: 'cu', y: 'v' };
 function frCorrect(w) {
   const k = strip(w.toLowerCase());
   if (k.length < 2) return '';
@@ -303,13 +305,17 @@ function frCorrect(w) {
   // une ou deux confusions de lettres
   // deux lettres lues pour une (« LI » pour U, « RN » pour M, « CL » pour D)
   const PAIRS = { li: 'u', ll: 'u', rn: 'm', cl: 'd', vv: 'w', ii: 'u' };
-  const step = s => { const o = []; for (let i = 0; i < s.length; i++) { for (const c of FR_CONF[s[i]] || '') o.push(s.slice(0, i) + c + s.slice(i + 1)); const p2 = PAIRS[s.slice(i, i + 2)]; if (p2) o.push(s.slice(0, i) + p2 + s.slice(i + 2)); } return o; };
+  // lettrage à la main (mot inconnu, en majuscules, 4 lettres ou plus) : quelques confusions de plus
+  const hand = w === w.toUpperCase() && k.length >= 4 && !FRK.has(k), CONF = hand ? FR_CONF_HAND : FR_CONF;
+  const step = s => { const o = []; for (let i = 0; i < s.length; i++) { for (const c of CONF[s[i]] || '') o.push(s.slice(0, i) + c + s.slice(i + 1)); const p2 = PAIRS[s.slice(i, i + 2)]; if (p2) o.push(s.slice(0, i) + p2 + s.slice(i + 2)); } return o; };
   const e1 = step(k);
   for (const c of e1) if (FRK.has(c)) cands.push([c, (FRT.has(c) ? 0 : 1) + (c.length !== k.length ? 0.5 : 0)]);
   // lettre doublée par erreur (« ILLS » → ILS)
   if (!cands.length) for (let i = 1; i < k.length; i++) if (k[i] === k[i - 1]) { const s = k.slice(0, i) + k.slice(i + 1); if (FRK.has(s)) cands.push([s, FRT.has(s) ? 0.5 : 1.5]); }
   // lettre fine lue en trop (« UINE » → UNE, « VOIUS » → VOUS)
   if (k.length >= 4 && !FRK.has(k)) for (let i = 0; i < k.length; i++) if ('il'.includes(k[i])) { const s = k.slice(0, i) + k.slice(i + 1); if (FRK.has(s)) cands.push([s, FRT.has(s) ? 0.5 : 1.5]); }
+  // lettre en trop à la fin, collée par le lettrage (« CHOSEH » → CHOSE, « DROITET » → DROITE)
+  if (!cands.length && hand && k.length >= 5 && !'aye'.includes(k.slice(-1))) { const s = k.slice(0, -1); if (FRK.has(s) && s.length >= 4) cands.push([s, FRT.has(s) ? 0.5 : 1.5]); }
   // lettre oubliée (« M'NVITER » → M'INVITER)
   if (!cands.length && k.length >= 5) for (let i = 0; i < k.length; i++) for (const c of 'iuel') { const s = k.slice(0, i) + c + k.slice(i); if (FRK.has(s)) cands.push([s, FRT.has(s) ? 1 : 2]); }
   if (!cands.length && k.length >= 5) for (const c1 of e1) for (const c2 of step(c1)) if (FRK.has(c2)) cands.push([c2, FRT.has(c2) ? 1 : 2]);

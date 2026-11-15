@@ -26,3 +26,10 @@ ok('anglais : pas d\'accents ajoutés', !/[À-ÿ]/.test(e), e);
     const r = SF2.squeeze(x, l); console.log((r === y ? 'OK  ' : 'ÉCHEC ') + `cri « ${x} » → ${y}`, JSON.stringify(r));
   }
 }
+// 1.7.0 refaite : lettrage dessiné à la main (vieilles BD)
+{
+  const SF3 = require('../src/main/scan-fix.js');
+  for (const [x, y] of [['COURANT, YOUS?', 'COURANT, VOUS?'], ['POUR QUELQUE CHOSEH', 'POUR QUELQUE CHOSE'], ['SI VOUS N\'ÉTIEZ PAS INTERVEND', 'SI VOUS N\'ÉTIEZ PAS INTERVENU'], ['LE SEROENT', 'LE SERGENT'], ['UNE LUEDR', 'UNE LUEUR'], ['J\'ai quelques questions', 'J\'ai quelques questions'], ['MAIS QUELS IDIOTS!', 'MAIS QUELS IDIOTS!'], ["IL N'YA RIEN", "IL N'YA RIEN"]]) {
+    const r = SF3.fixFrench(x); console.log((r === y ? 'OK  ' : 'ÉCHEC ') + `lettrage à la main « ${x} » → ${y}`, JSON.stringify(r));
+  }
+}

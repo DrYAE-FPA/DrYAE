@@ -14,3 +14,4 @@ ok('deuxième page plus rapide (modèle gardé en mémoire)', !R.enfr_again.erro
 ok('japonais → français en passant par l\'anglais', !R.jafr.error && R.jafr.from === 'ja' && R.jafr.pivot === 'en', R.jafr);
 ok('anglais → espagnol', !R.enes.error, R.enes);
 ok('langue reconnue sur le PC (fr, en, ja, ko)', R.detect.fr === 'fr' && R.detect.en === 'en' && R.detect.ja === 'ja' && R.detect.ko === 'ko', R.detect);
+ok('modèles téléchargés (taille sur le disque)', R.installed.length >= 3 && R.size > 1e6, { paires: R.installed, Mo: Math.round(R.size / 1048576) });
