@@ -198,7 +198,9 @@ function good(l, min = 0.6) {
   if (!s || l.score < min) return false;
   const letters = (s.match(/\p{L}/gu) || []).length;
   if (isCJK(s)) return letters >= 1;
-  return letters >= 2 && letters / s.length >= 0.5;
+  // 1.7.0 refaite : la ponctuation ne compte pas (« ...NO. » était rejeté : 2 lettres sur 6 signes)
+  const core = s.replace(/[.…!?,;:'’"“”«»\-–—~*]/g, '');
+  return letters >= 2 && letters / Math.max(1, core.length) >= 0.5;
 }
 
 // ---- bulles : zones claires fermées autour du texte (repérées sur une image réduite) ----
@@ -418,6 +420,12 @@ async function readBubbles(img, opts = {}) {
         const r3 = await recognize(img, b, R, true, sh);
         if (r3.score > r.score + 0.03) r = r3;
       }
+    }
+    // 1.7.0 refaite : ligne toujours peu sûre (« DOJO » lu « 0O30 ») : relue avec les autres modèles installés
+    // (modèle « langues latines » ou modèle de base) ; on garde la lecture la plus sûre
+    if (r.score < 0.75 && r.text.replace(/\s/g, '').length >= 2) for (const id of ['', ...installed()]) {
+      if (id === used) continue;
+      try { const RR = id ? await recOf(id) : null; const r4 = await recognize(img, b, RR, true); if (r4.score > r.score + 0.05) r = r4; } catch {}
     }
     const l = { ...b, ...r };
     const c = bm ? (bm.of(l) || bm.dk.of(l)) : null, k = bkey(c);

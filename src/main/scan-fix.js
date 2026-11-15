@@ -23,6 +23,8 @@ function load() {
   for (const c of CONTR.split(' ')) DICT.set(c, 0);
   // mots courants absents des listes américaines
   for (const w of 'axe axes colour honour favour armour grey okay barkeep gosh darn'.split(' ')) if (!DICT.has(w)) DICT.set(w, 1);
+  // 1.7.0 refaite : mots des BD et mangas absents des listes (sinon coupés : « SCANLATION » → SCAN AT ION)
+  for (const w of 'scanlation scanlations scanlator scanlators proofreader proofreaders proofreading typeset typesetter typesetting typesetters redrawer redrawers redraw raws speedscan tankobon tankoubon dojo dojos sensei senpai kohai onii onee nee nii chan kun sama yokai youkai katana ninja ninjas shinigami otaku manga mangaka manhwa manhua webtoon oni ramen sake kimono shrine kami'.split(' ')) if (!DICT.has(w)) DICT.set(w, 3);
   // « ISNT », « DONT » (apostrophe non lue) : retrouvés grâce à la forme sans apostrophe
   APOS = new Map(); for (const c of CONTR.split(' ')) { const s = c.replace(/'/g, ''); if (!DICT.has(s)) APOS.set(s, c); }
   return DICT;
@@ -32,7 +34,7 @@ const SPECIAL = { ts: "it's", tm: "i'm", im: "i'm", tve: "i've", ive: "i've", tl
 
 // lettres que la lecture confond souvent dans les bulles (écriture « bande dessinée » en majuscules)
 const CONF = {
-  a: 'r', b: 'eor', c: 'gkoe', d: 'o', e: 'bfrc', f: 'pe', g: 'csob', h: 'nk', i: 'ltj', j: 'i', k: 'rch', l: 'iu', m: 'nw',
+  a: 'r', b: 'eor', c: 'gkoe', d: 'o', e: 'bfrc', f: 'pe', g: 'csob', h: 'nku', i: 'ltj', j: 'i', k: 'rch', l: 'iu', m: 'nw',
   n: 'mhr', o: 'dcq', p: 'fr', q: 'or', r: 'ekpab', s: 'g', t: 'il', u: 'lv', v: 'uy', w: 'mn', y: 'v', z: 's',
 };
 const known = w => DICT.has(w);
@@ -140,8 +142,21 @@ function fixParts(parts) {
   }
   return fixWords(text);
 }
+// 1.7.0 refaite : bulle écrite en MAJUSCULES où un petit mot a été lu en minuscules (« ….ou ARE », « LIKE you. ») :
+// remis en majuscules, comme le reste de la bulle
+function capsLike(text) {
+  const ws = String(text).match(/\p{L}+/gu) || [];
+  const up = ws.filter(w => w.length >= 2 && w === w.toUpperCase()).length, low = ws.filter(w => w === w.toLowerCase());
+  const mix = ws.filter(w => /^\p{Lu}\p{Ll}{1,5}$/u.test(w));
+  if (up >= 3 && (low.length || mix.length) && low.length + mix.length <= Math.max(1, up / 4)) return String(text).replace(/\p{L}+/gu, w => ((w === w.toLowerCase() || /^\p{Lu}\p{Ll}{1,5}$/u.test(w)) && w.length <= 6 ? w.toUpperCase() : w));
+  return text;
+}
+// bulle d'un seul mot dont le W du début n'a pas été lu : « HAT? » → WHAT?
+const LOST_W = { hat: 'what', hy: 'why', ho: 'who', hen: 'when', here: null };
 function fixWords(text) {
   load();
+  text = capsLike(text);
+  { const m = /^(\s*)(\p{L}+)([?!]+\s*)$/u.exec(text); if (m && LOST_W[m[2].toLowerCase()] && /\?/.test(m[3])) text = m[1] + likeCase(m[2], LOST_W[m[2].toLowerCase()]) + m[3]; }
   text = digitWords(halfwidth(text), w => known(w), w => rank(w));
   const mixed = /\p{Ll}{3,}/u.test(text);
   text = String(text).replace(/[\p{L}']+/gu, (m, off, all) => {
@@ -393,6 +408,7 @@ function frApos(text) {
   });
 }
 function fixFrench(text) {
+  text = capsLike(text);
   return fixFrench0(text).replace(/\b((?:qu|n|c)['’]est) (ce)\b/gi, '$1-$2');
 }
 function fixFrench0(text) {

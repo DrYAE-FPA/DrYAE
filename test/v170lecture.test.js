@@ -33,3 +33,10 @@ ok('anglais : pas d\'accents ajoutés', !/[À-ÿ]/.test(e), e);
     const r = SF3.fixFrench(x); console.log((r === y ? 'OK  ' : 'ÉCHEC ') + `lettrage à la main « ${x} » → ${y}`, JSON.stringify(r));
   }
 }
+// 1.7.0 refaite : images enregistrées par l'utilisateur (15 nov.)
+{
+  const SF4 = require('../src/main/scan-fix.js');
+  for (const [x, y] of [['….ou ARE MY ENEMIES.', '….YOU ARE MY ENEMIES.'], ['IF ONLY ALL OWNERS WERE LIKE you.', 'IF ONLY ALL OWNERS WERE LIKE YOU.'], ['...You ARE MY ENEMIES.', '...YOU ARE MY ENEMIES.'], ['HAT?', 'WHAT?'], ['SPARE SPIRITHAL POWER.', 'SPARE SPIRITUAL POWER.'], ['SCANLATION', 'SCANLATION'], ['Hello you are nice', 'Hello you are nice'], ['THE HAT IS RED', 'THE HAT IS RED']]) {
+    const r = SF4.fixWords(x); console.log((r === y ? 'OK  ' : 'ÉCHEC ') + `« ${x} » → ${y}`, JSON.stringify(r));
+  }
+}

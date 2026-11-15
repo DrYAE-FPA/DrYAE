@@ -2005,6 +2005,15 @@ class WebBrowser {
         const RGBA = { width: sz.width, height: sz.height, data: bm };
         groups = await PO.readBubbles(RGBA);
         w = sz.width;
+        // 1.7.0 refaite : page en lettres latines (anglais, français…) et modèle « langues latines » absent : il est
+        // téléchargé en arrière-plan une seule fois (8 Mo, même source que le modèle de base). Il lit bien mieux
+        // ces bulles (« DOJO » au lieu de « 0O30 », moins de U/L et G/6) ; les pages suivantes l'utilisent.
+        try {
+          const lat = groups.filter(g => /[A-Za-z]{2}/.test(g.text) && !/[\u3040-\u30ff\u4e00-\u9fff\uac00-\ud7af]/.test(g.text)).length;
+          if (lat >= 2 && lat >= groups.length * 0.7 && !PO.installed().includes('latin') && !this._latinDl && this.B().scan?.autoLatin !== false) {
+            this._latinDl = PO.download('latin').then(() => LOGW('ocr', 'modèle langues latines installé')).catch(e => { LOGW('ocr', 'latin', e.message); this._latinDl = null; });
+          }
+        } catch {}
         // langue reconnue → si le modèle multilingue ne connaît pas ses accents (vietnamien, coréen…),
         // les bulles sont relues avec les données de cette langue (téléchargées la première fois)
         if (groups.length && src === 'auto') {
