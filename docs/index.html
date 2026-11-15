@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DrYAE — gestionnaire de téléchargements et navigateur gratuits pour Windows</title>
+<meta name="description" content="DrYAE : gestionnaire de téléchargements, navigateur avec bloqueur de publicités, traducteur de pages et traducteur des bulles de BD et de mangas. Gratuit, libre (GPL-3.0), sans publicité, sans compte.">
+<style>
+:root{--bg:#0e1015;--panel:#161922;--line:#262b38;--fg:#eceef3;--dim:#9aa1b2;--acc:#8b5cf6;--acc2:#ec4899}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:17px/1.6 "Segoe UI",system-ui,sans-serif}
+a{color:#c4b5fd}
+.wrap{max-width:1040px;margin:0 auto;padding:0 20px}
+header{padding:56px 0 28px;text-align:center}
+header img{width:84px;height:84px}
+h1{font-size:44px;margin:10px 0 6px;letter-spacing:-.5px}
+.tag{font-size:20px;color:var(--dim);max-width:720px;margin:0 auto 26px}
+.dl{display:inline-flex;align-items:center;gap:10px;padding:16px 30px;border-radius:14px;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-weight:700;font-size:20px;text-decoration:none;box-shadow:0 8px 30px #8b5cf655}
+.dl:hover{filter:brightness(1.08)}
+.small{color:var(--dim);font-size:14px;margin-top:10px}
+.lang{position:absolute;top:16px;right:20px;font-size:14px}
+section{padding:34px 0;border-top:1px solid var(--line)}
+h2{font-size:28px;margin:0 0 18px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
+.card h3{margin:0 0 6px;font-size:19px}
+.card p{margin:0;color:var(--dim);font-size:15.5px}
+video{width:100%;border-radius:12px;border:1px solid var(--line);background:#000;margin-top:10px}
+ol li{margin:6px 0}
+.win{max-width:520px;margin:14px 0;border-radius:6px;background:#1f4e8c;color:#fff;padding:18px 20px;font-family:"Segoe UI",sans-serif}
+.win b{font-size:22px;font-weight:400;display:block;margin-bottom:8px}
+.win .lnk{text-decoration:underline;outline:3px solid #facc15;outline-offset:3px;border-radius:2px}
+.win .btns{display:flex;gap:10px;justify-content:flex-end;margin-top:14px}
+.win .btns span{border:1px solid #fff9;padding:5px 14px}
+.win .btns .go{outline:3px solid #facc15}
+details{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin:10px 0}
+summary{cursor:pointer;font-weight:600}
+footer{padding:30px 0 50px;color:var(--dim);font-size:14px;text-align:center;border-top:1px solid var(--line)}
+.en{display:none}
+body.show-en .fr{display:none}body.show-en .en{display:revert}
+</style>
+</head>
+<body>
+<a class="lang" href="#" onclick="document.body.classList.toggle('show-en');return false"><span class="fr">English</span><span class="en">Français</span></a>
+<div class="wrap">
+<header>
+  <img src="images/logo.png" alt="DrYAE">
+  <h1>DrYAE</h1>
+  <p class="tag fr">Le gestionnaire de téléchargements et le navigateur qui traduisent aussi vos BD et vos mangas. Gratuit, sans publicité, sans compte.</p>
+  <p class="tag en">The download manager and web browser that also translates your comics and manga. Free, no ads, no account.</p>
+  <a class="dl" href="https://github.com/DrYAE-FPA/DrYAE/releases/latest/download/DrYAE-Setup.exe">⬇ <span class="fr">Télécharger pour Windows</span><span class="en">Download for Windows</span></a>
+  <p class="small fr">Windows 10 et 11 (64 bits) · Logiciel libre (GPL-3.0) · <a href="https://github.com/DrYAE-FPA/DrYAE/releases/latest">Toutes les versions</a></p>
+  <p class="small en">Windows 10 and 11 (64-bit) · Free software (GPL-3.0) · <a href="https://github.com/DrYAE-FPA/DrYAE/releases/latest">All versions</a></p>
+</header>
+
+<section>
+  <h2 class="fr">Ce que fait DrYAE</h2><h2 class="en">What DrYAE does</h2>
+  <div class="grid">
+    <div class="card"><h3 class="fr">Traducteur de scans</h3><h3 class="en">Image text translator</h3>
+      <p class="fr">Les bulles des BD, mangas et webtoons sont lues puis traduites directement sur la page, dans votre langue.</p>
+      <p class="en">Speech bubbles in comics, manga and webtoons are read and translated right on the page.</p>
+      <video src="videos/1-traducteur-de-scans.mp4" controls muted playsinline preload="metadata"></video></div>
+    <div class="card"><h3 class="fr">Lecteur de BD</h3><h3 class="en">Comic reader</h3>
+      <p class="fr">Ouvrez vos fichiers .cbz, .cbr et .cb7, page par page ou en défilement, sens manga au choix, puis enregistrez la traduction.</p>
+      <p class="en">Open your .cbz, .cbr and .cb7 files, page by page or scrolling, manga reading order, and save the translation.</p>
+      <video src="videos/2-lecteur-de-bd.mp4" controls muted playsinline preload="metadata"></video></div>
+    <div class="card"><h3 class="fr">Traduction sur le PC</h3><h3 class="en">On-device translation</h3>
+      <p class="fr">Traduisez sans rien envoyer sur internet, avec des modèles libres téléchargés une seule fois.</p>
+      <p class="en">Translate without sending anything online, with free models downloaded once.</p>
+      <video src="videos/3-traduction-sur-le-pc.mp4" controls muted playsinline preload="metadata"></video></div>
+    <div class="card"><h3 class="fr">Gestionnaire de téléchargements</h3><h3 class="en">Download manager</h3>
+      <p class="fr">Téléchargements rapides et repris automatiquement, torrents, vidéos détectées dans les pages.</p>
+      <p class="en">Fast downloads that resume automatically, torrents, videos detected on pages.</p>
+      <video src="videos/4-gestionnaire.mp4" controls muted playsinline preload="metadata"></video></div>
+    <div class="card"><h3 class="fr">Travail et études</h3><h3 class="en">Work and study</h3>
+      <p class="fr">Espaces de travail, collections exportées en Word ou PDF, citer une page, mode concentration, palette de commandes (Ctrl+K).</p>
+      <p class="en">Workspaces, collections exported to Word or PDF, page citations, focus mode, command palette (Ctrl+K).</p>
+      <video src="videos/5-travail-et-etudes.mp4" controls muted playsinline preload="metadata"></video></div>
+    <div class="card"><h3 class="fr">Navigateur protégé</h3><h3 class="en">Protected browser</h3>
+      <p class="fr">Bloqueur de publicités et des onglets de publicité, mots de passe, extensions Chrome, lecteur PDF, mode lecture, plusieurs fenêtres.</p>
+      <p class="en">Ad and pop-up tab blocker, passwords, Chrome extensions, PDF reader, reading mode, multiple windows.</p></div>
+  </div>
+</section>
+
+<section id="installer">
+  <h2 class="fr">Installer DrYAE</h2><h2 class="en">Install DrYAE</h2>
+  <ol class="fr">
+    <li>Cliquez sur <b>Télécharger pour Windows</b>, puis ouvrez le fichier <code>DrYAE-Setup.exe</code>.</li>
+    <li>Windows peut afficher un écran bleu « Windows a protégé votre ordinateur ». C'est normal pour un logiciel gratuit encore peu connu : il n'a pas de signature payante. Cliquez sur <b>Informations complémentaires</b> :</li>
+  </ol>
+  <ol class="en">
+    <li>Click <b>Download for Windows</b>, then open <code>DrYAE-Setup.exe</code>.</li>
+    <li>Windows may show a blue screen "Windows protected your PC". This is normal for a young free program without a paid signature. Click <b>More info</b>:</li>
+  </ol>
+  <div class="win"><b class="fr">Windows a protégé votre ordinateur</b><b class="en">Windows protected your PC</b>
+    <span class="fr">Microsoft Defender SmartScreen a empêché le démarrage d'une application non reconnue.</span><span class="en">Microsoft Defender SmartScreen prevented an unrecognized app from starting.</span><br><br>
+    <span class="lnk fr">Informations complémentaires</span><span class="lnk en">More info</span>
+    <div class="btns"><span class="fr">Ne pas exécuter</span><span class="en">Don't run</span></div></div>
+  <ol start="3" class="fr"><li>Le bouton <b>Exécuter quand même</b> apparaît : cliquez dessus, puis suivez l'installation.</li></ol>
+  <ol start="3" class="en"><li>The <b>Run anyway</b> button appears: click it, then follow the installer.</li></ol>
+  <div class="win"><b class="fr">Windows a protégé votre ordinateur</b><b class="en">Windows protected your PC</b>
+    <span class="fr">Application : DrYAE-Setup.exe<br>Éditeur : Éditeur inconnu</span><span class="en">App: DrYAE-Setup.exe<br>Publisher: Unknown publisher</span>
+    <div class="btns"><span class="go fr">Exécuter quand même</span><span class="go en">Run anyway</span><span class="fr">Ne pas exécuter</span><span class="en">Don't run</span></div></div>
+  <p class="fr">Le code de DrYAE est public sur <a href="https://github.com/DrYAE-FPA/DrYAE">GitHub</a> et chaque version est compilée automatiquement par GitHub, à partir de ce code.</p>
+  <p class="en">DrYAE's code is public on <a href="https://github.com/DrYAE-FPA/DrYAE">GitHub</a> and every version is built automatically by GitHub from that code.</p>
+</section>
+
+<section>
+  <h2 class="fr">Questions fréquentes</h2><h2 class="en">FAQ</h2>
+  <details class="fr"><summary>DrYAE est-il vraiment gratuit ?</summary><p>Oui : gratuit, sans publicité, sans compte, et libre (licence GPL-3.0). Aucune donnée n'est collectée.</p></details>
+  <details class="en"><summary>Is DrYAE really free?</summary><p>Yes: free, no ads, no account, and open source (GPL-3.0). No data is collected.</p></details>
+  <details class="fr"><summary>Dans quelles langues ?</summary><p>DrYAE est en français, anglais, espagnol, portugais, russe et arabe. Le traducteur traduit vers des dizaines de langues.</p></details>
+  <details class="en"><summary>Which languages?</summary><p>DrYAE is available in French, English, Spanish, Portuguese, Russian and Arabic. The translator handles dozens of languages.</p></details>
+  <details class="fr"><summary>Mon ordinateur est modeste, ça marche ?</summary><p>Oui : DrYAE met en veille les onglets inutilisés et a des économiseurs de mémoire et de batterie.</p></details>
+  <details class="en"><summary>Will it run on a modest PC?</summary><p>Yes: DrYAE puts unused tabs to sleep and has memory and battery savers.</p></details>
+  <details class="fr"><summary>Utilisation responsable</summary><p>Ne téléchargez que ce que vous avez le droit de copier : vos fichiers, des œuvres libres, ou avec l'accord des auteurs.</p></details>
+  <details class="en"><summary>Responsible use</summary><p>Only download what you have the right to copy: your own files, free works, or with the authors' permission.</p></details>
+</section>
+</div>
+<footer><span class="fr">DrYAE — logiciel libre (GPL-3.0).</span><span class="en">DrYAE — free software (GPL-3.0).</span> Vidéos : Pepper&amp;Carrot par David Revoy, licence CC BY 4.0 (peppercarrot.com).</footer>
+<script>if (!/^fr/i.test(navigator.language || '')) document.body.classList.add('show-en');</script>
+</body>
+</html>

@@ -3,7 +3,7 @@ name: Vidéos de démonstration
 on:
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
 jobs:
   videos:
     runs-on: ubuntu-latest
@@ -22,9 +22,13 @@ jobs:
       - run: node tools/build-locales.js
       - name: Tournage
         run: xvfb-run -a -s "-screen 0 1280x800x24" node tools/demo/record.js
-      - uses: actions/upload-artifact@v4
-        with:
-          name: videos
-          path: |
-            dist/demo/*.mp4
-            dist/demo/*.gif
+      - name: Vidéos ajoutées au site (docs/videos)
+        run: |
+          mkdir -p docs/videos
+          cp dist/demo/*.mp4 docs/videos/
+          cp dist/demo/traducteur-de-scans.gif docs/images/ || true
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/videos docs/images
+          git commit -m "Vidéos de démonstration mises à jour" || exit 0
+          git push
