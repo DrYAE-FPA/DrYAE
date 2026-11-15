@@ -1,0 +1,30 @@
+# Vidéos de démonstration de DrYAE (lancé à la main) : DrYAE filmé sur un écran virtuel, vraies traductions.
+name: Vidéos de démonstration
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  videos:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Outils (écran virtuel, ffmpeg, polices)
+        run: sudo apt-get update && sudo apt-get install -y xvfb ffmpeg fonts-noto-cjk fonts-dejavu
+      - run: npm ci
+      - run: npm i --no-save playwright@1.63.0
+      - run: node node_modules/electron/install.js
+      - run: node tools/build-locales.js
+      - name: Tournage
+        run: xvfb-run -a -s "-screen 0 1280x800x24" node tools/demo/record.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: videos
+          path: |
+            dist/demo/*.mp4
+            dist/demo/*.gif
