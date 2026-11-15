@@ -104,13 +104,12 @@ function drawExtPop() {
   const chrome = EXTS.filter(x => x.enabled).map((x, i) => [x, i]).sort((a, b) => (ord('ext:' + a[0].id) - ord('ext:' + b[0].id)) || a[1] - b[1]).map(x => x[0]);
   popEl.innerHTML = `<div class="ph">${ic('ext')}<b>${esc(T('Extensions'))}</b><button class="icon-btn" data-go="manage" title="${esc(T('Gérer les extensions'))}">${ic('gear')}</button></div>
     <div class="psec">${esc(T('Intégrées à DrYAE'))}</div>
-    ${mods.map(([id, name, icon]) => row({ kind: 'mod', id, name: T(name), sub: T(modOn(id) ? 'Activée' : 'Désactivée'), img: `<span class="xi">${ic(icon)}</span>`, pinned: M[id]?.pinned !== false, extra: tg('mod:' + id, modOn(id), 'Activer ou désactiver') })).join('')}
+    ${mods.map(([id, name, icon]) => row({ kind: 'mod', id, name: T(name), sub: T('Cliquez pour ouvrir'), img: `<span class="xi">${ic(icon)}</span>`, pinned: M[id]?.pinned !== false, more: true })).join('')}
     <div class="psec">${esc(T('Extensions Chrome'))}</div>
     ${chrome.length ? chrome.map(x => row({ kind: 'cx', id: x.id, name: x.name, sub: x.enabled ? (x.popup ? T('Cliquez pour ouvrir') : T('Version {0}').replace('{0}', x.version)) : T('Désactivée'), img: x.icon ? `<img src="${esc(x.icon)}" alt="">` : `<span class="xi">${esc((x.name || '?')[0])}</span>`, pinned: x.enabled && extPinned(x), more: true })).join('')
       : `<div class="prow"><span class="grow"><small style="white-space:normal">${esc(T(EXTS.length ? 'Aucune extension Chrome activée.' : 'Aucune extension Chrome. Ajoutez-en depuis le Chrome Web Store.'))}</small></span></div>`}
     ${offN ? `<div class="prow clk" data-go="manage"><span class="grow"><small style="white-space:normal">${esc(T('{0} extension(s) désactivée(s) : à réactiver dans « Gérer les extensions »').replace('{0}', offN))}</small></span><span class="xi">${ic('gear')}</span></div>` : ''}
     <div class="pfoot"><button class="btn sm" data-go="manage">${ic('ext')}${esc(T('Gérer les extensions'))}</button><button class="btn sm" data-go="store">${ic('store')}${esc(T('Chrome Web Store'))}</button></div>`;
-  for (const [id] of mods) TOGGLES['mod:' + id] = async on => { await setModule(id, { enabled: on }); popRender(); };
 }
 popEl.addEventListener('click', async e => {
   if (POP.kind !== 'ext') return;
@@ -123,6 +122,19 @@ popEl.addEventListener('click', async e => {
     else { const x = EXTS.find(x => x.id === cx); if (!x?.enabled) return toast('Activez d\'abord cette extension'); CFG.extUnpinned = await B.call('br:extPin', cx, !extPinned(x)); drawExtPins(); }
     return popRender();
   }
+  // 1.7.0 refaite : menu ⋮ pour toutes les extensions (intégrées et Chrome) ; l'activation se fait seulement dans
+  // « Gérer les extensions » (Paramètres), plus depuis ce panneau
+  if (e.target.closest('[data-more]') && mod) {
+    const b = e.target.closest('[data-more]').getBoundingClientRect(), on = CFG.mods?.[mod]?.pinned !== false;
+    const SET = { adblock: 'adblock', translate: 'translate', scan: 'scan', lights: 'lights', pip: 'pip', capture: 'downloads' };
+    return menu(b.right - 240, b.bottom + 2, [
+      { title: (MODS.find(m => m[0] === mod) || [])[1] || mod },
+      { label: 'Paramètres de l\'extension', icon: 'gear', fn: () => { popClose(); openPage('settings', SET[mod] || ''); } },
+      { label: on ? 'Retirer de la barre d\'outils' : 'Épingler dans la barre d\'outils', icon: 'pushpin', fn: async () => { await setModule(mod, { pinned: !on }); popRender(); } },
+      '-',
+      { label: 'Gérer les extensions', icon: 'ext', fn: () => { popClose(); openPage('extensions'); } },
+    ]);
+  }
   if (e.target.closest('[data-more]')) {
     const x = EXTS.find(x => x.id === cx); if (!x) return;
     const b = e.target.closest('[data-more]').getBoundingClientRect();
@@ -130,7 +142,6 @@ popEl.addEventListener('click', async e => {
       { title: x.name },
       x.options && x.enabled && { label: 'Options', icon: 'gear', fn: () => { popClose(); B.call('br:extOptions', x.id); } },
       x.enabled && { label: extPinned(x) ? 'Retirer de la barre d\'outils' : 'Épingler dans la barre d\'outils', icon: 'pushpin', fn: async () => { CFG.extUnpinned = await B.call('br:extPin', x.id, !extPinned(x)); drawExtPins(); popRender(); } },
-      { label: x.enabled ? 'Désactiver' : 'Activer', icon: 'power', fn: async () => { await B.call('br:extEnable', x.id, !x.enabled); await loadExts(); } },
       { label: 'Retirer de DrYAE', icon: 'trash', fn: async () => { EXTS = await B.call('br:extRemove', x.id); drawExtPins(); popRender(); toast('Extension retirée'); } },
       '-',
       { label: 'Gérer les extensions', icon: 'ext', fn: () => { popClose(); openPage('extensions'); } },
@@ -249,7 +260,11 @@ async function drawScanPop() {
       <div class="prow"><span class="grow">${esc(T('Utiliser l\'IA pour les scans'))}</span>${tg('scAi', !!AI.on)}</div>
       <div class="prow"><span class="grow">${esc(T('Pages envoyées à l\'IA'))}<small>${esc(T('Pages difficiles : lecture peu sûre ou mots inconnus. La limite gratuite du jour dure plus longtemps.'))}</small></span><select id="scAiMode"><option value="hard" ${AI.mode !== 'all' ? 'selected' : ''}>${esc(T('Seulement les pages difficiles'))}</option><option value="all" ${AI.mode === 'all' ? 'selected' : ''}>${esc(T('Toutes les pages'))}</option></select></div>
       <div class="prow"><input id="scAiKey" type="password" placeholder="${esc(T(AI.hasKey ? 'Clé enregistrée (taper pour la remplacer)' : 'Coller votre clé ici'))}" style="flex:1;min-width:0" autocomplete="off" spellcheck="false"><button class="btn sm" id="scAiSave">${esc(T('Enregistrer'))}</button></div>
-      <div class="prow"><button class="btn sm" id="scAiGet">${esc(T('Obtenir une clé gratuite'))}</button>${AI.hasKey ? `<button class="btn sm" id="scAiDel">${esc(T('Effacer la clé'))}</button>` : ''}</div>
+      <div class="prow"><button class="btn sm" id="scAiGet">${esc(T('Obtenir une clé gratuite'))}</button>${AI.hasKey ? `<button class="btn sm" id="scAiTest">${esc(T('Vérifier la clé'))}</button><button class="btn sm" id="scAiDel">${esc(T('Effacer la clé'))}</button>` : ''}</div>
+      <div id="scAiHelp" hidden style="white-space:normal;font-size:12px;line-height:1.45;margin:4px 0;padding:6px 8px;border-radius:8px;background:var(--hover)"><b>${esc(T('Obtenir une clé gratuite, pas à pas'))}</b><ol style="margin:4px 0 4px 18px;padding:0"><li>${esc(T('Ouvrez Google AI Studio et connectez-vous avec votre compte Google (18 ans ou plus).'))}</li><li>${esc(T('Cliquez sur « Get API key », puis sur « Create API key ». Aucune carte bancaire n\'est demandée.'))}</li><li>${esc(T('Copiez la clé : elle commence par AIza.'))}</li><li>${esc(T('Collez-la ci-dessus, puis cliquez sur Enregistrer. DrYAE vérifie qu\'elle marche.'))}</li></ol><button class="btn sm" id="scAiOpen">${esc(T('Ouvrir Google AI Studio'))}</button> <small style="color:var(--dim)">${esc(T('Gardez votre clé secrète : ne la partagez avec personne.'))}</small></div>
+      <div id="scAiPriv" hidden style="white-space:normal;font-size:12px;margin:4px 0;padding:6px 8px;border-radius:8px;border:1px solid #f59e0b">${esc(T('Avec la formule gratuite de Google, les images et les textes envoyés peuvent être utilisés par Google pour améliorer ses produits. N\'utilisez pas l\'IA pour des images privées.'))} <button class="btn sm" id="scAiOk">${esc(T('J\'ai compris, enregistrer'))}</button></div>
+      ${AI.hasKey ? `<div class="prow"><span class="grow">${esc(T('IA aujourd\'hui'))}<small>${esc(T('Limite gratuite : environ {0} pages par jour (selon Google)').replace('{0}', AI.limit || 500))}</small></span><b style="color:${(AI.today || 0) >= (AI.limit || 500) * 0.8 ? '#f59e0b' : 'inherit'}">${esc(T('{0} page(s)').replace('{0}', AI.today || 0))}</b></div>` : ''}
+      ${AI.hasKey && (AI.today || 0) >= (AI.limit || 500) * 0.8 ? `<small style="color:#f59e0b;display:block;white-space:normal">${esc(T('La limite gratuite du jour approche : ensuite, la traduction habituelle prendra le relais jusqu\'à demain.'))}</small>` : ''}
       ${AI.off ? `<small style="color:#f59e0b;display:block;white-space:normal">${esc(T('Limite gratuite du jour atteinte ou clé refusée : traduction habituelle pour le moment.'))}</small>` : ''}
     </details>
     <details class="pdet"><summary>${esc(T('Lexique'))} (${(s.glossary || []).length})</summary><small style="color:var(--dim);display:block;margin:2px 0 4px">${esc(T('Mots toujours traduits de la même façon (noms des personnages…). Ajout : clic droit sur une bulle traduite.'))}</small><div class="prow"><input id="scNever" class="grow" placeholder="${esc(T('Ne jamais traduire (nom, expression)…'))}" maxlength="100"><button class="btn" id="scNeverAdd">${esc(T('Ajouter'))}</button></div>${(s.glossary || []).map((g, i) => `<div class="prow"><span class="grow notr">${g.n ? esc(g.s) + ' — <i>' + esc(T('jamais traduit')) + '</i>' : esc(g.s) + ' → ' + esc(g.t)}</span><button class="icon-btn" data-gdel="${i}" title="${esc(T('Supprimer'))}">${ic('x')}</button></div>`).join('') || `<small style="color:var(--dim)">${esc(T('Vide'))}</small>`}</details>
@@ -268,8 +283,21 @@ async function drawScanPop() {
   popEl.querySelector('[data-set]').onclick = () => { popClose(); openPage('settings', 'scan'); };
   TOGGLES.scAi = async on => { await B.call('scan:ai', { on }); popRender(); };
   $('#scAiMode').onchange = e => B.call('scan:ai', { mode: e.target.value });
-  $('#scAiSave').onclick = async () => { const k = $('#scAiKey').value.trim(); if (!k) return; await B.call('scan:ai', { key: k, on: true }); toast(T('Clé enregistrée')); popRender(); };
-  $('#scAiGet').onclick = () => { popClose(); newTab('https://aistudio.google.com/app/apikey'); };
+  // 1.7.0 refaite : la clé est vérifiée tout de suite ; le message sur la confidentialité est montré une fois
+  const saveKey = async () => {
+    const k = $('#scAiKey').value.trim(); if (!k) return;
+    $('#scAiSave').disabled = true;
+    const t = await B.call('scan:aiTest', k).catch(() => ({ ok: false, msg: '' }));
+    $('#scAiSave').disabled = false;
+    if (!t.ok && t.bad) return toast(T('Cette clé ne marche pas : vérifiez que vous l\'avez copiée en entier (elle commence par AIza).'));
+    await B.call('scan:ai', { key: k, on: true, privacySeen: true });
+    toast(t.ok ? T('Clé valide et enregistrée') : T('Clé enregistrée (vérification impossible sans internet)')); popRender();
+  };
+  $('#scAiSave').onclick = () => { if (AI.privacySeen) return saveKey(); $('#scAiPriv').hidden = false; };
+  $('#scAiOk').onclick = saveKey;
+  $('#scAiGet').onclick = () => { $('#scAiHelp').hidden = !$('#scAiHelp').hidden; popPlace(); };
+  $('#scAiOpen').onclick = () => { popClose(); newTab('https://aistudio.google.com/app/apikey'); };
+  if ($('#scAiTest')) $('#scAiTest').onclick = async () => { const t = await B.call('scan:aiTest', '').catch(() => ({})); toast(t.ok ? T('La clé marche') : t.bad ? T('Clé refusée par Google : créez-en une nouvelle') : T('Vérification impossible (pas de connexion ?)')); };
   if ($('#scAiDel')) $('#scAiDel').onclick = async () => { await B.call('scan:ai', { key: '', on: false }); popRender(); };
   TOGGLES.scIcons = on => setB({ scan: { icons: on } }).then(() => pageCmd('scan-icons', { on }));
   TOGGLES.scEng = on => setB({ scan: { withEng: on } });

@@ -21,6 +21,7 @@ const PAGE_PRELOAD = path.join(__dirname, '..', 'browser', 'page-preload.js');
 // version de Firefox actuelle estimée (une version toutes les 4 semaines depuis la 132 du 29/10/2024)
 const FF = 132 + Math.max(0, Math.floor((Date.now() - Date.UTC(2024, 9, 29)) / (28 * 864e5)));
 const UA_GOOGLE_LOGIN = `Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:${FF}.0) Gecko/20100101 Firefox/${FF}.0`;
+const htm = x => String(x || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 const GOOGLE_LOGIN = /^(accounts\.google\.[a-z.]+|accounts\.youtube\.com|myaccount\.google\.com)$/;
 // sites de Google traversés pendant une connexion (redirections, cookies posés sur chaque domaine)
 const GOOGLE_FAMILY = /(^|\.)(google\.[a-z.]+|youtube\.com|gstatic\.com|googleusercontent\.com|googleapis\.com|gmail\.com|youtube-nocookie\.com|ggpht\.com|ytimg\.com|blogger\.com|googlevideo\.com|withgoogle\.com)$/;
@@ -130,6 +131,11 @@ class WebBrowser {
     const fit = () => { if (w.isDestroyed()) return; const [cw, ch] = w.getContentSize(); view.setBounds({ x: 0, y: 0, width: cw, height: ch }); };
     w.on('resize', fit); fit();
     (this.extraWins || (this.extraWins = new Set())).add(w);
+    // 1.7.0 refaite : onglets de cette fenêtre gardés pour le prochain démarrage (option « Rouvrir aussi les autres fenêtres ») ;
+    // une fenêtre fermée à la main (pas en quittant DrYAE) est oubliée
+    w._sid = opts.sid || ('w' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6));
+    if (opts.bounds) try { w.setBounds(opts.bounds); } catch {}
+    w.on('close', () => { if (!this._quitting && this.store.extraSessions?.[w._sid]) { delete this.store.extraSessions[w._sid]; this.saveStore(); } });
     const wc = view.webContents;
     wc.on('will-attach-webview', (_e, prefs) => { prefs.contextIsolation = true; prefs.sandbox = true; prefs.nodeIntegration = false; prefs.nodeIntegrationInSubFrames = true; delete prefs.preload; });
     wc.on('dom-ready', () => { try { const e = this.main.a11y?.(); if (e) wc.setZoomFactor(e.scale / 100); } catch {} });
@@ -139,7 +145,7 @@ class WebBrowser {
     // le navigateur de cette fenêtre se ferme avec son dernier onglet : la fenêtre entière se ferme
     wc.on('destroyed', () => { if (!w.isDestroyed()) w.close(); });
     wc.loadFile(path.join(__dirname, '..', 'browser', 'browser.html'), { query: { win: 'extra' } });
-    wc.once('did-finish-load', () => { wc.send('open-url', { url: url || '', incognito: !!opts.incognito }); w.show(); w.focus(); this._activeUi = wc; wc.focus(); });
+    wc.once('did-finish-load', () => { if (opts.restore) wc.send('restore-session', opts.restore); else wc.send('open-url', { url: url || '', incognito: !!opts.incognito }); w.show(); w.focus(); this._activeUi = wc; wc.focus(); });
     return w;
   }
   extraOf(wc) { if (!wc) return null; for (const w of this.extraWins || []) if (!w.isDestroyed() && (w.webContents === wc || w._view?.webContents === wc || wc.hostWebContents === w._view?.webContents)) return w; return null; }
@@ -157,6 +163,7 @@ class WebBrowser {
   }
   visible() { return !!(this.view && this.view.getVisible && this.view.getVisible()); }
   onQuit() {
+    this._quitting = true;
     this.quitting = true; this.saveStoreSync();
     try { session.fromPartition(PART_PRIV).clearStorageData(); } catch {}
     if (this.B().clearOnExit) { try { session.fromPartition(PART).clearStorageData(); } catch {} this.store.history = []; this.saveStoreSync(); try { fs.unlinkSync(path.join(this.userDir, 'history-text.json')); } catch {} }
@@ -448,6 +455,16 @@ class WebBrowser {
       win.webContents.on('will-redirect', check); win.webContents.on('will-navigate', check);
       win.webContents.on('did-start-navigation', (e, u) => check(null, u));
       win.on('closed', () => finish(null, new Error('The user did not approve access.')));
+      // 1.7.0 refaite : même identité que les onglets pour la connexion Google (sinon la page de connexion pouvait
+      // rester blanche), et un message clair si la page ne se charge pas, au lieu d'une fenêtre blanche figée
+      this.attachPopup(win.webContents);
+      try { if (GOOGLE_LOGIN.test(new URL(url).hostname)) { this.loginTabs.add(win.webContents.id); win.webContents.setUserAgent(UA_GOOGLE_LOGIN); } } catch {}
+      win.webContents.on('did-fail-load', (_e, code, desc, u, isMain) => {
+        if (!isMain || code === -3 || String(u).startsWith(back) || done) return;
+        LOGW('identity', code, desc, u);
+        const msg = `<!doctype html><meta charset="utf-8"><body style="font:14px Segoe UI,sans-serif;padding:24px;color:#222"><h3>DrYAE</h3><p>${htm((global.DRYAE_T || (y => y))('La page de connexion ne s\'est pas chargée.'))}</p><p style="color:#666">${htm(desc)}</p><p>${htm((global.DRYAE_T || (y => y))('Vérifiez la connexion à internet, puis réessayez depuis l\'extension.'))}</p></body>`;
+        win.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(msg)).catch(() => {});
+      });
       win.loadURL(url).catch(() => {});
     });
     const handler = async (extId, url, interactive) => run(extId, url, interactive);
@@ -461,6 +478,39 @@ class WebBrowser {
       try { sw.ipc.handle('dryae-identity-auth', (_e, url, interactive) => handler(extOf(sw.scope), url, interactive)); } catch {}
     };
     ses.serviceWorkers.on('running-status-changed', hook);
+    // 1.7.0 refaite : le service de fond d'une extension (service worker) n'a pas les préchargements
+    // (les services de fond ne peuvent pas joindre une adresse interne de DrYAE : petit serveur local, sur ce PC
+    // seulement, accepté seulement depuis l'extension elle-même ; la réponse rend l'adresse de retour)
+    try {
+      const http = require('http');
+      const srv = http.createServer(async (req, res) => {
+        const org = String(req.headers.origin || ''), u = new URL(req.url, 'http://127.0.0.1'), ext = u.searchParams.get('ext') || '';
+        res.setHeader('Access-Control-Allow-Origin', org || 'null'); res.setHeader('Access-Control-Allow-Private-Network', 'true'); res.setHeader('Content-Type', 'application/json');
+        if (req.method === 'OPTIONS') return res.end();
+        if (u.pathname === '/dryae-id/ping') return res.end('{"dryae":1}');
+        if (u.pathname !== '/dryae-id/auth' || !/^[a-p]{32}$/.test(ext) || org !== 'chrome-extension://' + ext) { res.statusCode = 403; return res.end('{"error":"refused"}'); }
+        try { const back = await handler(ext, u.searchParams.get('u') || '', u.searchParams.get('i') === '1'); res.end(JSON.stringify({ url: back })); }
+        catch (e) { res.end(JSON.stringify({ error: e.message })); }
+      });
+      const tryPort = p => { if (p > 47830) return; srv.once('error', () => tryPort(p + 1)); srv.listen(p, '127.0.0.1'); };
+      tryPort(47811); srv.unref?.();
+    } catch (e) { LOGW('identity', e.message); }
+    // le petit fichier est placé avant le script de fond des extensions qui demandent « identity »
+    const X = ses.extensions || ses;
+    X.on('extension-loaded', (_e, x) => { if (this.patchIdentitySW(x.path)) setTimeout(() => { try { X.removeExtension(x.id); X.loadExtension(x.path, { allowFileAccess: true }).catch(() => {}); } catch {} }, 0); });
+  }
+  patchIdentitySW(dir) {
+    try {
+      const mfp = path.join(dir, 'manifest.json'), mf = JSON.parse(fs.readFileSync(mfp, 'utf8'));
+      const sw = mf.background && mf.background.service_worker;
+      if (mf.manifest_version !== 3 || !sw || !(mf.permissions || []).includes('identity') || sw === 'dryae-sw-entry.js') return false;
+      fs.copyFileSync(path.join(__dirname, '..', 'browser', 'ext-identity-sw.js'), path.join(dir, 'dryae-identity-sw.js'));
+      const rel = './' + String(sw).replace(/^\/+/, '');
+      fs.writeFileSync(path.join(dir, 'dryae-sw-entry.js'), mf.background.type === 'module' ? `import './dryae-identity-sw.js';\nimport '${rel}';\n` : `importScripts('dryae-identity-sw.js', ${JSON.stringify(rel.slice(2))});\n`);
+      mf.background.service_worker = 'dryae-sw-entry.js'; mf.dryae_original_service_worker = sw;
+      fs.writeFileSync(mfp, JSON.stringify(mf, null, 2));
+      return true;
+    } catch (e) { LOGW('identity-sw', e.message); return false; }
   }
 
   // décode une image (WebP, AVIF…) avec le moteur de l'interface du navigateur
@@ -677,6 +727,9 @@ class WebBrowser {
       const restore = B.startup !== 'newtab' && B.startup !== 'pages' && this.settings.get().restoreSession && S && S.tabs && S.tabs.length && !opts.incognito;
       // onglets restaurés sans être chargés : chacun se charge quand on l'ouvre
       if (restore) wc.send('restore-session', S);
+      // 1.7.0 refaite : les autres fenêtres de la dernière fois (option, éteinte par défaut)
+      if (restore && B.restoreAllWindows && !this._restoredWins) { this._restoredWins = true; const all = this.store.extraSessions || {}; setTimeout(() => Object.entries(all).forEach(([sid, s2]) => { if (s2?.tabs?.length) this.newWindow('', { restore: s2, sid, bounds: s2.b }); }), 600); }
+      else if (!B.restoreAllWindows && this.store.extraSessions && Object.keys(this.store.extraSessions).length && !this._restoredWins) { this._restoredWins = true; this.store.extraSessions = {}; this.saveStore(); }
       else if (B.startup === 'pages' && (B.startupPages || []).length && !url && !opts.incognito) { B.startupPages.forEach(u => wc.send('open-url', { url: u })); return; }
       if (url || !restore) wc.send('open-url', { url: url || '', incognito: !!opts.incognito });
     });
@@ -1084,6 +1137,14 @@ class WebBrowser {
     if (A.keyEnc) { try { key = require('electron').safeStorage.decryptString(Buffer.from(A.keyEnc, 'base64')); } catch { key = ''; } }
     return key ? { key, model: A.model || '', url: A.url || '', mode: A.mode === 'all' ? 'all' : 'hard' } : null;
   }
+  // 1.7.0 refaite : pages traduites par l'IA aujourd'hui (compteur affiché dans la fenêtre du traducteur de scans)
+  aiCount(add) {
+    const file = path.join(this.userDir, 'ai-count.json'), day = new Date().toISOString().slice(0, 10);
+    if (!this._aic) { try { this._aic = JSON.parse(fs.readFileSync(file, 'utf8')); } catch { this._aic = {}; } }
+    if (this._aic.day !== day) this._aic = { day, n: 0 };
+    if (add) { this._aic.n += add; fsp.writeFile(file, JSON.stringify(this._aic)).catch(() => {}); }
+    return this._aic.n;
+  }
   // noms propres à une série (personnages, lieux), appris en lisant, par site : un nom mal lu plus loin est corrigé
   scanNames() {
     if (this._sn) return this._sn;
@@ -1386,7 +1447,7 @@ class WebBrowser {
       return out.slice(0, 9);
     });
     ipcMain.handle('br:newWindow', (_e, url, inc) => { this.newWindow(typeof url === 'string' ? url : '', { incognito: !!inc }); });
-    ipcMain.handle('br:session', (_e, sess) => { if (this.isExtraUi(_e.sender)) return; if (sess && Array.isArray(sess.tabs)) { this.store.session = { tabs: sess.tabs.filter(t => /^(https?|dryae):/.test(t.url)).slice(0, 50), active: sess.active | 0 }; this.saveStore(); } });
+    ipcMain.handle('br:session', (_e, sess) => { if (this.isExtraUi(_e.sender)) { const x = this.extraOf(_e.sender); if (x && sess && Array.isArray(sess.tabs)) { const all = this.store.extraSessions || (this.store.extraSessions = {}); all[x._sid] = { tabs: sess.tabs.filter(t => /^(https?|dryae):/.test(t.url)).slice(0, 50), active: sess.active | 0, b: x.getBounds() }; if (!all[x._sid].tabs.length) delete all[x._sid]; this.saveStore(); } return; } if (sess && Array.isArray(sess.tabs)) { this.store.session = { tabs: sess.tabs.filter(t => /^(https?|dryae):/.test(t.url)).slice(0, 50), active: sess.active | 0 }; this.saveStore(); } });
     ipcMain.handle('br:torCancel', (_e, h) => { if (h) this.main.manager.torrents.probeCancel.add(String(h).toLowerCase()); });
     ipcMain.handle('br:torTrackers', (_e, id, list) => this.main.manager.get(id)?.addTrackers(list || []));
     ipcMain.handle('br:firewall', () => require('child_process').spawn('control.exe', ['/name', 'Microsoft.WindowsFirewall', '/page', 'pageConfigureApps'], { detached: true }));
@@ -1786,7 +1847,8 @@ class WebBrowser {
     ipcMain.handle('scan:retranslate', async (_e, text, to, lang) => {
       const S = this.B().scan || {};
       const gl = (S.glossary || []).filter(x => x && x.s && x.t && !x.n), never = (S.glossary || []).filter(x => x && x.n && x.s).map(x => x.s);
-      const p = M.protect(gl.reduce((a, x) => a.split(x.s).join(x.t), String(text || '')), lang || 'en', never);
+      const SQ = (() => { try { return require('./scan-fix').squeeze; } catch { return t => t; } })();
+      const p = M.protect(SQ(gl.reduce((a, x) => a.split(x.s).join(x.t), String(text || '')), lang || ''), lang || 'en', never);
       const r = (await M.translate([p.t], to || S.target || target(), 'auto', this.B().translate || {})).texts[0] || '';
       return M.unprotect(r, p.keep);
     });
@@ -1808,9 +1870,16 @@ class WebBrowser {
         }
         if (typeof patch.model === 'string') cur.model = patch.model.replace(/[^\w.-]/g, '').slice(0, 60);
         if (patch.mode === 'all' || patch.mode === 'hard') cur.mode = patch.mode;
+        if (patch.privacySeen) cur.privacySeen = true;
         this.settings.set({ browser: { scan: { ...(this.B().scan || {}), ai: cur } } }); this.aiOffUntil = 0;
       }
-      return { on: !!cur.on, hasKey: !!(cur.keyEnc || cur.key), model: cur.model || '', mode: cur.mode === 'all' ? 'all' : 'hard', off: this.aiOffUntil > Date.now() };
+      return { on: !!cur.on, hasKey: !!(cur.keyEnc || cur.key), model: cur.model || '', mode: cur.mode === 'all' ? 'all' : 'hard', off: this.aiOffUntil > Date.now(), today: this.aiCount(0), limit: 500, privacySeen: !!cur.privacySeen };
+    });
+    // 1.7.0 refaite : vérification d'une clé IA (liste des modèles : ne compte pas dans la limite du jour)
+    ipcMain.handle('scan:aiTest', async (e, key) => {
+      if (!this.isUi(e.sender)) return { ok: false };
+      const k = String(key || '').trim() || (this.aiCfg() || {}).key || ''; if (!k) return { ok: false, bad: true };
+      return M.aiCheck(k, ((this.B().scan || {}).ai || {}).url);
     });
     // police « bande dessinée » des bulles traduites (Comic Neue, licence SIL OFL 1.1)
     ipcMain.handle('scan:font', () => { try { return fs.readFileSync(path.join(__dirname, '..', '..', 'assets', 'fonts', 'comic-neue', 'comic-neue-latin-700-normal.woff2')); } catch { return null; } });
@@ -1911,7 +1980,10 @@ class WebBrowser {
       // cris et onomatopées (AHHH, HEHE, FUFU, HMM…) : gardés tels quels, pas traduits
       const keep = groups.map(g => M.interjection(g.text));
       // cris et noms dans une phrase : marques [1], [2]… recopiées par le traducteur puis remplacées (jamais traduits)
-      const prot = groups.map(g => M.protect(prep(g.text), pageLang, never));
+      // 1.7.0 refaite : lettres répétées pour crier (ATTENNNNNTION, VAAAAS Y, REAAALLY) ramenées au vrai mot avant
+      // la traduction (sinon le mot inconnu était pris pour un nom et laissé tel quel)
+      const SQ = (() => { try { return require('./scan-fix').squeeze; } catch { return t => t; } })();
+      const prot = groups.map(g => M.protect(SQ(prep(g.text), /^(en|fr)$/.test(pageLang) ? pageLang : ''), pageLang, never));
       const mt = () => groups.map((g, i) => M.forMT(prot[i].t, g.caps, pageLang));
       let tr = null, ai = '';
       // traduction par IA (facultative, clé personnelle) : elle voit l'image, corrige la lecture et traduit avec le contexte
@@ -1921,14 +1993,19 @@ class WebBrowser {
       if (AI && !(this.aiOffUntil > Date.now()) && (AI.mode === 'all' || hard)) {
         try {
           const mime = buf && /^\x89PNG/.test(buf.subarray(0, 4).toString('latin1')) ? 'image/png' : buf && buf[0] === 0xff && buf[1] === 0xd8 ? 'image/jpeg' : '';
-          const pic = mime && scale !== 0 ? buf : img.toJPEG(90);
-          const r = await M.aiScan(pic, mime && scale !== 0 ? mime : 'image/jpeg', groups.map(g => prep(g.text)), to, AI);
-          if (!o.to && same(r.from, to)) { const r2 = await M.aiScan(pic, mime && scale !== 0 ? mime : 'image/jpeg', groups.map(g => prep(g.text)), second(to), AI); to = second(to); tr = r2; } else tr = r;
+          // 1.7.0 refaite : image envoyée réduite (1400 px de large au plus) : envoi et réponse bien plus rapides
+          let pic = mime && scale !== 0 ? buf : img.toJPEG(90), pmime = mime && scale !== 0 ? mime : 'image/jpeg';
+          { const sz = img.getSize(); if (sz.width > 1400 || pic.length > 1.5e6) { pic = img.resize({ width: Math.min(1400, sz.width), quality: 'good' }).toJPEG(85); pmime = 'image/jpeg'; } }
+          const r = await M.aiScan(pic, pmime, groups.map(g => prep(g.text)), to, AI);
+          this.aiCount(1);
+          if (!o.to && same(r.from, to)) { const r2 = await M.aiScan(pic, pmime, groups.map(g => prep(g.text)), second(to), AI); this.aiCount(1); to = second(to); tr = r2; } else tr = r;
           groups = groups.map((g, i) => ({ ...g, text: tr.fixed[i] ? (g.caps ? tr.fixed[i].toUpperCase() : tr.fixed[i]) : g.text }));
           ai = 'ok';
         } catch (err) {
           // limite du jour atteinte : retour à la traduction habituelle jusqu'à demain ; clé refusée : jusqu'à ce qu'elle change
+          LOGW('ia', err.message);
           if (err.quota) { const d = new Date(); d.setHours(24, 0, 0, 0); this.aiOffUntil = d.getTime(); ai = 'quota'; }
+          else if (err.minute) { this.aiOffUntil = Date.now() + 60e3; ai = 'minute'; }
           else if (err.badKey) { this.aiOffUntil = Date.now() + 3600e3; ai = 'badkey'; }
           else ai = 'error';
           tr = null;

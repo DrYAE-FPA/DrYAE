@@ -19,3 +19,10 @@ const t = M.forMT("CA FAIT DES ANNEES QU'ON EST AMIS. C'ETAIT BIEN SUR PREVU, PE
 ok('accents remis pour la traduction (texte affiché inchangé)', t === "Ça fait des années qu'on est amis. C'était bien sûr prévu, peut-être.", t);
 const e = M.forMT('WE ARE GOING TO THE STATION.', true, 'en');
 ok('anglais : pas d\'accents ajoutés', !/[À-ÿ]/.test(e), e);
+// 1.7.0 refaite : lettres répétées pour crier
+{
+  const SF2 = require('../src/main/scan-fix.js');
+  for (const [x, l, y] of [['ATTENNNNNTION', 'fr', 'ATTENTION'], ['VAAAAAS Y !', 'fr', 'VAS Y !'], ['REAAALLLY ?', 'en', 'REALLY ?'], ['GOOOOD', 'en', 'GOOD'], ['TOOOO MUCH', 'en', 'TOO MUCH'], ['HMMMM', 'en', 'HMMMM'], ['Attennnnntion', 'fr', 'Attention']]) {
+    const r = SF2.squeeze(x, l); console.log((r === y ? 'OK  ' : 'ÉCHEC ') + `cri « ${x} » → ${y}`, JSON.stringify(r));
+  }
+}

@@ -444,3 +444,33 @@ function frAccent(text) {
 }
 module.exports.frAccent = frAccent; module.exports.frApos = frApos;
 module.exports.fixFrench = fixFrench; module.exports.frenchRatio = frenchRatio; module.exports.frKnown = frKnown;
+
+// ---------- 1.7.0 refaite : lettres répétées pour crier (« ATTENNNNNTION », « VAAAAS Y », « REAAALLLY ») ----------
+// Chaque suite d'au moins 3 lettres identiques est réduite à 1 ou 2 lettres, jusqu'à trouver un vrai mot
+// (anglais ou français selon la page). Les cris sans mot (AAAH, HMMM) ne sont pas touchés : ils restent tels quels.
+function squeezeWord(w, lang) {
+  if (!/(\p{L})\1\1/iu.test(w)) return w;
+  const low = w.toLowerCase(), runs = [];
+  const re = /(\p{L})\1{2,}/giu; let m;
+  while ((m = re.exec(low))) runs.push([m.index, m[0].length]);
+  if (runs.length > 4) return w;
+  // rang de fréquence du mot (plus petit = plus courant), ou -1 s'il est inconnu
+  const rank = x => {
+    if (lang !== 'fr') { const D = load(); if (D.has(x) && D.get(x) <= 4) return [D.get(x), x]; }
+    if (lang !== 'en') { loadFr(); const k = strip(x); if (FRK.has(k)) return [FRT.has(k) ? 0 : 2, FRK.get(k)]; }
+    return null;
+  };
+  let best = null, bestR = 99, bestLen = 0;
+  for (let k = 0; k < (1 << runs.length); k++) {
+    let out = '', at = 0;
+    runs.forEach(([i, n], j) => { out += low.slice(at, i) + low[i].repeat(k & (1 << j) ? 2 : 1); at = i + n; });
+    out += low.slice(at);
+    const r = out.length >= 2 && rank(out);
+    // le mot le plus courant ; à égalité, la forme la plus longue (« TOOOO » → TOO plutôt que TO)
+    if (r && (r[0] < bestR || (r[0] === bestR && out.length > bestLen))) { best = r[1]; bestR = r[0]; bestLen = out.length; }
+  }
+  if (!best) return w;
+  return w === w.toUpperCase() ? best.toUpperCase() : w[0] === w[0].toUpperCase() ? best[0].toUpperCase() + best.slice(1) : best;
+}
+function squeeze(text, lang) { return String(text).replace(/\p{L}+/gu, w => squeezeWord(w, lang)); }
+module.exports.squeeze = squeeze; module.exports.squeezeWord = squeezeWord;

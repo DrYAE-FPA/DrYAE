@@ -342,6 +342,8 @@ function mainMenu() {
       ...closedTabs.slice(-10).reverse().map(c => ({ label: c.title || c.url, img: c.fav, icon: 'link', fn: () => { closedTabs.splice(closedTabs.indexOf(c), 1); newTab(c.url, { incognito: c.incognito }); } })),
     ] },
     { label: 'Téléchargements', icon: 'dl', key: 'Ctrl+J', hl: true, fn: openDownloads },
+    // 1.7.0 refaite : mode téléphone visible dans le menu principal (les sites voient alors un téléphone)
+    { label: CFG.ua === 'mobile' ? 'Passer en mode ordinateur' : 'Passer en mode téléphone', icon: 'phone', check: CFG.ua === 'mobile', fn: () => setUaMode(CFG.ua === 'mobile' ? 'desktop' : 'mobile') },
     { label: 'Rechercher dans les onglets…', icon: 'search', key: 'Ctrl+Maj+A', fn: () => window.TABSX?.tabSearch() },
     { label: 'Panneau latéral', icon: 'list', fn: () => window.TABSX?.toggleSide() },
     { label: 'Espaces de travail', icon: 'spaces', fn: () => window.TABSX?.toggleSide('ws') },
@@ -382,7 +384,6 @@ function mainMenu() {
       !modOn('capture') && { label: 'Téléchargements du navigateur', icon: 'dl', fn: () => togglePanel('nd', true) },
       { label: 'Masquer un élément de la page…', icon: 'eye', fn: () => pageCmd('picker'), disabled: !web },
       modOn('lights') && { label: 'Mode nuit sur ce site', icon: 'moon', check: !!cur?.night, fn: () => pageCmd('night'), disabled: !web },
-      { label: CFG.ua === 'mobile' ? 'Passer en mode ordinateur' : 'Passer en mode mobile', icon: 'phone', fn: async () => { CFG = { ...CFG, ...(await B.call('br:setSettings', { ua: CFG.ua === 'mobile' ? 'desktop' : 'mobile' })) }; cur.wv?.reload(); } },
       { label: cur?.muted ? 'Réactiver le son de l\'onglet' : 'Couper le son de l\'onglet', icon: 'sound', key: 'Ctrl+M', fn: toggleMute, disabled: !cur?.wcId },
       { label: 'Ouvrir cette page dans Chrome', icon: 'link', fn: () => cur.url && B.call('br:openExternal', cur.url), disabled: !web },
       { label: "Copier l'adresse", icon: 'copy', fn: () => navigator.clipboard.writeText(cur.url) },
@@ -1131,7 +1132,7 @@ setInterval(() => cur && updToolbar(), 1000);
 const ready = (async () => {
   CFG = await B.call('br:settings');
   STORE = await B.call('br:store');
-  applyTheme(CFG.theme || {});
+  applyTheme(CFG.theme || {}); try { drawUaBtn(); } catch {}
 })();
 
 
@@ -1506,7 +1507,12 @@ B.on('open-page', async ({ url }) => {
   else newTab(url);
 });
 B.on('nav-tab', ({ wcId, url }) => { const t = tabByWc(wcId); if (t) navigate(t, url); });
-B.on('cfg', c => { CFG = { ...CFG, ...c }; applyTheme(CFG.theme || {}); drawBmBar(); drawMods(); drawNdBtn(); updToolbar(); });
+B.on('cfg', c => { CFG = { ...CFG, ...c }; applyTheme(CFG.theme || {}); drawBmBar(); drawMods(); drawNdBtn(); updToolbar(); drawUaBtn(); });
+// 1.7.0 refaite : icône « téléphone » dans la barre d'adresse quand les sites voient un téléphone ; un clic revient au mode ordinateur
+async function setUaMode(m) { CFG = { ...CFG, ...(await B.call('br:setSettings', { ua: m })) }; drawUaBtn(); cur?.wv?.reload(); toast(m === 'mobile' ? 'Mode téléphone : les sites vous voient comme un téléphone' : 'Mode ordinateur'); }
+function drawUaBtn() { const b = $('#bMobile'); if (b) b.style.display = CFG.ua === 'mobile' ? '' : 'none'; }
+$('#bMobile').onclick = () => setUaMode('desktop');
+drawUaBtn();
 B.on('ext-changed', () => {});
 ready.then(async () => {
   BM = await B.call('br:bmTree');

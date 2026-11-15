@@ -132,6 +132,7 @@ function forMT(s, caps, lang) {
 // L'image et le texte lu partent chez Google (Gemini) ; l'IA corrige la lecture et traduit en tenant compte de l'histoire.
 // En cas d'erreur (limite gratuite du jour atteinte, pas de connexion…), l'appelant revient à la traduction habituelle.
 const LANG_NAMES = { fr: 'French', en: 'English', es: 'Spanish', pt: 'Portuguese', de: 'German', it: 'Italian', ru: 'Russian', ar: 'Arabic', ja: 'Japanese', ko: 'Korean', zh: 'Chinese', 'zh-CN': 'Simplified Chinese', 'zh-TW': 'Traditional Chinese', tr: 'Turkish', pl: 'Polish', vi: 'Vietnamese', id: 'Indonesian', th: 'Thai', hi: 'Hindi', nl: 'Dutch', uk: 'Ukrainian' };
+const AI_THINK = {}; // réglage de réflexion accepté par chaque modèle (appris au premier appel)
 async function aiScan(image, mime, texts, to, cfg) {
   const key = String(cfg.key || '').trim();
   if (!key) throw new Error('clé IA manquante');
@@ -144,13 +145,40 @@ For each bubble, using the image: fix the OCR mistakes, then translate it into $
 Answer only with JSON: {"source_language": "<ISO 639-1 code>", "items": [{"i": 1, "text": "<corrected original>", "tr": "<translation>"}, ...]} with exactly ${texts.length} items, in the same order.
 
 ${list}`;
-  let r;
-  try {
-    r = await net.fetch(`${base}/v1beta/models/${model}:generateContent`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-      body: JSON.stringify({ contents: [{ parts: [{ inline_data: { mime_type: mime, data: Buffer.from(image).toString('base64') } }, { text: prompt }] }], generationConfig: { responseMimeType: 'application/json', temperature: 0.3 } }) });
-  } catch { throw new Error('pas de connexion au service IA'); }
-  if (r.status === 429) { const e = new Error('limite gratuite du jour atteinte'); e.quota = true; throw e; }
-  if (r.status === 400 || r.status === 401 || r.status === 403) { const e = new Error('clé IA refusée'); e.badKey = true; throw e; }
+  // 1.7.0 refaite : la réponse doit arriver vite. Sans délai maximal, une seule page bloquée laissait le traducteur
+  // sur « Lecture des images… » pour toujours. Réflexion du modèle réduite au minimum (traduire n'en a pas besoin),
+  // limite « par minute » : on attend le délai demandé par Google (une fois), puis retour à la traduction habituelle.
+  const body = cfgT => JSON.stringify({ contents: [{ parts: [{ inline_data: { mime_type: mime, data: Buffer.from(image).toString('base64') } }, { text: prompt }] }], generationConfig: { responseMimeType: 'application/json', temperature: 0.3, ...(cfgT ? { thinkingConfig: cfgT } : {}) } });
+  const timeout = cfg.timeout || 45000;
+  const call = async cfgT => {
+    const ac = new AbortController(); const tm = setTimeout(() => ac.abort(), timeout);
+    try { return await net.fetch(`${base}/v1beta/models/${model}:generateContent`, { method: 'POST', signal: ac.signal, headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, body: body(cfgT) }); }
+    catch (e) { throw new Error(ac.signal.aborted ? 'le service IA ne répond pas (délai dépassé)' : 'pas de connexion au service IA'); }
+    finally { clearTimeout(tm); }
+  };
+  const tries = AI_THINK[model] !== undefined ? [AI_THINK[model]] : [{ thinkingBudget: 0 }, { thinkingLevel: 'low' }, null];
+  let r, info = '';
+  for (let k = 0; k < tries.length; k++) {
+    r = await call(tries[k]);
+    if (r.status === 429) {
+      info = await r.text().catch(() => '');
+      // limite par minute (pas la limite du jour) : attendre le délai indiqué, au plus 30 s, et réessayer une fois
+      const wait = +((/"retryDelay":\s*"(\d+(?:\.\d+)?)s"/.exec(info) || [])[1] || 0);
+      if (!/PerDay|per day/i.test(info) && wait && wait <= 30 && !cfg._retried) { await new Promise(res => setTimeout(res, wait * 1000)); return aiScan(image, mime, texts, to, { ...cfg, _retried: true }); }
+      const e = new Error('limite gratuite du jour atteinte'); e.quota = /PerDay|per day/i.test(info) || !wait; e.minute = !e.quota; throw e;
+    }
+    if (r.status === 400) {
+      info = await r.text().catch(() => '');
+      if (/thinking/i.test(info) && k < tries.length - 1) continue; // réglage de réflexion inconnu de ce modèle : essai suivant
+      if (/API_KEY_INVALID|API key not valid/i.test(info)) { const e = new Error('clé IA refusée'); e.badKey = true; throw e; }
+      if (/location is not supported/i.test(info)) { const e = new Error('service IA indisponible dans ce pays'); e.badKey = true; throw e; }
+      throw new Error('service IA : ' + ((/"message":\s*"([^"]{1,120})/.exec(info) || [])[1] || 'requête refusée'));
+    }
+    AI_THINK[model] = tries[k];
+    break;
+  }
+  if (r.status === 401 || r.status === 403) { const e = new Error('clé IA refusée'); e.badKey = true; throw e; }
+  if (r.status === 404) { const e = new Error('modèle IA introuvable : ' + model); e.badKey = true; throw e; }
   if (!r.ok) throw new Error('service IA : HTTP ' + r.status);
   const j = await r.json();
   const txt = (j.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('');
@@ -158,6 +186,16 @@ ${list}`;
   const items = Array.isArray(o.items) ? o.items : [];
   if (items.length !== texts.length) throw new Error('réponse IA incomplète');
   return { texts: items.map(x => String(x.tr || '')), fixed: items.map((x, i) => String(x.text || texts[i])), from: String(o.source_language || '').toLowerCase().slice(0, 5) };
+}
+
+async function aiCheck(key, url) {
+  const base = String(url || 'https://generativelanguage.googleapis.com').replace(/\/+$/, '');
+  const ac = new AbortController(); const tm = setTimeout(() => ac.abort(), 15000);
+  try {
+    const r = await net.fetch(`${base}/v1beta/models?pageSize=1`, { signal: ac.signal, headers: { 'x-goog-api-key': key } });
+    if (r.ok) return { ok: true };
+    return { ok: false, bad: r.status === 400 || r.status === 401 || r.status === 403 };
+  } catch { return { ok: false }; } finally { clearTimeout(tm); }
 }
 
 // ---------- lecture du texte des images (traducteur de scans) ----------
@@ -351,4 +389,4 @@ function unprotect(t, keep) {
   if (!keep || !keep.length) return t;
   return String(t).replace(/[[［]\s*(\d+)\s*[\]］]/g, (m, k) => keep[+k - 1] != null ? keep[+k - 1] : m);
 }
-module.exports = { protect, unprotect, interjWord, interjection, cleanScan, forMT, aiScan, MODULES, MOD_DEFAULT, PROVIDERS, PADDLE_LANGS, OCR_FIX, readRegions, translate, setUserAgent, readImage, OCR_LANGS, ocrDownloaded, windowsHello, pwnedCount, weak, generatePassword };
+module.exports = { protect, unprotect, interjWord, interjection, cleanScan, forMT, aiScan, aiCheck, MODULES, MOD_DEFAULT, PROVIDERS, PADDLE_LANGS, OCR_FIX, readRegions, translate, setUserAgent, readImage, OCR_LANGS, ocrDownloaded, windowsHello, pwnedCount, weak, generatePassword };

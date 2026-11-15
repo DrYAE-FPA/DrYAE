@@ -940,7 +940,13 @@ function pageFeatures() {
       // on la recopie depuis la page elle-même (possible quand elle vient du même site ou autorise le partage)
       if (!data && !/^https?:/.test(src)) data = await imgBytes(img);
       const vis = { x: Math.max(0, r.left) * dpr, y: Math.max(0, r.top) * dpr, w: (Math.min(innerWidth, r.right) - Math.max(0, r.left)) * dpr, h: (Math.min(innerHeight, r.bottom) - Math.max(0, r.top)) * dpr };
-      const res = await ipcRenderer.invoke('scan:image', { src: /^https?:/.test(src) ? src : '', data, page: location.href, veil: typeof veilInfo === 'function' ? veilInfo() : null, fresh: !!scan?.items.get(img)?.fresh, rect: r.top >= 0 && r.bottom <= innerHeight ? vis : (vis.h > 60 ? vis : null), natural: { w: img.naturalWidth, h: img.naturalHeight } });
+      // 1.7.0 refaite : une image qui ne revient pas (service lent) ne bloque plus les suivantes
+      const slow = setTimeout(() => status(pt('Traduction en cours (cela peut prendre quelques secondes)…')), 8000);
+      let res;
+      try {
+        res = await Promise.race([ipcRenderer.invoke('scan:image', { src: /^https?:/.test(src) ? src : '', data, page: location.href, veil: typeof veilInfo === 'function' ? veilInfo() : null, fresh: !!scan?.items.get(img)?.fresh, rect: r.top >= 0 && r.bottom <= innerHeight ? vis : (vis.h > 60 ? vis : null), natural: { w: img.naturalWidth, h: img.naturalHeight } }),
+          new Promise((_, no) => setTimeout(() => no(new Error(pt('délai dépassé, image passée'))), 150000))]);
+      } finally { clearTimeout(slow); }
       const it = scan?.items.get(img);
       if (it) {
         it.blocks = res.blocks; it.w = res.w; it.key = res.key; it.captured = res.captured ? { left: Math.max(0, r.left) - r.left, top: Math.max(0, r.top) - r.top, w: vis.w / dpr } : null;
@@ -949,7 +955,9 @@ function pageFeatures() {
         if (res.from) toHost('dryae-scanlang', { from: res.from, to: res.to });
         if ((res.needModel || res.unreadable) && !scan.askedModel) { scan.askedModel = true; toHost('dryae-scanmodel', res.needModel || '?'); }
       }
-      status(ptf('{0} bulle(s) traduite(s)', scan?.n || 0));
+      // 1.7.0 refaite : l'utilisateur sait pourquoi l'IA n'a pas servi (la traduction habituelle a pris le relais)
+      const why = { quota: pt('IA : limite gratuite du jour atteinte, traduction habituelle'), minute: pt('IA : trop de pages d\'un coup, traduction habituelle pour cette page'), badkey: pt('IA : clé refusée, traduction habituelle'), error: pt('IA indisponible pour cette page, traduction habituelle') }[res.ai];
+      status(ptf('{0} bulle(s) traduite(s)', scan?.n || 0) + (why ? ' · ' + why : ''));
     } catch (e) {
       // image pas encore lisible (hors de l'écran, protégée) : on réessaie quand elle sera bien visible (3 fois au plus)
       const n = (retry.get(img) || 0) + 1;
@@ -1000,7 +1008,7 @@ function pageFeatures() {
       <b>${esc(pt('Corriger la bulle'))}</b>
       <label style="color:#8f97aa">${esc(pt('Texte lu'))}</label><textarea class="o" rows="2" style="all:unset;background:#0d0f14;border:1px solid #2a3040;border-radius:6px;padding:5px;color:#e7e9ef;white-space:pre-wrap"></textarea>
       <label style="color:#8f97aa">${esc(pt('Traduction'))}</label><textarea class="t" rows="3" style="all:unset;background:#0d0f14;border:1px solid #2a3040;border-radius:6px;padding:5px;color:#e7e9ef;white-space:pre-wrap"></textarea>
-      <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn rt">${esc(pt('Retraduire'))}</button><button class="btn gl">${esc(pt('Ajouter au lexique'))}</button><button class="btn kp" title="${esc(pt('Enregistre l\'image dans un dossier de votre PC (rien n\'est envoyé)'))}">${esc(pt('Garder cette image pour l\'améliorer'))}</button><span style="flex:1"></span><button class="btn no">${esc(pt('Annuler'))}</button><button class="btn pri ok">${esc(pt('Enregistrer'))}</button></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn rt">${esc(pt('Retraduire'))}</button><button class="btn gl">${esc(pt('Ajouter au lexique'))}</button><button class="btn nv" title="${esc(pt('Ce mot ou ce nom ne sera plus jamais traduit'))}">${esc(pt('Ne jamais traduire'))}</button><button class="btn kp" title="${esc(pt('Enregistre l\'image dans un dossier de votre PC (rien n\'est envoyé)'))}">${esc(pt('Garder cette image pour l\'améliorer'))}</button><span style="flex:1"></span><button class="btn no">${esc(pt('Annuler'))}</button><button class="btn pri ok">${esc(pt('Enregistrer'))}</button></div>
       <div class="glx" style="display:none;gap:6px;grid-template-columns:1fr 1fr auto"><input class="gs" placeholder="${esc(pt('Mot d\'origine'))}" style="all:unset;background:#0d0f14;border:1px solid #2a3040;border-radius:6px;padding:4px;color:#e7e9ef"><input class="gt" placeholder="${esc(pt('Toujours traduire par'))}" style="all:unset;background:#0d0f14;border:1px solid #2a3040;border-radius:6px;padding:4px;color:#e7e9ef"><button class="btn gok">OK</button></div></div>`);
     scan.editor = ed;
     ed.querySelector('.o').value = b.text; ed.querySelector('.t').value = b.tr || '';
@@ -1009,16 +1017,22 @@ function pageFeatures() {
     const close = () => { ed.remove(); if (scan) scan.editor = null; };
     ed.querySelector('.no').onclick = close;
     ed.querySelector('.rt').onclick = async () => { ed.querySelector('.t').value = await ipcRenderer.invoke('scan:retranslate', ed.querySelector('.o').value, null).catch(() => ed.querySelector('.t').value); };
-    ed.querySelector('.gl').onclick = () => { const g = ed.querySelector('.glx'); g.style.display = 'grid'; const o = ed.querySelector('.o'); const sel = (o.value.slice(o.selectionStart, o.selectionEnd) || scanSel() || '').trim(); ed.querySelector('.gs').value = sel; (sel ? ed.querySelector('.gt') : ed.querySelector('.gs')).focus(); };
+    // « Ajouter au lexique » et (1.7.0 refaite) « Ne jamais traduire » : même petite ligne, sans traduction pour le second
+    let never = false;
+    const openGl = nv => { never = nv; const g = ed.querySelector('.glx'); g.style.display = 'grid'; g.style.gridTemplateColumns = nv ? '1fr auto' : '1fr 1fr auto'; ed.querySelector('.gt').style.display = nv ? 'none' : ''; ed.querySelector('.gs').placeholder = nv ? pt('Mot ou nom à ne jamais traduire') : pt('Mot d\'origine'); const o = ed.querySelector('.o'); const sel = (o.value.slice(o.selectionStart, o.selectionEnd) || scanSel() || '').trim(); ed.querySelector('.gs').value = sel; (sel && !nv ? ed.querySelector('.gt') : ed.querySelector('.gs')).focus(); };
+    ed.querySelector('.gl').onclick = () => openGl(false);
+    ed.querySelector('.nv').onclick = () => openGl(true);
     ed.querySelector('.kp').onclick = async () => {
       const r = await ipcRenderer.invoke('scan:keep', it.key || '', it.blocks.map(x => ({ text: x.text, tr: x.tr }))).catch(() => null);
       hint(r && r.ok ? pt('Image gardée dans {0}').replace('{0}', r.dir) : pt('Image non disponible : relisez la page puis réessayez'));
     };
     ed.querySelector('.gok').onclick = async () => {
-      const s = ed.querySelector('.gs').value.trim(), t = ed.querySelector('.gt').value.trim(); if (!s || !t) return;
+      const s = ed.querySelector('.gs').value.trim(), t = never ? s : ed.querySelector('.gt').value.trim(); if (!s || !t) return;
       const list = await ipcRenderer.invoke('scan:glossary').catch(() => []);
-      await ipcRenderer.invoke('scan:glossary', [...list.filter(x => x.s !== s), { s, t }]).catch(() => {});
-      ed.querySelector('.glx').style.display = 'none'; hint(pt('Ajouté au lexique'));
+      await ipcRenderer.invoke('scan:glossary', [...list.filter(x => x.s !== s), never ? { s, t: s, n: true } : { s, t }]).catch(() => {});
+      ed.querySelector('.glx').style.display = 'none'; hint(never ? pt('« {0} » ne sera plus jamais traduit').replace('{0}', s) : pt('Ajouté au lexique'));
+      // la traduction de la bulle est refaite tout de suite avec le nouveau lexique
+      const tt = await ipcRenderer.invoke('scan:retranslate', ed.querySelector('.o').value, null).catch(() => null); if (tt) ed.querySelector('.t').value = tt;
     };
     ed.querySelector('.ok').onclick = () => {
       b.text = ed.querySelector('.o').value; b.tr = ed.querySelector('.t').value;
@@ -1042,7 +1056,7 @@ function pageFeatures() {
     const b = it.blocks[i], orig = d.textContent === b.text;
     const card = el(`<div class="card" style="left:${Math.max(8, Math.min(innerWidth - 330, e.clientX - 20))}px;top:${Math.max(8, Math.min(innerHeight - 170, e.clientY + 14))}px;width:310px;padding:9px 10px;font-size:12.5px;display:grid;gap:7px">
       <div style="color:#c4b5fd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">« ${esc(w)} »</div>
-      ${orig ? `<div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn gl">${esc(pt('Ajouter au lexique'))}</button><button class="btn nv">${esc(pt('Ne jamais traduire'))}</button><button class="btn fx">${esc(pt('Corriger la bulle'))}</button></div>
+      ${orig ? `<div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn gl">${esc(pt('Ajouter au lexique'))}</button><button class="btn nv" title="${esc(pt('Ce mot ou ce nom ne sera plus jamais traduit'))}">${esc(pt('Ne jamais traduire'))}</button><button class="btn nv">${esc(pt('Ne jamais traduire'))}</button><button class="btn fx">${esc(pt('Corriger la bulle'))}</button></div>
       <div class="glx" style="display:none;gap:6px;grid-template-columns:1fr auto"><input class="gt" placeholder="${esc(pt('Toujours traduire par'))}" style="all:unset;background:#0d0f14;border:1px solid #2a3040;border-radius:6px;padding:4px 6px;color:#e7e9ef"><button class="btn pri gok">OK</button></div>`
       : `<div style="color:#8f97aa">${esc(pt('C\'est la traduction : cliquez sur la bulle (ou « Texte lu ») pour sélectionner le texte d\'origine.'))}</div><div style="display:flex;gap:6px"><button class="btn sh">${esc(pt('Voir le texte lu'))}</button><button class="btn fx">${esc(pt('Corriger la bulle'))}</button></div>`}</div>`);
     scan.selCard = card;
