@@ -1477,6 +1477,21 @@ class WebBrowser {
       [...counts.values()].sort((a, b) => (hostOf(b.url).startsWith(q) - hostOf(a.url).startsWith(q)) || b.n - a.n || b.t - a.t).slice(0, 6).forEach(h => add({ kind: 'history', text: h.title || h.url, url: h.url }));
       return out.slice(0, 9);
     });
+    // 1.7.0 refaite : déplacer un onglet vers une autre fenêtre DrYAE (menu de l'onglet, ou glisser l'onglet sur l'autre fenêtre)
+    ipcMain.handle('br:windows', e => {
+      const T = global.DRYAE_T || (x => x); const me = this.extraOf(e.sender), out = [];
+      if (this.win && !this.win.isDestroyed() && me) out.push({ id: this.win.id, title: T('Fenêtre principale') });
+      let n = 1; for (const w of this.extraWins || []) { if (w.isDestroyed()) continue; n++; if (w !== me) out.push({ id: w.id, title: T('Fenêtre {0}').replace('{0}', n) }); }
+      return out;
+    });
+    ipcMain.handle('br:moveTo', (e, id, url, inc) => {
+      if (typeof url !== 'string' || !/^(https?|dryae|file):/.test(url)) return false;
+      if (this.win && !this.win.isDestroyed() && this.win.id === id) { this.open(url, { incognito: !!inc }); this.win.focus(); return true; }
+      const w = [...(this.extraWins || [])].find(x => !x.isDestroyed() && x.id === id); if (!w) return false;
+      this.extraShow(w, true, url, !!inc); return true;
+    });
+    // onglet lâché hors de toute fenêtre : nouvelle fenêtre à cet endroit
+    ipcMain.handle('br:tearOff', (e, url, inc, x, y) => { if (typeof url !== 'string' || !url) return; const w = this.newWindow(url, { incognito: !!inc }); try { if (w && Number.isFinite(x) && Number.isFinite(y)) { const b = w.getBounds(); w.setBounds({ ...b, x: Math.round(x - 120), y: Math.round(y - 20) }); } } catch {} });
     ipcMain.handle('br:openComic', (e, kind) => kind === 'dir' ? this.pickComicDir(e.sender) : this.pickComic(e.sender));
     ipcMain.handle('br:newWindow', (_e, url, inc) => { this.newWindow(typeof url === 'string' ? url : '', { incognito: !!inc }); });
     ipcMain.handle('br:session', (_e, sess) => { if (this.isExtraUi(_e.sender)) { const x = this.extraOf(_e.sender); if (x && sess && Array.isArray(sess.tabs)) { const all = this.store.extraSessions || (this.store.extraSessions = {}); all[x._sid] = { tabs: sess.tabs.filter(t => /^(https?|dryae):/.test(t.url)).slice(0, 50), active: sess.active | 0, b: x.getBounds() }; if (!all[x._sid].tabs.length) delete all[x._sid]; this.saveStore(); } return; } if (sess && Array.isArray(sess.tabs)) { this.store.session = { tabs: sess.tabs.filter(t => /^(https?|dryae):/.test(t.url)).slice(0, 50), active: sess.active | 0 }; this.saveStore(); } });
@@ -1912,6 +1927,24 @@ class WebBrowser {
       if (!this.isUi(e.sender)) return { ok: false };
       const k = String(key || '').trim() || (this.aiCfg() || {}).key || ''; if (!k) return { ok: false, bad: true };
       return M.aiCheck(k, ((this.B().scan || {}).ai || {}).url);
+    });
+    // 1.7.0 refaite : pages traduites enregistrées en .cbz ou en PDF (choix du fichier par l'utilisateur)
+    ipcMain.handle('scan:export', async (e, o) => {
+      if (!o || !Array.isArray(o.pages) || !o.pages.length || o.pages.length > 2000) return { error: 'rien à enregistrer' };
+      const T = global.DRYAE_T || (x => x), fmt = o.fmt === 'pdf' ? 'pdf' : 'cbz';
+      const base = String(o.name || 'chapitre').replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 120) || 'chapitre';
+      const r = await dialog.showSaveDialog(this.win, { title: T('Enregistrer les pages traduites'), defaultPath: path.join(app.getPath('documents'), base + ' (' + T('traduit') + ').' + fmt), filters: [fmt === 'pdf' ? { name: 'PDF', extensions: ['pdf'] } : { name: 'BD (.cbz)', extensions: ['cbz'] }] });
+      if (r.canceled || !r.filePath) return {};
+      const bufs = o.pages.map(p => Buffer.from(p));
+      if (fmt === 'cbz') { await fsp.writeFile(r.filePath, require('./docx-lite').zip(bufs.map((b, i) => [String(i + 1).padStart(4, '0') + '.jpg', b]))); }
+      else {
+        const html = '<!doctype html><meta charset="utf-8"><style>@page{margin:0}body{margin:0}img{display:block;width:100%;page-break-after:always}</style>' + bufs.map(b => `<img src="data:image/jpeg;base64,${b.toString('base64')}">`).join('');
+        const tmp = path.join(app.getPath('temp'), 'dryae-bd-' + Date.now() + '.html'); await fsp.writeFile(tmp, html);
+        const w = new BrowserWindow({ show: false, webPreferences: { javascript: false, sandbox: true } });
+        try { await w.loadFile(tmp); const pdf = await w.webContents.printToPDF({ pageSize: 'A4', margins: { marginType: 'none' }, printBackground: true }); await fsp.writeFile(r.filePath, pdf); }
+        finally { w.destroy(); fsp.unlink(tmp).catch(() => {}); }
+      }
+      return { file: r.filePath };
     });
     // police « bande dessinée » des bulles traduites (Comic Neue, licence SIL OFL 1.1)
     ipcMain.handle('scan:font', () => { try { return fs.readFileSync(path.join(__dirname, '..', '..', 'assets', 'fonts', 'comic-neue', 'comic-neue-latin-700-normal.woff2')); } catch { return null; } });

@@ -28,6 +28,7 @@ $('#tabs').addEventListener('contextmenu', e => {
     { label: 'Regrouper les onglets par site', icon: 'list', fn: groupBySite },
     window.WORK && !t.incognito ? { label: 'Rouvrir dans un conteneur', icon: 'box', sub: () => WORK.ctnMenu(t) } : null,
     t.url ? { label: 'Déplacer vers une nouvelle fenêtre', icon: 'newwin', fn: () => { B.call('br:newWindow', t.url, t.incognito); if (tabs.length > 1) closeTab(t); } } : null,
+    t.url ? { label: 'Déplacer vers une autre fenêtre', icon: 'newwin', sub: async () => { const ws = await B.call('br:windows').catch(() => []); return ws.length ? ws.map(w => ({ label: w.title, icon: 'newwin', fn: async () => { if (await B.call('br:moveTo', w.id, t.url, t.incognito)) closeTab(t); } })) : [{ label: 'Aucune autre fenêtre ouverte', icon: 'newwin', disabled: true }]; } } : null,
     '-',
     { label: 'Fermer', icon: 'x', key: 'Ctrl+W', fn: () => closeTab(t) },
     { label: 'Fermer les autres onglets', icon: 'x', fn: () => tabs.filter(x => x !== t).forEach(closeTab), disabled: tabs.length < 2 },

@@ -900,7 +900,8 @@ function pageFeatures() {
     };
     const loop = () => { if (!scan) return; for (const [img, it] of scan.items) placeScan(img, it); placeTools(); scan.raf = requestAnimationFrame(loop); };
     loop();
-    scan.io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { scanQueue(e.target); scan.io.unobserve(e.target); } }), { rootMargin: '1600px 0px' });
+    // 1.7.0 refaite : les images qui arrivent sont traduites plus tôt (traduction à l'avance pendant la lecture)
+    scan.io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { scanQueue(e.target); scan.io.unobserve(e.target); } }), { rootMargin: '3200px 3200px' });
     // survol : quelle image traduite est sous la souris
     scan.move = e => { if (!scan || !scIcons) return; let hit = null; for (const [img, it] of scan.items) { if (!it.box) continue; const r = img.getBoundingClientRect(); if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) { hit = img; break; } } if (hit !== scan.hover) { scan.hover = hit; drawTools(); } };
     addEventListener('mousemove', scan.move, { passive: true, capture: true });
@@ -965,6 +966,52 @@ function pageFeatures() {
       else status(ptf('Traduction impossible : {0}', String(e.message || e).replace(/^.*Error: /, '').slice(0, 80)));
     }
     if (scan) { scan.busy = false; scanNext(); }
+  }
+  // 1.7.0 refaite : enregistrer les pages traduites (.cbz ou PDF) — la traduction est dessinée sur chaque image.
+  // Possible quand les images viennent du PC (lecteur de BD) ou du même site ; sinon l'image ne peut pas être recopiée.
+  function fitText(ctx, text, w, h, font) {
+    const words = String(text).split(/\s+/).filter(Boolean); let size = Math.max(10, Math.min(h * 0.6, 64)), lines = [];
+    for (; size >= 8; size -= 1) {
+      ctx.font = `700 ${size}px ${font}`; lines = []; let line = '';
+      for (const wd of words) { const t = line ? line + ' ' + wd : wd; if (ctx.measureText(t).width <= w || !line) line = t; else { lines.push(line); line = wd; } }
+      if (line) lines.push(line);
+      if (lines.length * size * 1.12 <= h && lines.every(l => ctx.measureText(l).width <= w * 1.02)) break;
+    }
+    return { size, lines };
+  }
+  async function scanExport(fmt) {
+    if (!scan) { scanStart(); return hint(pt('Traduction des images en cours : enregistrez quand la page est traduite')); }
+    await loadFont();
+    const min = SC.minSize || 250;
+    const imgs = [...document.querySelectorAll('img')].filter(i => i.naturalWidth >= min && i.naturalHeight >= min * 0.6);
+    const out = []; let done = 0, blocked = 0;
+    status(pt('Enregistrement des pages…'));
+    for (const img of imgs) {
+      const it = scan?.items.get(img);
+      const c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight;
+      const ctx = c.getContext('2d'); ctx.drawImage(img, 0, 0);
+      if (it?.blocks?.length) {
+        done++;
+        const k = img.naturalWidth / (it.w || img.naturalWidth), font = FONT;
+        for (const b of it.blocks) {
+          const tr = b.tr || ''; if (!tr || tr === b.text) continue;
+          const x = b.x0 * k, y = b.y0 * k, w = (b.x1 - b.x0) * k, h = (b.y1 - b.y0) * k, pad = Math.max(2, h * 0.06);
+          ctx.fillStyle = b.bg || '#fff'; ctx.beginPath(); (ctx.roundRect ? ctx.roundRect(x - pad, y - pad, w + pad * 2, h + pad * 2, 6) : ctx.rect(x - pad, y - pad, w + pad * 2, h + pad * 2)); ctx.fill();
+          const f = fitText(ctx, b.caps ? tr.toUpperCase() : tr, w + pad, h + pad, font);
+          ctx.fillStyle = inkOn(b.bg || '#fff'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = `700 ${f.size}px ${font}`;
+          const lh = f.size * 1.12, y0 = y + h / 2 - (f.lines.length - 1) * lh / 2;
+          f.lines.forEach((l, j) => ctx.fillText(l, x + w / 2, y0 + j * lh));
+        }
+      }
+      try { const b = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.92)); if (!b) throw 0; out.push(new Uint8Array(await b.arrayBuffer())); }
+      catch { blocked++; }
+    }
+    if (!out.length) return hint(pt('Ces images ne peuvent pas être recopiées (elles viennent d\'un autre site)'));
+    const name = (document.title || 'chapitre').replace(/ — DrYAE$/, '');
+    const r = await ipcRenderer.invoke('scan:export', { fmt, name, pages: out }).catch(e => ({ error: e.message }));
+    status(ptf('{0} bulle(s) traduite(s)', scan?.n || 0));
+    if (r?.file) hint(ptf('Enregistré : {0} ({1} pages, dont {2} traduites)', r.file, out.length, done) + (blocked ? ' · ' + ptf('{0} image(s) impossibles à recopier', blocked) : ''));
+    else if (r?.error) hint(r.error);
   }
   // police et mise en forme des bulles : texte noir sur fond blanc, coins arrondis, centré, sans bordure visible
   // 1.6.9 : police « bande dessinée » par défaut (fournie avec DrYAE), sinon standard ou avec empattements
@@ -1340,6 +1387,7 @@ function pageFeatures() {
       case 'scan-one': return scanStart(c.src);
       case 'scan-region': return scanRegion();
       case 'scan-icons': scIcons = !!c.on; return drawTools();
+      case 'scan-export': return scanExport(c.fmt === 'pdf' ? 'pdf' : 'cbz');
       case 'hides': CFG.hides = c.list || []; return applyHides(CFG.hides);
       case 'state': return toHost('dryae-state', { translated: !!trOrig, lights: !!lights, night: !!nightKey, scan: !!scan });
     }

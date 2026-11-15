@@ -249,6 +249,10 @@ async function drawScanPop() {
       <button id="scPage" ${h ? '' : 'disabled'}>${ic('scan')}<span>${esc(T('Traduire les images de la page'))}</span></button>
       <button id="scZone" ${h ? '' : 'disabled'}>${ic('crop')}<span>${esc(T('Capture d\'une zone'))} <kbd>Ctrl+Maj+S</kbd></span></button>
     </div>
+    <div class="tools" style="grid-template-columns:1fr 1fr;margin:0 0 6px">
+      <button id="scCbz" ${h ? '' : 'disabled'} title="${esc(T('Usage personnel seulement, pour des fichiers que vous avez le droit de copier'))}">${ic('save')}<span>${esc(T('Enregistrer la traduction (.cbz)'))}</span></button>
+      <button id="scPdf" ${h ? '' : 'disabled'} title="${esc(T('Usage personnel seulement, pour des fichiers que vous avez le droit de copier'))}">${ic('save')}<span>${esc(T('Enregistrer la traduction (PDF)'))}</span></button>
+    </div>
     ${cur?.scanLang?.from ? `<div class="prow"><span class="grow">${esc(T('Langue détectée'))}</span><b class="notr">${esc(langName(cur.scanLang.from))} → ${esc(langName(cur.scanLang.to))}</b></div>` : ''}
     <div class="prow"><span class="grow">${esc(T('Langue des images'))}<small>${esc(T('↓ : téléchargée à la première utilisation'))}</small></span><select id="scSrc">${ocrOpts}</select></div>
     <div class="prow"><span class="grow">${esc(T('Traduire vers'))}</span><select id="scTo">${langOptions(s.target || '', `<option value="">${esc(T('Comme le traducteur'))}</option>`)}</select></div>
@@ -278,6 +282,8 @@ async function drawScanPop() {
   $('#scNeverAdd').onclick = addNever; $('#scNever').onkeydown = e => { if (e.key === 'Enter') addNever(); };
   $('#scPage').onclick = () => { popClose(); pageCmd('scan'); };
   $('#scZone').onclick = () => { popClose(); pageCmd('scan-region'); };
+  $('#scCbz').onclick = () => { popClose(); pageCmd('scan-export', { fmt: 'cbz' }); };
+  $('#scPdf').onclick = () => { popClose(); pageCmd('scan-export', { fmt: 'pdf' }); };
   $('#scSrc').onchange = e => setB({ scan: { source: e.target.value } });
   $('#scTo').onchange = e => setB({ scan: { target: e.target.value } });
   popEl.querySelector('[data-set]').onclick = () => { popClose(); openPage('settings', 'scan'); };

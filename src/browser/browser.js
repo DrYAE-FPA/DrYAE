@@ -85,8 +85,15 @@ function newTab(url = '', opts = {}) {
   $('#tabs').insertBefore(el, $('#newTab'));
   // glisser-déposer pour réordonner les onglets
   el.draggable = true;
-  el.addEventListener('dragstart', e => { dragTab = tab; el.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', tab.url || ''); } catch {} });
-  el.addEventListener('dragend', () => { el.classList.remove('dragging'); $$('.tab').forEach(t => t.classList.remove('drop-l', 'drop-r')); dragTab = null; });
+  // 1.7.0 refaite : un onglet glissé sur une autre fenêtre DrYAE y passe ; lâché hors des fenêtres, il devient une nouvelle fenêtre
+  el.addEventListener('dragstart', e => { dragTab = tab; el.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', tab.url || ''); e.dataTransfer.setData('text/x-dryae-tab', JSON.stringify({ url: tab.url || '', inc: !!tab.incognito })); } catch {} });
+  el.addEventListener('dragend', e => {
+    el.classList.remove('dragging'); $$('.tab').forEach(t => t.classList.remove('drop-l', 'drop-r')); dragTab = null;
+    if (!tab.url) return;
+    const out = e.clientX < 0 || e.clientY < 0 || e.clientX > innerWidth || e.clientY > innerHeight;
+    if (e.dataTransfer.dropEffect === 'move' && out) closeTab(tab); // reçu par une autre fenêtre
+    else if (e.dataTransfer.dropEffect === 'none' && out && tabs.length > 1) { B.call('br:tearOff', tab.url, tab.incognito, e.screenX, e.screenY); closeTab(tab); }
+  });
   el.addEventListener('dragover', e => {
     if (!dragTab || dragTab === tab) return;
     e.preventDefault();
@@ -1456,6 +1463,14 @@ $('#trOrig').onclick = () => pageCmd('translate-off');
 $('#trX').onclick = () => { if (cur) { cur.tr = null; drawTrBar(); drawMods(); } };
 B.on('page-cmd', ({ wcId, cmd, ...x }) => { const t = tabByWc(wcId); if (t) pageCmd(cmd, x, t); });
 B.on('toast', m => toast(m));
+// 1.7.0 refaite : onglet venu d'une autre fenêtre DrYAE
+$('#tabs').addEventListener('dragover', e => { if (dragTab || ![...e.dataTransfer.types].includes('text/x-dryae-tab')) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; });
+$('#tabs').addEventListener('drop', e => {
+  if (dragTab) return;
+  let d = null; try { d = JSON.parse(e.dataTransfer.getData('text/x-dryae-tab') || 'null'); } catch {}
+  if (!d || !d.url) return;
+  e.preventDefault(); newTab(d.url, { incognito: !!d.inc });
+});
 
 // ---------- téléchargements faits par le navigateur (sans DrYAE) ----------
 let ND = [];

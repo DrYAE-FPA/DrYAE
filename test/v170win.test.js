@@ -39,6 +39,13 @@ const brOf = async app => { let b; for (let i = 0; i < 60 && !b; i++) { b = app.
   await b.evaluate(u => B.call('br:newWindow', u + '/fenetre-a'), base); await wait(3000);
   const xb = app.windows().find(x => x.url().includes('win=extra'));
   await xb.evaluate(u => newTab(u + '/fenetre-b'), base); await wait(2500);
+  // déplacer un onglet de la fenêtre principale vers l'autre fenêtre (menu de l'onglet)
+  const ws = await b.evaluate(() => B.call('br:windows'));
+  await b.evaluate(u => newTab(u + '/a-deplacer'), base); await wait(1500);
+  const moved = await b.evaluate(async id => { const t = tabs.find(x => /a-deplacer/.test(x.url)); const ok = await B.call('br:moveTo', id, t.url, false); if (ok) closeTab(t); return ok; }, ws[0] && ws[0].id); await wait(2500);
+  const xs = await xb.evaluate(() => tabs.map(t => t.url)), ms = await b.evaluate(() => tabs.map(t => t.url));
+  ok('onglet déplacé vers l\'autre fenêtre', moved && xs.some(u => /a-deplacer/.test(u)) && !ms.some(u => /a-deplacer/.test(u)), { ws, xs, ms });
+  await xb.evaluate(() => { const t = tabs.find(x => /a-deplacer/.test(x.url)); if (t) closeTab(t); }); await wait(800);
   await app.evaluate(({ app }) => app.quit()).catch(() => {}); await wait(2500);
   const store = (() => { for (const f of ['browser.json', 'browser-store.json', 'store.json']) try { return JSON.parse(fs.readFileSync(HOME + '/.config/DrYAE/' + f, 'utf8')); } catch {} return {}; })();
   ok('onglets de l\'autre fenêtre gardés en quittant', Object.values(store.extraSessions || {}).some(s => s.tabs.length === 2), store.extraSessions);
