@@ -17,6 +17,18 @@ const brOf = async app => { let b; for (let i = 0; i < 60 && !b; i++) { b = app.
   let b = await brOf(app); b.on('pageerror', e => console.log('[brerr]', e.message));
   await b.evaluate(u => navigate(cur, u + '/un'), base); await wait(1500);
 
+  // fichier déjà téléchargé : « Changer le nom » rouvre la fenêtre avec le nom prêt à être modifié
+  await b.evaluate(u => openQuickFile({ url: u + '/fichier.bin', name: 'rapport.bin', page: u + '/un', size: 10 }), base); await wait(600);
+  await b.evaluate(() => document.querySelector('#qfLater').click()); await wait(1500);
+  await b.evaluate(u => openQuickFile({ url: u + '/fichier.bin', name: 'rapport.bin', page: u + '/un', size: 10 }), base); await wait(600);
+  await b.evaluate(() => document.querySelector('#qfLater').click()); await wait(1200);
+  const dup = await b.evaluate(() => ({ on: document.querySelector('#askDlg').classList.contains('on'), btns: [...document.querySelectorAll('#askF button')].map(x => x.textContent) }));
+  ok('doublon : bouton « Changer le nom »', dup.on && dup.btns.some(t => /Changer le nom/.test(t)), dup);
+  await b.evaluate(() => document.querySelector('#askF [data-v="back"]').click()); await wait(500);
+  const back = await b.evaluate(() => ({ qs: document.querySelector('#qs').classList.contains('on'), name: document.querySelector('#qaName').value, focus: document.activeElement === document.querySelector('#qaName') }));
+  ok('« Changer le nom » : la fenêtre revient avec le nom à modifier', back.qs && back.name === 'rapport.bin' && back.focus, back);
+  await b.evaluate(() => closeQuick());
+
   // panneau des extensions : pas d'interrupteur, un bouton ⋮ par extension intégrée, menu au-dessus du panneau
   await b.evaluate(() => popOpen('ext', document.querySelector('#bExt'))); await wait(500);
   const pan = await b.evaluate(() => ({ toggles: document.querySelectorAll('#pop [data-tg^="mod:"]').length, more: document.querySelectorAll('#pop [data-mod] [data-more]').length }));

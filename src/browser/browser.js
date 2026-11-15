@@ -29,23 +29,25 @@ function askBox(o) {
   });
 }
 // doublon détecté par le Gestionnaire : même fenêtre que dans le Gestionnaire
-async function askDup(d) {
+async function askDup(d, canBack) {
   const gone = d.status === 'done' && !d.file;
   const st = gone ? "le fichier n'existe plus sur l'ordinateur" : d.status === 'done' ? 'déjà téléchargé' : 'déjà dans la liste';
   const buttons = gone ? [{ v: 'overwrite', label: 'Télécharger à nouveau', primary: true }]
-    : [...(d.file ? [{ v: 'open', label: 'Ouvrir le fichier' }] : []), { v: 'overwrite', label: 'Remplacer' }, { v: 'rename', label: 'Télécharger quand même', primary: true }];
+    : [...(canBack ? [{ v: 'back', label: 'Changer le nom' }] : []), ...(d.file ? [{ v: 'open', label: 'Ouvrir le fichier' }] : []), { v: 'overwrite', label: 'Remplacer' }, { v: 'rename', label: 'Télécharger quand même', primary: true }];
   const r = await askBox({ title: 'Déjà téléchargé', text: `« ${d.name} » — ${T(st)}. ${T('Que veux-tu faire ?')}`, check: gone ? '' : 'Toujours faire ce choix', buttons });
   if (!r) return null;
   if (r.value === 'open') { B.call('br:openDl', d.id); return null; }
+  if (r.value === 'back') return 'back';
   if (r.checked && !gone) B.call('br:setDupDefault', r.value);
   return r.value;
 }
 // ajout rapide avec gestion des doublons : jamais « Ajouté » si rien n'a été ajouté
-async function addDl(o) {
+async function addDl(o, canBack) {
   let r = await B.call('br:quickAdd', o);
   if (r && r.duplicate) {
-    const a = await askDup(r.duplicate);
+    const a = await askDup(r.duplicate, canBack);
     if (!a) return null;
+    if (a === 'back') return { back: true };
     r = await B.call('br:quickAdd', { ...o, dupAction: a });
   }
   return r;
@@ -892,6 +894,7 @@ $('#qs').addEventListener('mousedown', e => { if (e.target.id === 'qs') closeQui
 
 // ---- options avancées (dans le panneau, sans quitter la page) ----
 let qsDefaults = null;
+setTimeout(() => B.call('br:defaults').then(d => { qsDefaults = qsDefaults || d; }).catch(() => {}), 1500); // fenêtre prête plus vite
 async function qsAdvInit(name) {
   qsDefaults = qsDefaults || await B.call('br:defaults');
   $('#qaName').value = name || '';
@@ -907,8 +910,19 @@ function qsOpts() {
 async function qsAdd(o, label) {
   const tab = qsCtx?.tab || cur;
   const op = qsOpts();
-  closeQuick();
-  const r = await addDl({ ...o, ...op, name: op.name || null, title: o.title || op.name || (tab && tab.title) || null, incognito: tab?.incognito });
+  // 1.7.0 refaite : la fenêtre est seulement cachée ; si le fichier existe déjà, « Changer le nom » la rouvre
+  // telle quelle, avec le nom prêt à être modifié (avant, il fallait tout recommencer)
+  const ctx = qsCtx;
+  $('#qs').classList.remove('on');
+  const r = await addDl({ ...o, ...op, name: op.name || null, title: o.title || op.name || (tab && tab.title) || null, incognito: tab?.incognito }, true);
+  if (r && r.back) {
+    qsCtx = ctx; $('#qs').classList.add('on');
+    $('#qsAdv').style.display = ''; $('#qsMore').textContent = "Moins d'options";
+    if (!$('#qaName').value) $('#qaName').value = o.title || '';
+    setTimeout(() => { const n = $('#qaName'); n.focus(); n.select(); }, 30);
+    return null;
+  }
+  if (qsCtx === ctx) qsCtx = null;
   if (r) toast(`${T('Ajouté à DrYAE')}${label ? ' : ' + label : ''}`, { label: 'Voir', fn: () => B.call('br:openMain') });
   return r;
 }
@@ -1097,6 +1111,8 @@ function onMedia(m) {
   // un flux HLS « maître » masque ses sous-playlists
   if (m.kind === 'hls' && t.media.some(x => x.kind === 'hls' && m.url.split('?')[0].replace(/[^/]+$/, '') === x.url.split('?')[0].replace(/[^/]+$/, ''))) return;
   t.media.unshift(m);
+  // 1.7.0 refaite : analyse lancée à l'avance (une fois par page) pour une fenêtre « Choisir un format » immédiate
+  if (['video', 'audio', 'hls'].includes(m.kind) && /^https?:/.test(t.url || '') && t._pre !== t.url) { t._pre = t.url; B.call('br:ytPrefetch', t.url).catch(() => {}); }
   if (t === cur) { updToolbar(); if (panel === 'media') drawMedia(); }
 }
 B.on('media', onMedia);

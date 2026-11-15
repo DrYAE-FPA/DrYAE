@@ -1501,10 +1501,18 @@ class WebBrowser {
     ipcMain.handle('br:torInspect', async (_e, src, o) => { try { return { ok: true, info: await this.main.torrentInspect(src, o) }; } catch (e) { return { ok: false, error: String(e.message || e) }; } });
     ipcMain.handle('br:torAdd', (_e, o) => { this.main.torrentAdd(o); return true; });
     ipcMain.handle('br:torQuick', (_e, src) => this.main.torrentQuick(src));
-    ipcMain.handle('br:ytInspect', async (_e, url, page) => {
-      try { return { ok: true, v: await this.main.manager.ytdl.inspect(url, { 'User-Agent': this.ua(), ...(page && page !== url ? { Referer: page } : {}) }, await this.cookieFile(page || url)) }; }
-      catch (e) { return { ok: false, error: e.message }; }
-    });
+    // 1.7.0 refaite : l'analyse d'une vidéo (formats, tailles) est gardée 10 minutes et lancée à l'avance dès qu'une
+    // vidéo est repérée dans la page : la fenêtre « Choisir un format » s'ouvre alors avec les choix tout de suite
+    const ytCache = new Map();
+    const inspect = (url, page) => {
+      const k = url + '|' + (page || ''), c = ytCache.get(k);
+      if (c && Date.now() - c.t < 600e3) return c.p;
+      const p = (async () => { try { return { ok: true, v: await this.main.manager.ytdl.inspect(url, { 'User-Agent': this.ua(), ...(page && page !== url ? { Referer: page } : {}) }, await this.cookieFile(page || url)) }; } catch (e) { ytCache.delete(k); return { ok: false, error: e.message }; } })();
+      ytCache.set(k, { t: Date.now(), p }); if (ytCache.size > 40) ytCache.delete(ytCache.keys().next().value);
+      return p;
+    };
+    ipcMain.handle('br:ytInspect', (_e, url, page) => inspect(url, page));
+    ipcMain.handle('br:ytPrefetch', (_e, url) => { if (typeof url === 'string' && /^https?:/.test(url)) inspect(url).catch(() => {}); });
     ipcMain.handle('br:ytQuick', (_e, o) => {
       const v = this.main.manager.add({ type: 'ytdl', url: o.url, title: o.title || null, thumbnail: o.thumbnail || '', duration: o.duration || 0, mode: o.mode, quality: o.quality || 'best',
         audioFormat: o.audioFormat || 'mp3', audioBitrate: o.audioBitrate || '320', pageUrl: o.page || o.url, headers: { 'User-Agent': this.ua() }, startNow: true });
