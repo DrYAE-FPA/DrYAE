@@ -167,6 +167,15 @@ DRM-protected videos (Netflix, Disney+…) cannot be downloaded.
 - The **bookmarks bar** (Ctrl+Shift+B) stays hidden as long as no bookmark is placed on it; it appears as soon as you add one. **Other bookmarks**: ⋮ menu → Bookmarks.
 - **New window**: Ctrl+N (or ⋮ menu → New window). To send a tab to a new window: right-click the tab → **Move to a new window**.
 
+## 5a++. Comics, manga and on-device translation (1.7.0)
+
+- **Open a comic**: menu ⋮ → "Open a comic or a manga" → "File (.cbz, .cbr, .cb7)" or "Image folder". In File Explorer: right-click the file → "Open with" → DrYAE.
+- **Read**: at the top, pick "Continuous scrolling", "Page by page" or "Two pages", and the reading direction ("Right → left" for manga). Arrow keys ← →, or click the left / right half of the page. DrYAE remembers where you stopped.
+- **Translate**: "Image text translator" button in the toolbar. The next pages are translated ahead.
+- **Save the translation**: Image text translator window → "Save the translation (.cbz)" or "(PDF)". Only for your own files, or files you have the right to copy.
+- **On-device translation**: Settings → Translation → "On-device translation". Nothing is sent online. A model is downloaded once per language pair.
+- **AI translation (Gemini)**: Image text translator window → "AI translation" → "Get a free key": the steps are shown. The key is checked as soon as you save it.
+
 ## 5b. Accessibility
 Settings → **Accessibility**: DrYAE text size (up to 200%), **high contrast** (or as Windows), **easy reading** (simple font and wider letter spacing, helpful for dyslexia), **reduce animations**, **simple mode** (only the essential buttons). Everything also works from the keyboard: Tab, arrows, Esc, F6 (address bar → buttons → page), Alt+F (menu). DrYAE works with screen readers (NVDA, Narrator). Your own shortcuts: Settings → **Keyboard shortcuts**.
 
@@ -216,12 +225,3 @@ Press **F1** to open this guide inside DrYAE; the full list of shortcuts is at t
 
 ## Responsible use
 Only download content you have the right to copy: your own files, free content, or content you are allowed to download. Follow the terms of service of the sites you visit.
-
-## 5 bis++. Comics, manga and on-device translation (1.7.0)
-
-- **Open a comic**: menu ⋮ → "Open a comic or a manga" → "File (.cbz, .cbr, .cb7)" or "Image folder". In File Explorer: right-click the file → "Open with" → DrYAE.
-- **Read**: at the top, pick "Continuous scrolling", "Page by page" or "Two pages", and the reading direction ("Right → left" for manga). Arrow keys ← →, or click the left / right half of the page. DrYAE remembers where you stopped.
-- **Translate**: "Image text translator" button in the toolbar. The next pages are translated ahead.
-- **Save the translation**: Image text translator window → "Save the translation (.cbz)" or "(PDF)". Only for your own files, or files you have the right to copy.
-- **On-device translation**: Settings → Translation → "On-device translation". Nothing is sent online. A model is downloaded once per language pair.
-- **AI translation (Gemini)**: Image text translator window → "AI translation" → "Get a free key": the steps are shown. The key is checked as soon as you save it.

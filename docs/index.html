@@ -3,32 +3,88 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>DrYAE — gestionnaire de téléchargements et navigateur gratuits pour Windows</title>
-<meta name="description" content="DrYAE : gestionnaire de téléchargements, navigateur avec bloqueur de publicités, traducteur de pages et traducteur des bulles de BD et de mangas. Gratuit, libre (GPL-3.0), sans publicité, sans compte.">
+<title>DrYAE — mode d'emploi et fonctions</title>
+<meta name="description" content="DrYAE : gestionnaire de téléchargements et navigateur gratuits pour Windows. Toutes les fonctions expliquées : à quoi elles servent et comment les utiliser.">
+<link rel="icon" href="images/logo.png">
 <style>
-:root{--bg:#0e1015;--panel:#161922;--line:#262b38;--fg:#eceef3;--dim:#9aa1b2;--acc:#8b5cf6;--acc2:#ec4899}
+:root{--bg:#0e1015;--panel:#161922;--panel2:#1c2030;--line:#262b38;--fg:#eceef3;--dim:#9aa1b2;--acc:#8b5cf6;--acc2:#ec4899;--ok:#34d399}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--fg);font:17px/1.6 "Segoe UI",system-ui,sans-serif}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 "Segoe UI",system-ui,-apple-system,sans-serif}
 a{color:#c4b5fd}
-.wrap{max-width:1040px;margin:0 auto;padding:0 20px}
-header{padding:56px 0 28px;text-align:center}
-header img{width:84px;height:84px}
-h1{font-size:44px;margin:10px 0 6px;letter-spacing:-.5px}
-.tag{font-size:20px;color:var(--dim);max-width:720px;margin:0 auto 26px}
-.dl{display:inline-flex;align-items:center;gap:10px;padding:16px 30px;border-radius:14px;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-weight:700;font-size:20px;text-decoration:none;box-shadow:0 8px 30px #8b5cf655}
+button{font:inherit;color:inherit;cursor:pointer}
+.wrap{max-width:1080px;margin:0 auto;padding:0 18px}
+/* barre du haut */
+.top{position:sticky;top:0;z-index:20;background:#0e1015e8;backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;align-items:center;gap:14px;height:56px}
+.brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:18px;text-decoration:none;color:var(--fg)}
+.brand img{width:28px;height:28px}
+.top nav{display:flex;gap:16px;margin-left:auto;font-size:14px}
+.top nav a{color:var(--dim);text-decoration:none}.top nav a:hover{color:var(--fg)}
+.lang{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:4px 10px;font-size:13px}
+@media(max-width:700px){.top nav a.hide-m{display:none}}
+/* en-tête */
+header{padding:46px 0 26px;text-align:center}
+h1{font-size:40px;line-height:1.15;margin:0 0 10px;letter-spacing:-.5px}
+.tag{font-size:19px;color:var(--dim);max-width:740px;margin:0 auto 22px}
+@media(max-width:600px){h1{font-size:30px}.tag{font-size:17px}}
+/* recherche */
+.search{position:relative;max-width:680px;margin:0 auto}
+.search input{width:100%;padding:16px 18px 16px 50px;border-radius:14px;border:1px solid #3a4157;background:var(--panel);color:var(--fg);font-size:17px;outline:none}
+.search input:focus{border-color:var(--acc);box-shadow:0 0 0 4px #8b5cf633}
+.search .ico{position:absolute;left:17px;top:15px;font-size:19px;opacity:.7;pointer-events:none}
+.sug{position:absolute;left:0;right:0;top:calc(100% + 6px);background:var(--panel2);border:1px solid #3a4157;border-radius:12px;overflow:hidden;box-shadow:0 18px 40px #0009;text-align:left;z-index:30}
+.sug[hidden]{display:none}
+.sug button{display:flex;gap:12px;align-items:flex-start;width:100%;padding:10px 14px;border:0;background:none;text-align:left}
+.sug button.on,.sug button:hover{background:#2b2350}
+.sug .si{font-size:18px;line-height:1.4}
+.sug b{display:block;font-weight:600}
+.sug small{display:block;color:var(--dim);font-size:13px;line-height:1.35}
+.sug mark{background:none;color:#f0abfc;font-weight:700}
+.sug .all{justify-content:center;color:#c4b5fd;font-size:14px;border-top:1px solid var(--line)}
+.sug .none{padding:14px;color:var(--dim);font-size:14px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:14px auto 0;max-width:700px}
+.chips button{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:5px 13px;font-size:14px;color:var(--dim)}
+.chips button:hover{color:var(--fg);border-color:var(--acc)}
+.dl{display:inline-flex;align-items:center;gap:10px;margin-top:24px;padding:14px 28px;border-radius:14px;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-weight:700;font-size:18px;text-decoration:none;box-shadow:0 8px 30px #8b5cf655}
 .dl:hover{filter:brightness(1.08)}
-.small{color:var(--dim);font-size:14px;margin-top:10px}
-.lang{position:absolute;top:16px;right:20px;font-size:14px}
+.small{color:var(--dim);font-size:14px;margin-top:8px}
+/* sections */
 section{padding:34px 0;border-top:1px solid var(--line)}
-h2{font-size:28px;margin:0 0 18px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
-.card h3{margin:0 0 6px;font-size:19px}
-.card p{margin:0;color:var(--dim);font-size:15.5px}
-video{width:100%;border-radius:12px;border:1px solid var(--line);background:#000;margin-top:10px}
-ol li{margin:6px 0}
-.win{max-width:520px;margin:14px 0;border-radius:6px;background:#1f4e8c;color:#fff;padding:18px 20px;font-family:"Segoe UI",sans-serif}
-.win b{font-size:22px;font-weight:400;display:block;margin-bottom:8px}
+h2{font-size:26px;margin:0 0 6px}
+.sub{color:var(--dim);margin:0 0 18px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.card{position:relative;display:block;width:100%;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;transition:border-color .15s,transform .15s}
+.card:hover{border-color:var(--acc);transform:translateY(-2px)}
+.card .ci{font-size:22px}
+.card h3{margin:6px 0 4px;font-size:17px;line-height:1.3}
+.card p{margin:0;color:var(--dim);font-size:14.5px}
+.card .more{display:inline-block;margin-top:10px;color:#c4b5fd;font-size:14px}
+.card .vid{position:absolute;top:14px;right:14px;font-size:12px;color:var(--ok);border:1px solid #34d39955;border-radius:999px;padding:1px 8px}
+.top-grid .card{background:linear-gradient(160deg,#1d1730,var(--panel) 60%)}
+.cats{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px}
+.cats button{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:6px 12px;font-size:14px}
+.cats button.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.found{margin:0 0 14px;color:var(--dim)}
+.found button{border:0;background:none;color:#c4b5fd;text-decoration:underline;padding:0}
+/* fiche détaillée */
+.ov{position:fixed;inset:0;background:#000a;z-index:50;display:flex;align-items:flex-start;justify-content:center;padding:6vh 14px;overflow:auto}
+.ov[hidden]{display:none}
+.sheet{width:100%;max-width:720px;background:var(--panel);border:1px solid #3a4157;border-radius:16px;padding:22px 22px 18px;position:relative}
+.sheet .x{position:absolute;top:10px;right:10px;border:0;background:var(--panel2);border-radius:10px;width:36px;height:36px;font-size:18px}
+.sheet .cat{color:var(--dim);font-size:14px}
+.sheet h3{font-size:24px;margin:4px 40px 8px 0;line-height:1.25}
+.sheet .d{font-size:16.5px;margin:0 0 14px}
+.sheet h4{margin:14px 0 6px;font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:var(--dim)}
+.sheet ol{margin:0;padding-left:22px}.sheet ol li{margin:5px 0}
+.sheet .where{display:inline-block;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:4px 10px;font-size:14.5px}
+.sheet video{width:100%;border-radius:12px;border:1px solid var(--line);background:#000;margin-top:14px}
+.sheet .rel{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.sheet .rel button{border:1px solid var(--line);background:var(--panel2);border-radius:999px;padding:4px 12px;font-size:14px}
+/* installation */
+ol.steps li{margin:6px 0}
+.win{max-width:520px;margin:14px 0;border-radius:6px;background:#1f4e8c;color:#fff;padding:18px 20px}
+.win b{font-size:21px;font-weight:400;display:block;margin-bottom:8px}
 .win .lnk{text-decoration:underline;outline:3px solid #facc15;outline-offset:3px;border-radius:2px}
 .win .btns{display:flex;gap:10px;justify-content:flex-end;margin-top:14px}
 .win .btns span{border:1px solid #fff9;padding:5px 14px}
@@ -41,83 +97,186 @@ body.show-en .fr{display:none}body.show-en .en{display:revert}
 </style>
 </head>
 <body>
-<a class="lang" href="#" onclick="document.body.classList.toggle('show-en');return false"><span class="fr">English</span><span class="en">Français</span></a>
+<div class="top"><div class="wrap">
+  <a class="brand" href="#"><img src="images/logo.png" alt="">DrYAE</a>
+  <nav>
+    <a class="hide-m" href="#essentiel"><span class="fr">L'essentiel</span><span class="en">Highlights</span></a>
+    <a href="#fonctions"><span class="fr">Fonctions</span><span class="en">Features</span></a>
+    <a class="hide-m" href="#installer"><span class="fr">Installer</span><span class="en">Install</span></a>
+    <a class="hide-m" href="#faq">FAQ</a>
+  </nav>
+  <button class="lang" id="lang">EN</button>
+</div></div>
+
 <div class="wrap">
 <header>
-  <img src="images/logo.png" alt="DrYAE">
-  <h1>DrYAE</h1>
-  <p class="tag fr">Le gestionnaire de téléchargements et le navigateur qui traduisent aussi vos BD et vos mangas. Gratuit, sans publicité, sans compte.</p>
-  <p class="tag en">The download manager and web browser that also translates your comics and manga. Free, no ads, no account.</p>
+  <h1 class="fr">Toutes les fonctions de DrYAE, expliquées simplement</h1>
+  <h1 class="en">Every DrYAE feature, simply explained</h1>
+  <p class="tag fr">Le gestionnaire de téléchargements et le navigateur gratuits pour Windows. Cherchez une fonction pour savoir à quoi elle sert et comment l'utiliser.</p>
+  <p class="tag en">The free download manager and web browser for Windows. Search for a feature to learn what it does and how to use it.</p>
+  <div class="search" role="search">
+    <span class="ico">🔎</span>
+    <input id="q" type="search" autocomplete="off" spellcheck="false" aria-autocomplete="list" aria-controls="sug" aria-label="Rechercher une fonction">
+    <div class="sug" id="sug" role="listbox" hidden></div>
+  </div>
+  <div class="chips" id="chips"></div>
   <a class="dl" href="https://github.com/DrYAE-FPA/DrYAE/releases/latest/download/DrYAE-Setup.exe">⬇ <span class="fr">Télécharger pour Windows</span><span class="en">Download for Windows</span></a>
-  <p class="small fr">Windows 10 et 11 (64 bits) · Logiciel libre (GPL-3.0) · <a href="https://github.com/DrYAE-FPA/DrYAE/releases/latest">Toutes les versions</a></p>
-  <p class="small en">Windows 10 and 11 (64-bit) · Free software (GPL-3.0) · <a href="https://github.com/DrYAE-FPA/DrYAE/releases/latest">All versions</a></p>
+  <p class="small fr">Windows 10 et 11 · Gratuit, sans publicité, sans compte · <a href="https://github.com/DrYAE-FPA/DrYAE">Code public</a></p>
+  <p class="small en">Windows 10 and 11 · Free, no ads, no account · <a href="https://github.com/DrYAE-FPA/DrYAE">Public code</a></p>
 </header>
 
-<section>
-  <h2 class="fr">Ce que fait DrYAE</h2><h2 class="en">What DrYAE does</h2>
-  <div class="grid">
-    <div class="card"><h3 class="fr">Traducteur de scans</h3><h3 class="en">Image text translator</h3>
-      <p class="fr">Les bulles des BD, mangas et webtoons sont lues puis traduites directement sur la page, dans votre langue.</p>
-      <p class="en">Speech bubbles in comics, manga and webtoons are read and translated right on the page.</p>
-      <video src="videos/1-traducteur-de-scans.mp4" controls muted playsinline preload="metadata"></video></div>
-    <div class="card"><h3 class="fr">Lecteur de BD</h3><h3 class="en">Comic reader</h3>
-      <p class="fr">Ouvrez vos fichiers .cbz, .cbr et .cb7, page par page ou en défilement, sens manga au choix, puis enregistrez la traduction.</p>
-      <p class="en">Open your .cbz, .cbr and .cb7 files, page by page or scrolling, manga reading order, and save the translation.</p>
-      <video src="videos/2-lecteur-de-bd.mp4" controls muted playsinline preload="metadata"></video></div>
-    <div class="card"><h3 class="fr">Traduction sur le PC</h3><h3 class="en">On-device translation</h3>
-      <p class="fr">Traduisez sans rien envoyer sur internet, avec des modèles libres téléchargés une seule fois.</p>
-      <p class="en">Translate without sending anything online, with free models downloaded once.</p>
-      <video src="videos/3-traduction-sur-le-pc.mp4" controls muted playsinline preload="metadata"></video></div>
-    <div class="card"><h3 class="fr">Gestionnaire de téléchargements</h3><h3 class="en">Download manager</h3>
-      <p class="fr">Téléchargements rapides et repris automatiquement, torrents, vidéos détectées dans les pages.</p>
-      <p class="en">Fast downloads that resume automatically, torrents, videos detected on pages.</p>
-      <video src="videos/4-gestionnaire.mp4" controls muted playsinline preload="metadata"></video></div>
-    <div class="card"><h3 class="fr">Travail et études</h3><h3 class="en">Work and study</h3>
-      <p class="fr">Espaces de travail, collections exportées en Word ou PDF, citer une page, mode concentration, palette de commandes (Ctrl+K).</p>
-      <p class="en">Workspaces, collections exported to Word or PDF, page citations, focus mode, command palette (Ctrl+K).</p>
-      <video src="videos/5-travail-et-etudes.mp4" controls muted playsinline preload="metadata"></video></div>
-    <div class="card"><h3 class="fr">Navigateur protégé</h3><h3 class="en">Protected browser</h3>
-      <p class="fr">Bloqueur de publicités et des onglets de publicité, mots de passe, extensions Chrome, lecteur PDF, mode lecture, plusieurs fenêtres.</p>
-      <p class="en">Ad and pop-up tab blocker, passwords, Chrome extensions, PDF reader, reading mode, multiple windows.</p></div>
-  </div>
+<section id="essentiel">
+  <h2 class="fr">L'essentiel</h2><h2 class="en">Highlights</h2>
+  <p class="sub fr">Les fonctions les plus utiles. Cliquez sur une carte pour voir comment l'utiliser (et la vidéo quand il y en a une).</p>
+  <p class="sub en">The most useful features. Click a card to see how to use it (and the video when there is one).</p>
+  <div class="grid top-grid" id="topGrid"></div>
+</section>
+
+<section id="fonctions">
+  <h2 class="fr">Toutes les fonctions</h2><h2 class="en">All features</h2>
+  <p class="sub fr">Rangées par thème. Tapez un mot dans la recherche en haut pour aller plus vite.</p>
+  <p class="sub en">Sorted by theme. Type a word in the search at the top to go faster.</p>
+  <div class="cats" id="cats"></div>
+  <p class="found" id="found" hidden></p>
+  <div class="grid" id="allGrid"></div>
 </section>
 
 <section id="installer">
   <h2 class="fr">Installer DrYAE</h2><h2 class="en">Install DrYAE</h2>
-  <ol class="fr">
+  <ol class="steps fr">
     <li>Cliquez sur <b>Télécharger pour Windows</b>, puis ouvrez le fichier <code>DrYAE-Setup.exe</code>.</li>
-    <li>Windows peut afficher un écran bleu « Windows a protégé votre ordinateur ». C'est normal pour un logiciel gratuit encore peu connu : il n'a pas de signature payante. Cliquez sur <b>Informations complémentaires</b> :</li>
+    <li>Windows peut afficher un écran bleu « Windows a protégé votre ordinateur ». C'est normal pour un logiciel gratuit récent sans signature payante. Cliquez sur <b>Informations complémentaires</b> :</li>
   </ol>
-  <ol class="en">
+  <ol class="steps en">
     <li>Click <b>Download for Windows</b>, then open <code>DrYAE-Setup.exe</code>.</li>
-    <li>Windows may show a blue screen "Windows protected your PC". This is normal for a young free program without a paid signature. Click <b>More info</b>:</li>
+    <li>Windows may show a blue screen "Windows protected your PC". This is normal for a recent free program without a paid signature. Click <b>More info</b>:</li>
   </ol>
   <div class="win"><b class="fr">Windows a protégé votre ordinateur</b><b class="en">Windows protected your PC</b>
     <span class="fr">Microsoft Defender SmartScreen a empêché le démarrage d'une application non reconnue.</span><span class="en">Microsoft Defender SmartScreen prevented an unrecognized app from starting.</span><br><br>
     <span class="lnk fr">Informations complémentaires</span><span class="lnk en">More info</span>
     <div class="btns"><span class="fr">Ne pas exécuter</span><span class="en">Don't run</span></div></div>
-  <ol start="3" class="fr"><li>Le bouton <b>Exécuter quand même</b> apparaît : cliquez dessus, puis suivez l'installation.</li></ol>
-  <ol start="3" class="en"><li>The <b>Run anyway</b> button appears: click it, then follow the installer.</li></ol>
+  <ol start="3" class="steps fr"><li>Le bouton <b>Exécuter quand même</b> apparaît : cliquez dessus, puis suivez l'installation.</li></ol>
+  <ol start="3" class="steps en"><li>The <b>Run anyway</b> button appears: click it, then follow the installer.</li></ol>
   <div class="win"><b class="fr">Windows a protégé votre ordinateur</b><b class="en">Windows protected your PC</b>
     <span class="fr">Application : DrYAE-Setup.exe<br>Éditeur : Éditeur inconnu</span><span class="en">App: DrYAE-Setup.exe<br>Publisher: Unknown publisher</span>
     <div class="btns"><span class="go fr">Exécuter quand même</span><span class="go en">Run anyway</span><span class="fr">Ne pas exécuter</span><span class="en">Don't run</span></div></div>
-  <p class="fr">Le code de DrYAE est public sur <a href="https://github.com/DrYAE-FPA/DrYAE">GitHub</a> et chaque version est compilée automatiquement par GitHub, à partir de ce code.</p>
+  <p class="fr">Le code de DrYAE est public sur <a href="https://github.com/DrYAE-FPA/DrYAE">GitHub</a> et chaque version est compilée automatiquement par GitHub à partir de ce code.</p>
   <p class="en">DrYAE's code is public on <a href="https://github.com/DrYAE-FPA/DrYAE">GitHub</a> and every version is built automatically by GitHub from that code.</p>
 </section>
 
-<section>
+<section id="faq">
   <h2 class="fr">Questions fréquentes</h2><h2 class="en">FAQ</h2>
-  <details class="fr"><summary>DrYAE est-il vraiment gratuit ?</summary><p>Oui : gratuit, sans publicité, sans compte, et libre (licence GPL-3.0). Aucune donnée n'est collectée.</p></details>
-  <details class="en"><summary>Is DrYAE really free?</summary><p>Yes: free, no ads, no account, and open source (GPL-3.0). No data is collected.</p></details>
-  <details class="fr"><summary>Dans quelles langues ?</summary><p>DrYAE est en français, anglais, espagnol, portugais, russe et arabe. Le traducteur traduit vers des dizaines de langues.</p></details>
-  <details class="en"><summary>Which languages?</summary><p>DrYAE is available in French, English, Spanish, Portuguese, Russian and Arabic. The translator handles dozens of languages.</p></details>
-  <details class="fr"><summary>Mon ordinateur est modeste, ça marche ?</summary><p>Oui : DrYAE met en veille les onglets inutilisés et a des économiseurs de mémoire et de batterie.</p></details>
-  <details class="en"><summary>Will it run on a modest PC?</summary><p>Yes: DrYAE puts unused tabs to sleep and has memory and battery savers.</p></details>
+  <details class="fr"><summary>DrYAE est-il vraiment gratuit ?</summary><p>Oui : gratuit, sans publicité, sans abonnement et sans compte. C'est un logiciel libre (licence GPL-3.0).</p></details>
+  <details class="en"><summary>Is DrYAE really free?</summary><p>Yes: free, no ads, no subscription and no account. It is free software (GPL-3.0 license).</p></details>
+  <details class="fr"><summary>Est-ce que DrYAE ou GitHub récupère mes informations ?</summary><p>Non. DrYAE ne collecte aucune donnée personnelle et le téléchargement depuis GitHub ne demande rien sur vous. Dans DrYAE, Paramètres → Confidentialité et sécurité liste tout ce qui est envoyé sur internet.</p></details>
+  <details class="en"><summary>Do DrYAE or GitHub collect my information?</summary><p>No. DrYAE collects no personal data and downloading from GitHub asks nothing about you. In DrYAE, Settings → Privacy and security lists everything sent online.</p></details>
+  <details class="fr"><summary>Mon ordinateur est modeste, ça marche ?</summary><p>Oui : DrYAE met en veille les onglets inutilisés et a des économiseurs de mémoire, de batterie et de données.</p></details>
+  <details class="en"><summary>Will it run on a modest PC?</summary><p>Yes: DrYAE puts unused tabs to sleep and has memory, battery and data savers.</p></details>
+  <details class="fr"><summary>Où trouver le mode d'emploi complet ?</summary><p>Dans DrYAE, appuyez sur F1. Il est aussi <a href="https://github.com/DrYAE-FPA/DrYAE/blob/main/docs/GUIDE.md">en ligne</a>.</p></details>
+  <details class="en"><summary>Where is the full user guide?</summary><p>In DrYAE, press F1. It is also <a href="https://github.com/DrYAE-FPA/DrYAE/blob/main/docs/GUIDE.en.md">online</a>.</p></details>
   <details class="fr"><summary>Utilisation responsable</summary><p>Ne téléchargez que ce que vous avez le droit de copier : vos fichiers, des œuvres libres, ou avec l'accord des auteurs.</p></details>
   <details class="en"><summary>Responsible use</summary><p>Only download what you have the right to copy: your own files, free works, or with the authors' permission.</p></details>
 </section>
 </div>
-<footer><span class="fr">DrYAE — logiciel libre (GPL-3.0).</span><span class="en">DrYAE — free software (GPL-3.0).</span> Vidéos : Pepper&amp;Carrot par David Revoy, licence CC BY 4.0 (peppercarrot.com).</footer>
-<script>if (!/^fr/i.test(navigator.language || '')) document.body.classList.add('show-en');</script>
+
+<div class="ov" id="ov" hidden><div class="sheet" role="dialog" aria-modal="true" id="sheet"></div></div>
+
+<footer><span class="fr">DrYAE — logiciel libre (GPL-3.0).</span><span class="en">DrYAE — free software (GPL-3.0).</span> Vidéos / Videos : Pepper&amp;Carrot, David Revoy, CC BY 4.0.</footer>
+
+<script src="site/features.js"></script>
+<script>
+(() => {
+  const F = window.DRYAE_FEATURES, C = window.DRYAE_CATS;
+  const $ = s => document.querySelector(s);
+  let L = /^fr/i.test(navigator.language || 'fr') ? 'fr' : 'en';
+  try { const s = localStorage.getItem('dryae-site-lang'); if (s === 'fr' || s === 'en') L = s; } catch {}
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+  const norm = s => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[’']/g, ' ');
+  const cat = id => C.find(c => c.id === id);
+  const UI = {
+    fr: { ph: 'Cherchez une fonction : traduire, PDF, vidéo, concentration…', more: 'Comment l’utiliser →', what: 'À quoi ça sert', how: 'Comment l’utiliser', where: 'Où le trouver', rel: 'Voir aussi', all: 'Toutes', video: 'vidéo', seeAll: n => `Voir les ${n} résultats`, found: (n, q) => `${n} fonction(s) pour « ${q} ».`, none: q => `Aucune fonction trouvée pour « ${q} ». Essayez un autre mot (par exemple : traduire, vidéo, PDF).`, reset: 'Tout afficher', chips: ['traduire', 'PDF', 'vidéo MP3', 'concentration', 'citer', 'publicités', 'sans internet', 'mots de passe'] },
+    en: { ph: 'Search for a feature: translate, PDF, video, focus…', more: 'How to use it →', what: 'What it does', how: 'How to use it', where: 'Where to find it', rel: 'See also', all: 'All', video: 'video', seeAll: n => `See the ${n} results`, found: (n, q) => `${n} feature(s) for "${q}".`, none: q => `No feature found for "${q}". Try another word (for example: translate, video, PDF).`, reset: 'Show all', chips: ['translate', 'PDF', 'video MP3', 'focus', 'cite', 'ads', 'offline', 'passwords'] },
+  };
+  // ---------- recherche : sans accents, début de mot, une faute de frappe tolérée ----------
+  const index = F.map(f => ({ f, t: norm(f.fr.t + ' ' + f.en.t), k: norm(f.k), d: norm([f.fr.d, f.en.d].join(' ')), h: norm([...f.fr.h, ...f.en.h, f.fr.w, f.en.w].join(' ')) }));
+  const words = s => s.split(/[^a-z0-9+%]+/).filter(Boolean);
+  const near = (a, b) => { if (Math.abs(a.length - b.length) > 1) return false; let i = 0, j = 0, e = 0; while (i < a.length && j < b.length) { if (a[i] === b[j]) { i++; j++; continue; } if (++e > 1) return false; if (a.length > b.length) i++; else if (b.length > a.length) j++; else { i++; j++; } } return e + (a.length - i) + (b.length - j) <= 1; };
+  const hit = (field, tok) => { const ws = words(field); if (ws.some(w => w.startsWith(tok))) return 1; if (tok.length >= 5 && ws.some(w => near(w.slice(0, tok.length + 1), tok) || near(w, tok))) return 0.6; return 0; };
+  function search(q) {
+    const toks = words(norm(q)).filter(t => t.length > 1 || /\d/.test(t)); if (!toks.length) return [];
+    const out = [];
+    for (const x of index) {
+      let sc = 0, all = true;
+      for (const t of toks) { const s = hit(x.t, t) * 10 + hit(x.k, t) * 6 + hit(x.d, t) * 3 + hit(x.h, t) * 1; if (!s) { all = false; break; } sc += s; }
+      if (all) out.push([sc + (x.f.top ? 6 : 0) + (norm(x.f[L].t).startsWith(toks[0]) ? 4 : 0), x.f]);
+    }
+    return out.sort((a, b) => b[0] - a[0]).map(x => x[1]);
+  }
+  const mark = (txt, q) => { const toks = words(norm(q)).filter(t => t.length > 1); let h = esc(txt); if (!toks.length) return h; const n = norm(txt); const keep = new Array(txt.length).fill(false); for (const t of toks) { let i = 0; while ((i = n.indexOf(t, i)) >= 0) { if (i === 0 || /[^a-z0-9]/.test(n[i - 1])) for (let k = i; k < i + t.length; k++) keep[k] = true; i += t.length; } } let s = '', on = false; for (let i = 0; i < txt.length; i++) { if (keep[i] && !on) { s += '<mark>'; on = true; } if (!keep[i] && on) { s += '</mark>'; on = false; } s += esc(txt[i]); } return s + (on ? '</mark>' : ''); };
+  // ---------- propositions pendant la frappe ----------
+  const q = $('#q'), sug = $('#sug'); let sel = -1, list = [];
+  function drawSug() {
+    const v = q.value.trim(); if (!v) { sug.hidden = true; return; }
+    list = search(v); sel = list.length ? 0 : -1;
+    sug.innerHTML = list.length
+      ? list.slice(0, 7).map((f, i) => `<button role="option" data-id="${f.id}" class="${i === sel ? 'on' : ''}"><span class="si">${cat(f.cat).icon}</span><span><b>${mark(f[L].t, v)}</b><small>${esc(f[L].d.length > 95 ? f[L].d.slice(0, 92) + '…' : f[L].d)}</small></span></button>`).join('') + (list.length > 7 ? `<button class="all" data-all="1">${esc(UI[L].seeAll(list.length))}</button>` : '')
+      : `<div class="none">${esc(UI[L].none(v))}</div>`;
+    sug.hidden = false;
+  }
+  const move = d => { const b = [...sug.querySelectorAll('button[data-id]')]; if (!b.length) return; sel = (sel + d + b.length) % b.length; b.forEach((x, i) => x.classList.toggle('on', i === sel)); };
+  q.addEventListener('input', drawSug);
+  q.addEventListener('focus', drawSug);
+  q.addEventListener('keydown', e => {
+    if (e.key === 'ArrowDown') { e.preventDefault(); move(1); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); move(-1); }
+    else if (e.key === 'Enter') { e.preventDefault(); const b = sug.querySelectorAll('button[data-id]')[sel]; if (b) open(b.dataset.id); else showResults(q.value); sug.hidden = true; }
+    else if (e.key === 'Escape') sug.hidden = true;
+  });
+  sug.addEventListener('mousedown', e => { const b = e.target.closest('button'); if (!b) return; e.preventDefault(); sug.hidden = true; if (b.dataset.all) showResults(q.value); else open(b.dataset.id); });
+  document.addEventListener('click', e => { if (!e.target.closest('.search')) sug.hidden = true; });
+  addEventListener('keydown', e => { if (e.key === '/' && document.activeElement !== q && $('#ov').hidden) { e.preventDefault(); q.focus(); } });
+  // ---------- cartes ----------
+  const card = f => `<button class="card" data-id="${f.id}"><span class="ci">${cat(f.cat).icon}</span>${f.video ? `<span class="vid">▶ ${UI[L].video}</span>` : ''}<h3>${esc(f[L].t)}</h3><p>${esc(f[L].d)}</p><span class="more">${UI[L].more}</span></button>`;
+  let curCat = '';
+  function drawAll(items) { $('#allGrid').innerHTML = (items || F.filter(f => !curCat || f.cat === curCat)).map(card).join(''); }
+  function drawCats() { $('#cats').innerHTML = [`<button data-c="" class="${curCat ? '' : 'on'}">${UI[L].all}</button>`, ...C.map(c => `<button data-c="${c.id}" class="${curCat === c.id ? 'on' : ''}">${c.icon} ${esc(c[L])}</button>`)].join(''); }
+  $('#cats').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; curCat = b.dataset.c; $('#found').hidden = true; drawCats(); drawAll(); });
+  function showResults(v) {
+    const r = search(v); curCat = ''; drawCats();
+    $('#found').hidden = false; $('#found').innerHTML = esc(r.length ? UI[L].found(r.length, v.trim()) : UI[L].none(v.trim())) + ` <button id="reset">${UI[L].reset}</button>`;
+    drawAll(r); $('#fonctions').scrollIntoView();
+  }
+  $('#found').addEventListener('click', e => { if (e.target.id === 'reset') { $('#found').hidden = true; q.value = ''; drawAll(); } });
+  document.addEventListener('click', e => { const c = e.target.closest('.card'); if (c) open(c.dataset.id); });
+  // ---------- fiche détaillée ----------
+  function open(id) {
+    const f = F.find(x => x.id === id); if (!f) return; const t = f[L], c = cat(f.cat);
+    const rel = F.filter(x => x.cat === f.cat && x.id !== f.id).slice(0, 4);
+    $('#sheet').innerHTML = `<button class="x" aria-label="Fermer">✕</button><div class="cat">${c.icon} ${esc(c[L])}</div><h3>${esc(t.t)}</h3>
+      <h4>${UI[L].what}</h4><p class="d">${esc(t.d)}</p>
+      <h4>${UI[L].how}</h4><ol>${t.h.map(s => `<li>${esc(s)}</li>`).join('')}</ol>
+      <h4>${UI[L].where}</h4><span class="where">${esc(t.w)}</span>
+      ${f.video ? `<video src="videos/${f.video}" controls muted playsinline autoplay preload="metadata"></video>` : ''}
+      ${rel.length ? `<h4>${UI[L].rel}</h4><div class="rel">${rel.map(r => `<button data-rel="${r.id}">${esc(r[L].t)}</button>`).join('')}</div>` : ''}`;
+    $('#ov').hidden = false; document.body.style.overflow = 'hidden';
+    if (location.hash !== '#f=' + id) history.replaceState(null, '', '#f=' + id);
+  }
+  function close() { $('#ov').hidden = true; document.body.style.overflow = ''; $('#sheet').innerHTML = ''; if (location.hash.startsWith('#f=')) history.replaceState(null, '', location.pathname); }
+  $('#ov').addEventListener('click', e => { if (e.target.id === 'ov' || e.target.closest('.x')) close(); const r = e.target.closest('[data-rel]'); if (r) open(r.dataset.rel); });
+  addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#ov').hidden) close(); });
+  // ---------- langue ----------
+  function apply() {
+    document.documentElement.lang = L; document.body.classList.toggle('show-en', L === 'en');
+    $('#lang').textContent = L === 'fr' ? 'EN' : 'FR'; q.placeholder = UI[L].ph;
+    $('#chips').innerHTML = UI[L].chips.map(c => `<button>${esc(c)}</button>`).join('');
+    $('#topGrid').innerHTML = F.filter(f => f.top).map(card).join('');
+    drawCats(); drawAll(); $('#found').hidden = true;
+  }
+  $('#lang').onclick = () => { L = L === 'fr' ? 'en' : 'fr'; try { localStorage.setItem('dryae-site-lang', L); } catch {} apply(); };
+  $('#chips').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; q.value = b.textContent; q.focus(); drawSug(); });
+  apply();
+  const m = /^#f=([\w-]+)/.exec(location.hash); if (m) open(m[1]);
+})();
+</script>
 </body>
 </html>
