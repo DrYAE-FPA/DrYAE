@@ -1,0 +1,22 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.9.0.schema.json
+PackageIdentifier: DrYAE-FPA.DrYAE
+PackageVersion: 1.7.0
+InstallerType: nullsoft
+Scope: user
+InstallModes:
+- interactive
+- silent
+UpgradeBehavior: install
+FileExtensions:
+- torrent
+- cbz
+- cbr
+- cb7
+Protocols:
+- magnet
+Installers:
+- Architecture: x64
+  InstallerUrl: https://github.com/DrYAE-FPA/DrYAE/releases/download/v1.7.0/DrYAE-Setup-1.7.0.exe
+  InstallerSha256: 85E094B22A91EAF3442B3BBD2A0D80811C2374D09962EDB2119B24DAAA96C5F6
+ManifestType: installer
+ManifestVersion: 1.9.0
