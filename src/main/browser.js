@@ -856,6 +856,23 @@ class WebBrowser {
     wc.once('destroyed', () => this.loginTabs.delete(wc.id));
     try { const w = BrowserWindow.fromWebContents(wc); w?.setMenu(null); } catch {}
   }
+  // 1.7.0 refaite : lecteur de BD et de mangas
+  async openComic(file, from) {
+    try { const r = await require('./comics').register(file); this.open('dryae://bd/viewer.html#' + r.id, { from }); return r; }
+    catch (e) { this.wc?.send('toast', (global.DRYAE_T || (x => x))('Impossible d\'ouvrir cette BD : {0}').replace('{0}', e.message)); return null; }
+  }
+  async pickComic(from) {
+    const T = global.DRYAE_T || (x => x);
+    const r = await dialog.showOpenDialog(this.win, { title: T('Ouvrir une BD ou un manga'), properties: ['openFile'], filters: [{ name: T('BD et mangas'), extensions: ['cbz', 'cbr', 'cb7', 'zip', 'rar', '7z'] }] });
+    if (r.canceled || !r.filePaths[0]) return null;
+    return this.openComic(r.filePaths[0], from);
+  }
+  async pickComicDir(from) {
+    const T = global.DRYAE_T || (x => x);
+    const r = await dialog.showOpenDialog(this.win, { title: T('Dossier d\'images (un chapitre ou un album)'), properties: ['openDirectory'] });
+    if (r.canceled || !r.filePaths[0]) return null;
+    return this.openComic(r.filePaths[0], from);
+  }
   isWebSession(ses) { return this.sessions().includes(ses); }
   // onglet vers un autre site que la page, sans clic sur un vrai lien de ce site : publicité
   adTab(wc, url) {
@@ -1460,6 +1477,7 @@ class WebBrowser {
       [...counts.values()].sort((a, b) => (hostOf(b.url).startsWith(q) - hostOf(a.url).startsWith(q)) || b.n - a.n || b.t - a.t).slice(0, 6).forEach(h => add({ kind: 'history', text: h.title || h.url, url: h.url }));
       return out.slice(0, 9);
     });
+    ipcMain.handle('br:openComic', (e, kind) => kind === 'dir' ? this.pickComicDir(e.sender) : this.pickComic(e.sender));
     ipcMain.handle('br:newWindow', (_e, url, inc) => { this.newWindow(typeof url === 'string' ? url : '', { incognito: !!inc }); });
     ipcMain.handle('br:session', (_e, sess) => { if (this.isExtraUi(_e.sender)) { const x = this.extraOf(_e.sender); if (x && sess && Array.isArray(sess.tabs)) { const all = this.store.extraSessions || (this.store.extraSessions = {}); all[x._sid] = { tabs: sess.tabs.filter(t => /^(https?|dryae):/.test(t.url)).slice(0, 50), active: sess.active | 0, b: x.getBounds() }; if (!all[x._sid].tabs.length) delete all[x._sid]; this.saveStore(); } return; } if (sess && Array.isArray(sess.tabs)) { this.store.session = { tabs: sess.tabs.filter(t => /^(https?|dryae):/.test(t.url)).slice(0, 50), active: sess.active | 0 }; this.saveStore(); } });
     ipcMain.handle('br:torCancel', (_e, h) => { if (h) this.main.manager.torrents.probeCancel.add(String(h).toLowerCase()); });
@@ -1709,7 +1727,7 @@ class WebBrowser {
       const T = global.DRYAE_T || (s => s);
       const keys = ['Télécharger cette vidéo', 'Masquer', 'Remplir avec mon profil', 'mon profil', '(sans identifiant)', '— mot de passe enregistré', 'Suggérer un mot de passe fort', 'Utiliser ce mot de passe', 'Carte enregistrée', 'Remplir avec la carte', 'Image dans l\'image', 'Masquer le bouton sur ce site', 'Placer le bouton à gauche', 'Placer le bouton à droite', 'Traduire', 'Copier', 'Écouter', 'Fermer', 'Traduction…', 'Traduit de {0}', 'Afficher l\'original', 'Masquer les traductions', 'Arrêter', 'Lecture des images…', '{0} bulle(s) traduite(s)', 'Aucun texte trouvé dans cette image', 'Cliquez sur un élément à masquer. Molette ou ↑ ↓ : agrandir / réduire. Échap : annuler.', 'Masquer cet élément', 'Annuler', 'Traduction impossible : {0}', 'Adresse', 'Cliquez à côté pour rallumer', 'Traducteur de scans', 'Texte d\'origine', 'Échap pour rallumer', 'Aucune vidéo sur cette page', 'Boucle activée', 'Boucle désactivée', 'Sans filtre', 'Opacité gardée : {0} %', 'Protection des yeux activée', 'Protection des yeux désactivée', 'Aucune image à traduire sur cette page', 'Afficher la traduction', 'Original / traduction', 'Comparer', 'Relire cette image', 'Copier le texte traduit', 'Retirer la traduction', 'Dessinez un rectangle autour du texte à traduire. Échap : annuler.', 'Traduire la zone', 'Compte enregistré', 'Garder cette image pour l\'améliorer', 'Enregistre l\'image dans un dossier de votre PC (rien n\'est envoyé)', 'Image gardée dans {0}', 'Image non disponible : relisez la page puis réessayez', 'Votre note sur ce passage…', 'Retirer le surlignage', 'Enregistrer', 'Mode présentation : maintenez Alt et bougez la souris pour montrer un passage. Échap pour quitter.', 'Texte lu', 'Traduction', 'Affiche le texte lu dans les bulles : sélectionnez un mot pour le corriger ou l\'ajouter au lexique', 'Sélectionnez un mot du texte lu : corriger, ajouter au lexique, ne jamais traduire', 'Ne jamais traduire', 'Corriger la bulle', 'Toujours traduire par', 'Ajouter au lexique', 'Retraduire', 'Mot d\'origine', 'C\'est la traduction : cliquez sur la bulle (ou « Texte lu ») pour sélectionner le texte d\'origine.', 'Voir le texte lu', 'Ne sera jamais traduit', 'Ajouté au lexique', 'Clic : original / traduction · clic droit : corriger'];
       const pip = B.pip || {};
-      const isInt = pages.isPageUrl(f?.url);
+      const isInt = pages.isPageUrl(f?.url) && !/^dryae:\/\/bd\//.test(f?.url || ''); // lecteur de BD : page « normale » (traducteur de scans)
       e.returnValue = {
         pt: Object.fromEntries(keys.map(k => [k, T(k)])),
         internal: isInt, lang: this.settings.get().lang,

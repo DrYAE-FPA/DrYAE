@@ -21,6 +21,7 @@
     "electron-chrome-web-store": "^0.13.0",
     "electron-updater": "^6.8.11",
     "fxtranslate": "^0.5.0",
+    "node-unrar-js": "^2.0.2",
     "onnxruntime-web": "^1.31.1",
     "parse-torrent": "^11.0.24",
     "pdfmarkdown-ppocrv5-models": "^1.0.0",

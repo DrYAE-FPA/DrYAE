@@ -297,7 +297,7 @@ $('#bShield').onclick = e => popOpen('adblock', e.currentTarget);
 const modOn = id => !!(CFG.mods && CFG.mods[id] && CFG.mods[id].on);
 const MODS = [['adblock', 'Bloqueur de publicités', 'shield'], ['capture', 'Téléchargements par DrYAE', 'dl'], ['translate', 'Traducteur', 'translate'], ['scan', 'Traducteur de scans', 'scan'], ['lights', 'Lumières tamisées', 'bulb'], ['pip', "Image dans l'image", 'pip']];
 function openPage(name, hash) { B.call('br:openPage', name, hash || ''); }
-function pageCmd(cmd, extra = {}, tab = cur) { if (tab?.wv && tab.wcId && /^https?:/.test(tab.url)) tab.wv.send('dryae-cmd', { cmd, ...extra }); else toast('Ouvre une page web d\'abord'); }
+function pageCmd(cmd, extra = {}, tab = cur) { if (tab?.wv && tab.wcId && /^(https?:|dryae:\/\/bd\/)/.test(tab.url)) tab.wv.send('dryae-cmd', { cmd, ...extra }); else toast('Ouvre une page web d\'abord'); }
 // 1.7.0 : dans une fenêtre ouverte avec « Nouvelle fenêtre », les téléchargements s'affichent dans cette fenêtre
 // (le gestionnaire complet reste dans la fenêtre principale : bouton « Ouvrir le gestionnaire » du panneau)
 const EXTRA_WIN = new URLSearchParams(location.search).get('win') === 'extra';
@@ -322,7 +322,7 @@ async function drawMgr() {
 }
 function mainMenu() {
   const zoomPct = cur && cur.zoom ? Math.round(Math.pow(1.2, cur.zoom) * 100) : 100;
-  const web = /^https?:/.test(cur?.url || '');
+  const web = /^(https?:|dryae:\/\/bd\/)/.test(cur?.url || '');
   return [
     { label: 'Nouvel onglet', icon: 'plus', key: 'Ctrl+T', fn: () => newTab() },
     { label: 'Nouvelle fenêtre', icon: 'newwin', key: 'Ctrl+N', fn: () => B.call('br:newWindow', '') },
@@ -344,6 +344,10 @@ function mainMenu() {
     { label: 'Téléchargements', icon: 'dl', key: 'Ctrl+J', hl: true, fn: openDownloads },
     // 1.7.0 refaite : mode téléphone visible dans le menu principal (les sites voient alors un téléphone)
     { label: CFG.ua === 'mobile' ? 'Passer en mode ordinateur' : 'Passer en mode téléphone', icon: 'phone', check: CFG.ua === 'mobile', fn: () => setUaMode(CFG.ua === 'mobile' ? 'desktop' : 'mobile') },
+    { label: 'Ouvrir une BD ou un manga…', icon: 'book', sub: () => [
+      { label: 'Fichier (.cbz, .cbr, .cb7)…', icon: 'book', fn: () => B.call('br:openComic', 'file') },
+      { label: 'Dossier d\'images…', icon: 'folder', fn: () => B.call('br:openComic', 'dir') },
+    ] },
     { label: 'Rechercher dans les onglets…', icon: 'search', key: 'Ctrl+Maj+A', fn: () => window.TABSX?.tabSearch() },
     { label: 'Panneau latéral', icon: 'list', fn: () => window.TABSX?.toggleSide() },
     { label: 'Espaces de travail', icon: 'spaces', fn: () => window.TABSX?.toggleSide('ws') },

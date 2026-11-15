@@ -33,7 +33,11 @@ async function records(fresh) {
 const fetcher = onProgress => ({
   async get(url) { const r = await net.fetch(url); if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); },
   async download(url, prog) {
-    const r = await net.fetch(url); if (!r.ok) throw new Error('HTTP ' + r.status);
+    // le serveur des fichiers refuse certaines demandes de compression (HTTP 406) : fichier demandé tel quel ;
+    // en dernier recours, téléchargement par Node (sans le proxy de Windows)
+    let r = await net.fetch(url, { headers: { 'Accept-Encoding': 'identity', Accept: '*/*' } }).catch(() => null);
+    if (!r || !r.ok) { const r2 = await fetch(url).catch(() => null); if (r2 && r2.ok) r = r2; }
+    if (!r || !r.ok) throw new Error('HTTP ' + (r ? r.status : 'erreur réseau'));
     const total = +r.headers.get('content-length') || undefined, parts = []; let done = 0;
     const rd = r.body.getReader();
     for (;;) { const { done: end, value } = await rd.read(); if (end) break; parts.push(value); done += value.length; try { prog && prog(done, total); onProgress && onProgress(done, total); } catch {} }

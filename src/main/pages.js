@@ -31,6 +31,27 @@ function resolve(u) {
   return f;
 }
 
+const BD_DIR = path.join(ROOT, 'pages', 'bd');
+async function bdRequest(url) {
+  const C = require('./comics'); const x = new URL(url); const id = (x.searchParams.get('id') || '').replace(/[^a-f0-9]/g, '');
+  const csp = "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'";
+  try {
+    if (x.pathname === '/_list') { const i = C.info(id); return i ? new Response(JSON.stringify(i), { headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } }) : new Response('{}', { status: 404 }); }
+    if (x.pathname === '/_img') { if (!C.info(id)) return new Response('', { status: 404 }); const r = await C.page(id, +x.searchParams.get('i') || 0); return new Response(r.buf, { headers: { 'content-type': C.mimeOf(r.name), 'cache-control': 'max-age=3600' } }); }
+    const f = path.normalize(path.join(BD_DIR, decodeURIComponent(x.pathname === '/' ? '/viewer.html' : x.pathname)));
+    if (!f.startsWith(BD_DIR + path.sep) || !fs.existsSync(f)) return new Response('Page introuvable', { status: 404 });
+    let body = await fs.promises.readFile(f);
+    // textes de la page dans la langue de DrYAE (la page n'a pas accès au reste de DrYAE)
+    if (/\.(html|js)$/.test(f) && global.DRYAE_T) {
+      const T = global.DRYAE_T; let t = body.toString('utf8');
+      if (f.endsWith('.html')) t = t.replace(/>([^<>{}]*\p{L}[^<>{}]*)</gu, (m, a) => '>' + T(a.trim()) + '<').replace(/title="([^"]+)"/g, (m, a) => 'title="' + T(a).replace(/"/g, '&quot;') + '"');
+      else t = t.replace(/tr\('([^']+)'\)/g, (m, a) => JSON.stringify(T(a)));
+      body = Buffer.from(t);
+    }
+    return new Response(body, { headers: { 'content-type': TYPES[path.extname(f).toLowerCase()] || 'application/octet-stream', 'cache-control': 'no-store', 'content-security-policy': csp } });
+  } catch (e) { return new Response(String(e.message || e), { status: 500 }); }
+}
+
 function handleSession(ses) {
   if (ses._dryaePages) return;
   ses._dryaePages = true;
@@ -42,6 +63,8 @@ function handleSession(ses) {
         if (!/^(https?|file):/.test(u)) return new Response('adresse refusée', { status: 400 });
         try { const r = await ses.fetch(u); return new Response(r.body, { status: r.status, headers: { 'content-type': 'application/pdf' } }); } catch (e) { return new Response(String(e.message || e), { status: 502 }); }
       }
+      // 1.7.0 refaite : lecteur de BD (dryae://bd/…) : seulement les fichiers ouverts par l'utilisateur
+      if (/^dryae:\/\/bd\//.test(req.url)) return bdRequest(req.url);
       const f = resolve(req.url);
       if (!f || !fs.existsSync(f) || fs.statSync(f).isDirectory()) return new Response('Page introuvable', { status: 404, headers: { 'content-type': 'text/plain; charset=utf-8' } });
       const body = await fs.promises.readFile(f);

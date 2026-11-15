@@ -152,6 +152,8 @@ function handleArgs(argv) {
     else if (/^https?:\/\//i.test(a) && argv.includes('--browse')) pendingArgs.push({ browse: a });
     // PDF ou page enregistrée ouverts depuis l'Explorateur (« Ouvrir avec », application par défaut) : même sans --browse
     else if (/\.(html?|xhtml|svg|pdf)$/i.test(a) && !a.startsWith('-') && fs.existsSync(a)) pendingArgs.push({ browse: require('url').pathToFileURL(a).href });
+    // 1.7.0 refaite : BD et mangas (.cbz, .cbr, .cb7) ouverts avec DrYAE : lecteur de BD
+    else if (/\.cb[zr7]$/i.test(a) && !a.startsWith('-') && fs.existsSync(a)) pendingArgs.push({ comic: a });
     else if (/^https?:\/\//i.test(a)) pendingArgs.push({ url: a });
     else if (/^--open=dryae:\/\/\w+/i.test(a)) pendingArgs.push({ page: a.slice(7) });
   }
@@ -163,13 +165,14 @@ function flushArgs() {
     const a = pendingArgs.shift();
     if (a.page) { const m = /^dryae:\/\/(\w+)/i.exec(a.page); if (m) browser?.openPage(m[1].toLowerCase()); continue; }
     if (a.browse) { browser?.open(a.browse); continue; }
+    if (a.comic) { browser?.openComic(a.comic); continue; }
     api.showMain();
     if (a.torrent) send('prompt-torrent', { src: a.torrent });
     else send('prompt-add', { url: a.url });
   }
 }
 // clic sur l'icône alors que DrYAE tourne déjà : écran d'ouverture choisi ; un lien ou un torrent ouvre le gestionnaire
-const docArg = argv => argv.slice(1).some(a => /\.(html?|xhtml|svg|pdf)$/i.test(a) && !a.startsWith('-'));
+const docArg = argv => argv.slice(1).some(a => /\.(html?|xhtml|svg|pdf|cb[zr7])$/i.test(a) && !a.startsWith('-'));
 app.on('second-instance', (_e, argv) => { if (argv.includes('--browse') || docArg(argv)) { handleArgs(argv); return; } if (argv.slice(1).some(a => /^magnet:|\.torrent$|^https?:\/\//i.test(a))) api.showMain(); else api.showStart(); handleArgs(argv); });
 app.on('open-url', (e, url) => { e.preventDefault(); pendingArgs.push({ torrent: url }); flushArgs(); });
 

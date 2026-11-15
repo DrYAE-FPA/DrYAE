@@ -9,7 +9,7 @@ const uiLang = () => (window.I18N && I18N.lang) || CFG.lang || 'fr';
 const langName = c => { try { return new Intl.DisplayNames([uiLang()], { type: 'language' }).of(c) || c; } catch { return c || ''; } };
 const langOptions = (sel, extra) => (extra || '') + TLANG_CODES.map(c => [c, langName(c)]).sort((a, b) => a[1].localeCompare(b[1], uiLang())).map(([c, n]) => `<option value="${c}" ${c === sel ? 'selected' : ''}>${esc(n)}</option>`).join('');
 const tg = (key, on, title) => `<span class="tg ${on ? 'on' : ''}" data-tg="${key}" role="switch" aria-checked="${!!on}" title="${esc(T(title || ''))}"></span>`;
-const curHost = () => (/^https?:/.test(cur?.url || '') ? hostOf(cur.url) : '');
+const curHost = () => (/^https?:/.test(cur?.url || '') ? hostOf(cur.url) : /^dryae:\/\/bd\//.test(cur?.url || '') ? 'bd' : '');
 async function setB(patch) { CFG = { ...CFG, ...(await B.call('br:setSettings', patch)) }; }
 async function setSite(kind, val) { const h = curHost(); if (!h) return; CFG = { ...CFG, ...(await B.call('br:site', kind, h, val)) }; }
 

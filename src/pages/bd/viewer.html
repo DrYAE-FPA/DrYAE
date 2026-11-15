@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>DrYAE — BD</title>
+<link rel="stylesheet" href="viewer.css">
+</head>
+<body>
+<header id="bar">
+  <b id="title" class="notr">…</b>
+  <span class="grow"></span>
+  <button id="prev" title="Page précédente (←)">‹</button>
+  <span id="num" class="notr">0 / 0</span>
+  <button id="next" title="Page suivante (→)">›</button>
+  <select id="mode" title="Affichage"><option value="scroll">Défilement continu</option><option value="page">Page par page</option><option value="double">Deux pages</option></select>
+  <select id="dir" title="Sens de lecture"><option value="ltr">Gauche → droite (BD)</option><option value="rtl">Droite → gauche (manga)</option></select>
+  <select id="fit" title="Taille"><option value="width">Largeur</option><option value="height">Hauteur</option><option value="orig">Taille réelle</option></select>
+</header>
+<p id="hint">Pour traduire : bouton « Traducteur de scans » de la barre d'outils. Les pages suivantes sont traduites à l'avance pendant que vous lisez.</p>
+<main id="pages"></main>
+<script src="viewer.js"></script>
+</body>
+</html>
