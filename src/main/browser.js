@@ -1295,6 +1295,20 @@ class WebBrowser {
     P('resetBrowser', () => { const def = this.settings.def.browser; const keep = { modules: this.B().modules, filterLists: this.B().filterLists, customFilters: this.B().customFilters }; this.settings.set({ browser: { ...JSON.parse(JSON.stringify(def)), ...keep } }); return this.cfg(); });
     P('about', () => ({ version: app.getVersion(), chrome: process.versions.chrome, electron: process.versions.electron, update: this.main.updateInfo?.() }));
     // 1.7.0 : nombre de téléchargements de DrYAE, compté par GitHub (rien sur l'utilisateur n'est envoyé) ; gardé un jour
+    // 1.7.0 refaite : « Traduction sur le PC » — modèles installés, téléchargement d'une paire, suppression
+    const LM = () => require('./local-mt');
+    this._lmProg = this._lmProg || {};
+    P('localMt', async (o = {}) => {
+      if (o.get && /^[a-z]{2,3}$/.test(o.get.src) && /^[a-z]{2,3}$/.test(o.get.trg)) {
+        const r = await LM().route(o.get.src, o.get.trg).catch(() => null);
+        if (!r) throw new Error('pas de modèle pour cette paire');
+        const legs = r.kind === 'pivot' ? [[r.src, r.pivot], [r.pivot, r.trg]] : [[r.src, r.trg]];
+        (async () => { for (const [a, b] of legs) await LM().ensurePair(a, b, (k, d, t) => { this._lmProg[k] = { d, t }; }).catch(e => { this._lmProg[a + '-' + b] = { err: e.message }; }); })();
+        return { started: true, legs: legs.map(x => x.join('-')) };
+      }
+      if (o.remove) { LM().removeAll(); this._lmProg = {}; }
+      return { installed: LM().installed(), size: LM().sizeOnDisk(), prog: this._lmProg };
+    });
     P('downloads', async () => {
       const now = Date.now(); if (this._dlc && now - this._dlc.t < 864e5) return this._dlc.n;
       try {

@@ -21,6 +21,7 @@ const PROVIDERS = {
   google: { name: 'Google Traduction (gratuit, sans compte)' },
   deepl: { name: 'DeepL (clé API personnelle)' },
   libre: { name: 'LibreTranslate (serveur au choix)' },
+  local: { name: 'Traduction sur le PC (sans internet, modèles libres)' },
 };
 let UA = '';
 function setUserAgent(ua) { if (ua) UA = ua; }
@@ -89,7 +90,9 @@ async function libre(texts, to, from, cfg) {
 const cache = new Map();
 async function translate(texts, to, from, cfg) {
   texts = texts.map(t => String(t || ''));
-  const prov = { google, deepl, libre }[cfg.provider] || google;
+  // 1.7.0 refaite : « Traduction sur le PC » (rien n'est envoyé ; modèles téléchargés une fois par paire de langues)
+  const local = (tx, to2, fr2) => require('./local-mt').translate(tx, to2, fr2);
+  const prov = { google, deepl, libre, local }[cfg.provider] || google;
   const key = t => (cfg.provider || 'google') + '|' + (from || 'auto') + '|' + to + '|' + t;
   const out = new Array(texts.length), miss = [], missI = [];
   let det = from;

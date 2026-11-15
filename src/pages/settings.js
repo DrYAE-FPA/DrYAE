@@ -167,7 +167,8 @@ function draw() {
     sec('translate', 'Traducteur', `
       ${modRow('translate')}
       ${row('Texte sélectionné', 'Ce qui se passe quand vous sélectionnez du texte sur une page.', sel('trSel', [['button', 'Afficher un bouton « Traduire »'], ['auto', 'Traduire tout de suite'], ['off', 'Rien (clic droit ou Ctrl+Maj+E)']], T2.selection || 'button'))}
-      ${row('Service de traduction', '', sel('trProv', [['google', 'Google Traduction (gratuit, sans compte)'], ['deepl', 'DeepL (clé API personnelle)'], ['libre', 'LibreTranslate (serveur au choix)']], T2.provider || 'google'))}
+      ${row('Service de traduction', '', sel('trProv', [['google', 'Google Traduction (gratuit, sans compte)'], ['deepl', 'DeepL (clé API personnelle)'], ['libre', 'LibreTranslate (serveur au choix)'], ['local', 'Traduction sur le PC (sans internet, modèles libres)']], T2.provider || 'google'))}
+      <div id="trLocal" ${T2.provider === 'local' ? '' : 'style="display:none"'}>${row('Traduction sur le PC', 'Rien n\'est envoyé sur internet. Les modèles libres de Mozilla (licence MPL-2.0) sont téléchargés une seule fois par paire de langues, puis tout marche sans internet. Les paires sans modèle direct passent par l\'anglais (japonais → anglais → français).', `<span id="lmInfo" class="notr" style="color:var(--dim);font-size:12px"></span>`)}${row('Préparer une paire maintenant', 'Sinon, elle est téléchargée à la première traduction.', `<select id="lmSrc">${['en', 'ja', 'es', 'pt', 'ru', 'ar', 'fr', 'ko', 'zh', 'de', 'it'].map(c => `<option value="${c}">${esc(lname(c))}</option>`).join('')}</select> → <select id="lmTrg">${['fr', 'en', 'es', 'pt', 'ru', 'ar'].map(c => `<option value="${c}">${esc(lname(c))}</option>`).join('')}</select> <button class="btn sm" id="lmGet">${esc(TR('Télécharger'))}</button>`)}${row('Supprimer les modèles téléchargés', '', `<button class="btn sm" id="lmDel">${esc(TR('Supprimer'))}</button>`)}</div>
       <div id="trDeepl" ${T2.provider === 'deepl' ? '' : 'style="display:none"'}>${row('Clé API DeepL', 'Gratuite jusqu\'à 500 000 caractères par mois sur deepl.com.', `<input type="password" id="trKey" value="${esc(T2.deeplKey || '')}" spellcheck="false">`)}</div>
       <div id="trLibre" ${T2.provider === 'libre' ? '' : 'style="display:none"'}>${row('Adresse du serveur LibreTranslate', '', `<input type="url" id="trUrl" value="${esc(T2.libreUrl || '')}" placeholder="https://…" spellcheck="false">`)}${row('Clé API (si le serveur en demande une)', '', `<input type="password" id="trLKey" value="${esc(T2.libreKey || '')}" spellcheck="false">`)}</div>
       ${row('Langue de traduction', '', sel('trTo2', langOpts(true), T2.target || ''))}
@@ -246,6 +247,20 @@ function draw() {
     $('#defGo').onclick = () => call('defaultOpen');
   }
   // le total n'est demandé à GitHub que quand la ligne « À propos » est affichée à l'écran
+  // 1.7.0 refaite : état des modèles de la traduction sur le PC
+  window.lmDraw = async () => {
+    const el = $('#lmInfo'); if (!el || $('#trLocal').style.display === 'none') return;
+    const st = await call('localMt', {}).catch(() => null); if (!st) return;
+    const prog = Object.entries(st.prog || {}).filter(([k, p]) => !p.err && p.t && p.d < p.t).map(([k, p]) => `${k} ${Math.round(p.d / p.t * 100)} %`);
+    const errs = Object.entries(st.prog || {}).filter(([, p]) => p.err).map(([k, p]) => `${k} : ${p.err}`);
+    el.textContent = (st.installed.length ? TR('Installées') + ' : ' + st.installed.join(', ') + ' (' + Math.round(st.size / 1048576) + ' Mo)' : TR('Aucun modèle téléchargé')) + (prog.length ? ' · ' + TR('Téléchargement') + ' : ' + prog.join(', ') : '') + (errs.length ? ' · ' + errs.join(' ; ') : '');
+    clearTimeout(window._lmT); if (prog.length) window._lmT = setTimeout(lmDraw, 1000);
+  };
+  if ($('#lmGet')) {
+    $('#lmGet').onclick = async () => { const src = $('#lmSrc').value, trg = $('#lmTrg').value; if (src === trg) return; try { await call('localMt', { get: { src, trg } }); setTimeout(lmDraw, 600); } catch (e) { $('#lmInfo').textContent = String(e.message || e); } };
+    $('#lmDel').onclick = async () => { await call('localMt', { remove: true }); lmDraw(); };
+    lmDraw();
+  }
   if ($('#dlCount')) { const io = new IntersectionObserver(es => { if (!es.some(x => x.isIntersecting)) return; io.disconnect(); call('downloads').then(n => { const el = $('#dlCount'); if (el) el.textContent = TR('Téléchargements de DrYAE') + ' : ' + (n == null ? TR('indisponible') : Number(n).toLocaleString()); }).catch(() => {}); }); io.observe($('#dlCount')); }
 }
 function bind() {
@@ -277,7 +292,7 @@ function bind() {
     else if (id === 'lang') { await setRoot({ lang: t.value }); }
     else if (id === 'trTo' || id === 'trTo2') await setB({ translate: { ...(C.translate || {}), target: t.value } });
     else if (id === 'trSel') await setB({ translate: { ...(C.translate || {}), selection: t.value } });
-    else if (id === 'trProv') { await setB({ translate: { ...(C.translate || {}), provider: t.value } }); v('trDeepl').style.display = t.value === 'deepl' ? '' : 'none'; v('trLibre').style.display = t.value === 'libre' ? '' : 'none'; return; }
+    else if (id === 'trProv') { await setB({ translate: { ...(C.translate || {}), provider: t.value } }); v('trDeepl').style.display = t.value === 'deepl' ? '' : 'none'; v('trLibre').style.display = t.value === 'libre' ? '' : 'none'; v('trLocal').style.display = t.value === 'local' ? '' : 'none'; lmDraw(); return; }
     else if (id === 'trKey') await setB({ translate: { ...(C.translate || {}), deeplKey: t.value.trim() } });
     else if (id === 'trUrl') await setB({ translate: { ...(C.translate || {}), libreUrl: t.value.trim() } });
     else if (id === 'trLKey') await setB({ translate: { ...(C.translate || {}), libreKey: t.value.trim() } });
