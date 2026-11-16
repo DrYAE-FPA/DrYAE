@@ -180,6 +180,15 @@ ${list}`;
     AI_THINK[model] = tries[k];
     break;
   }
+  // 1.7.1 : service surchargé chez Google (503, souvent sur le modèle par défaut) : un nouvel essai après 1,5 s,
+  // puis deux autres modèles gratuits ; si tous sont surchargés, on le dit (pas une clé refusée)
+  if ([500, 502, 503, 504].includes(r.status) || (cfg._alt && r.status === 404)) {
+    const n = cfg._busy || 0, alt = ['gemini-2.5-flash', 'gemini-flash-lite-latest'].filter(m => m !== String(cfg._model0 || model));
+    if (n === 0 && r.status !== 404) { await new Promise(res => setTimeout(res, 1500)); return aiScan(image, mime, texts, to, { ...cfg, _busy: 1, _model0: model }); }
+    const k = Math.max(0, n - 1);
+    if (k < alt.length) return aiScan(image, mime, texts, to, { ...cfg, _busy: n + 1, _alt: true, _model0: cfg._model0 || model, model: alt[k] });
+    const e = new Error('service IA surchargé chez Google'); e.busy = true; throw e;
+  }
   if (r.status === 401 || r.status === 403) { const e = new Error('clé IA refusée'); e.badKey = true; throw e; }
   if (r.status === 404) { const e = new Error('modèle IA introuvable : ' + model); e.badKey = true; throw e; }
   if (!r.ok) throw new Error('service IA : HTTP ' + r.status);

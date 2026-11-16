@@ -14,3 +14,7 @@ ok('limite du jour : signalée comme telle', !R.day.ok && R.day.quota, R.day);
 ok('clé refusée : signalée', !R.badkey.ok && R.badkey.badKey, R.badkey);
 ok('vérification d\'une bonne clé', R['check-good'].ok === true, R['check-good']);
 ok('vérification d\'une mauvaise clé', R['check-bad'].ok === false && R['check-bad'].bad === true, R['check-bad']);
+// 1.7.1 : Google surchargé (HTTP 503)
+ok('service surchargé une fois : nouvel essai réussi', R.busyonce.ok, R.busyonce);
+ok('modèle surchargé : un autre modèle gratuit prend le relais', R.busyalt.ok, R.busyalt);
+ok('tous surchargés : signalé comme surcharge (pas une clé refusée)', !R.busyall.ok && R.busyall.busy && !R.busyall.badKey, R.busyall);

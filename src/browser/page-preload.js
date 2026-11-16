@@ -957,7 +957,7 @@ function pageFeatures() {
         if ((res.needModel || res.unreadable) && !scan.askedModel) { scan.askedModel = true; toHost('dryae-scanmodel', res.needModel || '?'); }
       }
       // 1.7.0 refaite : l'utilisateur sait pourquoi l'IA n'a pas servi (la traduction habituelle a pris le relais)
-      const why = { quota: pt('IA : limite gratuite du jour atteinte, traduction habituelle'), minute: pt('IA : trop de pages d\'un coup, traduction habituelle pour cette page'), badkey: pt('IA : clé refusée, traduction habituelle'), error: pt('IA indisponible pour cette page, traduction habituelle') + (res.aiWhy ? ' (' + res.aiWhy + ')' : '') }[res.ai];
+      const why = { quota: pt('IA : limite gratuite du jour atteinte, traduction habituelle'), minute: pt('IA : trop de pages d\'un coup, traduction habituelle pour cette page'), badkey: pt('IA : clé refusée, traduction habituelle'), busy: pt('IA : service surchargé chez Google, traduction habituelle (nouvel essai dans 2 min)'), error: pt('IA indisponible pour cette page, traduction habituelle') + (res.aiWhy ? ' (' + res.aiWhy + ')' : '') }[res.ai];
       status(ptf('{0} bulle(s) traduite(s)', scan?.n || 0) + (why ? ' · ' + why : ''));
     } catch (e) {
       // image pas encore lisible (hors de l'écran, protégée) : on réessaie quand elle sera bien visible (3 fois au plus)

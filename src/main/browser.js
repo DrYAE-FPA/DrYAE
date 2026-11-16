@@ -1930,7 +1930,7 @@ class WebBrowser {
         if (patch.privacySeen) cur.privacySeen = true;
         this.settings.set({ browser: { scan: { ...(this.B().scan || {}), ai: cur } } }); this.aiOffUntil = 0;
       }
-      return { on: !!cur.on, hasKey: !!(cur.keyEnc || cur.key), model: cur.model || '', mode: cur.mode === 'all' ? 'all' : 'hard', off: this.aiOffUntil > Date.now(), today: this.aiCount(0), limit: 500, privacySeen: !!cur.privacySeen };
+      return { on: !!cur.on, hasKey: !!(cur.keyEnc || cur.key), model: cur.model || '', mode: cur.mode === 'all' ? 'all' : 'hard', off: this.aiOffUntil > Date.now(), offWhy: this.aiOffUntil > Date.now() ? (this.aiWhy || '') : '', today: this.aiCount(0), limit: 500, privacySeen: !!cur.privacySeen };
     });
     // 1.7.0 refaite : vérification d'une clé IA (liste des modèles : ne compte pas dans la limite du jour)
     ipcMain.handle('scan:aiTest', async (e, key) => {
@@ -2092,9 +2092,12 @@ class WebBrowser {
         } catch (err) {
           // limite du jour atteinte : retour à la traduction habituelle jusqu'à demain ; clé refusée : jusqu'à ce qu'elle change
           LOGW('ia', err.message);
+          this.aiWhy = String(err.message || err).slice(0, 90);
           if (err.quota) { const d = new Date(); d.setHours(24, 0, 0, 0); this.aiOffUntil = d.getTime(); ai = 'quota'; }
           else if (err.minute) { this.aiOffUntil = Date.now() + 60e3; ai = 'minute'; }
           else if (err.badKey) { this.aiOffUntil = Date.now() + 3600e3; ai = 'badkey'; }
+          // 1.7.1 : Google surchargé : traduction habituelle pendant 2 min (les pages suivantes n'attendent plus)
+          else if (err.busy) { this.aiOffUntil = Date.now() + 120e3; ai = 'busy'; }
           else ai = 'error';
           aiWhy = String(err.message || err).slice(0, 90);
           tr = null;
