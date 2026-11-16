@@ -1506,13 +1506,15 @@ class WebBrowser {
     const ytCache = new Map();
     const inspect = (url, page) => {
       const k = url + '|' + (page || ''), c = ytCache.get(k);
-      if (c && Date.now() - c.t < 600e3) return c.p;
-      const p = (async () => { try { return { ok: true, v: await this.main.manager.ytdl.inspect(url, { 'User-Agent': this.ua(), ...(page && page !== url ? { Referer: page } : {}) }, await this.cookieFile(page || url)) }; } catch (e) { ytCache.delete(k); return { ok: false, error: e.message }; } })();
+      // 1.7.1 : un échec est aussi gardé (2 min) : la fenêtre ne relance pas une analyse qui a déjà échoué
+      if (c && Date.now() - c.t < (c.ttl || 600e3)) return c.p;
+      const p = (async () => { try { return { ok: true, v: await this.main.manager.ytdl.inspect(url, { 'User-Agent': this.ua(), ...(page && page !== url ? { Referer: page } : {}) }, await this.cookieFile(page || url)) }; } catch (e) { const x = ytCache.get(k); if (x) x.ttl = 120e3; return { ok: false, error: e.message }; } })();
       ytCache.set(k, { t: Date.now(), p }); if (ytCache.size > 40) ytCache.delete(ytCache.keys().next().value);
       return p;
     };
     ipcMain.handle('br:ytInspect', (_e, url, page) => inspect(url, page));
-    ipcMain.handle('br:ytPrefetch', (_e, url) => { if (typeof url === 'string' && /^https?:/.test(url)) inspect(url).catch(() => {}); });
+    // 1.7.1 : aussi la vidéo trouvée dans la page (avec la page comme origine), comme le fera la fenêtre
+    ipcMain.handle('br:ytPrefetch', (_e, url, page) => { if (typeof url === 'string' && /^https?:/.test(url)) inspect(url, typeof page === 'string' && /^https?:/.test(page) ? page : undefined).catch(() => {}); });
     ipcMain.handle('br:ytQuick', (_e, o) => {
       const v = this.main.manager.add({ type: 'ytdl', url: o.url, title: o.title || null, thumbnail: o.thumbnail || '', duration: o.duration || 0, mode: o.mode, quality: o.quality || 'best',
         audioFormat: o.audioFormat || 'mp3', audioBitrate: o.audioBitrate || '320', pageUrl: o.page || o.url, headers: { 'User-Agent': this.ua() }, startNow: true });

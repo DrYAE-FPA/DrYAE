@@ -37,10 +37,12 @@ async function askDup(d, canBack) {
   const gone = d.status === 'done' && !d.file;
   const st = gone ? "le fichier n'existe plus sur l'ordinateur" : d.status === 'done' ? 'déjà téléchargé' : 'déjà dans la liste';
   const buttons = gone ? [{ v: 'overwrite', label: 'Télécharger à nouveau', primary: true }]
-    : [...(canBack ? [{ v: 'back', label: 'Changer le nom' }] : []), ...(d.file ? [{ v: 'open', label: 'Ouvrir le fichier' }] : []), { v: 'overwrite', label: 'Remplacer' }, { v: 'rename', label: 'Télécharger quand même', primary: true }];
+    : [...(canBack ? [{ v: 'back', label: 'Changer le nom' }] : []), ...(d.file ? [{ v: 'open', label: 'Ouvrir le fichier' }] : d.status !== 'done' ? [{ v: 'show', label: 'Voir le téléchargement' }] : []), { v: 'overwrite', label: 'Remplacer' }, { v: 'rename', label: 'Télécharger quand même', primary: true }];
   const r = await askBox({ title: 'Déjà téléchargé', text: `« ${d.name} » — ${T(st)}. ${T('Que veux-tu faire ?')}`, check: gone ? '' : 'Toujours faire ce choix', buttons });
   if (!r) return null;
   if (r.value === 'open') { B.call('br:openDl', d.id); return null; }
+  // 1.7.1 : pas encore de fichier (téléchargement en cours ou en attente) : montrer le gestionnaire
+  if (r.value === 'show') { B.call('br:openMain'); return null; }
   if (r.value === 'back') return 'back';
   if (r.checked && !gone) B.call('br:setDupDefault', r.value);
   return r.value;
@@ -946,27 +948,36 @@ async function openQuick(tab, info = {}) {
   const src = info.src && /^https?:/.test(info.src) ? info.src : '';
   qsCtx = { url: page, page, tab };
   $('#qsTitleH').textContent = 'Choisir un format';
+  const cand = src || (detected.find(m => m.kind === 'hls') || detected.find(m => m.kind === 'video') || detected.find(m => m.kind === 'audio') || {}).url;
+  const p1 = B.call('br:ytInspect', page), p2 = cand ? B.call('br:ytInspect', cand, page) : null;
   qsShow(info.title || tab.title || 'Vidéo', 'Analyse de la vidéo…', '');
   await qsAdvInit((info.title || tab.title || '').replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 120));
-  $('#qsBody').innerHTML = '<div class="spin"></div>';
-  $('#qsBody').onclick = null;
   const ctx = qsCtx;
   let v = null, target = page, err = '';
-  const r1 = await B.call('br:ytInspect', page);
+  const files = detected.slice(0, 8);
+  const fileHtml = () => files.length ? `<div class="qsec">Fichiers détectés sur la page</div><div class="qgrid">${files.map((m, i) => `<button class="qopt" data-file="${i}"><b>${esc(KLAB[m.kind] || m.kind)} ${esc((m.ext || '').toUpperCase())}${m.height ? ' · ' + m.height + 'p' : ''}</b><span data-fsz="${i}">${m.kind !== 'hls' && m.size > 0 ? fmt(m.size) : m.est > 0 ? '~' + fmt(m.est) : m.kind === 'hls' ? '…' : esc((m.name || '').slice(0, 24))}</span></button>`).join('')}</div>` : '';
+  // 1.7.1 : les deux analyses (la page et la vidéo trouvée) partent en même temps, souvent déjà faites à l'avance ;
+  // les fichiers détectés sont montrés tout de suite, cliquables, pendant que les formats arrivent
+  $('#qsBody').innerHTML = '<div class="spin"></div>' + fileHtml();
+  // (le clic lit v et target au moment du clic : les fichiers détectés marchent déjà, les formats dès qu'ils arrivent)
+  $('#qsBody').onclick = async e => {
+    const f = e.target.closest('[data-file]');
+    if (f) { const m = files[+f.dataset.file]; return qsAdd({ kind: m.kind === 'hls' ? 'hls' : 'http', url: m.url, page, name: $('#qaName').value.trim() ? $('#qaName').value.trim() + (m.kind === 'hls' ? '' : '.' + (m.ext || 'mp4')) : m.name }, (KLAB[m.kind] || 'fichier')); }
+    const b = e.target.closest('.qopt'); if (!b || !v) return;
+    const o = { kind: 'ytdl', url: target, page, title: v.title, thumbnail: v.thumbnail, duration: v.duration || info.duration || 0, mode: b.dataset.m, quality: b.dataset.q || 'best', audioFormat: b.dataset.f || 'mp3', audioBitrate: b.dataset.b || '320' };
+    qsAdd(o, o.mode === 'audio' ? (o.audioFormat.toUpperCase() + (o.audioFormat === 'mp3' ? ' ' + o.audioBitrate + ' kb/s' : '')) : (o.quality === 'best' ? 'MP4' : o.quality + 'p'));
+  };
+  const r1 = await p1;
   if (qsCtx !== ctx) return;
   if (r1.ok && !r1.v.playlist && (r1.v.hasVideo || r1.v.duration || r1.v.heights.length)) v = r1.v;
   else if (r1.ok && r1.v.playlist) { closeQuick(); return B.call('br:download', { url: page, kind: 'ytdl', page, incognito: tab.incognito }); }
   else err = r1.ok ? '' : r1.error;
-  if (!v) {
-    const cand = src || (detected.find(m => m.kind === 'hls') || detected.find(m => m.kind === 'video') || detected.find(m => m.kind === 'audio') || {}).url;
-    if (cand) {
-      $('#qsMeta').textContent = 'Analyse du fichier vidéo de la page…';
-      const r2 = await B.call('br:ytInspect', cand, page);
-      if (qsCtx !== ctx) return;
-      if (r2.ok && !r2.v.playlist) { v = r2.v; target = cand; v.title = info.title || tab.title || v.title; }
-    }
+  if (!v && p2) {
+    $('#qsMeta').textContent = 'Analyse du fichier vidéo de la page…';
+    const r2 = await p2;
+    if (qsCtx !== ctx) return;
+    if (r2.ok && !r2.v.playlist) { v = r2.v; target = cand; v.title = info.title || tab.title || v.title; }
   }
-  const files = detected.slice(0, 8);
   let html = '';
   if (v) {
     $('#qsTitle').textContent = v.title || info.title || tab.title;
@@ -987,9 +998,7 @@ async function openQuick(tab, info = {}) {
   } else {
     $('#qsMeta').textContent = files.length ? '' : (err || 'Aucune vidéo trouvée sur cette page');
   }
-  if (files.length) {
-    html += `<div class="qsec">Fichiers détectés sur la page</div><div class="qgrid">${files.map((m, i) => `<button class="qopt" data-file="${i}"><b>${esc(KLAB[m.kind] || m.kind)} ${esc((m.ext || '').toUpperCase())}${m.height ? ' · ' + m.height + 'p' : ''}</b><span data-fsz="${i}">${m.kind !== 'hls' && m.size > 0 ? fmt(m.size) : m.est > 0 ? '~' + fmt(m.est) : m.kind === 'hls' ? '…' : esc((m.name || '').slice(0, 24))}</span></button>`).join('')}</div>`;
-  }
+  html += fileHtml();
   if (!v && !files.length) html += `<p class="hint">Lance la lecture de la vidéo, puis réessaie : DrYAE détecte les fichiers pendant la lecture.${err ? '<br>' + esc(err) : ''}</p>`;
   $('#qsBody').innerHTML = html;
   // tailles des flux (m3u8) : estimées sans télécharger (~), puis reportées sur le choix « Meilleure qualité » si yt-dlp n'en donne pas
@@ -1009,13 +1018,6 @@ async function openQuick(tab, info = {}) {
       $$('#qsBody .qopt[data-m="audio"][data-b]').forEach(b => { const k = +b.dataset.b; const s = b.querySelector('span'); if (s && r.duration && !/\d/.test(s.textContent.replace(/\d+ kb\/s/, ''))) s.textContent = `${k} kb/s ~${fmt(r.duration * k * 125)}`; });
     });
   }
-  $('#qsBody').onclick = async e => {
-    const f = e.target.closest('[data-file]');
-    if (f) { const m = files[+f.dataset.file]; return qsAdd({ kind: m.kind === 'hls' ? 'hls' : 'http', url: m.url, page, name: $('#qaName').value.trim() ? $('#qaName').value.trim() + (m.kind === 'hls' ? '' : '.' + (m.ext || 'mp4')) : m.name }, (KLAB[m.kind] || 'fichier')); }
-    const b = e.target.closest('.qopt'); if (!b || !v) return;
-    const o = { kind: 'ytdl', url: target, page, title: v.title, thumbnail: v.thumbnail, duration: v.duration || info.duration || 0, mode: b.dataset.m, quality: b.dataset.q || 'best', audioFormat: b.dataset.f || 'mp3', audioBitrate: b.dataset.b || '320' };
-    qsAdd(o, o.mode === 'audio' ? (o.audioFormat.toUpperCase() + (o.audioFormat === 'mp3' ? ' ' + o.audioBitrate + ' kb/s' : '')) : (o.quality === 'best' ? 'MP4' : o.quality + 'p'));
-  };
 }
 async function openQuickYt(tab, page, info) { return openQuick(tab, { ...info, page }); }
 
@@ -1117,6 +1119,11 @@ function onMedia(m) {
   t.media.unshift(m);
   // 1.7.0 refaite : analyse lancée à l'avance (une fois par page) pour une fenêtre « Choisir un format » immédiate
   if (['video', 'audio', 'hls'].includes(m.kind) && /^https?:/.test(t.url || '') && t._pre !== t.url) { t._pre = t.url; B.call('br:ytPrefetch', t.url).catch(() => {}); }
+  // 1.7.1 : la vidéo trouvée elle-même est analysée aussi tout de suite (formats et taille du flux), comme le fera la fenêtre
+  if (['video', 'hls'].includes(m.kind) && /^https?:/.test(t.url || '') && /^https?:/.test(m.url) && !t._preM) {
+    t._preM = m.url; B.call('br:ytPrefetch', m.url, t.url).catch(() => {});
+  }
+  if (m.kind === 'hls' && !(m.est > 0) && /^https?:/.test(m.url)) B.call('br:hlsInfo', { url: m.url, page: t.url, incognito: t.incognito }).then(r => { if (r && r.ok) Object.assign(m, { est: r.size, pieces: r.pieces, duration: r.duration, width: r.width, height: r.height }); }).catch(() => {});
   if (t === cur) { updToolbar(); if (panel === 'media') drawMedia(); }
 }
 B.on('media', onMedia);
