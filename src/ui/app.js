@@ -1176,7 +1176,11 @@ function askBox(o) {
     $('#askChkTxt').textContent = T(o.check || '');
     $('#askChk').checked = !!o.checked;
     const btns = o.buttons || [{ v: 'ok', label: o.ok || 'OK', primary: true, danger: o.danger }];
-    $('#askBtns').innerHTML = '<button class="btn" data-v="">' + esc(T('Annuler')) + '</button>' + btns.map(b => `<button class="btn ${b.primary ? 'primary' : ''} ${b.danger ? 'danger' : ''}" data-v="${b.v}">${esc(T(b.label))}</button>`).join('');
+    const bh = b => `<button class="btn ${b.primary ? 'primary' : ''} ${b.danger ? 'danger' : ''}" data-v="${b.v}">${esc(T(b.label))}</button>`, cancel = '<button class="btn" data-v="">' + esc(T('Annuler')) + '</button>';
+    // beaucoup de choix (fichier déjà téléchargé) : « Annuler » et les autres sur une ligne, le bouton principal en dessous
+    const many = btns.length >= 3, main = btns.filter(b => b.primary);
+    $('#askBtns').classList.toggle('ask', many);
+    $('#askBtns').innerHTML = many ? `<div class="ask-row">${cancel}${btns.filter(b => !b.primary).map(bh).join('')}</div>${main.map(bh).join('')}` : cancel + btns.map(bh).join('');
     const done = v => { m.classList.remove('on'); $('#askBtns').onclick = null; m.onkeydown = null; res(v ? { value: v, checked: $('#askChk').checked } : null); };
     $('#askBtns').onclick = e => { const b = e.target.closest('[data-v]'); if (b) done(b.dataset.v); };
     m.querySelector('[data-askx]').onclick = () => done('');
