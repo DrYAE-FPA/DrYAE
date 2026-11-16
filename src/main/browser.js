@@ -1905,7 +1905,7 @@ class WebBrowser {
       const S = this.B().scan || {};
       const gl = (S.glossary || []).filter(x => x && x.s && x.t && !x.n), never = (S.glossary || []).filter(x => x && x.n && x.s).map(x => x.s);
       const SQ = (() => { try { return require('./scan-fix').squeeze; } catch { return t => t; } })();
-      const p = M.protect(SQ(gl.reduce((a, x) => a.split(x.s).join(x.t), String(text || '')), lang || ''), lang || 'en', never);
+      const p = M.protect(SQ(String(text || ''), lang || ''), lang || 'en', never, gl);
       const r = (await M.translate([p.t], to || S.target || target(), 'auto', this.B().translate || {})).texts[0] || '';
       return M.unprotect(r, p.keep);
     });
@@ -2051,7 +2051,8 @@ class WebBrowser {
       // toutes les bulles de l'image partent ensemble, dans l'ordre de lecture (le traducteur a le contexte),
       // et les mots du lexique sont remplacés avant (noms des personnages, mots propres à la série)
       const gl = (S.glossary || []).filter(x => x && x.s && x.t && !x.n), never = (S.glossary || []).filter(x => x && x.n && x.s).map(x => x.s);
-      const prep = t => gl.reduce((a, x) => a.split(x.s).join(x.t), t);
+      // 1.7.1 : mots entiers seulement (pour l'IA) ; pour la traduction habituelle, le lexique passe par protect()
+      const prep = t => M.glossApply(t, gl);
       let to = o.to || S.target || target();
       // texte lu remis en forme (majuscules, points de suspension) ; pour la traduction, en minuscules « normales »
       const cl = groups.map(g => M.cleanScan(g.text));
@@ -2068,7 +2069,7 @@ class WebBrowser {
       // 1.7.0 refaite : lettres répétées pour crier (ATTENNNNNTION, VAAAAS Y, REAAALLY) ramenées au vrai mot avant
       // la traduction (sinon le mot inconnu était pris pour un nom et laissé tel quel)
       const SQ = (() => { try { return require('./scan-fix').squeeze; } catch { return t => t; } })();
-      const prot = groups.map(g => M.protect(SQ(prep(g.text), /^(en|fr)$/.test(pageLang) ? pageLang : ''), pageLang, never));
+      const prot = groups.map(g => M.protect(SQ(g.text, /^(en|fr)$/.test(pageLang) ? pageLang : ''), pageLang, never, gl));
       const mt = () => groups.map((g, i) => M.forMT(prot[i].t, g.caps, pageLang));
       let tr = null, ai = '', aiWhy = '';
       // traduction par IA (facultative, clé personnelle) : elle voit l'image, corrige la lecture et traduit avec le contexte

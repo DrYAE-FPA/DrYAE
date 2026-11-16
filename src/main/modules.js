@@ -381,11 +381,24 @@ function interjection(t) {
 
 // 1.7.0 : cris et noms protégés à l'intérieur d'une phrase : remplacés par des marques [1], [2]… que le traducteur
 // recopie telles quelles, puis remis à leur place. Noms : forme d'un nom japonais (KA-NA-KA) ou liste « Ne jamais traduire ».
-function protect(text, lang, never) {
+// 1.7.1 : entrée du lexique trouvée comme mot entier, sans tenir compte des majuscules
+// (avant : « HERE » → « ICI » changeait aussi « THERE » en « TICI »)
+const glossRe = s => new RegExp('(^|[^\\p{L}\\d])(' + String(s).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+') + ')(?![\\p{L}\\d])', 'giu');
+const glossCase = (src, t) => src === src.toUpperCase() && /\p{L}/u.test(src) ? String(t).toUpperCase() : t;
+function glossApply(text, gl) {
+  let t = String(text);
+  for (const x of (gl || []).filter(x => x && x.s && x.t).sort((a, b) => b.s.length - a.s.length)) t = t.replace(glossRe(x.s), (m, a, b) => a + glossCase(b, x.t));
+  return t;
+}
+function protect(text, lang, never, gloss) {
   const keep = [];
   let SF = null; try { SF = require('./scan-fix'); } catch {}
   const isWord = w => { if (!SF) return true; const l = w.toLowerCase(); return lang === 'fr' ? SF.frKnown(l) : SF.isName ? !SF.isName(l) && l.length >= 3 ? true : !SF.isName(l) : true; };
   let t = String(text);
+  // 1.7.1 : lexique : la traduction voulue est mise de côté (marque [n]) puis remise telle quelle après la traduction
+  for (const x of (gloss || []).filter(x => x && x.s && x.t).sort((a, b) => b.s.length - a.s.length)) {
+    t = t.replace(glossRe(x.s), (m, a, b) => { keep.push(glossCase(b, x.t)); return a + '[' + keep.length + ']'; });
+  }
   // expressions « Ne jamais traduire » (plusieurs mots possibles), les plus longues d'abord
   for (const n of (never || []).filter(Boolean).sort((a, b) => b.length - a.length)) {
     const re = new RegExp('(^|[^\\p{L}])(' + n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')(?![\\p{L}])', 'giu');
@@ -406,4 +419,4 @@ function unprotect(t, keep) {
   if (!keep || !keep.length) return t;
   return String(t).replace(/[[［]\s*(\d+)\s*[\]］]/g, (m, k) => keep[+k - 1] != null ? keep[+k - 1] : m);
 }
-module.exports = { protect, unprotect, interjWord, interjection, cleanScan, forMT, aiScan, aiCheck, MODULES, MOD_DEFAULT, PROVIDERS, PADDLE_LANGS, OCR_FIX, readRegions, translate, setUserAgent, readImage, OCR_LANGS, ocrDownloaded, windowsHello, pwnedCount, weak, generatePassword };
+module.exports = { protect, unprotect, glossApply, interjWord, interjection, cleanScan, forMT, aiScan, aiCheck, MODULES, MOD_DEFAULT, PROVIDERS, PADDLE_LANGS, OCR_FIX, readRegions, translate, setUserAgent, readImage, OCR_LANGS, ocrDownloaded, windowsHello, pwnedCount, weak, generatePassword };
