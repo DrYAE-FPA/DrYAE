@@ -61,7 +61,8 @@ function edits(w) {
 // Découpage en mots connus (un morceau peut avoir une lettre mal lue) ; le découpage le moins coûteux gagne.
 const SHORT = new Set('a i of to in it is be as at so we he by or on do if me my up an go no us am oh ok'.split(' '));
 function split(w) {
-  if (w.length < 4) return '';
+  // 1.7.1 : un mot du dictionnaire (même rare : PROOFREADER, SWORDSMAN) n'est jamais coupé en deux
+  if (w.length < 4 || known(w)) return '';
   const n = w.length, best = new Array(n + 1).fill(null); best[0] = { c: 0, fx: 0, ws: [] };
   const seg = s => {
     if (APOS.has(s)) return { w: APOS.get(s), c: 1.2 };
@@ -123,6 +124,53 @@ function englishRatio(texts) {
   return n ? k / n : 0;
 }
 
+// ---- 1.7.1 : crédits de l'équipe (« TL: kim », « Cleaner - fdas ») ----
+// Les pseudonymes ne sont pas des mots : ils ne sont jamais « corrigés » (KIM ne devient pas HIM).
+// Rôle suivi de « : », « - », « = » ou « / » : ce qui suit, jusqu'au rôle suivant, est un pseudonyme.
+const ROLE = String.raw`(?:tl|ts|pr|qc|cl|rd|tlc|tl\/ts|sfx|raws?|scans?|scan\s*trad|scanlat\w*|translat\w*|trad|traduc\w*|typeset\w*|clean\w*|redraw\w*|proof\w*|edit\w*|édit\w*|correct(?:eur|rice|ion|or)s?|relect\w*|check(?:er|ing)?s?|quality\s*check\w*|lettr\w*|letter(?:er|ing)s?|uploader?s?|admin\w*|staff|team|équipe|sc[ée]nar\w*|artistes?|story|art|dessin\w*|auteurs?|authors?|mangaka)`;
+const ROLE_PAIR = new RegExp(String.raw`(^|[^\p{L}])(${ROLE})(\s*[:：=\/]\s*|\s+[-–—]\s*)`, 'giu');
+// mots qui n'apparaissent que sur une page de crédits (comptés une fois chacun)
+const CREDITS_WORDS = /\b(scanlations?|scanlators?|scantrad\w*|translators?|traducteurs?|traductrices?|typesett(?:er|ing)s?|typesetters?|redrawers?|cleaners?|proofreaders?|proofreading|relecteurs?|relectrices?|correcteurs?|raw\s*providers?|credits?|crédits|staff|recruit\w*|recrut\w*|discord|patreon|ko-?fi|paypal|quality\s*check(?:er)?s?)\b/giu;
+// adresses de sites (« MANGAS-ORIGINES.FR », « DISCORD.GG/… ») : jamais corrigées
+const URL_RE = /(?:https?:\/\/|www\.)\S+|[\p{L}\d][\p{L}\d-]{2,}(?:\.[\p{L}\d-]+)*\.(?:fr|com|net|org|gg|io|info|xyz|club|site|cc)(?![\p{L}\d])(?:\/\S*)?/giu;
+function creditsMask(text) {
+  const keep = [];
+  const s = String(text).replace(URL_RE, w => { keep.push(w); return '\uE000' + String.fromCharCode(0xE100 + keep.length - 1); });
+  if (!ROLE_PAIR.test(s)) return { t: s, keep };
+  ROLE_PAIR.lastIndex = 0;
+  // position de chaque rôle ; le pseudonyme va jusqu'au rôle suivant (ou la fin du texte)
+  const marks = []; let m;
+  while ((m = ROLE_PAIR.exec(s))) marks.push([m.index + m[1].length, m.index + m[0].length]);
+  let out = '', at = 0;
+  marks.forEach(([st, en], i) => {
+    const stop = i + 1 < marks.length ? marks[i + 1][0] : s.length;
+    // le rôle lui-même (« TS », « TL ») n'est pas corrigé non plus (« TS » ne devient pas IT'S)
+    out += s.slice(at, st) + s.slice(st, en).replace(/[\p{L}\d][\p{L}\d'’_.\/-]*/gu, w => { keep.push(w); return '\uE000' + String.fromCharCode(0xE100 + keep.length - 1); });
+    const name = s.slice(en, stop);
+    out += name.replace(/[\p{L}\d][\p{L}\d'’_.-]*/gu, w => { keep.push(w); return '\uE000' + String.fromCharCode(0xE100 + keep.length - 1); });
+    at = stop;
+  });
+  return { t: out + s.slice(at), keep };
+}
+const creditsUnmask = (t, keep) => keep.length ? String(t).replace(/\uE000([\uE100-\uEFFF])/g, (x, c) => keep[c.charCodeAt(0) - 0xE100] ?? x) : t;
+// page de crédits : plusieurs rôles avec un pseudonyme, ou plusieurs mots de crédits, ou une liste de petits blocs
+// en minuscules hors des bulles avec au moins un rôle. La page est alors laissée telle quelle.
+function isCreditsPage(texts, inBubbles = 0, totalGroups = 0) {
+  const arr = (Array.isArray(texts) ? texts : [texts]).map(String);
+  if (!arr.length) return false;
+  const joined = arr.join('\n');
+  const pairs = (joined.match(ROLE_PAIR) || []).length;
+  const words = new Set((joined.match(CREDITS_WORDS) || []).map(w => w.toLowerCase().replace(/\s+/g, ' ')));
+  if (pairs >= 2 || words.size >= 3 || (pairs >= 1 && words.size >= 1)) return true;
+  if ((pairs || words.size) && totalGroups >= 4 && inBubbles === 0) {
+    const lowShort = arr.filter(t => { const ws = t.match(/\p{L}+/gu) || []; return ws.length >= 1 && ws.length <= 4 && t === t.toLowerCase(); }).length;
+    if (lowShort >= Math.max(3, Math.ceil(totalGroups * 0.6))) return true;
+  }
+  return false;
+}
+// ---- 1.7.1 : points de suspension abîmés (« ..NO. » → ...NO., « NON ..MAIS » → NON ...MAIS) ; « 1..5 » n'est pas touché ----
+const fixEllipsis = text => String(text).replace(/(?<![.\d])\.\.(?![.\d])/g, '...');
+
 // lignes d'une bulle → texte : mots coupés en fin de ligne recollés (avec ou sans tiret lu), lettres mal lues corrigées
 function fixParts(parts) {
   load();
@@ -155,12 +203,19 @@ function capsLike(text) {
 const LOST_W = { hat: 'what', hy: 'why', ho: 'who', hen: 'when', here: null };
 function fixWords(text) {
   load();
-  text = capsLike(text);
+  // 1.7.1 : pseudonymes des crédits mis de côté pendant la correction
+  const cm = creditsMask(text);
+  return creditsUnmask(fixWords0(cm.t), cm.keep);
+}
+function fixWords0(text) {
+  text = fixEllipsis(capsLike(text));
   { const m = /^(\s*)(\p{L}+)([?!]+\s*)$/u.exec(text); if (m && LOST_W[m[2].toLowerCase()] && /\?/.test(m[3])) text = m[1] + likeCase(m[2], LOST_W[m[2].toLowerCase()]) + m[3]; }
   text = digitWords(halfwidth(text), w => known(w), w => rank(w));
   const mixed = /\p{Ll}{3,}/u.test(text);
   text = String(text).replace(/[\p{L}']+/gu, (m, off, all) => {
     let w = m.toLowerCase().replace(/^'+|'+$/g, '');
+    // 1.7.1 : lettres collées à des chiffres (« COVID19 », « MP3 », « R2D2 ») : un code, pas un mot mal lu
+    if (/\d/.test(all[off - 1] || '') || /\d/.test(all[off + m.length] || '')) return m;
     // texte en minuscules : un mot à majuscule au milieu d'une phrase est un nom propre (« Rea », « Chaosah ») : pas touché
     if (mixed && /^\p{Lu}\p{Ll}+$/u.test(m) && off > 0 && !/[.!?…:"“«]\s*$/.test(all.slice(Math.max(0, off - 3), off)) && !known(w)) return m;
     if (!/^[a-z']+$/.test(w)) return m;
@@ -202,28 +257,31 @@ function dist(a, b) {
   for (let i = 1; i <= m; i++) { const cur = [i]; for (let j = 1; j <= n; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); prev = cur; }
   return prev[n];
 }
-const nameWords = t => (String(t).match(/[\p{L}]{4,}/gu) || []).filter(w => { const l = w.toLowerCase(); load(); return /^[a-z]+$/.test(l) && !known(l) && !APOS.has(l) && !SPECIAL[l]; });
+// 1.7.1 : page en français : un nom n'est ni un mot anglais ni un mot français (TIFAINE, BLUTCH, KAKU)
+const nameWords = (t, lang) => (String(t).match(/[\p{L}]{4,}/gu) || []).filter(w => { const l = w.toLowerCase(); load(); return /^[a-z]+$/.test(l) && !known(l) && !APOS.has(l) && !SPECIAL[l] && (lang !== 'fr' || !frKnown(l)); });
 // retient les noms vus sur cette page (une fois par page), garde les 400 plus fréquents
-function learnNames(texts, names) {
-  const seen = new Set(texts.flatMap(nameWords).map(w => w.toUpperCase()));
+function learnNames(texts, names, lang) {
+  const seen = new Set(texts.flatMap(t => nameWords(t, lang)).map(w => w.toUpperCase()));
   for (const w of seen) names[w] = (names[w] || 0) + 1;
   const ks = Object.keys(names); if (ks.length > 400) ks.sort((a, b) => names[a] - names[b]).slice(0, ks.length - 400).forEach(k => delete names[k]);
 }
 // un mot inconnu rare, très proche d'un nom déjà bien lu souvent, est remplacé par ce nom
-function fixNames(text, names) {
+function fixNames(text, names, lang) {
   if (!names) return text;
   const ks = Object.keys(names).filter(k => names[k] >= 3);
   if (!ks.length) return text;
   return String(text).replace(/[\p{L}]{4,}/gu, m => {
     const U = m.toUpperCase(), l = m.toLowerCase(); load();
-    if (!/^[a-z]+$/.test(l) || known(l) || (names[U] || 0) >= 3) return m;
+    if (!/^[a-z]+$/.test(l) || known(l) || (lang === 'fr' && frKnown(l)) || (names[U] || 0) >= 3) return m;
     let best = '', bd = 9;
     for (const k of ks) { const d = dist(U, k); if (d < bd && names[k] >= Math.max(3, (names[U] || 0) * 3)) { bd = d; best = k; } }
     const lim = U.length >= 8 ? 2 : 1;
-    return best && bd <= lim ? (m === U ? best : best[0] + best.slice(1).toLowerCase()) : m;
+    return best && bd <= lim ? (m === U || mostlyUp(m) ? best : best[0] + best.slice(1).toLowerCase()) : m;
   });
 }
-module.exports = { learnNames, fixNames, plausible, ROMAJI, isName, load, correct, fixParts, fixWords, englishRatio };
+// 1.7.1 : signes de crédits dans un bloc de texte (rôle + pseudonyme, ou mot propre aux crédits)
+const creditsHint = t => (String(t).match(ROLE_PAIR) || []).length + (String(t).match(CREDITS_WORDS) || []).length;
+module.exports = { learnNames, fixNames, plausible, ROMAJI, isName, load, correct, fixParts, fixWords, englishRatio, isCreditsPage, creditsHint, fixEllipsis };
 
 // ponctuation « pleine largeur » (！？，) lue par le modèle multilingue dans un texte latin
 function halfwidth(s) { return String(s).replace(/[！-～]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xfee0)).replace(/　/g, ' '); }
@@ -241,34 +299,42 @@ function lToU(w, isWord, rankOf, maxRank) {
   }
   if (best && br <= maxRank) return best;
   // nom japonais : « KAZLYA » n'en a pas la forme, « KAZUYA » oui
+  // 1.7.1 : seulement un L entre une consonne et une consonne (ou la fin) : KAZLYA, TSUKLMOGAMI, TAIJL ;
+  // pas « ULTI » (nom), « BLUE », « ALAIDE », « SEULEMENT » (devenaient UUTI, BUUE, AUAIDE, SEUUEMENT)
+  const V = c => 'aeiou'.includes(c || 'a');
   if (w.length >= 4 && !ROMAJI.test(w)) for (let mask = 1; mask < (1 << ix.length); mask++) {
-    const a = [...w]; ix.forEach((p, j) => { if (mask & (1 << j)) a[p] = 'u'; });
-    const s = a.join(''); if (ROMAJI.test(s)) return s;
+    const a = [...w]; let okL = true;
+    ix.forEach((p, j) => { if (mask & (1 << j)) { a[p] = 'u'; if (p === 0 || V(w[p - 1]) || (p + 1 < w.length && V(w[p + 1]))) okL = false; } });
+    const s = a.join(''); if (okL && ROMAJI.test(s)) return s;
   }
   return '';
 }
 // ---- 1.7.0 : chiffres lus à la place des lettres (« GO » lu « 60 », « GOD » lu « 600 », « GOOD » lu « 6OOD ») ----
-const DIG = { 0: 'od', 1: 'il', 2: 'z', 3: 'e', 4: 'a', 5: 's', 6: 'gb', 8: 'b', 9: 'g' };
+// 1.7.1 : 3 peut aussi être un J (« DOJO » lu « 0O30 »)
+const DIG = { 0: 'od', 1: 'il', 2: 'z', 3: 'ej', 4: 'a', 5: 's', 6: 'gb', 8: 'b', 9: 'g' };
 // mots qui montrent qu'un nombre est un vrai nombre (« 60 ANS », « 600 YEN »)
 const NUMCTX = /^(years?|yrs?|yen|dollars?|euros?|francs?|fcfa|cfa|%|times|people|persons?|men|women|meters?|metres?|km|kg|g|cm|mm|m|minutes?|mins?|seconds?|secs?|hours?|hrs?|days?|weeks?|months?|points?|pts|degrees?|ans?|années?|fois|personnes?|mètres?|secondes?|heures?|jours?|semaines?|mois|h|x|th|st|nd|rd|e|ème|er|ère)$/i;
-function digitWords(text, isWord, rankOf) {
+function digitWords(text, isWord, rankOf, noPure) {
   if (!/\d/.test(text)) return text;
   const toks = String(text).split(/(\s+)/);
   for (let i = 0; i < toks.length; i++) {
     const m = /^([^\p{L}\d]*)([\p{L}\d]+)([^\p{L}\d]*)$/u.exec(toks[i]); if (!m || !/\d/.test(m[2])) continue;
     const core = m[2], pure = /^\d+$/.test(core);
     if (core.length < 2 || core.length > 9) continue;
+    // 1.7.1 : en français, un nombre seul reste un nombre (« ÉPISODE 115 » devenait « ÉPISODE ILS »)
+    if (pure && noPure) continue;
     // nombre suivi d'une unité, d'un mot comme « ANS », ou précédé d'un autre nombre : c'est un vrai nombre
     const next = (toks[i + 2] || '').replace(/[^\p{L}%]/gu, ''), prev = (toks[i - 2] || '');
     if (pure && (NUMCTX.test(next) || /\d/.test(prev) || /[.,:]\d/.test(toks[i]) || /^\d{4}$/.test(core) && +core > 1000 && +core < 2100)) continue;
     // le reste du texte doit être en majuscules (lettrage de bulle), sinon on ne touche pas aux nombres
     if (pure && /\p{Ll}/u.test(text)) continue;
     let opts = [''];
-    for (const ch of core.toLowerCase()) { const alt = /\d/.test(ch) ? (DIG[ch] || '') : ch; if (!alt) { opts = []; break; } opts = opts.flatMap(o => [...alt].map(a => o + a)); if (opts.length > 64) break; }
+    for (const ch of core.toLowerCase()) { const alt = /\d/.test(ch) ? (DIG[ch] || '') : ch; if (!alt) { opts = []; break; } opts = opts.flatMap(o => [...alt].map(a => o + a)); if (opts.length > 128) { opts = []; break; } }
     let best = '', br = 99;
     for (const o of opts) if (isWord(o)) { const r = rankOf(o); if (r < br) { br = r; best = o; } }
-    // nombre seul : seulement vers un mot très courant (« 60 » → GO, « 600 » → GOD, mais « 100 » reste 100)
-    if (best && (!pure || br <= 1)) toks[i] = m[1] + best.toUpperCase() + m[3];
+    // nombre seul : seulement vers un mot très courant (« 60 » → GO, « 600 » → GOD, mais « 100 » reste 100) ;
+    // 1.7.1 : chiffres et lettres mêlés (« 0O30 » → DOJO, « 6OOD » → GOOD) : mot assez courant ; « 1O » reste 1O (pas LO)
+    if (best && (pure ? br <= 1 : br <= (core.length <= 2 ? 2 : 4))) toks[i] = m[1] + best.toUpperCase() + m[3];
   }
   return toks.join('');
 }
@@ -293,7 +359,9 @@ const FR_TOP = ("à a au aux avec avoir ai as avez avons ont alors aussi autre a
   "rien " +
   "sa sans se sera ses si sois soit son sont sous suis sur sûr " +
   "ta te tes toi ton tous tout toute toutes très trop tu " +
-  "un une vais va vas veux veut vie viens voilà voir vos votre vous vrai vraiment").split(' ');
+  "un une vais va vas veux veut vie viens voilà voir vos votre vous vrai vraiment " +
+  // 1.7.1
+  "tiens vont font sait part").split(' ');
 let FR = null, FRK = null, FRT = null;
 const strip = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/œ/g, 'oe').replace(/æ/g, 'ae');
 function loadFr() {
@@ -305,8 +373,14 @@ function loadFr() {
     }
   } catch {}
   for (const w of FR_TOP) { FR.add(w); const k = strip(w); if (!FRK.has(k) || FRT.has(k)) FRK.set(k, w); }
+  // 1.7.1 : mots des mangas et des équipes de traduction absents de la liste (« MANGA » devenait MANGEA, « TRAD » TRAC)
+  for (const w of FR_EXTRA.split(' ')) { FR.add(w); const k = strip(w); if (!FRK.has(k)) FRK.set(k, w); }
   return FR;
 }
+const FR_EXTRA = 'manga mangas mangaka mangakas manhwa manhua webtoon webtoons scan scans scantrad scantrads trad trads team teams raw raws ' +
+  'clean check checker edit discord patreon otaku otakus ninja ninjas samouraï samouraïs shinobi sensei senpai kohai dojo dojos katana katanas ' +
+  'kunai kunais chakra yokai yokais kami shonen shojo seinen anime animes cosplay spoil spoiler spoilers fan fans fanart okay ok cool boss ' +
+  'sushi sushis ramen onigiri bento mecha mechas hokage shogun daimyo geisha ronin manga-ka';
 // mot français connu, avec ou sans accents (les lettrages en majuscules oublient souvent les accents)
 const frKnown = w => { loadFr(); return FRK.has(strip(w.toLowerCase())); };
 // confusions de lettres fréquentes dans les lettrages français : U lu L, O lu Q, I lu L, À lu Δ
@@ -326,18 +400,22 @@ function frCorrect(w) {
   const e1 = step(k);
   for (const c of e1) if (FRK.has(c)) cands.push([c, (FRT.has(c) ? 0 : 1) + (c.length !== k.length ? 0.5 : 0)]);
   // lettre doublée par erreur (« ILLS » → ILS)
-  if (!cands.length) for (let i = 1; i < k.length; i++) if (k[i] === k[i - 1]) { const s = k.slice(0, i) + k.slice(i + 1); if (FRK.has(s)) cands.push([s, FRT.has(s) ? 0.5 : 1.5]); }
+  // 1.7.1 : vers un mot très courant ou assez long, ou un I/U/L fin lu deux fois (« OUUF » → OUF) ; « POTTS », un nom, ne devient plus POTS
+  if (!cands.length) for (let i = 1; i < k.length; i++) if (k[i] === k[i - 1]) { const s = k.slice(0, i) + k.slice(i + 1); if (FRK.has(s) && (FRT.has(s) || s.length >= 5 || 'iul'.includes(k[i]))) cands.push([s, FRT.has(s) ? 0.5 : 1.5]); }
   // lettre fine lue en trop (« UINE » → UNE, « VOIUS » → VOUS)
   if (k.length >= 4 && !FRK.has(k)) for (let i = 0; i < k.length; i++) if ('il'.includes(k[i])) { const s = k.slice(0, i) + k.slice(i + 1); if (FRK.has(s)) cands.push([s, FRT.has(s) ? 0.5 : 1.5]); }
   // lettre en trop à la fin, collée par le lettrage (« CHOSEH » → CHOSE, « DROITET » → DROITE)
-  if (!cands.length && hand && k.length >= 5 && !'aye'.includes(k.slice(-1))) { const s = k.slice(0, -1); if (FRK.has(s) && s.length >= 4) cands.push([s, FRT.has(s) ? 0.5 : 1.5]); }
-  // lettre oubliée (« M'NVITER » → M'INVITER)
-  if (!cands.length && k.length >= 5) for (let i = 0; i < k.length; i++) for (const c of 'iuel') { const s = k.slice(0, i) + c + k.slice(i); if (FRK.has(s)) cands.push([s, FRT.has(s) ? 1 : 2]); }
-  if (!cands.length && k.length >= 5) for (const c1 of e1) for (const c2 of step(c1)) if (FRK.has(c2)) cands.push([c2, FRT.has(c2) ? 1 : 2]);
+  if (!cands.length && hand && k.length >= 5 && !'aye'.includes(k.slice(-1))) { const s = k.slice(0, -1); if (FRK.has(s) && (s.length >= 5 || FRT.has(s))) cands.push([s, FRT.has(s) ? 0.5 : 1.5]); }
+  // lettre oubliée (« M'NVITER » → M'INVITER, « DEVRAENT » → DEVRAIENT) ; 1.7.1 : 6 lettres au moins (« GENOS », un nom, ne devient plus GENOIS)
+  if (!cands.length && k.length >= 6) for (let i = 0; i < k.length; i++) for (const c of 'iuel') { const s = k.slice(0, i) + c + k.slice(i); if (FRK.has(s)) cands.push([s, FRT.has(s) ? 1 : 2]); }
+  // deux confusions : 1.7.1 : 6 lettres au moins, ou 5 vers un mot très courant (« AISSI » → AUSSI ; « SOLAT » ne devient plus SQUAT)
+  if (!cands.length && k.length >= 5) for (const c1 of e1) for (const c2 of step(c1)) if (FRK.has(c2) && (k.length >= 6 || FRT.has(c2))) cands.push([c2, FRT.has(c2) ? 1 : 2]);
   if (!cands.length) return '';
   cands.sort((a, b) => a[1] - b[1]);
   // mot court (noms coréens ou japonais : « JU-HEE ») : seulement vers un mot très courant (« QLE » → QUE)
   if (k.length <= 3 && !FRT.has(cands[0][0])) return '';
+  // 1.7.1 : mot de 4 lettres sans U/L ni O/Q : seulement vers un mot très courant (« DANA », « MADS » sont des noms)
+  if (k.length === 4 && !FRT.has(cands[0][0]) && !/[lq]/.test(k)) return '';
   // plusieurs propositions également probables : on ne choisit pas au hasard
   if (cands.length > 1 && cands[1][1] === cands[0][1] && cands[1][0] !== cands[0][0]) return '';
   return FRK.get(cands[0][0]);
@@ -349,41 +427,70 @@ function frenchRatio(texts) {
   return n ? k / n : 0;
 }
 const PRON = new Set(['je', 'tu', 'il', 'elle', 'on', 'nous', 'vous', 'ils', 'elles', 'moi', 'toi', 'lui', 'le', 'la', 'les', 'en', 'y']);
+// pas de trait d'union après ces mots (« MAISTU » → MAIS TU ; 1.7.1 : « C'ESTLA » → C'EST LA, « ETRELA » → ÊTRE LA, « VOILALE » → VOILÀ LE)
+const NO_HYPH = new Set(['mais', 'et', 'si', 'que', 'quand', 'comme', 'alors', 'donc', 'car', 'ou', 'puis', 'pour', 'avec', 'sans', 'chez', 'dans',
+  'est', 'etre', 'voila', 'ete', 'sont', 'ont', 'suis', 'es', 'etait', 'sera', 'c']);
+// verbe + pronom avec trait d'union (« DISTU » → DIS-TU) ; 1.7.1 : jamais entre deux pronoms (« VOUSVOUS » → VOUS VOUS),
+// « -Y » et « -EN » seulement après un verbe en -S / -Z (« VASY » → VAS-Y ; « BONNEY », un nom, n'est pas coupé)
+const hyph = (a, b) => { const x = strip(a.toLowerCase()), y = strip(b.toLowerCase()); return PRON.has(y) && x.length >= 3 && !NO_HYPH.has(x) && !PRON.has(x) && (!/^(y|en)$/.test(y) || /[sz]$/.test(x)); };
 // mots collés : « TIENSA » → TIENS À, « DISTU » → DIS-TU, « MORDSMOI » → MORDS-MOI
 function frSplit(k) {
   for (let i = k.length - 1; i >= 2; i--) {
     const a = k.slice(0, i), b = k.slice(i);
     if (!FRK.has(a)) continue;
-    if (PRON.has(b) && i >= 3) return FRK.get(a) + '-' + b;
-    if (b === 'a' && a.length >= 3) return FRK.get(a) + ' à';
+    if (PRON.has(b) && hyph(a, b)) return FRK.get(a) + '-' + b;
+    // 1.7.1 : deux pronoms collés (« ILSY » → ILS Y, « TULE » → TU LE)
+    if (PRON.has(b) && PRON.has(a)) return a + ' ' + b;
+    // « TIENSA » → TIENS À ; 1.7.1 : pas « MURATA » (nom : « murât » n'est qu'une forme rare du verbe murer)
+    if (b === 'a' && a.length >= 3 && !/[âîû]t$/.test(FRK.get(a))) return FRK.get(a) + ' à';
     if (FRT.has(b) && FRT.has(a) && b.length >= 2) return FRK.get(a) + ' ' + FRK.get(b);
   }
   // « AFORCE » → À FORCE
-  if (k[0] === 'a' && k.length >= 5 && FRK.has(k.slice(1))) return 'à ' + FRK.get(k.slice(1));
+  // 1.7.1 : mot courant ou de 5 lettres au moins après le À (« ALICE », un nom, ne devient pas À LICE)
+  if (k[0] === 'a' && k.length >= 5 && FRK.has(k.slice(1)) && (FRT.has(k.slice(1)) || k.length >= 6)) return 'à ' + FRK.get(k.slice(1));
   return frSplitN(k);
 }
 // 1.7.0 : mots collés plus généraux (« JESUIS » → JE SUIS, « TROUVECA » → TROUVE ÇA, « SIURGEMMENT » → SI URGEMMENT,
 // « SEUUEMENTUN » → SEULEMENT UN) : 2 ou 3 morceaux, chacun courant ou assez long ; un morceau peut avoir une lettre mal lue
 const okPart = p => FRK.has(p) && (FRT.has(p) || p.length >= 4);
-function partFix(p) { if (okPart(p)) return [FRK.get(p), 0]; if (p.length >= 5) { const c = frCorrect(p); if (c) return [c, 1]; } return null; }
-function frSplitN(k) {
+// morceau → [mot, coût, sorte] : 'x' exact, 'c' corrigé (1.7.1 : 7 lettres au moins : « MAREMENT » ne devient plus MA REMUENT),
+// 'i' petit mot dont le I ou le U fin n'a pas été lu (1.7.1 : « BENENTRAINER » → BIEN ENTRAINER)
+function partFix(p) {
+  if (okPart(p)) return [FRK.get(p), 0, 'x'];
+  if (p.length >= 7) { const c = frCorrect(p); if (c) return [c, 1, 'c']; }
+  if (p.length === 3) for (let i = 1; i < 3; i++) for (const c of 'iu') { const s = p.slice(0, i) + c + p.slice(i); if (FRT.has(s)) return [FRK.get(s), 1, 'i']; }
+  return null;
+}
+function frSplitN(k, exact) {
   if (k.length < 5 || k.length > 30) return '';
   let best = null;
-  const take = (parts, cost) => { if (!parts.some(x => x.length <= 3 && FRT.has(strip(x.toLowerCase())))) return; const sc = cost * 1.5 + parts.length - parts.filter(x => FRT.has(strip(x))).length * 0.6; if (!best || sc < best[1]) best = [parts, sc]; };
+  const take = (ps, cost) => {
+    const parts = ps.map(x => x[0]), top = x => FRT.has(strip(x.toLowerCase()));
+    // un petit mot très courant dans le découpage (« JE », « UN », « DE »)… ou « BIEN » retrouvé à côté d'un mot exact assez long
+    const ins = ps.findIndex(x => x[2] === 'i');
+    // 1.7.1 : ou deux mots exacts, un très courant et un assez long (« VOUSASSURE » → VOUS ASSURE)
+    const two = ps.length === 2 && ps.every(x => x[2] === 'x') && parts.some(x => top(x)) && parts.some(x => x.length >= 5);
+    if (ins >= 0 ? !(ps.length === 2 && ps[1 - ins][2] === 'x' && ps[1 - ins][0].length >= 5) : !two && !parts.some(x => x.length <= 3 && top(x))) return;
+    // 1.7.1 : trois morceaux avec un mot peu courant : un seul petit mot (« TETETOUE » n'est plus TE TE TOUE)
+    if (ps.length === 3 && parts.some(x => !top(x)) && parts.filter(x => x.length <= 2).length > 1) return;
+    // 1.7.1 : trois morceaux : assez long en tout (« CESTUSE » n'est plus CES TU SE), chaque mot peu courant de 4 lettres au moins
+    if (ps.length === 3 && (k.length < 8 || parts.some(x => !top(x) && x.length < 4))) return;
+    const sc = cost * 1.5 + parts.length - parts.filter(x => top(x)).length * 0.6; if (!best || sc < best[1]) best = [parts, sc, cost];
+  };
   for (let i = 2; i <= k.length - 2; i++) {
     const a = partFix(k.slice(0, i)); if (!a) continue;
-    const b = partFix(k.slice(i)); if (b) take([a[0], b[0]], a[1] + b[1]);
+    const b = partFix(k.slice(i)); if (b) take([a, b], a[1] + b[1]);
     for (let j = i + 2; j <= k.length - 2; j++) {
       const b2 = partFix(k.slice(i, j)), c2 = b2 && partFix(k.slice(j));
-      if (b2 && c2 && FRT.has(strip(b2[0])) + FRT.has(strip(c2[0])) + FRT.has(strip(a[0])) >= 2) take([a[0], b2[0], c2[0]], a[1] + b2[1] + c2[1] + 0.2);
+      if (b2 && c2 && b2[2] !== 'i' && c2[2] !== 'i' && a[2] !== 'i' && FRT.has(strip(b2[0])) + FRT.has(strip(c2[0])) + FRT.has(strip(a[0])) >= 2) take([a, b2, c2], a[1] + b2[1] + c2[1] + 0.2);
     }
   }
-  if (!best) return '';
+  if (!best || (exact && best[2])) return '';
   const common = best[0].every(x => FRT.has(strip(x.toLowerCase())));
   if (best[1] > (common ? 4 : 3)) return '';
   const P = best[0];
   // verbe + pronom (« DISTU » → DIS-TU), sauf après une conjonction (« MAISTU » → MAIS TU)
-  if (P.length === 2 && PRON.has(strip(P[1].toLowerCase())) && P[0].length >= 3 && !['mais', 'et', 'si', 'que', 'quand', 'comme', 'alors', 'donc', 'car', 'ou', 'puis', 'pour', 'avec', 'sans', 'chez', 'dans'].includes(strip(P[0].toLowerCase()))) return P[0] + '-' + P[1];
+  if (P.length === 2 && hyph(P[0], P[1])) return P[0] + '-' + P[1];
   return P.join(' ').replace(/\best ce\b/i, m => m.replace(' ', '-'));
 }
 // apostrophe oubliée ou mot collé devant l'apostrophe : « QUETAIT » → QU'ÉTAIT, « CEST » → C'EST, « AL'ACCUEIL » → À L'ACCUEIL,
@@ -408,29 +515,59 @@ function frApos(text) {
   });
 }
 function fixFrench(text) {
-  text = capsLike(text);
-  return fixFrench0(text).replace(/\b((?:qu|n|c)['’]est) (ce)\b/gi, '$1-$2');
-}
-function fixFrench0(text) {
   loadFr();
-  text = digitWords(halfwidth(text), w => FRK.has(strip(w)), w => FRT.has(strip(w)) ? 0 : 3);
+  // 1.7.1 : pseudonymes des crédits et adresses (« MANGAS-ORIGINES.FR ») mis de côté pendant la correction
+  const cm = creditsMask(text);
+  text = fixEllipsis(capsLike(cm.t));
+  return creditsUnmask(fixFrench0(text).replace(/\b((?:qu|n|c)['’]est) (ce)\b/gi, '$1-$2'), cm.keep);
+}
+// mot surtout en majuscules (« QUOl », « RENDEZvOus ») : traité comme un mot en majuscules
+const mostlyUp = w => { const u = (w.match(/\p{Lu}/gu) || []).length, l = (w.match(/\p{Ll}/gu) || []).length; return !l || (u >= 3 && u >= 2 * l); };
+const SUBJ = /(\b(?:ON|IL|ILS|ELLE|ELLES|JE|TU|NOUS|VOUS)\s+|\b[NJ]['’])Y(\p{Lu}{3,})\b/gu;
+function fixFrench0(text) {
+  loadFr(); load();
+  // 1.7.1 : un nombre seul reste un nombre (« ÉPISODE 115 »)
+  text = digitWords(halfwidth(text), w => FRK.has(strip(w)), w => FRT.has(strip(w)) ? 0 : 3, true);
   text = frApos(text);
   // « TUES » en début de phrase : TU ES
   text = String(text).replace(/(^|[.!?…]\s*)TUES\b/g, '$1TU ES');
+  const upText = mostlyUp(text);
   text = String(text)
-    .replace(/[Δ∆]/g, 'À').replace(/(?<!\p{L})À(?=\p{L}{2,})/gu, 'À ')
+    // 1.7.1 : À lu Å ou Ā (« ÅL'INTERIEUR »)
+    .replace(/[Δ∆ÅĀĂ]/g, 'À').replace(/(?<!\p{L})[āå](?!\p{L})/gu, upText ? 'À' : 'à')
+    .replace(/(?<!\p{L})À(?=\p{L}{2,})/gu, 'À ').replace(/(?<!\p{L})à(?=(\p{L})\p{L})/gu, (m, c) => c === c.toUpperCase() ? 'À ' : 'à ')
     // petit « i » des lettrages de BD dans un mot en majuscules : « CiEL » → CIEL
-    .replace(/\p{L}+/gu, m => /\p{Lu}/u.test(m) && /i/.test(m) && m.replace(/i/g, '') === m.replace(/i/g, '').toUpperCase() ? m.replace(/i/g, 'I') : m);
-  return text.replace(/[\p{L}'’]+/gu, m => {
-    const core = m.replace(/^(?:[Qq][Uu]|\p{L})['’]/u, ''), pre = m.slice(0, m.length - core.length);
+    .replace(/\p{L}+/gu, m => /\p{Lu}/u.test(m) && /i/.test(m) && m.replace(/i/g, '') === m.replace(/i/g, '').toUpperCase() ? m.replace(/i/g, 'I') : m)
+    // 1.7.1 : petit « l » au milieu d'un mot en majuscules : un I sans pieds (« QUOl » → QUOI, « TOl » → TOI), un L si c'est le seul mot connu
+    .replace(/\p{L}+/gu, m => {
+      if (!/l/.test(m) || (m.match(/\p{Lu}/gu) || []).length < 2 || m.replace(/l/g, '') !== m.replace(/l/g, '').toUpperCase()) return m;
+      const I = m.replace(/l/g, 'I'), L = m.replace(/l/g, 'L');
+      return !frKnown(I) && frKnown(L) ? L : I;
+    })
+    // 1.7.1 : « VOUSMEME » → VOUS-MEME
+    .replace(/\b(moi|toi|lui|elle|nous|vous|eux|elles|soi)(m[eê]mes?)\b/giu, '$1-$2')
+    // 1.7.1 : « ON YENTRE » → ON Y ENTRE, « IL YAVAIT » → IL Y AVAIT (pas « VENTRE »)
+    .replace(SUBJ, (m, a, r) => { const k = strip(r.toLowerCase()); return FRK.has(k) && !FRK.has('y' + k) ? a + 'Y ' + r : m; });
+  return text.replace(/[\p{L}'’]+/gu, (m, off, all) => {
+    // 1.7.1 : lettres collées à des chiffres (« MISSI0N64 », « R2D2 ») : un code, pas un mot
+    if (/\d/.test(all[off - 1] || '') || /\d/.test(all[off + m.length] || '')) return m;
+    let core = m.replace(/^(?:[Qq][Uu]|\p{L})['’]/u, ''); const pre = m.slice(0, m.length - core.length);
     if (core.length < 2 || !/^[\p{L}]+$/u.test(core)) return m;
+    // 1.7.1 : « continuerà » → continuer à (pas « continuera »)
+    if (/[àÀ]$/.test(core) && core.length >= 4 && !FR.has(core.toLowerCase()) && FRK.has(strip(core.slice(0, -1).toLowerCase()))) return pre + core.slice(0, -1) + ' ' + core.slice(-1);
+    // 1.7.1 : casse mélangée par une lettre mal lue (« RENDEZvOus », « PERCOlS ») : traité en majuscules
+    const mixedUp = core !== core.toUpperCase() && mostlyUp(core);
+    if (mixedUp) core = core.toUpperCase();
     const k = strip(core.toLowerCase()), up = core === core.toUpperCase();
     // lettrage sans accents : on n'en ajoute pas (« DESQLE » → DESOLE, pas « DÉSOLE »)
     const acc = strip(core) !== core;
     const cap = /^\p{Lu}\p{Ll}/u.test(core);
     const out = s => pre + (up ? (acc ? s : s.split(' ').map(x => x === 'à' ? x : strip(x)).join(' ')).toUpperCase() : cap ? s[0].toUpperCase() + s.slice(1) : s);
+    const same = () => mixedUp ? pre + core : m;
     // « ? » lu comme un P collé au mot (« HEINP » → HEIN?)
     if (/p$/.test(k) && k.length >= 3 && !FRK.has(k) && FRK.has(k.slice(0, -1))) return pre + core.slice(0, -1) + '?';
+    // 1.7.1 : « ! » lu comme un I collé au dernier mot de la bulle (« CERTITUDESI » → CERTITUDES!)
+    if (/i$/.test(k) && k.length >= 5 && !FRK.has(k) && FRK.has(k.slice(0, -1)) && !/\p{L}/u.test(all.slice(off + m.length))) return pre + core.slice(0, -1) + '!';
     // mot connu mais rare, alors qu'un mot très courant n'est qu'à une confusion U/L ou O/Q (« VOLS » → VOUS, « NOLS » → NOUS, « QLE » → QUE)
     // « I'air » → l'air (L minuscule lu I devant l'apostrophe)
     const pre2 = /^I['’]$/.test(pre) && /^\p{Ll}/u.test(core) ? 'l' + pre.slice(1) : pre;
@@ -441,16 +578,29 @@ function fixFrench0(text) {
       // mots collés très courants qui ressemblent à un mot rare (« JESUIS » lu « JESUS ») : séparés seulement s'ils étaient inconnus
       if (!up && !FR.has(core.toLowerCase()) && /^\p{Ll}+$/u.test(core)) return pre + FRK.get(k);
       if (!FRT.has(k)) { const c = frCorrect(core); if (c && FRT.has(strip(c)) && /[lq]/.test(k)) return out(c); }
-      return m;
+      return same();
     }
-    if (/l/.test(k)) { const u = lToU(k, x => FRK.has(x), x => FRT.has(x) ? 0 : 2, k.length <= 2 ? 0 : 2); if (u) return out(FRK.get(u) || u); }
+    // 1.7.1 : mot anglais courant dans une page en français (« NEEDLE », « Garden », « BLUE », « Designed ») :
+    // corrigé seulement vers un mot français très courant (« LINE » → UNE)
+    const en = k.length >= 4 && /^[a-z]+$/.test(k) && known(k) && rank(k) <= 3;
+    const ok = r => r && (!en || (/[ -]/.test(r) ? r.split(/[ -]/).every(x => FRK.has(strip(x.toLowerCase()))) : FRT.has(strip(r.toLowerCase()))));
+    // 1.7.1 : nom à la japonaise (« MURATA », « DANA ») : pas coupé en « MURA TA », « DAN À »
+    const nameLike = r => { const P = String(r).split(/[ -]/); return ROMAJI.test(k) && /[aeiou]$/.test(k) && P.length >= 2 && strip(P[P.length - 1].toLowerCase()).length <= 2 && !FRT.has(strip(P[0].toLowerCase())); };
+    if (/l/.test(k)) { const u = lToU(k, x => FRK.has(x), x => FRT.has(x) ? 0 : 2, k.length <= 2 ? 0 : 2); if (ok(u)) return out(FRK.get(u) || u); }
     // deux mots très courants collés : préférés à une correction vers un mot rare (« JESUIS » → JE SUIS, pas JÉSUS)
     const s0 = k.length >= 5 ? frSplitN(k) : '';
     const c = frCorrect(core);
     if (s0 && s0.split(' ').every(x => FRT.has(strip(x.toLowerCase()))) && !(c && FRT.has(strip(c)))) return out(s0);
-    if (c) return out(c);
-    const s = k.length >= 4 ? frSplit(k) : ''; if (s) return out(s);
-    return m;
+    // 1.7.1 : mots exacts collés plutôt qu'une lettre enlevée ou ajoutée (« PARLERAU » → PARLER AU, pas PARLERA)
+    // (pas un petit mot en fin de phrase : « SUR LA DROITET. » → DROITE, pas « DROIT ET. »)
+    if (c && strip(c.toLowerCase()).length < k.length) {
+      const sx = k.length >= 5 ? frSplitN(k, true) : '';
+      const endS = /^\s*(?:[.!?…]|$)/.test(all.slice(off + m.length)), last = strip(String(sx).split(/[ -]/).pop().toLowerCase());
+      if (ok(sx) && !nameLike(sx) && !(endS && /^(et|au|aux|de|du|des|le|la|les|un|une|ce|ces|mon|ma|ton|ta|son|sa|ou|a|en)$/.test(last))) return out(sx);
+    }
+    if (ok(c)) return out(c);
+    const s = k.length >= 4 ? frSplit(k) : ''; if (ok(s) && !nameLike(s)) return out(s);
+    return same();
   });
 }
 // 1.7.0 : pour la traduction seulement, accents remis aux mots écrits sans accents (lettrage en majuscules) :
@@ -464,6 +614,10 @@ function frAccent(text) {
     return w === lw ? a : w[0] === w[0].toUpperCase() && w.slice(1) === w.slice(1).toLowerCase() ? a[0].toUpperCase() + a.slice(1) : a.toUpperCase();
   });
 }
+// 1.7.1 : chiffres lus à la place des lettres, avec les mots anglais et français (sert à garder une ligne peu sûre : « 0O30 » → DOJO)
+function digitRepair(text) { load(); loadFr(); return digitWords(halfwidth(text), w => known(w) || FRK.has(strip(w)), w => known(w) ? rank(w) : FRT.has(strip(w)) ? 0 : 3); }
+const plausibleAny = w => plausible(w) || frKnown(w);
+module.exports.digitRepair = digitRepair; module.exports.plausibleAny = plausibleAny;
 module.exports.frAccent = frAccent; module.exports.frApos = frApos;
 module.exports.fixFrench = fixFrench; module.exports.frenchRatio = frenchRatio; module.exports.frKnown = frKnown;
 

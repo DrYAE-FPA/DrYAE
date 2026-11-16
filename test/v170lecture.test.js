@@ -40,3 +40,26 @@ ok('anglais : pas d\'accents ajoutés', !/[À-ÿ]/.test(e), e);
     const r = SF4.fixWords(x); console.log((r === y ? 'OK  ' : 'ÉCHEC ') + `« ${x} » → ${y}`, JSON.stringify(r));
   }
 }
+// 1.7.1 (version perso) : mots du dictionnaire jamais coupés, crédits, chiffres lus pour des lettres, points de suspension,
+// lettrages des vieilles BD ; et les noms ou nombres qui ne doivent pas changer
+{
+  const SF5 = require('../src/main/scan-fix.js');
+  const en = [['PROOFREADER', 'PROOFREADER'], ['SWORDSMAN', 'SWORDSMAN'], ['PROOFREADERS: KIM', 'PROOFREADERS: KIM'], ['TL: KIM / TS: BEC', 'TL: KIM / TS: BEC'],
+    ['THIS IS MY 0O30!', 'THIS IS MY DOJO!'], ['6OOD JOB!', 'GOOD JOB!'], ['100 YEARS', '100 YEARS'], ['I HAVE 600 YEN', 'I HAVE 600 YEN'], ['HE IS 1O', 'HE IS 1O'],
+    ['..NO.', '...NO.'], ['WAIT..', 'WAIT...'], ['Hello You are', 'Hello You are'], ['COVID19', 'COVID19'], ['CHECK THIS OUT!', 'CHECK THIS OUT!']];
+  for (const [x, y] of en) { const r = SF5.fixWords(x); console.log((r === y ? 'OK  ' : 'ÉCHEC ') + `1.7.1 « ${x} » → ${y}`, JSON.stringify(r)); }
+  const fr = [['ILS DEVRAENT VENIR.', 'ILS DEVRAIENT VENIR.'], ['IL FAUT BENENTRAINER.', 'IL FAUT BIEN ENTRAINER.'], ['ON YENTRE, MAIS', 'ON Y ENTRE, MAIS'],
+    ["C'ESTLA", "C'EST LA"], ['VOUSMEME', 'VOUS-MEME'], ['MAISILSVONT', 'MAIS ILS VONT'], ['ILSY VONT', 'ILS Y VONT'], ['PARLERAU CHEF', 'PARLER AU CHEF'],
+    ['REGARDEZ SUR LA DROITET.', 'REGARDEZ SUR LA DROITE.'], ['QUOl,', 'QUOI,'], ['LINE FILLE', 'UNE FILLE'], ['JE VOUSASSURE...', 'JE VOUS ASSURE...'],
+    ['il faut continuerà', 'il faut continuer à'], ["ÅL'INTERIEUR", "À L'INTERIEUR"], ['TU VOIS..', 'TU VOIS...'],
+    // ne pas abîmer : nombres, noms, mots des mangas, adresses, crédits, mots anglais
+    ['ÉPISODE 115', 'ÉPISODE 115'], ['YUSUKE MURATA', 'YUSUKE MURATA'], ['RIEN, DANA.', 'RIEN, DANA.'], ['BONNEY', 'BONNEY'], ['ULTI,', 'ULTI,'], ['GENOS.', 'GENOS.'],
+    ['SERGENT POTTS', 'SERGENT POTTS'], ['MANGA', 'MANGA'], ['TRAD', 'TRAD'], ['TRADUCTION :SEBASTIEN LUDMANN', 'TRADUCTION :SEBASTIEN LUDMANN'],
+    ['SURMANGAS-ORIGINES.FR', 'SURMANGAS-ORIGINES.FR'], ['NEEDLE!', 'NEEDLE!'], ['BLUE', 'BLUE'], ['MISSI0N64', 'MISSI0N64']];
+  for (const [x, y] of fr) { const r = SF5.fixFrench(x); console.log((r === y ? 'OK  ' : 'ÉCHEC ') + `1.7.1 « ${x} » → ${y}`, JSON.stringify(r)); }
+  const cr = SF5.isCreditsPage(['RAW: KHALID ICLEANER: DIZAI', 'ÉDITEUR: DIZAI Q-CHECK: TOSHIRO', 'DISCORD.GG/abc'], 3, 3), st = SF5.isCreditsPage(["ICI, C'EST LE PIRE AQUARIUM DU MONDE.", 'TU VOIS LA TRADUCTION?', 'JE VAIS CHECK'], 3, 3);
+  console.log((cr && !st ? 'OK  ' : 'ÉCHEC ') + '1.7.1 page de crédits reconnue, page d\'histoire non', JSON.stringify([cr, st]));
+  const N = {}; for (let i = 0; i < 3; i++) SF5.learnNames(['TIFAINE, TU SAIS QUE NATHAN EST LÀ ?'], N, 'fr');
+  const nf = SF5.fixNames('TIFAlNE ARRIVE', N, 'fr');
+  console.log((nf === 'TIFAINE ARRIVE' && !N.SAIS ? 'OK  ' : 'ÉCHEC ') + '1.7.1 noms appris aussi en français', JSON.stringify([nf, N]));
+}

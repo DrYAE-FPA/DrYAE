@@ -136,7 +136,7 @@ async function detect(img, maxSide = 1280) {
 }
 
 // --- lecture d'une ligne ---
-async function recognize(img, b, R, enh, shear) {
+async function recognize(img, b, R, enh, shear, sharp) {
   R = R || { sess: rec, dict };
   const { width: W, data } = img;
   let bw = Math.round(b.x1 - b.x0), bh = Math.round(b.y1 - b.y0);
@@ -163,16 +163,31 @@ async function recognize(img, b, R, enh, shear) {
       // 1.7.0 : lettres penchées (italique) : la ligne est « redressée » en décalant chaque rangée
       const px = vertical ? b.x0 + (ch - 1 - v) : b.x0 + u + (shear ? shear * (ch / 2 - v) : 0), py = vertical ? b.y0 + u : b.y0 + v;
       const o = y * Wt + x;
-      for (let c = 0; c < 3; c++) { const val = smp(px, py, c); buf[c * H * Wt + o] = val; if (enh) { if (val < lo) lo = val; if (val > hi) hi = val; } }
+      for (let c = 0; c < 3; c++) buf[c * H * Wt + o] = smp(px, py, c);
     }
   }
   // deuxième lecture (lignes peu sûres) : contraste étiré au maximum (texte bien noir sur fond bien blanc)
+  const N = H * Wt;
+  if (enh) for (let i = 0; i < 3 * N; i++) { const val = buf[i]; if (val < lo) lo = val; if (val > hi) hi = val; }
   const k = enh && hi - lo > 30 ? 255 / (hi - lo) : 1, off = enh && hi - lo > 30 ? lo : 0;
+  // 1.7.1 : lettres floues (scan flou, image agrandie) : netteté renforcée (masque flou soustrait)
+  if (sharp) {
+    const tmp = new Float32Array(N);
+    for (let c = 0; c < 3; c++) {
+      const B = c * N;
+      for (let y = 0; y < H; y++) for (let x = 0; x < Wt; x++) {
+        let sum = 0, cnt = 0;
+        for (let dy = -1; dy <= 1; dy++) { const yy = y + dy; if (yy < 0 || yy >= H) continue; for (let dx = -1; dx <= 1; dx++) { const xx = x + dx; if (xx < 0 || xx >= Wt) continue; sum += buf[B + yy * Wt + xx]; cnt++; } }
+        tmp[y * Wt + x] = buf[B + y * Wt + x] + 0.9 * (buf[B + y * Wt + x] - sum / cnt);
+      }
+      for (let i = 0; i < N; i++) buf[B + i] = Math.max(0, Math.min(255, tmp[i]));
+    }
+  }
   for (let i = 0; i < H * Wt; i++) {
     // ordre des couleurs attendu par le modèle : bleu, vert, rouge
-    t[i] = Math.min(255, (buf[2 * H * Wt + i] - off) * k) / 127.5 - 1;
-    t[H * Wt + i] = Math.min(255, (buf[H * Wt + i] - off) * k) / 127.5 - 1;
-    t[2 * H * Wt + i] = Math.min(255, (buf[i] - off) * k) / 127.5 - 1;
+    t[i] = Math.max(0, Math.min(255, (buf[2 * H * Wt + i] - off) * k)) / 127.5 - 1;
+    t[H * Wt + i] = Math.max(0, Math.min(255, (buf[H * Wt + i] - off) * k)) / 127.5 - 1;
+    t[2 * H * Wt + i] = Math.max(0, Math.min(255, (buf[i] - off) * k)) / 127.5 - 1;
   }
   const out = await R.sess.run({ [R.sess.inputNames[0]]: new ort.Tensor('float32', t, [1, 3, H, Wt]) });
   const o = out[rec.outputNames[0]], [, T, C] = o.dims, p = o.data;
@@ -201,6 +216,24 @@ function good(l, min = 0.6) {
   // 1.7.0 refaite : la ponctuation ne compte pas (« ...NO. » était rejeté : 2 lettres sur 6 signes)
   const core = s.replace(/[.…!?,;:'’"“”«»\-–—~*]/g, '');
   return letters >= 2 && letters / Math.max(1, core.length) >= 0.5;
+}
+
+// 1.7.1 : ligne peu sûre (score 0,35 à 0,6) où des chiffres ont été lus à la place des lettres (« 0O30 » pour DOJO,
+// « 6OOD » pour GOOD) : gardée si, chiffres remplacés, chaque mot est un vrai mot. Renvoie le texte réparé, ou ''.
+// Un vrai nombre (« 100 », « 600 YEN ») n'est jamais touché ; texte en majuscules seulement (lettrage de bulle).
+function digitRescue(l) {
+  const s = String(l.text || '');
+  if (!(l.score >= 0.35) || !/\d/.test(s) || !/\p{L}/u.test(s) || /\p{Ll}/u.test(s) || s.length > 40) return '';
+  try {
+    const SF = require('./scan-fix'); if (!SF.digitRepair) return '';
+    const t = SF.digitRepair(s); if (t === s) return '';
+    // au moins un mot de 3 lettres ou plus réparé (mélange chiffres + lettres), et plus aucun chiffre dans les mots
+    const a = s.split(/\s+/), b = t.split(/\s+/);
+    if (a.length !== b.length || !a.some((w, i) => w !== b[i] && /\p{L}/u.test(w) && /\d/.test(w) && (b[i].match(/\p{L}/gu) || []).length >= 3)) return '';
+    const ws = t.match(/[\p{L}\d]+/gu) || [];
+    if (!ws.every(w => /^\d+$/.test(w) || (/^\p{L}+$/u.test(w) && (w.length < 3 || SF.plausibleAny(w))))) return '';
+    return t;
+  } catch { return ''; }
 }
 
 // ---- bulles : zones claires fermées autour du texte (repérées sur une image réduite) ----
@@ -427,10 +460,16 @@ async function readBubbles(img, opts = {}) {
       if (id === used) continue;
       try { const RR = id ? await recOf(id) : null; const r4 = await recognize(img, b, RR, true); if (r4.score > r.score + 0.05) r = r4; } catch {}
     }
+    // 1.7.1 : toujours peu sûre : lettres floues (vieux scan, image agrandie) → relue avec la netteté renforcée
+    // (une ligne trop peu sûre au départ n'est gardée grâce à elle que si la relecture est assez sûre : pas un dessin pris pour du texte)
+    if (r.score < 0.75 && r.text.replace(/\s/g, '').length >= 2) { const r5 = await recognize(img, b, R, true, 0, true); if (r5.score > r.score + 0.03 && (r.score >= 0.6 || r5.score >= 0.7)) r = r5; }
     const l = { ...b, ...r };
     const c = bm ? (bm.of(l) || bm.dk.of(l)) : null, k = bkey(c);
     // ligne un peu moins sûre (« IN », « GUT ») : gardée si elle est dans une vraie bulle
-    if (good(l) || (good(l, 0.45) && c)) { lines.push(l); if (k) kept.set(k, (kept.get(k) || 0) + 1); }
+    let keep = good(l) || (good(l, 0.45) && c);
+    // 1.7.1 : « 0O30 » lu pour DOJO avec un score bas : gardée, chiffres remplacés par les lettres
+    if (!keep) { const t = digitRescue(l); if (t) { l.text = t; keep = true; } }
+    if (keep) { lines.push(l); if (k) kept.set(k, (kept.get(k) || 0) + 1); }
     else if (k) fails.set(k, (fails.get(k) || 0) + 1);
   }
   // notes ajoutées par les traducteurs (« SFX: FWIP », « SFX : debout ») : bruitages, non traduits ;
@@ -485,6 +524,13 @@ async function readBubbles(img, opts = {}) {
   try {
     const SF = require('./scan-fix');
     const txs = groups.map(g => g.text), er = SF.englishRatio(txs), fr = er >= 0.6 ? 0 : SF.frenchRatio(txs);
+    // 1.7.1 : page de crédits de l'équipe (rôles + pseudonymes, adresses, « Discord ») : laissée telle quelle, les pseudonymes
+    // ne sont pas des mots à corriger. Une page d'histoire avec un seul bloc de crédits est corrigée (pseudonymes mis de côté).
+    // (si scan-fix.js est une ancienne version sans ces fonctions : pas de détection, le reste marche comme avant)
+    const credLike = SF.creditsHint ? groups.filter(g => SF.creditsHint(g.text) > 0).length : 0;
+    if (credLike && SF.isCreditsPage(txs, groups.filter(g => g.bubble).length, groups.length) && credLike >= Math.max(2, groups.length * 0.4)) {
+      groups.credits = true; groups.lang = fr >= 0.35 && fr > er ? 'fr' : er >= 0.35 ? 'en' : '';
+    } else
     // 1.6.9 : page en français (BD, mangas en VF) : confusions U/L, O/Q, petit « i » des lettrages, « Δ » pour À, mots collés
     if (fr >= 0.35 && fr > er) {
       for (const g of groups) if (!isCJK(g.text) && !g.vertical) { const p = g.parts || [g.text]; g.text = SF.fixFrench(p.reduce((a, s) => !a ? s : /\p{L}[-‐‑]$/u.test(a) && /^\p{L}/u.test(s) ? a.slice(0, -1) + s : a + ' ' + s, '')); }
@@ -514,7 +560,7 @@ async function readBubbles(img, opts = {}) {
       const sfx = ws.every(w => SFX_WORDS.has(w.toLowerCase()));
       if (sfx && (groups.lang === 'fr' || !g.bubble || (md && (g.lh || 0) > md * 1.6))) return false;
       return true;
-    }), { lang: groups.lang, odd: groups.odd, quality: groups.quality, unread: groups.unread });
+    }), { lang: groups.lang, odd: groups.odd, quality: groups.quality, unread: groups.unread, credits: groups.credits });
   }
   // caractère japonais isolé au milieu d'un texte latin (« hegr分my ») : lecture parasite, retiré
   for (const g of groups) if ((g.text.match(/[a-zA-Z]/g) || []).length > 3 * (g.text.match(/[\u3040-\u30ff\u3400-\u9fff]/g) || []).length && /[a-zA-Z]{3}/.test(g.text)) g.text = g.text.replace(/\s*[\u3040-\u30ff\u3400-\u9fff]+\s*/g, ' ').replace(/\s{2,}/g, ' ').trim();
@@ -525,7 +571,7 @@ async function readBubbles(img, opts = {}) {
   groups.unread = boxes.length - lines.length;
   // page anglaise ou française : les lettres japonaises sont des bruitages dessinés → jamais traduites
   const res = latin > cjk && used !== 'korean' ? groups.filter(g => !(isCJK(g.text) && (latin >= 2 * cjk || !g.bubble || g.text.replace(/[\s\p{P}]/gu, '').length <= 2))) : groups;
-  res.model = used; res.unread = groups.unread; res.quality = groups.quality; res.odd = groups.odd || 0; res.lang = groups.lang || '';
+  res.model = used; res.unread = groups.unread; res.quality = groups.quality; res.odd = groups.odd || 0; res.lang = groups.lang || ''; res.credits = !!groups.credits;
   return res;
 }
 

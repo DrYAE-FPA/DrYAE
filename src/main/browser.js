@@ -2057,7 +2057,8 @@ class WebBrowser {
       // noms de la série (appris sur ce site) : « TSUKLMOGAMI » → TSUKUMOGAMI quand ce nom a déjà été bien lu souvent
       try {
         const SF = require('./scan-fix'); const host = (() => { try { return new URL(o.page).hostname; } catch { return ''; } })();
-        if (host && pageLang === 'en') { const NM = this.scanNames(); const names = NM.get(host); groups = groups.map(g => ({ ...g, text: SF.fixNames(g.text, names) })); SF.learnNames(groups.map(g => g.text), names); NM.save(); }
+        // 1.7.1 : aussi pour les BD et mangas en français (« TIFAlNE » → TIFAINE quand TIFAINE a déjà été bien lu souvent)
+        if (host && (pageLang === 'en' || pageLang === 'fr')) { const NM = this.scanNames(); const names = NM.get(host); groups = groups.map(g => ({ ...g, text: SF.fixNames(g.text, names, pageLang) })); SF.learnNames(groups.map(g => g.text), names, pageLang); NM.save(); }
       } catch {}
       // cris et onomatopées (AHHH, HEHE, FUFU, HMM…) : gardés tels quels, pas traduits
       const keep = groups.map(g => M.interjection(g.text));
