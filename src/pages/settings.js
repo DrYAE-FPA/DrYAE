@@ -5,7 +5,7 @@ const search = $('#q');
 const SECS = [
   ['startup', 'power', 'Au démarrage'], ['look', 'palette', 'Apparence'], ['a11y', 'eye', 'Accessibilité'], ['perf', 'power', 'Onglets et performances'], ['work', 'folder', 'Travail et études'], ['keys', 'kbd', 'Raccourcis clavier'], ['search', 'search', 'Moteur de recherche'], ['autofill', 'key', 'Saisie automatique et mots de passe'],
   ['privacy', 'shield', 'Confidentialité et sécurité'], ['downloads', 'dl', 'Téléchargements'], ['langs', 'lang', 'Langues'],
-  ['-', '', 'Extensions intégrées'], ['adblock', 'shield', 'Bloqueur de publicités'], ['translate', 'translate', 'Traducteur'], ['scan', 'scan', 'Traducteur de scans'], ['lights', 'bulb', 'Lumières tamisées'], ['pip', 'pip', "Image dans l'image"],
+  ['-', '', 'Extensions intégrées'], ['adblock', 'shield', 'Bloqueur de publicités'], ['translate', 'translate', 'Traducteur'], ['scan', 'scan', 'Traducteur de scans'], ['lexique', 'scan', 'Lexique des scans'], ['lights', 'bulb', 'Lumières tamisées'], ['pip', 'pip', "Image dans l'image"],
   ['-', '', ''], ['system', 'sys', 'Système'], ['reset', 'reload', 'Réinitialiser'], ['extensions', 'puzzle', 'Extensions'], ['about', 'info', 'À propos de DrYAE'],
 ];
 $('#nav').innerHTML = SECS.map(([id, i, l]) => id === '-' ? (l ? `<h5>${esc(TR(l))}</h5>` : '<hr>') : `<button data-s="${id}">${ic(i)}<span>${esc(TR(l))}</span></button>`).join('');
@@ -186,6 +186,8 @@ function draw() {
       ${row('Police des bulles', '', selk('scan.font', [['auto', 'Bande dessinée'], ['sans', 'Standard'], ['serif', 'Avec empattements']], S.font === 'comic' ? 'auto' : S.font || 'auto'))}
 
       <div class="prow"><div class="tx"><span>${esc(TR('Utilisation : bouton du traducteur de scans dans la barre d\'outils pour toutes les images de la page, Ctrl+Maj+S pour traduire une zone de l\'écran, ou clic droit sur une image → « Traduire le texte de l\'image ». Cliquez sur une bulle traduite pour revoir le texte d\'origine.'))}</span></div></div>`, 'Lit le texte des images (mangas, manhwas, webtoons…) et place la traduction sur chaque bulle. La lecture se fait sur ce PC ; seul le texte trouvé est envoyé au service de traduction.') +
+    // 1.7.1 : lexique géré ici (recherche, modification, plusieurs suppressions d'un coup, mots courants repérés)
+    sec('lexique', 'Lexique du traducteur de scans', `<div id="lexBox"></div>`, 'Mots toujours traduits de la même façon. À réserver aux noms des personnages et aux mots propres à la série : un mot courant (here, that, there…) est remplacé partout et peut abîmer la traduction.') +
     sec('lights', 'Lumières tamisées', `
       ${modRow('lights')}
       ${row('Opacité de l\'assombrissement', '', `<input type="range" id="liOp" min="40" max="97" value="${L.opacity || 85}" style="width:200px"><b id="liOpV" style="width:44px;text-align:right">${L.opacity || 85} %</b>`)}
@@ -232,6 +234,7 @@ function draw() {
       <div class="prow"><div class="tx"><b>${esc(TR('Gratuit et libre, sans publicité, sans compte, sans collecte de données.'))}</b><span>${esc(TR('DrYAE ne vend rien et ne vous suit pas. Détail de ce qu\'il envoie sur internet : Confidentialité et sécurité.'))}</span></div></div>
       <div class="prow"><div class="tx"><span>${esc(TR('Ne téléchargez que ce que vous avez le droit de copier.'))}</span></div></div>`);
   bind();
+  lexDraw();
   search.oninput();
   // navigateur par défaut
   if ($('#defOn')) {
@@ -405,3 +408,53 @@ async function runSafety() {
 D.on('update-state', async () => { ABOUT = await call('about'); if ($('#s-about')) draw(); });
 addEventListener('hashchange', () => { const h = location.hash.replace('#', ''); if (h) show(h); });
 load();
+
+// ---- 1.7.1 : lexique du traducteur de scans ----
+// mots anglais très courants : les remplacer partout abîme la traduction (« HERE » → ICI changeait THERE en TICI)
+const LEX_COMMON = new Set(('a about after again all also am an and any anyone anything are as aside at be because been before begin being both but by can come could did do does done else elsewhere even every everything fine for from get go going good got had has have he her here him his how i if in into is it its just know let like look made make man many may me mean more most much must my never new no not now of off ok okay on once one only or other our out over please really right said same say see seventh she should so some someone something still such take taken tell than that the their them then there there\'s these they thing think this those time to too totally two up us very want was way we well were what when where which who why will with without would yes yet you your ' +
+  'amazing hand nose women woman men enslave memorize nine seven eight six five four three first second third').split(' '));
+const lexCommon = g => { const w = String(g.s).trim().toLowerCase().replace(/[?!.,…]+$/g, '').trim(); if (g.n) return false; if (w.split(/\s+/).length >= 4) return true; return w.split(/\s+/).every(x => LEX_COMMON.has(x.replace(/^\W+|\W+$/g, ''))); };
+let lexQ = '', lexSel = new Set();
+function lexList() { return [...((C.scan || {}).glossary || [])]; }
+async function lexSave(l) { await setB({ scan: { ...(C.scan || {}), glossary: l.slice(0, 500) } }); lexDraw(); }
+function lexDraw() {
+  const box = $('#lexBox'); if (!box) return;
+  const all = lexList(), q = lexQ.trim().toLowerCase();
+  const rows = all.map((g, i) => ({ g, i })).filter(({ g }) => !q || (g.s + ' ' + g.t).toLowerCase().includes(q));
+  const nCommon = all.filter(lexCommon).length;
+  lexSel = new Set([...lexSel].filter(i => i < all.length));
+  box.innerHTML = `
+    <div class="prow" style="gap:8px;flex-wrap:wrap"><input type="text" id="lexAddS" placeholder="${esc(TR('Mot d\'origine (ex. TSUKUMOGAMI)'))}" maxlength="100" style="flex:1;min-width:180px">
+      <input type="text" id="lexAddT" placeholder="${esc(TR('Traduction voulue'))}" maxlength="100" style="flex:1;min-width:180px">
+      <label class="check" style="margin:0"><input type="checkbox" id="lexAddN"> ${esc(TR('Ne jamais traduire'))}</label>
+      <button class="btn primary" id="lexAdd">${esc(TR('Ajouter'))}</button></div>
+    <div class="prow" style="gap:8px;flex-wrap:wrap"><input type="search" id="lexQ" placeholder="${esc(TR('Rechercher dans le lexique'))}" value="${esc(lexQ)}" style="flex:1;min-width:180px">
+      <span style="color:var(--dim)">${esc(TR('{0} mot(s)').replace('{0}', all.length))}</span></div>
+    ${nCommon ? `<div class="prow" style="gap:8px;flex-wrap:wrap;border-left:3px solid #f59e0b"><div class="tx"><b>${esc(TR('{0} mot(s) courant(s) ou phrase(s) entière(s)').replace('{0}', nCommon))}</b><span>${esc(TR('Ils sont remplacés partout et rendent souvent la traduction moins bonne.'))}</span></div><button class="btn" id="lexPickCommon">${esc(TR('Les cocher'))}</button></div>` : ''}
+    <div class="prow" style="gap:8px;flex-wrap:wrap"><label class="check" style="margin:0"><input type="checkbox" id="lexAll" ${rows.length && rows.every(r => lexSel.has(r.i)) ? 'checked' : ''}> ${esc(TR('Tout cocher'))}</label>
+      <button class="btn danger" id="lexDelSel" ${lexSel.size ? '' : 'disabled'}>${esc(TR('Supprimer la sélection'))}${lexSel.size ? ' (' + lexSel.size + ')' : ''}</button></div>
+    <div id="lexRows">${rows.map(({ g, i }) => `<div class="prow" style="gap:8px" data-li="${i}">
+      <input type="checkbox" data-lsel="${i}" ${lexSel.has(i) ? 'checked' : ''}>
+      <input type="text" data-ls="${i}" value="${esc(g.s)}" maxlength="100" style="flex:1;min-width:120px${lexCommon(g) ? ';border-color:#f59e0b' : ''}">
+      <span>→</span>
+      ${g.n ? `<span style="flex:1;color:var(--dim)">${esc(TR('ne jamais traduire'))}</span>` : `<input type="text" data-lt="${i}" value="${esc(g.t)}" maxlength="100" style="flex:1;min-width:120px">`}
+      <button class="btn sm" data-ldel="${i}" title="${esc(TR('Supprimer'))}">×</button></div>`).join('') || `<div class="prow"><span style="color:var(--dim)">${esc(TR(all.length ? 'Aucun mot trouvé.' : 'Lexique vide. Ajout : ici, ou clic droit sur une bulle traduite → « Ajouter au lexique ».'))}</span></div>`}</div>`;
+  $('#lexQ').oninput = e => { lexQ = e.target.value; const pos = e.target.selectionStart; lexDraw(); const n = $('#lexQ'); n.focus(); n.setSelectionRange(pos, pos); };
+  const add = async () => {
+    const sv = $('#lexAddS').value.trim(), n = $('#lexAddN').checked, tv = n ? sv : $('#lexAddT').value.trim(); if (!sv || !tv) return;
+    const l = lexList().filter(x => x.s.toLowerCase() !== sv.toLowerCase()); l.push(n ? { s: sv, t: sv, n: true } : { s: sv, t: tv }); await lexSave(l);
+  };
+  $('#lexAdd').onclick = add; $('#lexAddT').onkeydown = $('#lexAddS').onkeydown = e => { if (e.key === 'Enter') add(); };
+  $('#lexAddN').onchange = e => { $('#lexAddT').disabled = e.target.checked; };
+  if ($('#lexPickCommon')) $('#lexPickCommon').onclick = () => { lexList().forEach((g, i) => { if (lexCommon(g)) lexSel.add(i); }); lexQ = ''; lexDraw(); };
+  $('#lexAll').onchange = e => { rows.forEach(r => e.target.checked ? lexSel.add(r.i) : lexSel.delete(r.i)); lexDraw(); };
+  $('#lexDelSel').onclick = async () => { if (!lexSel.size || !confirm(TR('Supprimer {0} mot(s) du lexique ?').replace('{0}', lexSel.size))) return; const l = lexList().filter((_, i) => !lexSel.has(i)); lexSel.clear(); await lexSave(l); };
+  $('#lexRows').onclick = async e => { const d = e.target.closest('[data-ldel]'); if (d) { const l = lexList(); l.splice(+d.dataset.ldel, 1); lexSel.clear(); await lexSave(l); } };
+  $('#lexRows').onchange = async e => {
+    const c = e.target.closest('[data-lsel]'); if (c) { c.checked ? lexSel.add(+c.dataset.lsel) : lexSel.delete(+c.dataset.lsel); return lexDraw(); }
+    const a = e.target.closest('[data-ls],[data-lt]'); if (!a) return;
+    const l = lexList(), i = +(a.dataset.ls ?? a.dataset.lt), g = { ...l[i] }, v = a.value.trim(); if (!v) return lexDraw();
+    if (a.dataset.ls != null) { g.s = v; if (g.n) g.t = v; } else g.t = v;
+    l[i] = g; await lexSave(l);
+  };
+}

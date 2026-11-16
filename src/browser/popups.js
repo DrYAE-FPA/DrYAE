@@ -271,15 +271,15 @@ async function drawScanPop() {
       ${AI.hasKey && (AI.today || 0) >= (AI.limit || 500) * 0.8 ? `<small style="color:#f59e0b;display:block;white-space:normal">${esc(T('La limite gratuite du jour approche : ensuite, la traduction habituelle prendra le relais jusqu\'à demain.'))}</small>` : ''}
       ${AI.off ? `<small style="color:#f59e0b;display:block;white-space:normal">${esc(AI.offWhy ? 'IA en pause (' + AI.offWhy + ') : traduction habituelle pour le moment.' : T('Limite gratuite du jour atteinte ou clé refusée : traduction habituelle pour le moment.'))}</small>` : ''}
     </details>
-    <details class="pdet"><summary>${esc(T('Lexique'))} (${(s.glossary || []).length})</summary><small style="color:var(--dim);display:block;margin:2px 0 4px">${esc(T('Mots toujours traduits de la même façon (noms des personnages…). Ajout : clic droit sur une bulle traduite.'))}</small><div class="prow"><input id="scNever" class="grow" placeholder="${esc(T('Ne jamais traduire (nom, expression)…'))}" maxlength="100"><button class="btn" id="scNeverAdd">${esc(T('Ajouter'))}</button></div>${(s.glossary || []).map((g, i) => `<div class="prow"><span class="grow notr">${g.n ? esc(g.s) + ' — <i>' + esc(T('jamais traduit')) + '</i>' : esc(g.s) + ' → ' + esc(g.t)}</span><button class="icon-btn" data-gdel="${i}" title="${esc(T('Supprimer'))}">${ic('x')}</button></div>`).join('') || `<small style="color:var(--dim)">${esc(T('Vide'))}</small>`}</details>
+    <div class="prow" data-lex style="cursor:pointer"><span class="grow">${esc(T('Lexique'))} (${(s.glossary || []).length})<small>${esc(T('Gérer les mots (rechercher, modifier, supprimer plusieurs) dans les paramètres'))}</small></span><span>›</span></div>
     <div class="pfoot"><small style="color:var(--dim);white-space:normal">${esc(T('Astuce : clic droit sur une image → « Traduire le texte de l\'image ».'))}</small></div>`;
   popEl.onclick = async e => {
     const g = e.target.closest('[data-mget]'); if (g) { g.disabled = true; return getScanModel(g.dataset.mget); }
     const d = e.target.closest('[data-mdel]'); if (d) { await B.call('scan:modelDel', d.dataset.mdel); return popRender(); }
     const x = e.target.closest('[data-gdel]'); if (x) { const l = [...(CFG.scan?.glossary || [])]; l.splice(+x.dataset.gdel, 1); await B.call('scan:glossary', l); CFG.scan = { ...(CFG.scan || {}), glossary: l }; return popRender(); }
   };
-  const addNever = async () => { const v = $('#scNever').value.trim(); if (!v) return; const l = [...(CFG.scan?.glossary || [])].filter(x => x.s !== v); l.push({ s: v, t: v, n: true }); await B.call('scan:glossary', l); CFG.scan = { ...(CFG.scan || {}), glossary: l }; popRender(); };
-  $('#scNeverAdd').onclick = addNever; $('#scNever').onkeydown = e => { if (e.key === 'Enter') addNever(); };
+  // 1.7.1 : le lexique se gère dans les paramètres (Traducteur de scans → Lexique)
+  popEl.querySelector('[data-lex]').onclick = () => { popClose(); openPage('settings', 'lexique'); };
   $('#scPage').onclick = () => { popClose(); pageCmd('scan'); };
   $('#scZone').onclick = () => { popClose(); pageCmd('scan-region'); };
   $('#scCbz').onclick = () => { popClose(); pageCmd('scan-export', { fmt: 'cbz' }); };
