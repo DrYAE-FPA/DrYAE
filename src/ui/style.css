@@ -135,7 +135,7 @@ textarea{min-height:90px;resize:vertical;font-family:Consolas,monospace;font-siz
 .check{display:flex;align-items:center;gap:8px;color:var(--text);font-size:13px;margin-top:10px;cursor:pointer}
 .check input{accent-color:var(--accent);width:15px;height:15px}
 .hint{color:var(--dim);font-size:11px;margin-top:4px}
-.modal-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:20px;align-items:center}
+.modal-foot{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;margin-top:20px;align-items:center}
 .modal-foot .l{margin-right:auto;color:var(--muted);font-size:12px}
 .range{display:flex;align-items:center;gap:10px}.range input{flex:1;accent-color:var(--accent)}.range b{min-width:34px;text-align:right;font-variant-numeric:tabular-nums}
 .settings{display:grid;grid-template-columns:180px 1fr;gap:0;min-height:460px}
