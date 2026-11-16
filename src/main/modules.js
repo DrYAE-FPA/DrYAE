@@ -185,10 +185,15 @@ ${list}`;
   if (!r.ok) throw new Error('service IA : HTTP ' + r.status);
   const j = await r.json();
   const txt = (j.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('');
-  let o; try { o = JSON.parse(txt.replace(/^```(?:json)?\s*|\s*```$/g, '')); } catch { throw new Error('réponse IA illisible'); }
-  const items = Array.isArray(o.items) ? o.items : [];
-  if (items.length !== texts.length) throw new Error('réponse IA incomplète');
-  return { texts: items.map(x => String(x.tr || '')), fixed: items.map((x, i) => String(x.text || texts[i])), from: String(o.source_language || '').toLowerCase().slice(0, 5) };
+  // 1.7.1 : réponse entourée de texte ou de ``` : on garde le premier objet JSON trouvé
+  let o; try { o = JSON.parse(txt.replace(/^```(?:json)?\s*|\s*```$/g, '')); } catch { const m = /\{[\s\S]*\}/.exec(txt); try { o = JSON.parse(m ? m[0] : ''); } catch { throw new Error('réponse IA illisible'); } }
+  const items = Array.isArray(o) ? o : Array.isArray(o.items) ? o.items : [];
+  // 1.7.1 : l'IA a fusionné ou oublié des bulles : on garde celles qu'elle a rendues (repérées par leur numéro),
+  // les autres sont traduites comme d'habitude (avant : toute la page repartait en traduction habituelle)
+  const byI = new Array(texts.length).fill(null);
+  items.forEach((x, k) => { const i = Number.isInteger(+x?.i) && +x.i >= 1 && +x.i <= texts.length ? +x.i - 1 : (items.length === texts.length ? k : -1); if (i >= 0 && byI[i] == null && x && (x.tr || x.translation)) byI[i] = x; });
+  if (!byI.some(Boolean)) throw new Error('réponse IA vide');
+  return { texts: byI.map(x => x ? String(x.tr || x.translation || '') : ''), fixed: byI.map((x, i) => String((x && x.text) || texts[i])), from: String(o.source_language || '').toLowerCase().slice(0, 5) };
 }
 
 async function aiCheck(key, url) {

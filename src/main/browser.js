@@ -2070,7 +2070,7 @@ class WebBrowser {
       const SQ = (() => { try { return require('./scan-fix').squeeze; } catch { return t => t; } })();
       const prot = groups.map(g => M.protect(SQ(prep(g.text), /^(en|fr)$/.test(pageLang) ? pageLang : ''), pageLang, never));
       const mt = () => groups.map((g, i) => M.forMT(prot[i].t, g.caps, pageLang));
-      let tr = null, ai = '';
+      let tr = null, ai = '', aiWhy = '';
       // traduction par IA (facultative, clé personnelle) : elle voit l'image, corrige la lecture et traduit avec le contexte
       const AI = this.aiCfg();
       // « pages difficiles seulement » (par défaut) : lecture peu sûre ou mots inconnus → IA ; sinon traduction habituelle
@@ -2085,6 +2085,9 @@ class WebBrowser {
           this.aiCount(1);
           if (!o.to && same(r.from, to)) { const r2 = await M.aiScan(pic, pmime, groups.map(g => prep(g.text)), second(to), AI); this.aiCount(1); to = second(to); tr = r2; } else tr = r;
           groups = groups.map((g, i) => ({ ...g, text: tr.fixed[i] ? (g.caps ? tr.fixed[i].toUpperCase() : tr.fixed[i]) : g.text }));
+          // 1.7.1 : bulles oubliées par l'IA : traduction habituelle pour celles-là seulement
+          const miss = tr.texts.map((t, i) => t ? -1 : i).filter(i => i >= 0);
+          if (miss.length) { const all = mt(); const r3 = await M.translate(miss.map(i => all[i]), to, 'auto', this.B().translate || {}); miss.forEach((i, k) => { tr.texts[i] = M.unprotect((r3.texts || [])[k] || '', prot[i].keep); }); }
           ai = 'ok';
         } catch (err) {
           // limite du jour atteinte : retour à la traduction habituelle jusqu'à demain ; clé refusée : jusqu'à ce qu'elle change
@@ -2093,6 +2096,7 @@ class WebBrowser {
           else if (err.minute) { this.aiOffUntil = Date.now() + 60e3; ai = 'minute'; }
           else if (err.badKey) { this.aiOffUntil = Date.now() + 3600e3; ai = 'badkey'; }
           else ai = 'error';
+          aiWhy = String(err.message || err).slice(0, 90);
           tr = null;
         }
       }
@@ -2100,7 +2104,7 @@ class WebBrowser {
         tr = await M.translate(mt(), to, 'auto', this.B().translate || {});
         if (!o.to && same(tr.from, to)) { to = second(to); tr = await M.translate(mt(), to, tr.from, this.B().translate || {}); }
       }
-      const res = { blocks: groups.map((g, i) => ({ x0: g.x0, y0: g.y0, x1: g.x1, y1: g.y1, text: g.text, tr: keep[i] ? g.text : ai === 'ok' ? (tr.texts[i] || '') : M.unprotect(tr.texts[i] || '', prot[i].keep), vertical: g.vertical, bg: g.bg || '', bubble: g.bubble || null, caps: !!g.caps, lh: g.lh || 0, n: g.n || 1 })), w, captured: scale === 0, from: tr.from, to, needModel, model: usedModel, ai };
+      const res = { blocks: groups.map((g, i) => ({ x0: g.x0, y0: g.y0, x1: g.x1, y1: g.y1, text: g.text, tr: keep[i] ? g.text : ai === 'ok' ? (tr.texts[i] || '') : M.unprotect(tr.texts[i] || '', prot[i].keep), vertical: g.vertical, bg: g.bg || '', bubble: g.bubble || null, caps: !!g.caps, lh: g.lh || 0, n: g.n || 1 })), w, captured: scale === 0, from: tr.from, to, needModel, model: usedModel, ai, aiWhy };
       // traduction habituelle après un échec de l'IA : gardée sous la clé du traducteur habituel (l'IA reprendra demain)
       const skey = ai && ai !== 'ok' ? ckey.replace(/\|ai$/, '|' + ((this.B().translate || {}).provider || 'google')) : ckey;
       if (scale !== 0 && ai !== 'error') this.scanCache().set(skey, res, true);
