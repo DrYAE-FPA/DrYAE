@@ -1026,6 +1026,8 @@ function pageFeatures() {
   function drawScan(it) {
     const box = el('<div style="position:fixed;pointer-events:none;overflow:hidden"></div>', scan.layer);
     it.blocks.forEach((b, i) => {
+      // 1.7.1 : case d'un tableau ou d'une liste de noms : laissée telle quelle sur l'image (ni gomme ni traduction)
+      if (b.skip) return;
       const d = document.createElement('div');
       d.title = b.text + '\n' + pt('Clic : original / traduction · clic droit : corriger');
       d.textContent = scan.orig ? b.text : (b.tr || b.text);
@@ -1142,7 +1144,10 @@ function pageFeatures() {
       // la zone d'écriture s'agrandit dans la bulle repérée (sans en sortir), un peu en retrait de son bord
       if (b.bubble) {
         const bb = b.bubble, ix = (bb.x1 - bb.x0) * 0.16, iy = (bb.y1 - bb.y0) * 0.16;
-        X0 = Math.min(X0, Math.max(bb.x0, bb.x0 + ix)); Y0 = Math.min(Y0, bb.y0 + iy); X1 = Math.max(X1, bb.x1 - ix); Y1 = Math.max(Y1, bb.y1 - iy);
+        const E = [Math.min(X0, Math.max(bb.x0, bb.x0 + ix)), Math.min(Y0, bb.y0 + iy), Math.max(X1, bb.x1 - ix), Math.max(Y1, bb.y1 - iy)];
+        // 1.7.1 : jamais par-dessus le texte d'une autre bulle ou d'une case voisine : alors on reste sur le texte d'origine
+        const hit = it.blocks.some(o => o !== b && o.x0 < E[2] && o.x1 > E[0] && o.y0 < E[3] && o.y1 > E[1] && !(o.x0 < b.x1 && o.x1 > b.x0 && o.y0 < b.y1 && o.y1 > b.y0));
+        if (!hit) [X0, Y0, X1, Y1] = E;
       }
       const w = (X1 - X0) * k + pad * 2, h = (Y1 - Y0) * k + pad * 2;
       if (d._w !== w || d._t !== d.textContent) {

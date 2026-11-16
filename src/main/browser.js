@@ -2065,6 +2065,10 @@ class WebBrowser {
       } catch {}
       // cris et onomatopées (AHHH, HEHE, FUFU, HMM…) : gardés tels quels, pas traduits
       const keep = groups.map(g => M.interjection(g.text));
+      // 1.7.1 : tableau ou liste de noms hors des bulles (résultats d'un tournoi, crédits en colonnes) : petites cases
+      // alignées en colonne. Elles ne sont ni traduites ni recouvertes (avant : « FOX MASK » → « PURÉE DE RENARD »
+      // et des cases grises posées les unes sur les autres)
+      const table = M.tableCells(groups); table.forEach((t, i) => { if (t) keep[i] = true; });
       // cris et noms dans une phrase : marques [1], [2]… recopiées par le traducteur puis remplacées (jamais traduits)
       // 1.7.0 refaite : lettres répétées pour crier (ATTENNNNNTION, VAAAAS Y, REAAALLY) ramenées au vrai mot avant
       // la traduction (sinon le mot inconnu était pris pour un nom et laissé tel quel)
@@ -2108,7 +2112,7 @@ class WebBrowser {
         tr = await M.translate(mt(), to, 'auto', this.B().translate || {});
         if (!o.to && same(tr.from, to)) { to = second(to); tr = await M.translate(mt(), to, tr.from, this.B().translate || {}); }
       }
-      const res = { blocks: groups.map((g, i) => ({ x0: g.x0, y0: g.y0, x1: g.x1, y1: g.y1, text: g.text, tr: keep[i] ? g.text : ai === 'ok' ? (tr.texts[i] || '') : M.unprotect(tr.texts[i] || '', prot[i].keep), vertical: g.vertical, bg: g.bg || '', bubble: g.bubble || null, caps: !!g.caps, lh: g.lh || 0, n: g.n || 1 })), w, captured: scale === 0, from: tr.from, to, needModel, model: usedModel, ai, aiWhy };
+      const res = { blocks: groups.map((g, i) => ({ x0: g.x0, y0: g.y0, x1: g.x1, y1: g.y1, text: g.text, tr: keep[i] ? g.text : ai === 'ok' ? (tr.texts[i] || '') : M.unprotect(tr.texts[i] || '', prot[i].keep), vertical: g.vertical, bg: g.bg || '', bubble: g.bubble || null, caps: !!g.caps, lh: g.lh || 0, n: g.n || 1, ...(table[i] ? { skip: true } : {}) })), w, captured: scale === 0, from: tr.from, to, needModel, model: usedModel, ai, aiWhy };
       // traduction habituelle après un échec de l'IA : gardée sous la clé du traducteur habituel (l'IA reprendra demain)
       const skey = ai && ai !== 'ok' ? ckey.replace(/\|ai$/, '|' + ((this.B().translate || {}).provider || 'google')) : ckey;
       if (scale !== 0 && ai !== 'error') this.scanCache().set(skey, res, true);

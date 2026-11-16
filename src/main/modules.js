@@ -419,4 +419,25 @@ function unprotect(t, keep) {
   if (!keep || !keep.length) return t;
   return String(t).replace(/[[［]\s*(\d+)\s*[\]］]/g, (m, k) => keep[+k - 1] != null ? keep[+k - 1] : m);
 }
-module.exports = { protect, unprotect, glossApply, interjWord, interjection, cleanScan, forMT, aiScan, aiCheck, MODULES, MOD_DEFAULT, PROVIDERS, PADDLE_LANGS, OCR_FIX, readRegions, translate, setUserAgent, readImage, OCR_LANGS, ocrDownloaded, windowsHello, pwnedCount, weak, generatePassword };
+// 1.7.1 : cases d'un tableau ou d'une liste de noms (au moins 2 colonnes de 4 petites cases régulières, sans phrase) :
+// laissées telles quelles. Les cases blanches d'un tableau ressemblent à des bulles : on ne regarde donc que leur forme.
+function tableCells(groups) {
+  const words = g => (String(g.text).match(/[\p{L}\d]+/gu) || []).length;
+  const cell = groups.map(g => words(g) <= 4 && String(g.text).length <= 32 && !/[.!?…]{1,}\s*$/.test(String(g.text).trim()));
+  const W = Math.max(1, ...groups.map(g => g.x1 || 0)), cols = [];
+  groups.forEach((g, i) => {
+    if (!cell[i]) return;
+    const cx = (g.x0 + g.x1) / 2; let c = cols.find(c => Math.abs(c.cx - cx) < W * 0.04 || Math.abs(c.x0 - g.x0) < W * 0.03);
+    if (!c) cols.push(c = { cx, x0: g.x0, m: [] }); c.m.push(i);
+  });
+  const good = cols.filter(c => {
+    if (c.m.length < 4) return false;
+    const ys = c.m.map(i => groups[i].y0).sort((a, b) => a - b), gaps = ys.slice(1).map((y, k) => y - ys[k]);
+    const hs = c.m.map(i => groups[i].y1 - groups[i].y0).sort((a, b) => a - b), med = hs[hs.length >> 1];
+    return Math.max(...gaps) < Math.min(...gaps) * 3 + W * 0.02 && hs.every(h => h < med * 1.8 && h > med * 0.5);
+  });
+  const table = groups.map(() => false);
+  if (good.length >= 2) good.forEach(c => c.m.forEach(i => { table[i] = true; }));
+  return table;
+}
+module.exports = { tableCells, protect, unprotect, glossApply, interjWord, interjection, cleanScan, forMT, aiScan, aiCheck, MODULES, MOD_DEFAULT, PROVIDERS, PADDLE_LANGS, OCR_FIX, readRegions, translate, setUserAgent, readImage, OCR_LANGS, ocrDownloaded, windowsHello, pwnedCount, weak, generatePassword };

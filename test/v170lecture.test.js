@@ -63,3 +63,15 @@ ok('anglais : pas d\'accents ajoutés', !/[À-ÿ]/.test(e), e);
   const nf = SF5.fixNames('TIFAlNE ARRIVE', N, 'fr');
   console.log((nf === 'TIFAINE ARRIVE' && !N.SAIS ? 'OK  ' : 'ÉCHEC ') + '1.7.1 noms appris aussi en français', JSON.stringify([nf, N]));
 }
+// 1.7.1 (version perso) : tableau de noms (2 colonnes de cases régulières) laissé tel quel ; bulles normales traduites
+{
+  const M7 = require('../src/main/modules.js');
+  const g = [{ x0: 220, y0: 800, x1: 500, y1: 1140, text: 'HUGE UPSET!!' }, { x0: 56, y0: 1565, x1: 305, y1: 1867, text: '...BUT NOW HERE WE ARE AT FOUR AND FOUR!!' }];
+  const names = ['MADARAI MASUJI', 'SUSUZUMI SUGURU', 'SHIOIORI SHIORI', 'TAGUSARI TAKUMI', 'WASHIGAMI WAKANA'], right = ['KAGAMI KAZU', 'FOX MASK', 'ORIOBANA OU', 'SHISHIZAKI SHINKUROU', 'HIGASHINA HIYORI'];
+  names.forEach((t, k) => g.push({ x0: 400, y0: 1570 + k * 80, x1: 630, y1: 1610 + k * 80, text: t }));
+  right.forEach((t, k) => g.push({ x0: 870, y0: 1570 + k * 80, x1: 1100, y1: 1610 + k * 80, text: t }));
+  const t = M7.tableCells(g);
+  console.log((t.slice(2).every(Boolean) && !t[0] && !t[1] ? 'OK  ' : 'ÉCHEC ') + '1.7.1 tableau de noms gardé tel quel, bulles traduites', JSON.stringify(t));
+  const one = M7.tableCells(g.slice(0, 2).concat(g.slice(2, 6)));
+  console.log((!one.some(Boolean) ? 'OK  ' : 'ÉCHEC ') + '1.7.1 une seule colonne : pas un tableau', JSON.stringify(one));
+}
