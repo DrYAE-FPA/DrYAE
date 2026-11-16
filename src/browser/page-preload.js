@@ -814,7 +814,7 @@ function pageFeatures() {
   }
   // bulle d'information (opacité, volume…)
   let hintEl = null, hintT = 0;
-  const hint = txt => { if (!hintEl || !hintEl.isConnected) hintEl = el('<div class="card" style="left:50%;top:50%;transform:translate(-50%,-50%);padding:8px 16px;font-size:16px;font-weight:700"></div>'); hintEl.textContent = txt; clearTimeout(hintT); hintT = setTimeout(() => { hintEl?.remove(); hintEl = null; }, 900); };
+  const hint = (txt, ms = 900) => { if (!hintEl || !hintEl.isConnected) hintEl = el('<div class="card" style="left:50%;top:50%;transform:translate(-50%,-50%);padding:8px 16px;font-size:16px;font-weight:700"></div>'); hintEl.textContent = txt; clearTimeout(hintT); hintT = setTimeout(() => { hintEl?.remove(); hintEl = null; }, ms); };
   // protection des yeux : filtre orangé au-dessus de la page (ne bloque pas les clics)
   // (feuille de style ajoutée par le navigateur : ne touche pas à la page, fonctionne dès le début du chargement)
   let eyeEl = null, eyeA = 0;
@@ -1073,8 +1073,11 @@ function pageFeatures() {
       const r = await ipcRenderer.invoke('scan:keep', it.key || '', it.blocks.map(x => ({ text: x.text, tr: x.tr }))).catch(() => null);
       hint(r && r.ok ? pt('Image gardée dans {0}').replace('{0}', r.dir) : pt('Image non disponible : relisez la page puis réessayez'));
     };
+    let warned = '';
     ed.querySelector('.gok').onclick = async () => {
       const s = ed.querySelector('.gs').value.trim(), t = never ? s : ed.querySelector('.gt').value.trim(); if (!s || !t) return;
+      // 1.7.1 : mot courant ou phrase entière : remplacé partout, il abîme la traduction des autres bulles → avertir une fois
+      if (!never && lexCommon(s) && warned !== s) { warned = s; return hint(pt('« {0} » est un mot courant : il serait remplacé dans toutes les bulles. Recliquez sur OK pour l\'ajouter quand même.').replace('{0}', s), 5000); }
       const list = await ipcRenderer.invoke('scan:glossary').catch(() => []);
       await ipcRenderer.invoke('scan:glossary', [...list.filter(x => x.s !== s), never ? { s, t: s, n: true } : { s, t }]).catch(() => {});
       ed.querySelector('.glx').style.display = 'none'; hint(never ? pt('« {0} » ne sera plus jamais traduit').replace('{0}', s) : pt('Ajouté au lexique'));
@@ -1090,6 +1093,9 @@ function pageFeatures() {
   }
   // 1.7.0 refaite : texte des bulles sélectionnable (dans la zone de DrYAE, invisible pour la page)
   const scanSel = () => { try { const s = uiRoot && uiRoot.getSelection ? uiRoot.getSelection() : getSelection(); return s ? String(s) : ''; } catch { return ''; } };
+  // 1.7.1 : mots anglais très courants (les mettre au lexique abîme la traduction ; « HERE » → ICI changeait THERE en TICI)
+  const LEX_COMMON = new Set(('a about after again all also am an and any anyone anything are as aside at be because been before begin being both but by can come could did do does done else elsewhere even every everything fine for from get go going good got had has have he her here him his how i if in into is it its just know let like look made make man many may me mean more most much must my never new no not now of off ok okay on once one only or other our out over please really right said same say see she should so some someone something still such take taken tell than that the their them then there these they thing think this those time to too totally two up us very want was way we well were what when where which who why will with without would yes yet you your amazing hand nose women woman men nine seven eight six five four three first second third').split(' '));
+  const lexCommon = src => { const w = String(src).trim().toLowerCase().replace(/[?!.,…]+$/g, '').trim(); if (w.split(/\s+/).length >= 4) return true; return w.split(/\s+/).every(x => LEX_COMMON.has(x.replace(/^\W+|\W+$/g, '').replace(/'s$/, ''))); };
   const addGlossary = async item => { const list = await ipcRenderer.invoke('scan:glossary').catch(() => []); await ipcRenderer.invoke('scan:glossary', [...list.filter(x => x.s !== item.s), item]).catch(() => {}); };
   async function reBubble(it, i, d) {
     const b = it.blocks[i]; if (!b) return;
