@@ -137,11 +137,11 @@ textarea{min-height:90px;resize:vertical;font-family:Consolas,monospace;font-siz
 .hint{color:var(--dim);font-size:11px;margin-top:4px}
 .modal-foot{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;margin-top:20px;align-items:center}
 .modal-foot .l{margin-right:auto;color:var(--muted);font-size:12px}
-/* fenêtre de question avec beaucoup de choix : les petits boutons sur une ligne (retour à la ligne si besoin), le bouton principal seul en dessous */
+/* fenêtre de question avec beaucoup de choix : les petits boutons sur une ligne (retour à la ligne si besoin), le bouton principal seul en dessous, le tout aligné à gauche */
 .modal-foot.ask{flex-direction:column;align-items:stretch;flex-wrap:nowrap}
-.modal-foot.ask .ask-row{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px}
+.modal-foot.ask .ask-row{display:flex;flex-wrap:wrap;justify-content:flex-start;gap:8px}
 .modal-foot.ask .ask-row .btn{white-space:nowrap}
-.modal-foot.ask>.btn.primary{align-self:flex-end;white-space:nowrap}
+.modal-foot.ask>.btn.primary{align-self:flex-start;white-space:nowrap}
 .range{display:flex;align-items:center;gap:10px}.range input{flex:1;accent-color:var(--accent)}.range b{min-width:34px;text-align:right;font-variant-numeric:tabular-nums}
 .settings{display:grid;grid-template-columns:180px 1fr;gap:0;min-height:460px}
 .settings nav{border-right:1px solid var(--line);padding-right:10px;display:flex;flex-direction:column;gap:2px}
