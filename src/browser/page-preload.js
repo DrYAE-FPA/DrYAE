@@ -593,11 +593,35 @@ function pageFeatures() {
     let n; while ((n = w.nextNode())) out.push(n);
     return out;
   }
+  // coupe un long texte en morceaux d'environ 2 500 caractères, entre deux phrases (ou deux mots au pire)
+  function cutText(v, max = 2500) {
+    const out = []; let rest = v;
+    while (rest.length > max) {
+      const part = rest.slice(0, max); let k = Math.max(part.lastIndexOf('. '), part.lastIndexOf('! '), part.lastIndexOf('? '), part.lastIndexOf('… '), part.lastIndexOf('。'));
+      if (k < max * 0.4) k = part.lastIndexOf(' '); if (k < max * 0.4) k = max - 1;
+      out.push(rest.slice(0, k + 1).trim()); rest = rest.slice(k + 1);
+    }
+    if (rest.trim()) out.push(rest.trim());
+    return out;
+  }
+  async function translateLong(n) {
+    const v = n.nodeValue, parts = cutText(v.trim().replace(/\s+/g, ' '));
+    const r = await ipcRenderer.invoke('tr:text', parts).catch(() => null);
+    if (!r || !trOrig) return;
+    const lead = v.match(/^\s*/)[0], trail = v.match(/\s*$/)[0];
+    trOrig.set(n, v); n.nodeValue = lead + parts.map((p, k) => r.texts[k] || p).join(' ') + trail;
+    trFrom = r.from; trTo = r.to;
+  }
   async function translateNodes(nodes) {
     let i = 0;
     while (i < nodes.length) {
       const batch = []; let size = 0;
-      while (i < nodes.length && batch.length < 80 && size < 3500) { const n = nodes[i++]; const v = n.nodeValue.trim(); if (!v || v.length > 3000) continue; batch.push(n); size += v.length; }
+      while (i < nodes.length && batch.length < 80 && size < 3500) {
+        const n = nodes[i++]; const v = n.nodeValue.trim(); if (!v) continue;
+        // 1.7.1 : long paragraphe d'un seul bloc (romans en ligne) : traduit en morceaux de phrases au lieu d'être sauté
+        if (v.length > 3000) { if (batch.length) { i--; break; } await translateLong(n); continue; }
+        batch.push(n); size += v.length;
+      }
       if (!batch.length) continue;
       const r = await ipcRenderer.invoke('tr:text', batch.map(n => n.nodeValue.trim().replace(/\s+/g, ' ')));
       batch.forEach((n, k) => { if (!trOrig) return; const v = n.nodeValue; const lead = v.match(/^\s*/)[0], trail = v.match(/\s*$/)[0]; trOrig.set(n, v); if (r.texts[k]) n.nodeValue = lead + r.texts[k] + trail; });
