@@ -1155,6 +1155,14 @@ B.on('media-reset', ({ wcId }) => {
   if (t === cur) { updToolbar(); if (panel === 'media') drawMedia(); }
 });
 B.on('adblock:count', ({ wcId, n }) => { const t = tabByWc(wcId); if (t) { t.blocked = n; if (t === cur) updToolbar(); } });
+// 1.7.1 : Google refuse la connexion « Se connecter avec Google » dans DrYAE (navigateur intégré) : on le dit clairement
+B.on('google-login-blocked', async ({ wcId, site }) => {
+  const t = tabByWc(wcId); if (!t) return;
+  let host = ''; try { host = new URL(site).hostname.replace(/^www\./, ''); } catch {}
+  const r = await askBox({ title: 'Google refuse la connexion ici', text: `Google bloque volontairement « Se connecter avec Google » dans les navigateurs intégrés à une application, comme DrYAE : sa page se recharge au lieu de vous connecter${host ? ' à ' + host : ''}. Connectez-vous plutôt avec votre adresse e-mail sur le site, ou ouvrez le site dans Chrome.`, cancel: 'Fermer', buttons: [{ v: 'back', label: 'Revenir au site (connexion par e-mail)' }, { v: 'chrome', label: 'Ouvrir dans Chrome', primary: true }] });
+  if (r.value === 'chrome') B.call('br:openExternal', site);
+  else if (r.value === 'back') { try { t.wv.loadURL(site); } catch {} }
+});
 B.on('popup-blocked', ({ wcId, url, kind }) => { const t = tabByWc(wcId); toast(kind === 'tab' ? 'Onglet de publicité bloqué' : 'Fenêtre pop-up bloquée', { label: 'Ouvrir', fn: () => newTab(url, { incognito: t?.incognito, container: t?.container }) }); });
 B.on('grab-links', ({ wcId }) => { const t = tabByWc(wcId); if (t) { select(t); grabLinks(t); } });
 B.on('login', ({ id, host, realm }) => {

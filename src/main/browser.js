@@ -824,6 +824,19 @@ class WebBrowser {
     wc.on('will-navigate', (_e, url) => fixUa(url));
     wc.on('will-redirect', (_e, url) => fixUa(url));
     wc.on('did-start-navigation', (_e, url, inPlace, isMain) => { if (isMain && !inPlace) fixUa(url); });
+    // 1.7.1 : « Se connecter avec Google » pour un autre site : Google refuse volontairement les navigateurs intégrés
+    // à une application et recharge sa page après « Continuer ». DrYAE ne contourne pas ce refus : il le repère
+    // (même page de Google chargée 2 fois en 2 minutes) et propose Chrome ou la connexion par e-mail du site.
+    const gl = { site: '', url: '', n: 0, t: 0, shown: 0 };
+    wc.on('did-navigate', (_e, url) => {
+      let u; try { u = new URL(url); } catch { return; }
+      if (!GOOGLE_LOGIN.test(u.hostname)) { if (!GOOGLE_FAMILY.test(u.hostname) && /^https?:$/.test(u.protocol)) gl.site = url; gl.n = 0; return; }
+      if (!/\/(signin\/oauth|o\/oauth2|v3\/signin\/accountchooser)/.test(u.pathname) || !gl.site) return;
+      const key = u.pathname + (u.searchParams.get('part') || u.searchParams.get('client_id') || '');
+      if (key === gl.url && Date.now() - gl.t < 120e3) gl.n++; else { gl.url = key; gl.n = 1; }
+      gl.t = Date.now();
+      if (gl.n >= 2 && Date.now() - gl.shown > 600e3) { gl.shown = Date.now(); this.wc?.send('google-login-blocked', { wcId: wc.id, site: gl.site }); }
+    });
     wc.on('will-frame-navigate', d => {
       if (/^magnet:/i.test(d.url)) { d.preventDefault?.(); this.onTorrent(d.url, {}); }
       // pas de page interne dans un cadre
