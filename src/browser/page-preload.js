@@ -786,7 +786,11 @@ function pageFeatures() {
   const opNow = () => Math.max(0.3, Math.min(0.97, LC.opacity / 100));
   // 1.7.0 : voile posé sur la page (lumières tamisées, protection des yeux) : le traducteur de scans le retire de la photo
   // de la page, pour lire l'image normale — l'écran, lui, reste tamisé
-  var veilInfo = () => ({ lights: lights ? { op: opNow(), color: LC.color } : null, eye: eyeEl ? eyeA : 0 });
+  var veilInfo = () => ({ lights: lights || earlyKey ? { op: opNow(), color: LC.color } : null, eye: eyeEl ? eyeA : 0 });
+  // 1.7.1 : « Lumières éteintes » toujours actif → voile posé dès le tout début du chargement (comme le mode nuit),
+  // pour ne jamais voir la page claire ; il laisse la place au vrai voile (avec le trou de la vidéo) dès qu'il est prêt
+  let earlyKey = null;
+  const earlyOff = () => { if (earlyKey) { try { webFrame.removeInsertedCSS(earlyKey); } catch {} earlyKey = null; } };
   function lightsOn(auto, quiet) {
     if (lights) return;
     const t = lightsTarget();
@@ -809,7 +813,9 @@ function pageFeatures() {
       raf = requestAnimationFrame(lay);
     };
     lay();
-    requestAnimationFrame(() => panes.forEach(p => { p.style.opacity = opNow(); }));
+    // voile du début du chargement déjà là : le vrai voile apparaît d'un coup, sans clignoter
+    if (earlyKey) { panes.forEach(p => { p.style.transition = 'none'; p.style.opacity = opNow(); }); requestAnimationFrame(() => requestAnimationFrame(() => { earlyOff(); panes.forEach(p => { p.style.transition = fade; }); })); }
+    else requestAnimationFrame(() => panes.forEach(p => { p.style.opacity = opNow(); }));
     panes.forEach(p => { p.onclick = e => { e.preventDefault(); e.stopPropagation(); lightsOff(true); }; });
     // lueur : couleur moyenne de l'image (si la vidéo le permet), sinon violet doux
     let gt = 0; const cv = document.createElement('canvas'); cv.width = cv.height = 4;
@@ -829,7 +835,7 @@ function pageFeatures() {
     // allumé à la main : reste éteint sur toutes les pages et tous les onglets jusqu'à ce qu'on rallume
     if (!auto && !quiet) ipcRenderer.invoke('lights:global', true).catch(() => {});
   }
-  function lightsOff(user) { if (!lights) return; lights.off(); lights = null; autoLit = false; toHost('dryae-lights', false); if (user !== false) ipcRenderer.invoke('lights:global', false).catch(() => {}); }
+  function lightsOff(user) { if (!lights && earlyKey) { earlyOff(); toHost('dryae-lights', false); if (user !== false) ipcRenderer.invoke('lights:global', false).catch(() => {}); return; } if (!lights) return; lights.off(); lights = null; autoLit = false; toHost('dryae-lights', false); if (user !== false) ipcRenderer.invoke('lights:global', false).catch(() => {}); }
   function lightsLook(o) {
     if (o.opacity) LC.opacity = Math.max(30, Math.min(97, +o.opacity));
     if (o.color && /^#[0-9a-f]{6}$/i.test(o.color)) LC.color = o.color;
@@ -871,7 +877,7 @@ function pageFeatures() {
   }
   if (CFG.lights) {
     addEventListener('keydown', e => {
-      if (e.key === 'Escape' && lights) return lightsOff();
+      if (e.key === 'Escape' && (lights || earlyKey)) return lightsOff();
       if (!e.altKey || e.ctrlKey || e.metaKey) return;
       // Alt+↑ / Alt+↓ : opacité ; Alt+F8 : opacité par défaut ; Alt+F9 : garder l'opacité actuelle ; Alt+F10 : protection des yeux
       if (lights && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) { e.preventDefault(); lightsLook({ opacity: LC.opacity + (e.key === 'ArrowUp' ? 5 : -5) }); hint(LC.opacity + ' %'); }
@@ -883,7 +889,9 @@ function pageFeatures() {
     // une pause (clic sur la vidéo) ne rallume pas : seule la fin de la vidéo rallume (mode automatique)
     document.addEventListener('ended', e => { if (e.target.tagName === 'VIDEO' && autoLit) lightsOff(false); }, true);
     // « Lumières éteintes » toujours actif : la nouvelle page s'assombrit aussi
-    if (L.global && TOP) { const go = () => setTimeout(() => lightsOn(false, true), 400); if (document.readyState !== 'loading') go(); else document.addEventListener('DOMContentLoaded', go, { once: true }); }
+    if (L.global && TOP) {
+      try { earlyKey = webFrame.insertCSS(`html::before{content:""!important;display:block!important;position:fixed!important;inset:0!important;pointer-events:none!important;z-index:2147483645!important;background:${LC.color}!important;opacity:${opNow()}!important}`); } catch {}
+      const go = () => setTimeout(() => lightsOn(false, true), 0); if (document.readyState !== 'loading') go(); else document.addEventListener('DOMContentLoaded', go, { once: true }); }
     // pas de lecture automatique tant qu'on n'a pas touché à la page
     document.addEventListener('play', e => { const v = e.target; if ((L.stopAutoplay || CFG.dataSaver) && v.tagName === 'VIDEO' && !(navigator.userActivation && navigator.userActivation.hasBeenActive)) { try { v.pause(); } catch {} } }, true);
     // molette sur une vidéo : volume
