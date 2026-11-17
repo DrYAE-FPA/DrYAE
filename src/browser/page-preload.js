@@ -1068,6 +1068,8 @@ function pageFeatures() {
       d.ondblclick = () => clearTimeout(d._t);
       d.onmouseup = e => setTimeout(() => selAction(it, i, d, e), 0);
       d.oncontextmenu = e => { e.preventDefault(); e.stopPropagation(); editBubble(it, i, d); };
+      // 1.7.1 : paragraphe de livre ou de roman : écrit comme un paragraphe (aligné à gauche, police de texte normale)
+      if (b.prose) Object.assign(d.style, { justifyContent: 'flex-start', alignItems: 'flex-start', textAlign: 'justify', fontFamily: 'Georgia, "Times New Roman", serif', fontWeight: '400', lineHeight: '1.25', background: bg, borderRadius: '2px', hyphens: 'auto' });
       d._b = b;
       box.appendChild(d);
     });
@@ -1180,7 +1182,7 @@ function pageFeatures() {
         Object.assign(d.style, { left: (X0 * k - pad - dx) + 'px', top: (Y0 * k - pad) + 'px', width: ww + 'px', height: h + 'px' });
         // taille du texte : la plus grande qui tient dans la bulle sans couper un mot,
         // et jamais plus grande que le texte d'origine (un peu plus pour rester lisible)
-        const orig = b.lh ? b.lh * k * (b.vertical ? 0.75 : 1.08) : h * 0.5;
+        const orig = b.lh ? b.lh * k * (b.vertical ? 0.75 : b.prose ? 0.95 : 1.08) : h * 0.5;
         let lo = 5, hi = Math.max(lo + 0.5, Math.min(24, Math.max(8, orig))), fs = 0;
         d.style.overflowWrap = 'normal';
         const fits = () => d.scrollHeight <= h + 1 && d.scrollWidth <= ww + 1;
@@ -1188,8 +1190,16 @@ function pageFeatures() {
         // même au plus petit, un mot trop long pour la bulle : seulement alors il peut être coupé
         if (!fs) { fs = 5; d.style.fontSize = fs + 'px'; if (!fits()) d.style.overflowWrap = 'anywhere'; }
         d.style.fontSize = fs + 'px';
-        d._w = w; d._t = d.textContent;
+        d._w = w; d._t = d.textContent; d._fs = fs;
       }
+    }
+    // 1.7.1 : page de livre : tous les paragraphes à la même taille (la plus petite qui tient partout), comme dans un vrai livre ;
+    // le titre et les légendes hors bulles prennent la même police de texte
+    const pr = [...it.box.children].filter(d => d._b && d._b.prose && d._fs);
+    if (pr.length >= 2) {
+      const m = Math.min(...pr.map(d => d._fs));
+      pr.forEach(d => { d.style.fontSize = m + 'px'; });
+      for (const d of it.box.children) if (d._b && !d._b.prose && !d._b.bubble && !d._serif) { d._serif = 1; Object.assign(d.style, { fontFamily: 'Georgia, "Times New Roman", serif', fontWeight: '400' }); }
     }
   }
   // icônes d'action sur l'image survolée

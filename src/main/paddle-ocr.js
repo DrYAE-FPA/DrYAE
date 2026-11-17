@@ -332,14 +332,15 @@ function bubbleMap(img, dark) {
 }
 
 // regroupe les lignes d'une même bulle
-function group(lines, bm) {
+function group(lines, bm, inBubble) {
   if (bm) {
     // d'abord par bulle repérée ; les lignes hors bulle sont regroupées par proximité (plus bas)
     const by = new Map(), rest = [];
     for (const l of lines) { const c = bm.of(l) || (bm.dk && bm.dk.of(l)); if (c) { const id = (c.dark ? 'd' : 'l') + c.id; if (!by.has(id)) by.set(id, { c, ls: [] }); by.get(id).ls.push(l); } else rest.push(l); }
     const merged = [];
     for (const { c, ls } of by.values()) {
-      const gs = group(ls), v = gs.every(o => o.vertical);
+      // (1.7.1 : le texte d'une bulle n'est jamais coupé en paragraphes de livre)
+      const gs = group(ls, null, true), v = gs.every(o => o.vertical);
       // 1.6.9 : dans une même zone claire, les groupes de lignes proches forment une bulle ;
       // un grand espace vide entre eux (deux cadres collés, deux bulles qui se touchent) les garde séparés
       gs.sort((a, b) => v ? b.x1 - a.x1 : a.y0 - b.y0);
@@ -376,8 +377,8 @@ function group(lines, bm) {
   hor.sort((a, b) => a.y0 - b.y0);
   for (const it of hor) {
     const g = out.find(g => !g.vertical && (() => { const gap = it.y0 - g.y1, lh = Math.max(g.lh, it.h), cx = (it.x0 + it.x1) / 2, gcx = (g.x0 + g.x1) / 2; const overlap = Math.min(g.x1, it.x1) - Math.max(g.x0, it.x0); return gap < lh * 0.9 && gap > -lh * 0.6 && (overlap > -lh * 0.3 || Math.abs(cx - gcx) < lh * 2); })());
-    if (g) { g.x0 = Math.min(g.x0, it.x0); g.x1 = Math.max(g.x1, it.x1); g.y1 = Math.max(g.y1, it.y1); g.parts.push(it.text); g.lh = Math.max(g.lh, it.h); g.hs.push(it.h); }
-    else out.push({ x0: it.x0, y0: it.y0, x1: it.x1, y1: it.y1, parts: [it.text], lh: it.h, hs: [it.h], vertical: false });
+    if (g) { g.x0 = Math.min(g.x0, it.x0); g.x1 = Math.max(g.x1, it.x1); g.y1 = Math.max(g.y1, it.y1); g.parts.push(it.text); g.lh = Math.max(g.lh, it.h); g.hs.push(it.h); g.ls.push(it); }
+    else out.push({ x0: it.x0, y0: it.y0, x1: it.x1, y1: it.y1, parts: [it.text], lh: it.h, hs: [it.h], vertical: false, ls: [it] });
   }
   vert.sort((a, b) => b.x1 - a.x1);
   for (const it of vert) {
@@ -385,7 +386,7 @@ function group(lines, bm) {
     if (g) { g.x0 = Math.min(g.x0, it.x0); g.x1 = Math.max(g.x1, it.x1); g.y0 = Math.min(g.y0, it.y0); g.y1 = Math.max(g.y1, it.y1); g.parts.push(it.text); g.cw = Math.max(g.cw, it.w); g.hs.push(it.w); }
     else out.push({ x0: it.x0, y0: it.y0, x1: it.x1, y1: it.y1, parts: [it.text], cw: it.w, hs: [it.w], vertical: true });
   }
-  return out.map(g => {
+  return (inBubble ? out : out.flatMap(splitProse)).map(g => {
     // japonais / chinois : lignes collées ; coréen : séparées par une espace (comme les mots)
     const cjk = g.parts.some(p => /[぀-ヿ㐀-鿿]/.test(p)) && !g.parts.some(p => /[가-힯]/.test(p));
     // « PATHETICALL » + « Y » ou « EXAM- » + « PLE » : on recolle les mots coupés en fin de ligne
@@ -400,8 +401,41 @@ function group(lines, bm) {
     }
     // hauteur d'une ligne d'origine : la traduction ne sera jamais écrite plus gros
     const hs = g.hs.slice().sort((a, b) => a - b), lh = hs[hs.length >> 1] || 0;
-    return { x0: g.x0, y0: g.y0, x1: g.x1, y1: g.y1, text: text.trim(), parts: g.parts, vertical: g.vertical, lh, n: g.parts.length };
+    return { x0: g.x0, y0: g.y0, x1: g.x1, y1: g.y1, text: text.trim(), parts: g.parts, vertical: g.vertical, lh, n: g.parts.length, ...(g.prose ? { prose: true } : {}) };
   }).filter(g => g.text.replace(/\s/g, '').length >= (isCJK(g.text) ? 1 : 2));
+}
+
+// 1.7.1 : texte de livre ou de roman (hors bulles) : un bloc de lignes longues est coupé en paragraphes
+// (retrait de première ligne, ligne courte qui finit une phrase, grand espace, titre centré). Chaque paragraphe
+// est traduit en entier et réécrit comme un paragraphe (aligné à gauche), au lieu d'une grosse « bulle ».
+function splitProse(g) {
+  const ls = (g.ls || []).slice().sort((a, b) => a.y0 - b.y0);
+  if (g.vertical || ls.length < 3) return [g];
+  const words = l => (String(l.text).match(/[\p{L}\d'’]+/gu) || []).length;
+  const avgW = ls.reduce((a, l) => a + words(l), 0) / ls.length;
+  // la plupart des lignes sont longues (une liste de noms ou de crédits n'est pas un texte de livre)
+  if (avgW < 5 || ls.filter(l => words(l) >= 5).length < ls.length * 0.6) return [g];
+  // un livre s'écrit surtout en minuscules ; le lettrage des BD et des mangas est en majuscules (jamais coupé ici)
+  const all = ls.map(l => l.text).join(' '), low = (all.match(/\p{Ll}/gu) || []).length, up = (all.match(/\p{Lu}/gu) || []).length;
+  if (low < (low + up) * 0.6) return [g];
+  const hs = ls.map(l => l.h).sort((a, b) => a - b), lh = hs[hs.length >> 1] || 20;
+  const left = Math.min(...ls.map(l => l.x0)), right = Math.max(...ls.map(l => l.x1)), W = right - left;
+  if (W < lh * 12) return [g];
+  const gaps = ls.slice(1).map((l, k) => l.y0 - ls[k].y1).sort((a, b) => a - b), mg = gaps.length ? gaps[gaps.length >> 1] : lh * 0.5;
+  const paras = []; let cur = [];
+  ls.forEach((l, k) => {
+    const prev = ls[k - 1];
+    const title = (l.x1 - l.x0) < W * 0.6 && Math.abs((l.x0 + l.x1) / 2 - (left + right) / 2) < W * 0.08 && l.x0 > left + lh;
+    const newPara = !prev || title || (prev && prev._title)
+      || l.x0 > left + lh * 0.9                                               // retrait de première ligne
+      || (l.y0 - prev.y1) > Math.max(mg * 1.8, lh * 0.6)                      // grand espace
+      || (prev.x1 < right - lh * 3 && /[.!?…»"”:]\s*$/.test(prev.text));       // ligne précédente courte qui finit une phrase
+    if (newPara && cur.length) { paras.push(cur); cur = []; }
+    l._title = title; cur.push(l);
+  });
+  if (cur.length) paras.push(cur);
+  return paras.map(p => ({ x0: Math.min(...p.map(l => l.x0)), y0: Math.min(...p.map(l => l.y0)), x1: Math.max(...p.map(l => l.x1)), y1: Math.max(...p.map(l => l.y1)),
+    parts: p.map(l => l.text), lh: Math.max(...p.map(l => l.h)), hs: p.map(l => l.h), vertical: false, ls: p, prose: p.length >= 2 || words(p[0]) >= 5 }));
 }
 
 // lit une image et renvoie les bulles de texte (coordonnées en pixels de l'image)
@@ -575,4 +609,4 @@ async function readBubbles(img, opts = {}) {
   return res;
 }
 
-module.exports = { detect, recognize, readBubbles, SFX, load, EXTRA, EXTRA_OF, installed, download, removeModel, setDir };
+module.exports = { detect, recognize, readBubbles, SFX, load, EXTRA, EXTRA_OF, installed, download, removeModel, setDir, splitProse };

@@ -75,3 +75,17 @@ ok('anglais : pas d\'accents ajoutés', !/[À-ÿ]/.test(e), e);
   const one = M7.tableCells(g.slice(0, 2).concat(g.slice(2, 6)));
   console.log((!one.some(Boolean) ? 'OK  ' : 'ÉCHEC ') + '1.7.1 une seule colonne : pas un tableau', JSON.stringify(one));
 }
+// 1.7.1 (version perso) : page de livre : un bloc de lignes longues en minuscules est coupé en paragraphes ; bulles de BD jamais
+{
+  const PO = require('../src/main/paddle-ocr.js');
+  const L = (y, x0, x1, text) => ({ x0, x1, y0: y, y1: y + 28, h: 28, text });
+  const book = { ls: [L(44, 480, 760, 'Chapter Four'),
+    L(110, 160, 1050, 'The rain had not stopped for three days when Elena finally decided to'), L(150, 110, 1050, 'leave the old house. She packed only what she could carry: a few clothes,'), L(190, 110, 700, 'and the small wooden box nobody had opened.'),
+    L(254, 160, 1005, 'At the station, the clerk looked at her ticket for a long time before'), L(294, 110, 1000, 'handing it back. "Nobody goes to Ashford anymore," he said quietly.')], vertical: false };
+  const ps = PO.splitProse(book);
+  console.log((ps.length === 3 && ps[1].prose && ps[2].prose && ps[1].parts.length === 3 ? 'OK  ' : 'ÉCHEC ') + '1.7.1 page de livre coupée en titre + paragraphes', JSON.stringify(ps.map(p => p.parts.length)));
+  const bd = { ls: [L(10, 100, 500, 'CA FAIT DES ANNÉES QU\'ON EST AMIS... MAIS AUSSI DES'), L(45, 130, 470, 'ANNÉES QU\'ON SE... TOURNE AUTOUR, TOI ET MOI, ET...'), L(80, 200, 400, 'JE T\'AIME, NATHAN! ALORS IL FAUT')], vertical: false };
+  console.log((PO.splitProse(bd).length === 1 ? 'OK  ' : 'ÉCHEC ') + '1.7.1 texte de BD en majuscules : jamais coupé en paragraphes');
+  const cred = { ls: [L(10, 100, 300, 'Clean'), L(45, 100, 300, 'Seb'), L(80, 100, 300, 'Check'), L(115, 100, 900, 'N\'oubliez pas que le scantrad est là pour vous faire découvrir des séries')], vertical: false };
+  console.log((PO.splitProse(cred).length === 1 ? 'OK  ' : 'ÉCHEC ') + '1.7.1 liste courte (crédits) : pas un texte de livre');
+}
