@@ -91,30 +91,8 @@ function newTab(url = '', opts = {}) {
   el.onmousedown = e => { if (e.button === 1) { e.preventDefault(); closeTab(tab); } };
   el.onclick = e => { if (e.target.closest('.x')) closeTab(tab); else select(tab); };
   $('#tabs').insertBefore(el, $('#newTab'));
-  // glisser-déposer pour réordonner les onglets
-  el.draggable = true;
-  // 1.7.0 refaite : un onglet glissé sur une autre fenêtre DrYAE y passe ; lâché hors des fenêtres, il devient une nouvelle fenêtre
-  el.addEventListener('dragstart', e => { dragTab = tab; el.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', tab.url || ''); e.dataTransfer.setData('text/x-dryae-tab', JSON.stringify({ url: tab.url || '', inc: !!tab.incognito })); } catch {} });
-  el.addEventListener('dragend', e => {
-    el.classList.remove('dragging'); $$('.tab').forEach(t => t.classList.remove('drop-l', 'drop-r')); dragTab = null;
-    if (!tab.url) return;
-    const out = e.clientX < 0 || e.clientY < 0 || e.clientX > innerWidth || e.clientY > innerHeight;
-    if (e.dataTransfer.dropEffect === 'move' && out) closeTab(tab); // reçu par une autre fenêtre
-    else if (e.dataTransfer.dropEffect === 'none' && out && tabs.length > 1) { B.call('br:tearOff', tab.url, tab.incognito, e.screenX, e.screenY); closeTab(tab); }
-  });
-  el.addEventListener('dragover', e => {
-    if (!dragTab || dragTab === tab) return;
-    e.preventDefault();
-    const r = el.getBoundingClientRect(), after = e.clientX > r.left + r.width / 2;
-    el.classList.toggle('drop-r', after); el.classList.toggle('drop-l', !after);
-  });
-  el.addEventListener('dragleave', () => el.classList.remove('drop-l', 'drop-r'));
-  el.addEventListener('drop', e => {
-    if (!dragTab || dragTab === tab) return;
-    e.preventDefault();
-    const r = el.getBoundingClientRect(), after = e.clientX > r.left + r.width / 2;
-    moveTab(dragTab, tab, after);
-  });
+  // 1.7.1 : glisser un onglet à la souris (réordonner, autre fenêtre, nouvelle fenêtre) — voir tabDown plus bas
+  el.addEventListener('pointerdown', e => tabDown(e, tab));
   tab.el = el;
   tabs.push(tab);
   if (url && opts.lazy) { tab.url = url; tab.lazy = true; tab.title = opts.title || hostOf(url); updTab(tab); }
@@ -209,6 +187,98 @@ function showView(tab) {
   if (start) { drawTiles(); setTimeout(() => $('#url').focus(), 30); }
 }
 let dragTab = null;
+// ---------- 1.7.1 : déplacer un onglet à la souris, comme dans les autres navigateurs ----------
+// Dans la barre : l'onglet change de place en suivant la souris. Sorti de la barre : une vignette de la page suit la souris ;
+// lâché sur une autre fenêtre DrYAE il y passe, ailleurs il devient une nouvelle fenêtre (2e écran compris).
+// Seul onglet de la fenêtre : la fenêtre entière suit la souris.
+let TD = null, tdNoClick = 0;
+function tabDown(e, tab) {
+  if (e.button !== 0 || e.target.closest('.x')) return;
+  TD = { tab, x0: e.clientX, y0: e.clientY, id: e.pointerId, on: false, out: false, sx: e.screenX, sy: e.screenY, dx: e.screenX, dy: e.screenY, t: 0 };
+  // la souris reste à l'onglet dès qu'on appuie (sinon un geste rapide vers la page se perd dans la page)
+  try { tab.el.setPointerCapture(e.pointerId); } catch {}
+  document.body.classList.add('tabpress');
+}
+function tdOut(e) {
+  const r = $('#tabs').getBoundingClientRect(), m = 34;
+  if (e.clientX < 0 || e.clientY < 0 || e.clientX > innerWidth || e.clientY > innerHeight) return true;
+  if (document.body.classList.contains('vtabs')) return e.clientX > r.right + m;
+  return e.clientY < r.top - m || e.clientY > r.bottom + m;
+}
+// l'onglet tenu ne quitte jamais la page (il perdrait la souris) : ce sont ses voisins qui passent de l'autre côté
+function tdShift(t, to) {
+  let j = tabs.indexOf(t);
+  while (j !== to) {
+    const d = to > j ? 1 : -1, o = tabs[j + d];
+    tabs[j] = o; tabs[j + d] = t;
+    if (d > 0) t.el.parentNode.insertBefore(o.el, t.el); else t.el.parentNode.insertBefore(o.el, t.el.nextSibling);
+    j += d;
+  }
+  saveSession();
+}
+function tdStart(e) {
+  const t = TD.tab; TD.on = true;
+  t.el.classList.add('dragging', 'lift'); document.body.classList.add('tabdrag');
+  try { t.el.setPointerCapture(TD.id); } catch {}
+  TD.only = tabs.length === 1;
+  B.call('br:tabDragStart', { url: t.url || '', title: t.title || hostOf(t.url || '') || '', inc: !!t.incognito, only: TD.only, wcId: t.wcId || undefined, x: TD.dx, y: TD.dy }).catch(() => {});
+}
+function tdMove(e) {
+  const t = TD.tab, vt = document.body.classList.contains('vtabs');
+  TD.sx = e.screenX; TD.sy = e.screenY;
+  const out = TD.only && TD.out ? true : tdOut(e);
+  if (out !== TD.out) { TD.out = out; t.el.classList.toggle('lift', !out); document.body.classList.toggle('tabout', out); }
+  if (!out) {
+    // dans la barre : l'onglet prend la place de celui qui est sous la souris
+    const k = vt ? e.clientY : e.clientX;
+    for (const o of tabs) {
+      if (o === t || !o.el.isConnected || o.el.offsetParent === null) continue;
+      const r = o.el.getBoundingClientRect(), a = vt ? r.top : r.left, b = vt ? r.bottom : r.right;
+      if (k >= a && k <= b) { const after = k > (a + b) / 2, i = tabs.indexOf(o) + (after ? 1 : 0), j = tabs.indexOf(t); if (i !== j && i !== j + 1) tdShift(t, i > j ? i - 1 : i); break; }
+    }
+  }
+  // au plus une fois par image, sans jamais perdre la dernière position
+  const send = () => { if (!TD) return; TD.t = performance.now(); TD.lastOut = TD.out; clearTimeout(TD.pend); B.call('br:tabDragMove', { out: TD.out, x: TD.sx, y: TD.sy }).catch(() => {}); };
+  if (performance.now() - TD.t < 16 && out === TD.lastOut) { clearTimeout(TD.pend); TD.pend = setTimeout(send, 20); return; }
+  send();
+}
+async function tdEnd(cancel) {
+  const d = TD; TD = null; document.body.classList.remove('tabpress'); if (d) clearTimeout(d.pend); if (!d || !d.on) return;
+  tdNoClick = Date.now() + 400;
+  d.tab.el.classList.remove('dragging', 'lift'); document.body.classList.remove('tabdrag', 'tabout');
+  try { d.tab.el.releasePointerCapture(d.id); } catch {}
+  if (cancel) { B.call('br:tabDragCancel').catch(() => {}); return; }
+  // la fenêtre principale du programme sait aussi si l'onglet est sorti de la fenêtre (elle décide)
+  let r = { act: 'none' }; try { r = await B.call('br:tabDragEnd', { x: d.sx, y: d.sy }); } catch {}
+  if (r && (r.act === 'moved' || r.act === 'new')) { d.tab.moved = true; closeTab(d.tab); }
+}
+addEventListener('pointermove', e => { if (!TD || e.pointerId !== TD.id) return; if (!TD.on) { if (Math.hypot(e.clientX - TD.x0, e.clientY - TD.y0) < 6) return; tdStart(e); } tdMove(e); }, true);
+addEventListener('pointerup', e => { if (TD && e.pointerId === TD.id) { if (TD.on) { TD.sx = e.screenX; TD.sy = e.screenY; } tdEnd(); } }, true);
+addEventListener('pointercancel', () => tdEnd(true), true);
+addEventListener('lostpointercapture', e => { if (TD && TD.on && e.pointerId === TD.id) tdEnd(); }, true);
+addEventListener('keydown', e => { if (e.key === 'Escape' && TD && TD.on) { e.preventDefault(); tdEnd(true); } }, true);
+addEventListener('click', e => { if (Date.now() < tdNoClick && e.target.closest?.('.tab')) { e.stopPropagation(); e.preventDefault(); } }, true);
+// onglet tenu au-dessus de cette fenêtre (venant d'une autre) : la barre montre où il arrivera
+function tdSlot(p) {
+  const vt = document.body.classList.contains('vtabs'), k = vt ? p.y : p.x;
+  let ref = null, after = true;
+  for (const o of tabs) { if (!o.el.isConnected || o.el.offsetParent === null) continue; const r = o.el.getBoundingClientRect(), a = vt ? r.top : r.left, b = vt ? r.bottom : r.right; if (k <= b) { ref = o; after = k > (a + b) / 2; break; } ref = o; after = true; }
+  return { ref, after };
+}
+B.on('tab-drag-over', p => {
+  $$('.tab').forEach(x => x.classList.remove('drop-l', 'drop-r'));
+  document.body.classList.toggle('tabin', !!p);
+  if (!p) return;
+  const { ref, after } = tdSlot(p); if (ref) ref.el.classList.add(after ? 'drop-r' : 'drop-l');
+});
+B.on('tab-drop-in', d => {
+  document.body.classList.remove('tabin'); $$('.tab').forEach(x => x.classList.remove('drop-l', 'drop-r'));
+  if (!d || typeof d.url !== 'string') return;
+  const { ref, after } = tdSlot(d);
+  const t = newTab(d.url, { incognito: !!d.inc });
+  if (ref && ref !== t) moveTab(t, ref, after);
+  select(t);
+});
 function moveTab(t, ref, after) {
   tabs.splice(tabs.indexOf(t), 1);
   const i = tabs.indexOf(ref) + (after ? 1 : 0);
@@ -219,7 +289,7 @@ function moveTab(t, ref, after) {
 }
 function closeTab(tab) {
   const i = tabs.indexOf(tab);
-  if (tab.url) { closedTabs.push({ url: tab.url, title: tab.title, fav: tab.fav, incognito: tab.incognito }); if (closedTabs.length > 25) closedTabs.shift(); B.call('br:closed', closedTabs.filter(c => !c.incognito)); }
+  if (tab.url && !tab.moved) { closedTabs.push({ url: tab.url, title: tab.title, fav: tab.fav, incognito: tab.incognito }); if (closedTabs.length > 25) closedTabs.shift(); B.call('br:closed', closedTabs.filter(c => !c.incognito)); }
   saveSession();
   tab.wv?.remove(); tab.el.remove();
   tabs.splice(i, 1);
@@ -312,7 +382,7 @@ $('#bShield').onclick = e => popOpen('adblock', e.currentTarget);
 const modOn = id => !!(CFG.mods && CFG.mods[id] && CFG.mods[id].on);
 const MODS = [['adblock', 'Bloqueur de publicités', 'shield'], ['capture', 'Téléchargements par DrYAE', 'dl'], ['translate', 'Traducteur', 'translate'], ['scan', 'Traducteur de scans', 'scan'], ['lights', 'Lumières tamisées', 'bulb'], ['pip', "Image dans l'image", 'pip']];
 function openPage(name, hash) { B.call('br:openPage', name, hash || ''); }
-function pageCmd(cmd, extra = {}, tab = cur) { if (tab?.wv && tab.wcId && /^(https?:|dryae:\/\/bd\/)/.test(tab.url)) tab.wv.send('dryae-cmd', { cmd, ...extra }); else toast('Ouvre une page web d\'abord'); }
+function pageCmd(cmd, extra = {}, tab = cur) { if (tab?.wv && tab.wcId && /^(https?:|file:|dryae:\/\/(bd|pdf)\/)/i.test(tab.url)) tab.wv.send('dryae-cmd', { cmd, ...extra }); else toast('Ouvre une page web d\'abord'); }
 // 1.7.0 : dans une fenêtre ouverte avec « Nouvelle fenêtre », les téléchargements s'affichent dans cette fenêtre
 // (le gestionnaire complet reste dans la fenêtre principale : bouton « Ouvrir le gestionnaire » du panneau)
 const EXTRA_WIN = new URLSearchParams(location.search).get('win') === 'extra';

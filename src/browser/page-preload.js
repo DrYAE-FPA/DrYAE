@@ -907,7 +907,9 @@ function pageFeatures() {
   }
   let nightKey = null;
   const NIGHT = 'html{filter:invert(.9) hue-rotate(180deg)!important;background:#fff!important}img,video,picture,canvas,iframe,embed,object,[style*="background-image"]{filter:invert(1) hue-rotate(180deg)!important}';
-  const night = on => { try { if (on && !nightKey) nightKey = webFrame.insertCSS(NIGHT); else if (!on && nightKey) { webFrame.removeInsertedCSS(nightKey); nightKey = null; } } catch {} toHost('dryae-night', !!nightKey); };
+  // 1.7.1 : PDF (lecteur de DrYAE ou PDF de l'ordinateur) : les pages sont des images qu'il faut aussi foncer, sinon elles restent blanches
+  const NIGHT_PDF = 'html{filter:invert(.9) hue-rotate(180deg)!important;background:#fff!important}';
+  const night = on => { try { if (on && !nightKey) nightKey = webFrame.insertCSS(CFG.doc === 'pdf' || document.contentType === 'application/pdf' ? NIGHT_PDF : NIGHT); else if (!on && nightKey) { webFrame.removeInsertedCSS(nightKey); nightKey = null; } } catch {} toHost('dryae-night', !!nightKey); };
   if (CFG.lights && L.night) night(true);
 
   // ---------- 5d. traducteur de scans ----------

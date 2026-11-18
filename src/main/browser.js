@@ -1503,6 +1503,8 @@ class WebBrowser {
       const w = [...(this.extraWins || [])].find(x => !x.isDestroyed() && x.id === id); if (!w) return false;
       this.extraShow(w, true, url, !!inc); return true;
     });
+    // 1.7.1 : déplacer un onglet à la souris (vignette qui suit, autre fenêtre, nouvelle fenêtre)
+    require('./tab-drag')(this);
     // onglet lâché hors de toute fenêtre : nouvelle fenêtre à cet endroit
     ipcMain.handle('br:tearOff', (e, url, inc, x, y) => { if (typeof url !== 'string' || !url) return; const w = this.newWindow(url, { incognito: !!inc }); try { if (w && Number.isFinite(x) && Number.isFinite(y)) { const b = w.getBounds(); w.setBounds({ ...b, x: Math.round(x - 120), y: Math.round(y - 20) }); } } catch {} });
     ipcMain.handle('br:openComic', (e, kind) => kind === 'dir' ? this.pickComicDir(e.sender) : this.pickComic(e.sender));
@@ -1760,12 +1762,20 @@ class WebBrowser {
     // réglages des extensions intégrées pour cette page
     ipcMain.on('click-info', (e, c) => { if (!c || typeof c !== 'object') return; (this.lastClick || (this.lastClick = new Map())).set(e.sender.id, { href: String(c.href || '').slice(0, 4000), overlay: !!c.overlay, t: Date.now() }); });
     ipcMain.on('page:init', e => {
-      const f = e.senderFrame; let host = ''; try { host = new URL(f?.url || '').hostname; } catch {}
+      const f = e.senderFrame; let host = docHost(f?.url);
       const B = this.B();
       const T = global.DRYAE_T || (s => s);
       const keys = ['Télécharger cette vidéo', 'Masquer', 'Remplir avec mon profil', 'mon profil', '(sans identifiant)', '— mot de passe enregistré', 'Suggérer un mot de passe fort', 'Utiliser ce mot de passe', 'Carte enregistrée', 'Remplir avec la carte', 'Image dans l\'image', 'Masquer le bouton sur ce site', 'Placer le bouton à gauche', 'Placer le bouton à droite', 'Traduire', 'Copier', 'Écouter', 'Fermer', 'Traduction…', 'Traduit de {0}', 'Afficher l\'original', 'Masquer les traductions', 'Arrêter', 'Lecture des images…', '{0} bulle(s) traduite(s)', 'Aucun texte trouvé dans cette image', 'Cliquez sur un élément à masquer. Molette ou ↑ ↓ : agrandir / réduire. Échap : annuler.', 'Masquer cet élément', 'Annuler', 'Traduction impossible : {0}', 'Adresse', 'Cliquez à côté pour rallumer', 'Traducteur de scans', 'Texte d\'origine', 'Échap pour rallumer', 'Aucune vidéo sur cette page', 'Boucle activée', 'Boucle désactivée', 'Sans filtre', 'Opacité gardée : {0} %', 'Protection des yeux activée', 'Protection des yeux désactivée', 'Aucune image à traduire sur cette page', 'Afficher la traduction', 'Original / traduction', 'Comparer', 'Relire cette image', 'Copier le texte traduit', 'Retirer la traduction', 'Dessinez un rectangle autour du texte à traduire. Échap : annuler.', 'Traduire la zone', 'Compte enregistré', 'Garder cette image pour l\'améliorer', 'Enregistre l\'image dans un dossier de votre PC (rien n\'est envoyé)', 'Image gardée dans {0}', 'Image non disponible : relisez la page puis réessayez', 'Votre note sur ce passage…', 'Retirer le surlignage', 'Enregistrer', 'Mode présentation : maintenez Alt et bougez la souris pour montrer un passage. Échap pour quitter.', 'Texte lu', 'Traduction', 'Affiche le texte lu dans les bulles : sélectionnez un mot pour le corriger ou l\'ajouter au lexique', 'Sélectionnez un mot du texte lu : corriger, ajouter au lexique, ne jamais traduire', 'Ne jamais traduire', 'Corriger la bulle', 'Toujours traduire par', 'Ajouter au lexique', 'Retraduire', 'Mot d\'origine', 'C\'est la traduction : cliquez sur la bulle (ou « Texte lu ») pour sélectionner le texte d\'origine.', 'Voir le texte lu', 'Ne sera jamais traduit', 'Ajouté au lexique', 'Clic : original / traduction · clic droit : corriger', 'Ce mot ou ce nom ne sera plus jamais traduit', 'Ces images ne peuvent pas être recopiées (elles viennent d\'un autre site)', 'Couleurs', 'Enregistrement des pages…', 'Enregistré : {0} ({1} pages, dont {2} traduites)', 'Fermer le mode lecture (Échap)', 'IA : clé refusée, traduction habituelle', 'IA : limite gratuite du jour atteinte, traduction habituelle', 'IA : trop de pages d\'un coup, traduction habituelle pour cette page', 'IA indisponible pour cette page, traduction habituelle', 'Largeur', 'Lecture à voix haute', 'Lire à voix haute', 'Mode lecture', 'Mot ou nom à ne jamais traduire', 'Pas d\'article à afficher sur cette page', 'Pause', 'Plus lent', 'Plus rapide', 'Police', 'Rien à lire sur cette page', 'Texte plus grand', 'Texte plus petit', 'Traduction des images en cours : enregistrez quand la page est traduite', 'Traduction en cours (cela peut prendre quelques secondes)…', 'délai dépassé, image passée', '{0} image(s) impossibles à recopier', '« {0} » ne sera plus jamais traduit'];
       const pip = B.pip || {};
       const isInt = pages.isPageUrl(f?.url) && !/^dryae:\/\/bd\//.test(f?.url || ''); // lecteur de BD : page « normale » (traducteur de scans)
+      // 1.7.1 : lecteur PDF de DrYAE : lumières tamisées, protection des yeux et mode nuit seulement (fichiers de l'ordinateur, même sans connexion)
+      const pdfDoc = /^dryae:\/\/pdf\//i.test(f?.url || '');
+      if (pdfDoc) {
+        const l = B.lights || {};
+        e.returnValue = { pt: Object.fromEntries(keys.map(k => [k, T(k)])), internal: false, doc: 'pdf', lang: this.settings.get().lang, capture: false, pip: null, translate: null, scan: null, hides: [], marks: [], speed: 1, a11y: {}, reader: {}, dataSaver: false, cookieRefuse: false,
+          lights: this.modOn('lights') ? { ...l, global: !!this.lightsGlobal, night: (l.nightHosts || []).includes(host) || this.nightBySchedule(host), nightOff: (l.nightExcept || []).includes(host) } : null };
+        return;
+      }
       e.returnValue = {
         pt: Object.fromEntries(keys.map(k => [k, T(k)])),
         internal: isInt, lang: this.settings.get().lang,
@@ -1876,7 +1886,7 @@ class WebBrowser {
       return on;
     });
     ipcMain.handle('lights:night', (e, on) => {
-      let host = ''; try { host = new URL(e.senderFrame.url).hostname; } catch {}
+      const host = docHost(e.senderFrame.url);
       const L = { ...(this.B().lights || {}) }; const s = new Set(L.nightHosts || []);
       on ? s.add(host) : s.delete(host); L.nightHosts = [...s];
       this.settings.set({ browser: { lights: L } }); return on;
@@ -2157,6 +2167,8 @@ function readingOrder(gs) {
 
 const PERM_OF = { geolocation: 'geolocation', notifications: 'notifications', 'clipboard-read': 'clipboard', midi: 'midi', 'idle-detection': 'idle' };
 const PERM_KINDS = ['camera', 'microphone', 'geolocation', 'notifications', 'clipboard', 'popups', 'midi', 'idle'];
+// 1.7.1 : « site » d'une page pour le mode nuit : les fichiers ouverts depuis l'ordinateur comptent comme un seul site
+function docHost(u) { u = String(u || ''); if (/^file:/i.test(u)) return 'fichiers'; try { return new URL(u).hostname; } catch { return ''; } }
 function isUrlLike(s) { return /^(https?:\/\/|file:\/\/)/i.test(s) || /^[\w-]+(\.[\w-]+)+(:\d+)?(\/.*)?$/.test(s); }
 
 module.exports = { WebBrowser, PART, PART_PRIV, UA_DESKTOP, UA_MOBILE };

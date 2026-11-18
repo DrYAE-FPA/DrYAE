@@ -9,7 +9,9 @@ body{display:flex;flex-direction:column;height:100vh}
 .tabstrip{display:flex;align-items:flex-end;gap:2px;padding:6px 8px 0;background:var(--panel);overflow-x:auto;flex:none}
 .tab{display:flex;align-items:center;gap:8px;min-width:120px;max-width:220px;flex:1 1 180px;padding:7px 8px 7px 10px;border-radius:9px 9px 0 0;background:var(--panel2);color:var(--muted);cursor:default;border:1px solid var(--line);border-bottom:0;font-size:12px}
 .tab.on{background:var(--bg);color:var(--text)}
-.tab.dragging{opacity:.45}
+.tab.dragging{opacity:.45}.tab.dragging.lift{opacity:1;background:var(--bg);color:var(--text);box-shadow:0 4px 14px rgba(0,0,0,.35),inset 0 2px 0 var(--accent);position:relative;z-index:5}
+body.tabdrag webview,body.tabpress webview{pointer-events:none}body.tabdrag,body.tabdrag *{cursor:grabbing!important}body.tabout .tab.dragging{opacity:.35}
+body.tabin #tabs{box-shadow:inset 0 0 0 2px var(--accent);border-radius:8px}
 .tab.drop-l{box-shadow:inset 3px 0 0 var(--accent)}
 .tab.drop-r{box-shadow:inset -3px 0 0 var(--accent)}
 .tab.priv{background:#2a1846}.tab.priv.on{background:#3b2163}
