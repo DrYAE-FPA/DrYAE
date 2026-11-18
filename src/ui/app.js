@@ -182,6 +182,8 @@ function render() {
   if (VIEW === 'details' && arr.length) { if (!head) { head = document.createElement('div'); head.className = 'dhead'; list.prepend(head); } const h = detailsHead(); if (head._h !== h) { head.innerHTML = h; head._h = h; } }
   else if (head) { head.remove(); head = null; }
   status();
+  // 1.7.1 : liste vide : le message est au milieu de la page, quel que soit l'affichage (icônes, détails, liste…)
+  list.classList.toggle('is-empty', !arr.length);
   if (!arr.length) {
     list.innerHTML = `<div class="empty"><img src="../../assets/logo.png" alt=""><b>${items.size ? 'Aucun élément ici' : 'Aucun téléchargement'}</b>
       <div>${items.size ? 'Change de filtre ou de recherche.' : 'Ajoute un lien, un torrent, ou ouvre le navigateur pour trouver des vidéos.'}</div>
