@@ -107,9 +107,10 @@ class WebBrowser {
   get wc() {
     const x = this._activeUi;
     if (x && !x.isDestroyed()) return x;
-    return this.view && !this.view.webContents.isDestroyed() ? this.view.webContents : null;
+    return this.mainWc;
   }
-  get mainWc() { return this.view && !this.view.webContents.isDestroyed() ? this.view.webContents : null; }
+  // 1.7.1 : une fois fermé (dernier onglet fermé), le navigateur n'a plus de webContents du tout : il ne faut pas planter
+  get mainWc() { const w = this.view && this.view.webContents; return w && !w.isDestroyed() ? w : null; }
   uiAll() { return [this.mainWc, ...[...(this.extraWins || [])].map(w => (w.isDestroyed() || !w._view ? null : w._view.webContents))].filter(w => w && !w.isDestroyed()); }
   isUi(wc) { return this.uiAll().includes(wc); }
   isExtraUi(wc) { return !!wc && wc !== this.mainWc && this.isUi(wc); }
@@ -690,8 +691,14 @@ class WebBrowser {
   // le navigateur vit dans la même fenêtre que le gestionnaire (une seule fenêtre)
   open(url, opts = {}) {
     { const x = opts.from && this.extraOf(opts.from); if (x) return this.extraShow(x, true, url, opts.incognito); }
+    // 1.7.1 : fichier ouvert depuis l'Explorateur (PDF…) ou icône de la barre des tâches pendant qu'on est dans une
+    // autre fenêtre du navigateur (Ctrl+N) : il s'ouvre dans cette fenêtre-là, pas dans la fenêtre principale
+    if (!opts.from) { const a = this._activeUi; const x = a && !a.isDestroyed() && a !== this.mainWc ? this.extraOf(a) : null; if (x) return this.extraShow(x, true, url, opts.incognito); }
+    // 1.7.1 : navigateur de la fenêtre principale fermé (dernier onglet fermé ou glissé dans une autre fenêtre) : on le refait
+    if (this.view && !this.mainWc) { try { this.win?.contentView?.removeChildView(this.view); } catch {} this.view = null; this._uiReady = false; }
     const host = this.main.hostWindow();
-    if (this.wc) {
+    if (this.mainWc) {
+      this._activeUi = null;
       this.showView();
       // 1.7.0 : la fenêtre du navigateur se charge encore (DrYAE lancé par un double-clic sur un PDF) : on attend
       if (!this._uiReady) { if (url || opts.incognito) (this._uiQueue || (this._uiQueue = [])).push({ url, incognito: !!opts.incognito }); return; }
@@ -757,7 +764,7 @@ class WebBrowser {
     this.view.setBounds({ x: 0, y: 0, width: w, height: h });
   }
   showView() {
-    if (!this.view) return;
+    if (!this.view || !this.mainWc) return;
     const host = this.win;
     if (host.isMinimized()) host.restore();
     host.show();
