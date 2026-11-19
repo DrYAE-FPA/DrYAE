@@ -374,6 +374,13 @@ $('#tabs').addEventListener('wheel', e => { const el = e.currentTarget; if (el.s
 $('#bReload').onclick = () => { if (!cur.wv) return; cur.loading ? cur.wv.stop() : cur.wv.reload(); };
 $('#bHome').onclick = () => showStart(cur);
 $('#newTab').onclick = () => newTab();
+// 1.7.2 : sortis du menu principal — clic droit sur « + » (onglet privé, conteneur), bouton de recherche dans les onglets
+$('#newTab').addEventListener('contextmenu', e => { e.preventDefault(); const r = e.currentTarget.getBoundingClientRect(); menu(r.left, r.bottom + 4, [
+  { label: 'Nouvel onglet', icon: 'plus', key: 'Ctrl+T', fn: () => newTab() },
+  { label: 'Nouvel onglet privé', icon: 'mask', key: 'Ctrl+Maj+N', fn: () => newTab('', { incognito: true }) },
+  window.WORK && { label: 'Nouvel onglet dans un conteneur', icon: 'box', sub: () => WORK.ctnMenu(null) },
+].filter(Boolean)); });
+$('#tabFind').onclick = () => window.TABSX?.tabSearch();
 $('#bDrYAE').onclick = () => togglePanel('media');
 $('#bStar').onclick = () => starClick();
 
@@ -408,11 +415,15 @@ async function drawMgr() {
 function mainMenu() {
   const zoomPct = cur && cur.zoom ? Math.round(Math.pow(1.2, cur.zoom) * 100) : 100;
   const web = /^(https?:|dryae:\/\/bd\/)/.test(cur?.url || '');
+  // 1.7.2 : menu raccourci pour les petits écrans — Profils en tête ; conteneurs (clic droit sur « + »), BD (Paramètres),
+  // recherche dans les onglets (bouton de la barre d'onglets), panneau latéral, espaces de travail et collections
+  // (bouton du panneau latéral) ne sont plus dans ce menu
   return [
+    { label: 'Profils', icon: 'user', adv: true, sub: profileMenu },
+    '-',
     { label: 'Nouvel onglet', icon: 'plus', key: 'Ctrl+T', fn: () => newTab() },
     { label: 'Nouvelle fenêtre', icon: 'newwin', key: 'Ctrl+N', fn: () => B.call('br:newWindow', '') },
     { label: 'Nouvel onglet privé', icon: 'mask', key: 'Ctrl+Maj+N', fn: () => newTab('', { incognito: true }) },
-    window.WORK && { label: 'Nouvel onglet dans un conteneur', icon: 'box', adv: true, sub: () => WORK.ctnMenu(null) },
     '-',
     { label: 'Mots de passe et saisie automatique', icon: 'key', sub: () => [
       { label: 'Gestionnaire de mots de passe', icon: 'key', fn: () => openPage('passwords') },
@@ -429,14 +440,6 @@ function mainMenu() {
     { label: 'Téléchargements', icon: 'dl', key: 'Ctrl+J', hl: true, fn: openDownloads },
     // 1.7.0 refaite : mode téléphone visible dans le menu principal (les sites voient alors un téléphone)
     { label: CFG.ua === 'mobile' ? 'Passer en mode ordinateur' : 'Passer en mode téléphone', icon: 'phone', check: CFG.ua === 'mobile', fn: () => setUaMode(CFG.ua === 'mobile' ? 'desktop' : 'mobile') },
-    { label: 'Ouvrir une BD ou un manga…', icon: 'book', sub: () => [
-      { label: 'Fichier (.cbz, .cbr, .cb7)…', icon: 'book', fn: () => B.call('br:openComic', 'file') },
-      { label: 'Dossier d\'images…', icon: 'folder', fn: () => B.call('br:openComic', 'dir') },
-    ] },
-    { label: 'Rechercher dans les onglets…', icon: 'search', key: 'Ctrl+Maj+A', fn: () => window.TABSX?.tabSearch() },
-    { label: 'Panneau latéral', icon: 'list', fn: () => window.TABSX?.toggleSide() },
-    { label: 'Espaces de travail', icon: 'spaces', fn: () => window.TABSX?.toggleSide('ws') },
-    { label: 'Collections', icon: 'col', fn: () => window.TABSX?.toggleSide('col') },
     { label: 'Favoris', icon: 'star', sub: bmMenu },
     { label: 'Extensions', icon: 'puzzle', adv: true, sub: () => [
       { label: 'Gérer les extensions', icon: 'puzzle', key: 'Ctrl+Maj+X', fn: () => openPage('extensions') },
@@ -487,7 +490,6 @@ function mainMenu() {
       { label: 'Signaler un problème…', icon: 'help', fn: reportProblem },
       { label: 'À propos de DrYAE', icon: 'dryae', fn: () => openPage('settings', 'about') },
     ] },
-    { label: 'Profils', icon: 'user', adv: true, sub: profileMenu },
     { label: 'Paramètres', icon: 'gear', fn: () => openPage('settings') },
     { label: 'Quitter', icon: 'x', key: 'Ctrl+Maj+Q', fn: () => B.call('br:quit') },
   ];
@@ -974,12 +976,25 @@ setTimeout(() => B.call('br:defaults').then(d => { qsDefaults = qsDefaults || d;
 async function qsAdvInit(name) {
   qsDefaults = qsDefaults || await B.call('br:defaults');
   $('#qaName').value = name || '';
-  $('#qaDir').value = ''; $('#qaDir').placeholder = 'automatique (' + (qsDefaults.categorize ? 'classé par catégorie' : qsDefaults.dir) + ')';
+  $('#qaDir').placeholder = 'automatique (' + (qsDefaults.categorize ? 'classé par catégorie' : qsDefaults.dir) + ')';
   $('#qaPaused').checked = false; $('#qaSched').checked = false; $('#qaSpeed').value = 0;
   $('#qsAdv').style.display = 'none'; $('#qsMore').textContent = "Plus d'options…";
+  // 1.7.2 : dossier du moment actif → options ouvertes, dossier rempli et case cochée (relu à chaque fois : il a pu changer ailleurs)
+  const showTmp = t => { $('#qaDir').value = t || ''; $('#qaTmp').checked = !!t; if (t) { $('#qsAdv').style.display = ''; $('#qsMore').textContent = "Moins d'options"; } };
+  showTmp(qsDefaults.tempDir);
+  B.call('br:defaults').then(d => { qsDefaults = d; if ((d.tempDir || '') !== ($('#qaTmp').checked ? $('#qaDir').value : '')) showTmp(d.tempDir); }).catch(() => {});
 }
 $('#qsMore').onclick = () => { const on = $('#qsAdv').style.display === 'none'; $('#qsAdv').style.display = on ? '' : 'none'; $('#qsMore').textContent = on ? "Moins d'options" : "Plus d'options…"; };
-$('#qaPick').onclick = async () => { const d = await B.call('br:pickDir', $('#qaDir').value); if (d) $('#qaDir').value = d; };
+$('#qaPick').onclick = async () => { const d = await B.call('br:pickDir', $('#qaDir').value); if (d) { $('#qaDir').value = d; if ($('#qaTmp').checked) qaTmpSet(); } };
+// 1.7.2 : « dossier du moment » (même réglage que dans le gestionnaire)
+async function qaTmpSet() {
+  if ($('#qaTmp').checked && !$('#qaDir').value.trim()) { const d = await B.call('br:pickDir', ''); if (d) $('#qaDir').value = d; else { $('#qaTmp').checked = false; return; } }
+  const t = await B.call('br:tempDir', $('#qaTmp').checked ? $('#qaDir').value.trim() : '');
+  if (qsDefaults) qsDefaults.tempDir = t;
+  if (!$('#qaTmp').checked) $('#qaDir').value = '';
+  toast($('#qaTmp').checked ? 'Les prochains téléchargements iront dans ce dossier.' : 'Retour aux dossiers habituels');
+}
+$('#qaTmp').onchange = qaTmpSet;
 function qsOpts() {
   return { name: $('#qaName').value.trim() || null, dir: $('#qaDir').value.trim(), startNow: !$('#qaPaused').checked, schedule: $('#qaSched').checked, speedLimit: +$('#qaSpeed').value || 0 };
 }

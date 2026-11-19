@@ -180,6 +180,7 @@ function draw() {
       ${row('Sites traduits automatiquement', '', '')}${sites('translate.autoSites', T2.autoSites)}`, 'Traduit le texte sélectionné ou la page entière. Le texte est envoyé au service choisi.') +
     sec('scan', 'Traducteur de scans', `
       ${modRow('scan')}
+      ${row('Lire une BD ou un manga', 'DrYAE lit les fichiers .cbz, .cbr et .cb7 et les dossiers d\'images, sans internet : défilement, page par page ou deux pages, sens manga, et la page où vous vous êtes arrêté. Vous pouvez aussi double-cliquer sur le fichier (« Ouvrir avec → DrYAE »). Pour traduire : bouton du traducteur de scans dans la barre d\'outils.', `<button class="btn sm" data-comic="file">${esc(TR('Ouvrir un fichier…'))}</button> <button class="btn sm" data-comic="dir">${esc(TR('Ouvrir un dossier…'))}</button>`)}
       ${row('Langue du texte dans les images', 'La première fois, les données de lecture de cette langue sont téléchargées (2 à 15 Mo).', sel('scSrc', Object.entries(OCR.langs).map(([k, l]) => [k, TR(l) + (OCR.have.includes(k) ? ' ✓' : '')]), S.source || 'eng'))}
       ${row('Traduire vers', '', sel('scTo', langOpts(true), S.target || ''))}
       ${row('Lire aussi l\'anglais', 'Pour les images qui mélangent deux langues (plus lent).', swk('scan.withEng', !!S.withEng))}
@@ -267,6 +268,7 @@ function draw() {
     const has = src === trg || I.includes(src + '-' + trg) || (I.includes(src + '-en') && I.includes('en-' + trg));
     b.disabled = has; b.textContent = has ? TR('Installée ✓') : TR('Télécharger');
   };
+  document.querySelectorAll('[data-comic]').forEach(b => { b.onclick = () => call('openComic', b.dataset.comic).catch(() => {}); });
   if ($('#lmGet')) {
     $('#lmGet').onclick = async () => { const src = $('#lmSrc').value, trg = $('#lmTrg').value; if (src === trg) return; try { await call('localMt', { get: { src, trg } }); setTimeout(lmDraw, 600); } catch (e) { $('#lmInfo').textContent = String(e.message || e); } };
     $('#lmDel').onclick = async () => { await call('localMt', { remove: true }); lmDraw(); };

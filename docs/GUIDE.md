@@ -115,7 +115,7 @@ Les vidéos protégées par DRM (Netflix, Disney+…) ne peuvent pas être tél�
 
 ![Vue côte à côte](images/cote-a-cote.jpg)
 
-- **Rechercher dans les onglets :** Ctrl+Maj+A (tapez quelques lettres, Entrée).
+- **Rechercher dans les onglets :** Ctrl+Maj+A, ou la loupe au bout de la barre d'onglets (tapez quelques lettres, Entrée). **Clic droit sur « + »** : onglet privé ou onglet dans un conteneur.
 - **Aperçu au survol d'un onglet :** image de la page, adresse et mémoire utilisée.
 - **Panneau latéral** (bouton à droite de la barre d'outils) : favoris, historique, pages hors ligne, **notes** liées à chaque page, traducteur.
 - **Mode lecture** (F9) : seulement le texte de l'article, sans publicités, avec la taille, les couleurs et la police au choix. **Lire à voix haute** (F8) utilise les voix de Windows.
@@ -165,7 +165,7 @@ Les vidéos protégées par DRM (Netflix, Disney+…) ne peuvent pas être tél�
 
 ## 5 bis++. BD, mangas et traduction sur le PC (1.7.0)
 
-- **Ouvrir une BD** : menu ⋮ → « Ouvrir une BD ou un manga » → « Fichier (.cbz, .cbr, .cb7) » ou « Dossier d'images ». Dans l'Explorateur de Windows : clic droit sur le fichier → « Ouvrir avec » → DrYAE.
+- **Ouvrir une BD** : Paramètres → Traducteur de scans → « Lire une BD ou un manga » → « Ouvrir un fichier… » (.cbz, .cbr, .cb7) ou « Ouvrir un dossier… ». Dans l'Explorateur de Windows : clic droit sur le fichier → « Ouvrir avec » → DrYAE.
 - **Lire** : en haut, choisissez « Défilement continu », « Page par page » ou « Deux pages », et le sens de lecture (« Droite → gauche » pour les mangas). Flèches ← → du clavier, ou clic sur la moitié gauche / droite de la page. DrYAE retient la page où vous vous êtes arrêté.
 - **Traduire** : bouton « Traducteur de scans » de la barre d'outils. Les pages suivantes sont traduites à l'avance.
 - **Enregistrer la traduction** : fenêtre du Traducteur de scans → « Enregistrer la traduction (.cbz) » ou « (PDF) ». Seulement pour vos fichiers, ou ceux que vous avez le droit de copier.

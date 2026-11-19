@@ -268,5 +268,6 @@ html.a-simple .adv{display:none!important}
 .sr-only{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
 /* 1.7.1 : voyant « connexion entrante » des torrents */
+.catdirs{display:grid;grid-template-columns:auto 1fr auto;gap:6px 8px;align-items:center}.catdirs label{margin:0;color:var(--muted)}.catdirs input{margin:0}
 .tport{display:flex;align-items:flex-start;gap:9px;padding:10px 12px;border-radius:8px;background:var(--panel2);line-height:1.45}.tport .dot{flex:none;width:10px;height:10px;border-radius:50%;margin-top:5px;background:var(--muted)}.tport.ok .dot{background:#22c55e}.tport.bad .dot{background:#ef4444}.tport.warn .dot{background:#f59e0b}
 .speedbox .row1 .chip.turbo{margin-left:4px}.chip.turbo.on{color:#fde047;border-color:#eab30899;background:#eab3081f;box-shadow:0 0 10px #eab30833}

@@ -17,6 +17,15 @@ function catOf(name) {
   for (const k in CATS) if (CATS[k].ext.split(' ').includes(e)) return k;
   return 'other';
 }
+// 1.7.2 : dossier automatique d'un téléchargement
+//  1) « dossier du moment » choisi au téléchargement (case cochée) ; 2) dossier choisi pour la catégorie dans les
+//  paramètres ; 3) dossier principal, rangé par catégorie si « Classer automatiquement » est coché
+function autoFolder(S, cat) {
+  const path = require('path');
+  if (S.tempDir) return S.tempDir;
+  const own = (S.catDirs || {})[cat]; if (own) return own;
+  return S.categorize ? path.join(S.dir, catFolder(cat)) : S.dir;
+}
 function catFolder(cat) { return cat === 'other' ? 'Autres' : cat === 'torrent' ? 'Torrents' : CATS[cat]?.label || 'Autres'; }
 
 function sanitize(name) {
@@ -94,4 +103,4 @@ function cleanTitle(t) {
   while (parts.length > 1 && /\.(com|net|org|info|tv|io|online|fr|co|me|to|cc|site|xyz)\b|stream|regarder|watch|youtube|vimeo|en ligne|online|gratuit|free|hd\b|vf\b.*vostfr/i.test(parts[parts.length - 1])) parts.pop();
   return parts.join(' - ').trim().slice(0, 150);
 }
-module.exports = { isGenericName, cleanTitle, CATS, extOf, catOf, catFolder, sanitize, uniquePath, nameFromHeaders, nameFromUrl, EXT_BY_MIME, sleep, uid, hostOf, expandBatch };
+module.exports = { isGenericName, cleanTitle, CATS, extOf, catOf, catFolder, autoFolder, sanitize, uniquePath, nameFromHeaders, nameFromUrl, EXT_BY_MIME, sleep, uid, hostOf, expandBatch };

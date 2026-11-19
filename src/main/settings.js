@@ -18,6 +18,8 @@ function defaults(app) {
   return {
     dir: path.join(app.getPath('downloads'), 'DrYAE'),
     categorize: true,
+    // 1.7.2 : dossier choisi pour chaque catégorie (vide = dossier principal) et « dossier du moment » (vide = éteint)
+    catDirs: {}, tempDir: '',
     connections: 8,
     parallel: 3,
     perSite: 0,

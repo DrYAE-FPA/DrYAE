@@ -5,7 +5,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { Item } = require('./base');
 const { errMsg } = require('./http');
-const { sanitize, uniquePath, nameFromUrl, sleep, catFolder } = require('../util');
+const { sanitize, uniquePath, nameFromUrl, sleep, catFolder, autoFolder } = require('../util');
 
 function attrs(line) {
   const out = {};
@@ -181,7 +181,7 @@ class HlsDownload extends Item {
         let name = sanitize(this.name || nameFromUrl(this.url).replace(/\.m3u8$/i, '') || 'video');
         if (!/\.(mp4|ts|mkv)$/i.test(name)) name += S.hls.convert && this.ctx.ffmpeg() ? '.mp4' : '.ts';
         let dir = this.dir || S.dir;
-        if (this.autoDir && S.categorize) dir = path.join(S.dir, catFolder('video'));
+        if (this.autoDir) dir = autoFolder(S, 'video');
         await fsp.mkdir(dir, { recursive: true });
         this.dir = dir; this.file = uniquePath(dir, name); this.name = path.basename(this.file);
       }

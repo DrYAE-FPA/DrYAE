@@ -173,6 +173,7 @@
   </div>
   <label>Enregistrer dans</label>
   <div class="row"><input type="text" id="aDir" placeholder="automatique (classé par catégorie)"><button class="btn" id="aPick"><svg><use href="#i-folder"/></svg>Parcourir</button></div>
+  <label class="check" title="Décoche pour revenir aux dossiers des paramètres"><input type="checkbox" id="aTmp"> Utiliser ce dossier pour les prochains téléchargements (jusqu'à ce que je décoche)</label>
   <div id="aConnBox"><label>Connexions par fichier</label>
   <div class="range"><input type="range" id="aConn" min="1" max="32"><b id="aConnV"></b></div></div>
   <details style="margin-top:12px"><summary style="cursor:pointer;color:var(--muted)">En-têtes avancés (referer, cookies, user-agent)</summary>
@@ -237,6 +238,10 @@
         <label>Au démarrage de DrYAE, ouvrir</label><select id="sStartView"><option value="browser">Le navigateur (par défaut)</option><option value="manager">Le gestionnaire de téléchargements</option></select>
         <label>Dossier de téléchargement</label><div class="row"><input type="text" id="sDir"><button class="btn" id="sDirPick"><svg><use href="#i-folder"/></svg>Parcourir</button></div>
         <label class="check"><input type="checkbox" id="sCat"> Classer automatiquement par catégorie (Vidéos, Musique, Documents, Torrents…)</label>
+        <div class="sect">Dossier de chaque catégorie</div>
+        <p class="hint">Laisse vide pour garder le rangement automatique dans le dossier de téléchargement. Un dossier choisi ici sert à cette catégorie même si « Classer automatiquement » est décoché.</p>
+        <div id="sCatDirs" class="catdirs"></div>
+        <div id="sTmpBox" class="tport warn" style="display:none;margin-top:8px"><span class="dot"></span><span style="flex:1">Dossier du moment : <b id="sTmpDir" class="notr"></b> — tous les nouveaux téléchargements y vont.</span><button class="btn sm" id="sTmpOff">Revenir aux dossiers habituels</button></div>
         <label class="check"><input type="checkbox" id="sClip"> Détecter les liens copiés dans le presse-papiers</label>
         <label class="check"><input type="checkbox" id="sNotify"> Notifications</label>
         <label class="check"><input type="checkbox" id="sSound"> Son à la fin d'un téléchargement</label>

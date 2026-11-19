@@ -120,7 +120,7 @@ DRM-protected videos (Netflix, Disney+…) cannot be downloaded.
 
 ![Side by side](images/cote-a-cote.jpg)
 
-- **Search tabs:** Ctrl+Shift+A (type a few letters, Enter).
+- **Search tabs:** Ctrl+Shift+A (type a few letters, Enter). Or use the magnifier at the end of the tab bar. **Right-click "+"**: private tab or tab in a container.
 - **Tab hover preview:** page image, address and memory used.
 - **Side panel** (button on the right of the toolbar): bookmarks, history, offline pages, **notes** attached to each page, translator.
 - **Reading mode** (F9): only the article text, without ads, with your choice of size, colours and font. **Read aloud** (F8) uses the Windows voices.
@@ -170,7 +170,7 @@ DRM-protected videos (Netflix, Disney+…) cannot be downloaded.
 
 ## 5a++. Comics, manga and on-device translation (1.7.0)
 
-- **Open a comic**: menu ⋮ → "Open a comic or a manga" → "File (.cbz, .cbr, .cb7)" or "Image folder". In File Explorer: right-click the file → "Open with" → DrYAE.
+- **Open a comic**: Settings → Image text translator → "Read a comic or manga" → "Open a file…" (.cbz, .cbr, .cb7) or "Open a folder…". In File Explorer: right-click the file → "Open with" → DrYAE.
 - **Read**: at the top, pick "Continuous scrolling", "Page by page" or "Two pages", and the reading direction ("Right → left" for manga). Arrow keys ← →, or click the left / right half of the page. DrYAE remembers where you stopped.
 - **Translate**: "Image text translator" button in the toolbar. The next pages are translated ahead.
 - **Save the translation**: Image text translator window → "Save the translation (.cbz)" or "(PDF)". Only for your own files, or files you have the right to copy.

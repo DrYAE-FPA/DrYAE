@@ -9,7 +9,7 @@ const net = require('net');
 const crypto = require('crypto');
 const { spawn } = require('child_process');
 const { Item } = require('./base');
-const { catFolder, sanitize } = require('../util');
+const { catFolder, autoFolder, sanitize } = require('../util');
 
 let parseTorrentFn = null;
 async function parseTorrent(x) {
@@ -338,7 +338,7 @@ class TorrentDownload extends Item {
     const S = this.ctx.settings.get();
     try {
       await this.hub.ensure();
-      if (!this.dir || this.autoDir) { this.dir = S.categorize ? path.join(S.dir, catFolder('torrent')) : S.dir; }
+      if (!this.dir || this.autoDir) { this.dir = autoFolder(S, 'torrent'); }
       await fsp.mkdir(this.dir, { recursive: true });
       if (this.files.length) this.size = this.selSize();
       const o = this.options();

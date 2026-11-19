@@ -2,7 +2,7 @@ const fs = require('fs');
 const fsp = fs.promises;
 const path = require('path');
 const { Item } = require('./base');
-const { sanitize, uniquePath, nameFromHeaders, extOf, EXT_BY_MIME, sleep, catOf, catFolder } = require('../util');
+const { sanitize, uniquePath, nameFromHeaders, extOf, EXT_BY_MIME, sleep, catOf, catFolder, autoFolder } = require('../util');
 
 const MIN_SPLIT = 512 * 1024;
 
@@ -90,7 +90,7 @@ class HttpDownload extends Item {
         let name = this.name ? sanitize(this.name) : info.name;
         if (!extOf(name) && EXT_BY_MIME[info.ctype]) name += '.' + EXT_BY_MIME[info.ctype];
         let dir = this.dir || S.dir;
-        if (this.autoDir && S.categorize) dir = path.join(S.dir, catFolder(catOf(name)));
+        if (this.autoDir) dir = autoFolder(S, catOf(name));
         await fsp.mkdir(dir, { recursive: true }).catch(e => { throw Object.assign(new Error(e.message), { code: ['ENOENT', 'ENOTDIR'].includes(e.code) ? 'nodir' : e.code }); });
         this.dir = dir;
         let target = path.join(dir, name);

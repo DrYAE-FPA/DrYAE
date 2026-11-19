@@ -24,7 +24,7 @@ body.present .tabstrip,body.present .toolbar,body.present .bmbar,body.present .l
 .tab .x svg{width:12px;height:12px}
 .tab.loading .fav{animation:spin 1s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.newtab{padding:6px 8px;border-radius:8px;color:var(--muted);margin-bottom:3px}.newtab:hover{background:var(--panel2)}
+.newtab.tabfind{margin-left:auto;opacity:.8}.newtab{padding:6px 8px;border-radius:8px;color:var(--muted);margin-bottom:3px}.newtab:hover{background:var(--panel2)}
 .toolbar{display:flex;align-items:center;gap:4px;padding:6px 8px;background:var(--bg);border-bottom:1px solid var(--line);flex:none}
 .addr{flex:1;display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--line);border-radius:99px;padding:0 12px;height:34px}
 .addr:focus-within{border-color:var(--accent)}
@@ -351,7 +351,7 @@ body.vtabs .tab{max-width:none;flex:none;border-radius:8px;border:1px solid var(
   <symbol id="i-file" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H6a1 1 0 00-1 1v16a1 1 0 001 1h12a1 1 0 001-1V8z"/><path d="M14 3v5h5"/></symbol>
 </svg>
 
-<div class="tabstrip" id="tabs"><button class="newtab" id="newTab" title="Nouvel onglet (Ctrl+T)"><svg><use href="#i-plus"/></svg></button></div>
+<div class="tabstrip" id="tabs"><button class="newtab" id="newTab" title="Nouvel onglet (Ctrl+T) · clic droit : onglet privé, conteneur"><svg><use href="#i-plus"/></svg></button><button class="newtab tabfind" id="tabFind" title="Rechercher dans les onglets (Ctrl+Maj+A)"><svg><use href="#i-search"/></svg></button></div>
 <div class="toolbar">
   <button class="tb" id="bBack" title="Précédent (Alt+←)"><svg><use href="#i-back"/></svg></button>
   <button class="tb" id="bFwd" title="Suivant (Alt+→)"><svg><use href="#i-fwd"/></svg></button>
@@ -406,6 +406,7 @@ body.vtabs .tab{max-width:none;flex:none;border-radius:8px;border:1px solid var(
   <div id="qsAdv" style="display:none;margin-top:12px;border-top:1px solid var(--line);padding-top:4px">
     <label>Nom du fichier</label><input type="text" id="qaName">
     <label>Enregistrer dans</label><div class="row"><input type="text" id="qaDir"><button class="btn" id="qaPick">Parcourir</button></div>
+    <label class="check" title="Décoche pour revenir aux dossiers des paramètres"><input type="checkbox" id="qaTmp"> Utiliser ce dossier pour les prochains téléchargements (jusqu'à ce que je décoche)</label>
     <div class="row" style="gap:16px;flex-wrap:wrap;margin-top:4px"><label class="check"><input type="checkbox" id="qaPaused"> Ajouter en pause</label><label class="check"><input type="checkbox" id="qaSched"> Planifier</label><label class="check" style="gap:6px">Limite <input type="number" id="qaSpeed" min="0" value="0" style="width:80px"> Ko/s</label></div>
   </div>
   <div class="modal-foot"><span class="l hint">Ne télécharge que ce que tu as le droit de copier.</span><button class="btn" id="qsMore">Plus d'options…</button></div>

@@ -4,7 +4,7 @@ const fsp = fs.promises;
 const path = require('path');
 const { spawn, execFile } = require('child_process');
 const { Item } = require('./base');
-const { sanitize, catFolder, sleep } = require('../util');
+const { sanitize, catFolder, autoFolder, sleep } = require('../util');
 const tools = require('../tools');
 
 const isWin = process.platform === 'win32';
@@ -157,7 +157,7 @@ class YtdlDownload extends Item {
     try {
       if (!hub.available()) throw new Error('yt-dlp est introuvable');
       let dir = this.dir || S.dir;
-      if (this.autoDir && S.categorize) dir = path.join(S.dir, catFolder(this.category));
+      if (this.autoDir) dir = autoFolder(S, this.category);
       await fsp.mkdir(dir, { recursive: true });
       this.dir = dir;
       let base = this._base || sanitize(this.title || 'video').slice(0, 150);

@@ -1335,6 +1335,8 @@ class WebBrowser {
     // 1.7.0 refaite : « Traduction sur le PC » — modèles installés, téléchargement d'une paire, suppression
     const LM = () => require('./local-mt');
     this._lmProg = this._lmProg || {};
+    // 1.7.2 : « Ouvrir une BD ou un manga » quitte le menu principal et vit dans Paramètres → Traducteur de scans
+    P('openComic', kind => { const w = pages.sender; const from = (w && w.hostWebContents) || w; return (kind === 'dir' ? this.pickComicDir(from) : this.pickComic(from)).then(r => !!r); });
     P('localMt', async (o = {}) => {
       if (o.get && /^[a-z]{2,3}$/.test(o.get.src) && /^[a-z]{2,3}$/.test(o.get.trg)) {
         const r = await LM().route(o.get.src, o.get.trg).catch(() => null);
@@ -1631,7 +1633,9 @@ class WebBrowser {
       const r = await dialog.showOpenDialog(this.win, { properties: ['openDirectory', 'createDirectory'], defaultPath: def || this.settings.get().dir });
       return r.canceled ? null : r.filePaths[0];
     });
-    ipcMain.handle('br:defaults', () => { const S = this.settings.get(); return { dir: S.dir, ytdl: S.ytdl, categorize: S.categorize }; });
+    ipcMain.handle('br:defaults', () => { const S = this.settings.get(); return { dir: S.dir, ytdl: S.ytdl, categorize: S.categorize, tempDir: S.tempDir || '' }; });
+    // 1.7.2 : « utiliser ce dossier pour les prochains téléchargements » (case sous le dossier) ; '' = retour aux dossiers des paramètres
+    ipcMain.handle('br:tempDir', (_e, d) => { this.settings.set({ tempDir: typeof d === 'string' ? d.trim() : '' }); return this.settings.get().tempDir; });
     ipcMain.handle('br:selectTab', (_e, wcId) => { try { const wc = webContents.fromId(wcId); if (wc && this.ext) this.ext.selectTab(wc); } catch {} });
     ipcMain.handle('br:extTabCreated', (_e, { reqId, wcId }) => { const r = this.extWaiters.get(reqId); if (r) { this.extWaiters.delete(reqId); r(wcId); } });
     ipcMain.handle('br:extList', () => this.extList());

@@ -274,7 +274,7 @@ function commands() {
   const walk = (list, path) => {
     for (const e of (typeof list === 'function' ? list() : list) || []) {
       if (!e || e === '-' || e.title || e.zoom || e.disabled) continue;
-      if (e.sub) { walk(e.sub, (path ? path + ' › ' : '') + T(e.label)); continue; }
+      if (e.sub) { try { walk(e.sub, (path ? path + ' › ' : '') + T(e.label)); } catch {} continue; } // un sous-menu lu plus tard (Profils) ne coupe pas la liste
       if (e.fn) out.push({ label: T(e.label), path, icon: e.icon || 'list', key: e.key || '', fn: e.fn });
     }
   };
@@ -282,8 +282,12 @@ function commands() {
   const web = /^https?:/.test(cur?.url || '');
   const extra = [
     { label: T('Espaces de travail'), icon: 'spaces', fn: () => window.TABSX?.toggleSide('ws') },
-    { label: T('Enregistrer les onglets dans un espace de travail'), icon: 'spaces', fn: () => { window.TABSX?.toggleSide('ws'); setTimeout(() => $('#wsName')?.focus(), 120); } },
+    // 1.7.2 : retirés du menu ⋮, toujours là avec Ctrl+K
+    { label: T('Rechercher dans les onglets…'), icon: 'search', key: 'Ctrl+Maj+A', fn: () => window.TABSX?.tabSearch() },
+    { label: T('Panneau latéral'), icon: 'list', fn: () => window.TABSX?.toggleSide() },
     { label: T('Collections'), icon: 'col', fn: () => window.TABSX?.toggleSide('col') },
+    { label: T('Ouvrir une BD ou un manga…'), icon: 'book', fn: () => B.call('br:openComic', 'file') },
+    { label: T('Enregistrer les onglets dans un espace de travail'), icon: 'spaces', fn: () => { window.TABSX?.toggleSide('ws'); setTimeout(() => $('#wsName')?.focus(), 120); } },
     web && { label: T('Ajouter cette page à une collection'), icon: 'col', fn: async () => { const l = await B.call('br:cols'); await B.call('br:colAdd', (l.find(x => x.id === colSel) || l[0] || {}).id || null, { type: 'page', url: cur.url, title: cur.title }); } },
     web && { label: T('Citer cette page'), icon: 'quote', fn: () => cite() },
     { label: T('Mode présentation'), icon: 'present', fn: () => present(true) },

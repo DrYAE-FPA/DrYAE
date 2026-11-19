@@ -554,7 +554,8 @@ async function showAdd(pre = {}) {
   if (!txt) { const c = (await call('clipboard')).trim(); if (/^https?:\/\/\S+$/i.test(c)) txt = c; }
   $('#aUrls').value = txt;
   $('#aName').value = pre.name || '';
-  $('#aDir').value = '';
+  try { S = await call('getSettings'); } catch {} // le dossier du moment a pu être changé dans le navigateur
+  $('#aDir').value = S.tempDir || ''; $('#aTmp').checked = !!S.tempDir;
   $('#aSpeed').value = 0;
   $('#aConn').value = S.connections; bindRange('#aConn', '#aConnV');
   $('#aRef').value = pre.page || pre.headers?.Referer || '';
@@ -676,7 +677,16 @@ function headersFromForm() {
   return h;
 }
 $('#aBatch').onchange = inspectAdd;
-$('#aPick').onclick = async () => { const p = await call('pickDir'); if (p) $('#aDir').value = p; };
+$('#aPick').onclick = async () => { const p = await call('pickDir'); if (p) { $('#aDir').value = p; if ($('#aTmp').checked) aTmpSet(); } };
+// 1.7.2 : « dossier du moment » : coché = tous les nouveaux téléchargements vont dans ce dossier ; décoché = dossiers des paramètres
+async function aTmpSet() {
+  if ($('#aTmp').checked && !$('#aDir').value.trim()) { const p = await call('pickDir'); if (p) $('#aDir').value = p; else { $('#aTmp').checked = false; return; } }
+  S = await call('setSettings', { tempDir: $('#aTmp').checked ? $('#aDir').value.trim() : '' });
+  if (!$('#aTmp').checked) $('#aDir').value = '';
+  toast($('#aTmp').checked ? T('Les prochains téléchargements iront dans ce dossier.') : T('Retour aux dossiers habituels'));
+}
+$('#aTmp').onchange = aTmpSet;
+$('#aDir').addEventListener('change', () => { if ($('#aTmp').checked && $('#aDir').value.trim()) aTmpSet(); });
 async function submitAdd(startNow, dupAction) {
   const urls = $('#aUrls').value.split(/\s+/).filter(Boolean);
   if (ytFor && urls.length === 1 && urls[0] === ytFor) {
@@ -1056,7 +1066,7 @@ async function showSettings(sec = 'gen') {
   S = await call('getSettings');
   sTmp = JSON.parse(JSON.stringify(S));
   const v = (id, x) => ($(id).value = x ?? ''), c = (id, x) => ($(id).checked = !!x);
-  v('#sDir', S.dir); v('#sStartView', S.startView === 'manager' ? 'manager' : 'browser'); c('#sCat', S.categorize); c('#sClip', S.clipboard); c('#sNotify', S.notify); c('#sSound', S.sound); c('#sTray', S.tray); c('#sConfirmClear', S.confirmClear !== false); c('#sAutoUpd', S.autoUpdateCheck !== false); c('#sBoot', S.startWithWindows); c('#sShut', S.shutdownWhenDone); c('#sWeb', S.autoOpenWebpage);
+  v('#sDir', S.dir); setTimeout(catDirsDraw, 0); v('#sStartView', S.startView === 'manager' ? 'manager' : 'browser'); c('#sCat', S.categorize); c('#sClip', S.clipboard); c('#sNotify', S.notify); c('#sSound', S.sound); c('#sTray', S.tray); c('#sConfirmClear', S.confirmClear !== false); c('#sAutoUpd', S.autoUpdateCheck !== false); c('#sBoot', S.startWithWindows); c('#sShut', S.shutdownWhenDone); c('#sWeb', S.autoOpenWebpage);
   v('#sConn', S.connections); bindRange('#sConn', '#sConnV'); v('#sPar', S.parallel); bindRange('#sPar', '#sParV'); v('#sRetry', S.maxRetries); v('#sDup', S.duplicate); v('#sHlsC', S.hls.connections); v('#sHlsQ', S.hls.quality); c('#sHlsConv', S.hls.convert); v('#sPerSite', S.perSite);
   const Y = S.ytdl || {}; v('#sYtMode', Y.mode === 'audio' ? (Y.audioFormat || 'mp3') : 'video'); v('#sYtQ', Y.quality || '1080'); v('#sYtB', Y.audioBitrate || '320');
   call('ytdl:version').then(x => ($('#sYtVer').textContent = 'Version de yt-dlp : ' + x)).catch(() => {});
@@ -1095,6 +1105,17 @@ $('#pwAdd').onclick = async () => { const h = $('#pwHost').value.trim().replace(
 $('#sYtUpd').onclick = async () => { $('#sYtVer').textContent = 'Mise à jour en cours…'; try { const r = await call('ytdl:update'); $('#sYtVer').textContent = r + ' — version : ' + (await call('ytdl:version')); } catch (e) { $('#sYtVer').textContent = 'Échec : ' + e.message; } };
 $('#eFolder').onclick = () => call('openExtFolder');
 $('#eChrome').onclick = async () => { await call('copy', 'chrome://extensions'); toast('Adresse copiée : colle-la dans la barre d\'adresse de Chrome'); };
+// 1.7.2 : dossier de chaque catégorie, et « dossier du moment »
+const CAT_DIRS = [['video', 'Vidéos'], ['audio', 'Musique'], ['doc', 'Documents'], ['img', 'Images'], ['arc', 'Archives'], ['app', 'Programmes'], ['sub', 'Sous-titres'], ['torrent', 'Torrents'], ['other', 'Autres']];
+function catDirsDraw() {
+  const base = ($('#sDir').value || S.dir).replace(/[\\/]+$/, ''), sep = base.includes('\\') ? '\\' : '/', own = S.catDirs || {};
+  $('#sCatDirs').innerHTML = CAT_DIRS.map(([k, l]) => `<label for="cd_${k}">${esc(T(l))}</label><input type="text" id="cd_${k}" data-cd="${k}" value="${esc(own[k] || '')}" placeholder="${esc($('#sCat').checked ? base + sep + T(l) : base)}"><button class="btn sm" data-cdp="${k}"><svg><use href="#i-folder"/></svg>${esc(T('Parcourir'))}</button>`).join('');
+  $('#sTmpBox').style.display = S.tempDir ? '' : 'none'; $('#sTmpDir').textContent = S.tempDir || '';
+}
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-cdp]'); if (b) { const i = $('#cd_' + b.dataset.cdp); const p = await call('pickDir', i.value || $('#sDir').value); if (p) i.value = p; }
+  if (e.target.closest('#sTmpOff')) { S = await call('setSettings', { tempDir: '' }); catDirsDraw(); toast(T('Retour aux dossiers habituels')); }
+});
 $('#sDirPick').onclick = async () => { const p = await call('pickDir', $('#sDir').value); if (p) $('#sDir').value = p; };
 $('#sMagnet').onclick = async () => { const ok = await call('registerMagnet'); $('#sMagnetSt').textContent = ok ? 'DrYAE ouvre maintenant les liens magnet ✔' : 'Windows a refusé — choisis DrYAE dans Paramètres > Applications par défaut'; };
 $('#abReset').onclick = async () => { if (!confirmAsk('Réinitialiser tous les paramètres ?')) return; await call('resetSettings'); closeM(); S = await call('getSettings'); applyTheme(); updLimit(); toast('Paramètres réinitialisés'); };
@@ -1165,7 +1186,7 @@ $('#sOk').onclick = async () => {
   const v = id => $(id).value, c = id => $(id).checked, n = id => +$(id).value || 0;
   const lines = id => v(id).split(/\r?\n/).map(s => s.trim()).filter(Boolean);
   const patch = {
-    dir: v('#sDir').trim() || S.dir, startView: v('#sStartView') === 'manager' ? 'manager' : 'browser', categorize: c('#sCat'), clipboard: c('#sClip'), notify: c('#sNotify'), sound: c('#sSound'), tray: c('#sTray'), confirmClear: c('#sConfirmClear'), autoUpdateCheck: c('#sAutoUpd'), startWithWindows: c('#sBoot'), shutdownWhenDone: c('#sShut'), autoOpenWebpage: c('#sWeb'),
+    dir: v('#sDir').trim() || S.dir, catDirs: Object.fromEntries([...document.querySelectorAll('[data-cd]')].map(i => [i.dataset.cd, i.value.trim()])), startView: v('#sStartView') === 'manager' ? 'manager' : 'browser', categorize: c('#sCat'), clipboard: c('#sClip'), notify: c('#sNotify'), sound: c('#sSound'), tray: c('#sTray'), confirmClear: c('#sConfirmClear'), autoUpdateCheck: c('#sAutoUpd'), startWithWindows: c('#sBoot'), shutdownWhenDone: c('#sShut'), autoOpenWebpage: c('#sWeb'),
     connections: n('#sConn'), parallel: n('#sPar'), maxRetries: n('#sRetry'), duplicate: v('#sDup'), perSite: n('#sPerSite'), siteLimits: sTmp.siteLimits,
     hls: { connections: Math.max(1, n('#sHlsC')), quality: v('#sHlsQ'), convert: c('#sHlsConv') },
     ytdl: { mode: v('#sYtMode') === 'video' ? 'video' : 'audio', audioFormat: v('#sYtMode') === 'm4a' ? 'm4a' : 'mp3', quality: v('#sYtQ'), audioBitrate: v('#sYtB') },
