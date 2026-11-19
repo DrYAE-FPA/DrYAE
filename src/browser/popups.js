@@ -241,7 +241,6 @@ async function drawScanPop() {
   const s = CFG.scan || {}, h = curHost();
   if (!OCRL) { try { OCRL = await B.call('br:ocrLangs'); } catch { OCRL = { langs: { eng: 'Anglais' }, have: [] }; } }
   try { MODELS = await B.call('scan:models'); } catch { MODELS = []; }
-  let AI = { on: false, hasKey: false }; try { AI = await B.call('scan:ai'); } catch {}
   const ocrOpts = Object.entries(OCRL.langs).map(([k, n]) => `<option value="${k}" ${k === (s.source || 'eng') ? 'selected' : ''}>${esc(T(n))}${OCRL.have.includes(k) ? '' : ' ↓'}</option>`).join('');
   popEl.innerHTML = `<div class="ph">${ic('scan')}<b>${esc(T('Traducteur de scans'))}</b><button class="icon-btn" data-set title="${esc(T('Paramètres du traducteur de scans'))}">${ic('gear')}</button></div>
 
@@ -250,12 +249,8 @@ async function drawScanPop() {
       <button id="scZone" ${h ? '' : 'disabled'}>${ic('crop')}<span>${esc(T('Capture d\'une zone'))} <kbd>Ctrl+Maj+S</kbd></span></button>
     </div>
     <div class="tools" style="grid-template-columns:1fr 1fr;margin:0 0 6px">
-      <button id="scCbz" ${h ? '' : 'disabled'} title="${esc(T('Usage personnel seulement, pour des fichiers que vous avez le droit de copier'))}">${ic('save')}<span>${esc(T('Enregistrer la traduction (.cbz)'))}</span></button>
-      <button id="scPdf" ${h ? '' : 'disabled'} title="${esc(T('Usage personnel seulement, pour des fichiers que vous avez le droit de copier'))}">${ic('save')}<span>${esc(T('Enregistrer la traduction (PDF)'))}</span></button>
-    </div>
-    <div class="tools" style="grid-template-columns:1fr 1fr;margin:0 0 6px">
-      <button id="scOCbz" ${h ? '' : 'disabled'} title="${esc(T('Usage personnel seulement, pour des fichiers que vous avez le droit de copier'))}">${ic('save')}<span>${esc(T('Enregistrer l\'original (.cbz)'))}</span></button>
-      <button id="scOPdf" ${h ? '' : 'disabled'} title="${esc(T('Usage personnel seulement, pour des fichiers que vous avez le droit de copier'))}">${ic('save')}<span>${esc(T('Enregistrer l\'original (PDF)'))}</span></button>
+      <button id="scCbz" ${h ? '' : 'disabled'} title="${esc(T('Usage personnel seulement, pour des fichiers que vous avez le droit de copier'))}">${ic('save')}<span>${esc(T('Enregistrer en .cbz'))}</span></button>
+      <button id="scPdf" ${h ? '' : 'disabled'} title="${esc(T('Usage personnel seulement, pour des fichiers que vous avez le droit de copier'))}">${ic('save')}<span>${esc(T('Enregistrer en PDF'))}</span></button>
     </div>
     ${cur?.scanLang?.from ? `<div class="prow"><span class="grow">${esc(T('Langue détectée'))}</span><b class="notr">${esc(langName(cur.scanLang.from))} → ${esc(langName(cur.scanLang.to))}</b></div>` : ''}
     <div class="prow"><span class="grow">${esc(T('Langue des images'))}<small>${esc(T('↓ : téléchargée à la première utilisation'))}</small></span><select id="scSrc">${ocrOpts}</select></div>
@@ -263,18 +258,6 @@ async function drawScanPop() {
     <div class="prow"><span class="grow">${esc(T('Icônes d\'action sur les images'))}<small>${esc(T('Original / traduction, comparer, relire'))}</small></span>${tg('scIcons', s.icons !== false)}</div>
     <div class="prow"><span class="grow">${esc(T('Lire aussi l\'anglais'))}<small>${esc(T('Pour les pages qui mélangent deux langues'))}</small></span>${tg('scEng', !!s.withEng)}</div>
     <details class="pdet"><summary>${esc(T('Modèles de lecture supplémentaires'))}</summary><small style="color:var(--dim);display:block;margin:2px 0 4px">${esc(T('Pour les écritures que la lecture automatique connaît mal. Téléchargés une seule fois, utilisés sur ce PC.'))}</small>${(MODELS || []).map(m => `<div class="prow" data-mdl="${m.id}"><span class="grow">${esc(T(m.label))}<small>${fmt(m.size)}</small></span>${m.installed ? `<button class="btn sm" data-mdel="${m.id}">${esc(T('Supprimer'))}</button>` : `<button class="btn sm" data-mget="${m.id}"><span class="mp">${esc(T('Télécharger'))}</span></button>`}</div>`).join('')}</details>
-    <details class="pdet" ${AI.on ? 'open' : ''}><summary>${esc(T('Traduction IA (facultatif)'))}${AI.on && AI.hasKey ? ' ✓' : ''}</summary>
-      <small style="color:var(--dim);display:block;margin:2px 0 4px;white-space:normal">${esc(T('Meilleure traduction : l\'IA voit la page, corrige la lecture et comprend la conversation. Il faut votre propre clé gratuite Google Gemini (aucun paiement). Les images de la page et le texte lu sont alors envoyés à Google. Quand la limite gratuite du jour est atteinte, la traduction habituelle prend le relais.'))}</small>
-      <div class="prow"><span class="grow">${esc(T('Utiliser l\'IA pour les scans'))}</span>${tg('scAi', !!AI.on)}</div>
-      <div class="prow"><span class="grow">${esc(T('Pages envoyées à l\'IA'))}<small>${esc(T('Pages difficiles : lecture peu sûre ou mots inconnus. La limite gratuite du jour dure plus longtemps.'))}</small></span><select id="scAiMode"><option value="hard" ${AI.mode !== 'all' ? 'selected' : ''}>${esc(T('Seulement les pages difficiles'))}</option><option value="all" ${AI.mode === 'all' ? 'selected' : ''}>${esc(T('Toutes les pages'))}</option></select></div>
-      <div class="prow"><input id="scAiKey" type="password" placeholder="${esc(T(AI.hasKey ? 'Clé enregistrée (taper pour la remplacer)' : 'Coller votre clé ici'))}" style="flex:1;min-width:0" autocomplete="off" spellcheck="false"><button class="btn sm" id="scAiSave">${esc(T('Enregistrer'))}</button></div>
-      <div class="prow"><button class="btn sm" id="scAiGet">${esc(T('Obtenir une clé gratuite'))}</button>${AI.hasKey ? `<button class="btn sm" id="scAiTest">${esc(T('Vérifier la clé'))}</button><button class="btn sm" id="scAiDel">${esc(T('Effacer la clé'))}</button>` : ''}</div>
-      <div id="scAiHelp" hidden style="white-space:normal;font-size:12px;line-height:1.45;margin:4px 0;padding:6px 8px;border-radius:8px;background:var(--hover)"><b>${esc(T('Obtenir une clé gratuite, pas à pas'))}</b><ol style="margin:4px 0 4px 18px;padding:0"><li>${esc(T('Ouvrez Google AI Studio et connectez-vous avec votre compte Google (18 ans ou plus).'))}</li><li>${esc(T('Cliquez sur « Get API key », puis sur « Create API key ». Aucune carte bancaire n\'est demandée.'))}</li><li>${esc(T('Copiez la clé : elle commence par AIza.'))}</li><li>${esc(T('Collez-la ci-dessus, puis cliquez sur Enregistrer. DrYAE vérifie qu\'elle marche.'))}</li></ol><button class="btn sm" id="scAiOpen">${esc(T('Ouvrir Google AI Studio'))}</button> <small style="color:var(--dim)">${esc(T('Gardez votre clé secrète : ne la partagez avec personne.'))}</small></div>
-      <div id="scAiPriv" hidden style="white-space:normal;font-size:12px;margin:4px 0;padding:6px 8px;border-radius:8px;border:1px solid #f59e0b">${esc(T('Avec la formule gratuite de Google, les images et les textes envoyés peuvent être utilisés par Google pour améliorer ses produits. N\'utilisez pas l\'IA pour des images privées.'))} <button class="btn sm" id="scAiOk">${esc(T('J\'ai compris, enregistrer'))}</button></div>
-      ${AI.hasKey ? `<div class="prow"><span class="grow">${esc(T('IA aujourd\'hui'))}<small>${esc(T('Limite gratuite : environ {0} pages par jour (selon Google)').replace('{0}', AI.limit || 500))}</small></span><b style="color:${(AI.today || 0) >= (AI.limit || 500) * 0.8 ? '#f59e0b' : 'inherit'}">${esc(T('{0} page(s)').replace('{0}', AI.today || 0))}</b></div>` : ''}
-      ${AI.hasKey && (AI.today || 0) >= (AI.limit || 500) * 0.8 ? `<small style="color:#f59e0b;display:block;white-space:normal">${esc(T('La limite gratuite du jour approche : ensuite, la traduction habituelle prendra le relais jusqu\'à demain.'))}</small>` : ''}
-      ${AI.off ? `<small style="color:#f59e0b;display:block;white-space:normal">${esc(AI.offWhy ? T('IA en pause ({0}) : traduction habituelle pour le moment.').replace('{0}', T(AI.offWhy)) : T('Limite gratuite du jour atteinte ou clé refusée : traduction habituelle pour le moment.'))}</small>` : ''}
-    </details>
     <div class="prow" data-lex style="cursor:pointer"><span class="grow">${esc(T('Lexique'))} (${(s.glossary || []).length})<small>${esc(T('Gérer les mots (rechercher, modifier, supprimer plusieurs) dans les paramètres'))}</small></span><span>›</span></div>
     <div class="pfoot"><small style="color:var(--dim);white-space:normal">${esc(T('Astuce : clic droit sur une image → « Traduire le texte de l\'image ».'))}</small></div>`;
   popEl.onclick = async e => {
@@ -286,31 +269,17 @@ async function drawScanPop() {
   popEl.querySelector('[data-lex]').onclick = () => { popClose(); openPage('settings', 'lexique'); };
   $('#scPage').onclick = () => { popClose(); pageCmd('scan'); };
   $('#scZone').onclick = () => { popClose(); pageCmd('scan-region'); };
-  $('#scCbz').onclick = () => { popClose(); pageCmd('scan-export', { fmt: 'cbz' }); };
-  $('#scOCbz').onclick = () => { popClose(); pageCmd('scan-export', { fmt: 'cbz', original: true }); };
-  $('#scOPdf').onclick = () => { popClose(); pageCmd('scan-export', { fmt: 'pdf', original: true }); };
-  $('#scPdf').onclick = () => { popClose(); pageCmd('scan-export', { fmt: 'pdf' }); };
+  // 1.7.2 : un bouton par format ; un petit choix s'ouvre dessous : la traduction ou l'original
+  const saveAs = (btn, fmt) => { const r = btn.getBoundingClientRect(); menu(r.left, r.bottom + 4, [
+    { title: fmt === 'pdf' ? 'Enregistrer en PDF' : 'Enregistrer en .cbz' },
+    { label: 'La traduction', icon: 'translate', fn: () => { popClose(); pageCmd('scan-export', { fmt }); } },
+    { label: "L'original (sans traduction)", icon: 'file', fn: () => { popClose(); pageCmd('scan-export', { fmt, original: true }); } },
+  ]); };
+  $('#scCbz').onclick = e => saveAs(e.currentTarget, 'cbz');
+  $('#scPdf').onclick = e => saveAs(e.currentTarget, 'pdf');
   $('#scSrc').onchange = e => setB({ scan: { source: e.target.value } });
   $('#scTo').onchange = e => setB({ scan: { target: e.target.value } });
   popEl.querySelector('[data-set]').onclick = () => { popClose(); openPage('settings', 'scan'); };
-  TOGGLES.scAi = async on => { await B.call('scan:ai', { on }); popRender(); };
-  $('#scAiMode').onchange = e => B.call('scan:ai', { mode: e.target.value });
-  // 1.7.0 refaite : la clé est vérifiée tout de suite ; le message sur la confidentialité est montré une fois
-  const saveKey = async () => {
-    const k = $('#scAiKey').value.trim(); if (!k) return;
-    $('#scAiSave').disabled = true;
-    const t = await B.call('scan:aiTest', k).catch(() => ({ ok: false, msg: '' }));
-    $('#scAiSave').disabled = false;
-    if (!t.ok && t.bad) return toast(T('Cette clé ne marche pas : vérifiez que vous l\'avez copiée en entier (elle commence par AIza).'));
-    await B.call('scan:ai', { key: k, on: true, privacySeen: true });
-    toast(t.ok ? T('Clé valide et enregistrée') : T('Clé enregistrée (vérification impossible sans internet)')); popRender();
-  };
-  $('#scAiSave').onclick = () => { if (AI.privacySeen) return saveKey(); $('#scAiPriv').hidden = false; };
-  $('#scAiOk').onclick = saveKey;
-  $('#scAiGet').onclick = () => { $('#scAiHelp').hidden = !$('#scAiHelp').hidden; popPlace(); };
-  $('#scAiOpen').onclick = () => { popClose(); newTab('https://aistudio.google.com/app/apikey'); };
-  if ($('#scAiTest')) $('#scAiTest').onclick = async () => { const t = await B.call('scan:aiTest', '').catch(() => ({})); toast(t.ok ? T('La clé marche') : t.bad ? T('Clé refusée par Google : créez-en une nouvelle') : T('Vérification impossible (pas de connexion ?)')); };
-  if ($('#scAiDel')) $('#scAiDel').onclick = async () => { await B.call('scan:ai', { key: '', on: false }); popRender(); };
   TOGGLES.scIcons = on => setB({ scan: { icons: on } }).then(() => pageCmd('scan-icons', { on }));
   TOGGLES.scEng = on => setB({ scan: { withEng: on } });
   if (window.I18N?.translateDom) try { I18N.translateDom(popEl); } catch {}

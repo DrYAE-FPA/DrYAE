@@ -130,7 +130,7 @@ function englishRatio(texts) {
 const ROLE = String.raw`(?:tl|ts|pr|qc|cl|rd|tlc|tl\/ts|sfx|raws?|scans?|scan\s*trad|scanlat\w*|translat\w*|trad|traduc\w*|typeset\w*|clean\w*|redraw\w*|proof\w*|edit\w*|édit\w*|correct(?:eur|rice|ion|or)s?|relect\w*|check(?:er|ing)?s?|quality\s*check\w*|lettr\w*|letter(?:er|ing)s?|uploader?s?|admin\w*|staff|team|équipe|sc[ée]nar\w*|artistes?|story|art|dessin\w*|auteurs?|authors?|mangaka)`;
 const ROLE_PAIR = new RegExp(String.raw`(^|[^\p{L}])(${ROLE})(\s*[:：=\/]\s*|\s+[-–—]\s*)`, 'giu');
 // mots qui n'apparaissent que sur une page de crédits (comptés une fois chacun)
-const CREDITS_WORDS = /\b(scanlations?|scanlators?|scantrad\w*|translators?|traducteurs?|traductrices?|typesett(?:er|ing)s?|typesetters?|redrawers?|cleaners?|proofreaders?|proofreading|relecteurs?|relectrices?|correcteurs?|raw\s*providers?|credits?|crédits|staff|recruit\w*|recrut\w*|discord|patreon|ko-?fi|paypal|quality\s*check(?:er)?s?)\b/giu;
+const CREDITS_WORDS = /\b(scanlations?|scanlators?|scantrad\w*|translators?|traducteurs?|traductrices?|typesett(?:er|ing)s?|typesetters?|typesets?|raws?|redrawers?|cleaners?|proofreaders?|proofreading|relecteurs?|relectrices?|correcteurs?|raw\s*providers?|credits?|crédits|staff|recruit\w*|recrut\w*|discord|patreon|ko-?fi|paypal|quality\s*check(?:er)?s?)\b/giu;
 // adresses de sites (« MANGAS-ORIGINES.FR », « DISCORD.GG/… ») : jamais corrigées
 const URL_RE = /(?:https?:\/\/|www\.)\S+|[\p{L}\d][\p{L}\d-]{2,}(?:\.[\p{L}\d-]+)*\.(?:fr|com|net|org|gg|io|info|xyz|club|site|cc)(?![\p{L}\d])(?:\/\S*)?/giu;
 function creditsMask(text) {
@@ -239,6 +239,9 @@ function fixWords0(text) {
   text = String(text).replace(/(^|[.…!?"“«\s])(ou)(\s+)(are|were|know|can|can't|don't|will|won't|should|must|have|see|look|need|want|guys|bastard|idiot|again|too)\b/gi, (m, b, a, s2, v) => b + (a === a.toUpperCase() ? 'YOU' : 'you') + s2 + v);
   // lettre isolée après « WILL », « TO »… : « BE » mal lu (« YOU WILL E ENTRUSTING »)
   text = String(text).replace(/\b(will|would|can|could|should|must|might|may|to|not|won't|can't|don't)(\s+)[eb]\b(?!['’])/gi, (m, a, s) => a + s + (a === a.toUpperCase() ? 'BE' : 'be'));
+  // 1.7.2 (pages gardées par le propriétaire) : « WHAT'S THIIIS? » allongé lu « THUS » ; « (~10 MILLION YEN) » lu « (ID MILLION »
+  text = String(text).replace(/\b(what['’]?s|what is|is|was)(\s+)thu+s(?=\s*[?!.…]|$)/gi, (m, a, s2) => a + s2 + (a === a.toUpperCase() ? 'THIS' : 'this'));
+  text = String(text).replace(/(^|[\s(~])(?:ID|lD|IO|lO)(\s+)(million|thousand|hundred|billion|yen|dollars?|euros?|kilos?|km|meters?|metres?|minutes?|seconds?|hours?|days?|years?)\b/gi, (m, b, s2, u) => b + '10' + s2 + u);
   return text;
 }
 

@@ -30,6 +30,16 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
   await b.click('#tabFind'); await wait(300);
   ok('loupe : recherche dans les onglets', await b.evaluate(() => $('#tsDlg').classList.contains('on')));
   await b.keyboard.press('Escape');
+  // fenêtre du traducteur de scans : 2 boutons d'enregistrement (traduction ou original au choix), plus d'IA
+  await b.evaluate(() => popOpen('scan', document.querySelector('#bMenu'))); await wait(1200);
+  const pop = await b.evaluate(() => ({ save: [...document.querySelectorAll('#scCbz,#scPdf,#scOCbz,#scOPdf')].map(x => x.id), ai: /Traduction IA|Gemini/.test(document.querySelector('.pop')?.innerText || document.body.innerText) }));
+  ok('traducteur de scans : un bouton .cbz et un bouton PDF', pop.save.join() === 'scCbz,scPdf', pop.save);
+  ok('traduction IA retirée', !pop.ai);
+  await b.evaluate(() => { const x = document.querySelector('#scPdf'); x.disabled = false; x.click(); }); await wait(300); // (page vide : bouton grisé, on le réactive pour le test)
+  ok('clic sur PDF : choix traduction ou original', await b.evaluate(() => /La traduction/.test($('#menu').innerText) && /L'original/.test($('#menu').innerText)));
+  await b.evaluate(() => $('#menu').classList.remove('on'));
+  const tools = await b.evaluate(() => mainMenu().find(e => e && e.icon === 'tools').sub().filter(Boolean).map(e => e.label));
+  ok('mode téléphone dans Outils supplémentaires', tools.some(l => /mode téléphone/.test(l || '')) && !(await b.evaluate(() => mainMenu().some(e => e && /mode téléphone/.test(e.label || '')))));
   // BD dans Paramètres
   await b.evaluate(() => openPage('settings', 'scan')); await wait(2500);
   const st = app.windows().find(x => x.url().startsWith('dryae://settings'));

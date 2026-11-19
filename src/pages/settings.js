@@ -66,7 +66,6 @@ function draw() {
     ['Trackers supplémentaires pour les torrents', 'Au démarrage, une liste publique de serveurs de contact (rend les torrents plus rapides).', `<label class="sw"><input type="checkbox" data-root="torrent.fetchTrackers" ${R.fetchTrackers !== false ? 'checked' : ''}><i></i></label>`],
     ['Traduction', 'Seulement quand vous traduisez : le texte choisi est envoyé au service de traduction choisi (Paramètres → Traducteur).', ''],
     ['Lecture des images et modèles de lecture', 'Seulement la première fois qu\'une langue est utilisée ou téléchargée : les données de lecture sont téléchargées puis gardées sur ce PC. Les images, elles, ne quittent jamais ce PC.', ''],
-    ['Traduction IA des scans (facultative)', 'Seulement si vous l\'activez avec votre propre clé : l\'image de la page et le texte lu sont envoyés à Google Gemini.', ''],
     ['Vérification des mots de passe divulgués', 'Seulement quand vous la lancez : 5 caractères de l\'empreinte de chaque mot de passe (jamais le mot de passe lui-même).', ''],
     ['Icônes des sites', 'Demandées au site que vous visitez, comme le ferait la page elle-même.', ''],
     ['Nombre de téléchargements de DrYAE', 'Seulement quand vous ouvrez « À propos de DrYAE » : le total public est demandé à github.com (une fois par jour au plus). Rien ne vous identifie.', ''],

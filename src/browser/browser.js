@@ -438,8 +438,6 @@ function mainMenu() {
       ...closedTabs.slice(-10).reverse().map(c => ({ label: c.title || c.url, img: c.fav, icon: 'link', fn: () => { closedTabs.splice(closedTabs.indexOf(c), 1); newTab(c.url, { incognito: c.incognito }); } })),
     ] },
     { label: 'Téléchargements', icon: 'dl', key: 'Ctrl+J', hl: true, fn: openDownloads },
-    // 1.7.0 refaite : mode téléphone visible dans le menu principal (les sites voient alors un téléphone)
-    { label: CFG.ua === 'mobile' ? 'Passer en mode ordinateur' : 'Passer en mode téléphone', icon: 'phone', check: CFG.ua === 'mobile', fn: () => setUaMode(CFG.ua === 'mobile' ? 'desktop' : 'mobile') },
     { label: 'Favoris', icon: 'star', sub: bmMenu },
     { label: 'Extensions', icon: 'puzzle', adv: true, sub: () => [
       { label: 'Gérer les extensions', icon: 'puzzle', key: 'Ctrl+Maj+X', fn: () => openPage('extensions') },
@@ -458,6 +456,8 @@ function mainMenu() {
     { label: 'Lire la page à voix haute', icon: 'sound', key: 'F8', fn: () => readAloud(), disabled: !web },
     { label: 'Enregistrer sous…', icon: 'save', key: 'Ctrl+S', fn: savePage, disabled: !cur?.wcId },
     { label: 'Outils supplémentaires', icon: 'tools', adv: true, sub: () => [
+      // 1.7.2 : mode téléphone rangé ici (menu principal raccourci) ; l'icône de la barre d'adresse reste quand il est actif
+      { label: CFG.ua === 'mobile' ? 'Passer en mode ordinateur' : 'Passer en mode téléphone', icon: 'phone', check: CFG.ua === 'mobile', fn: () => setUaMode(CFG.ua === 'mobile' ? 'desktop' : 'mobile') },
       { label: 'Palette de commandes', icon: 'cmd', key: 'Ctrl+K', fn: () => window.WORK?.palette() },
       { label: 'Citer cette page…', icon: 'quote', fn: () => window.WORK?.cite(), disabled: !web },
       { label: 'Mode présentation', icon: 'present', check: !!window.WORK?.isPresent(), fn: () => window.WORK?.present() },

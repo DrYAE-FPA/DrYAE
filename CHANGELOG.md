@@ -4,6 +4,13 @@
 
 ### 🇫🇷 Français
 
+**Version refaite (19 nov.)**
+- **Mode turbo** : bouton ⚡ Turbo sous la vitesse du gestionnaire. Pendant vos téléchargements, OneDrive est mis en pause et Windows Update arrêté (Windows demande votre accord) ; tout revient tout seul à la fin. Réglages : Paramètres → Vitesse & réseau → Mode turbo.
+- **Dossier de chaque catégorie** (Paramètres → Général) et **dossier du moment** : la case « Utiliser ce dossier pour les prochains téléchargements » sous « Enregistrer dans » envoie tout dans ce dossier jusqu'à ce que vous la décochiez.
+- **Menu ⋮ raccourci** pour les petits écrans : Profils en tête ; onglet privé et conteneurs au clic droit sur « + » ; recherche dans les onglets avec la loupe de la barre d'onglets ; mode téléphone dans Outils supplémentaires ; ouvrir une BD dans Paramètres → Traducteur de scans ; le reste avec Ctrl+K.
+- **Traducteur de scans** : un bouton .cbz et un bouton PDF, avec le choix « la traduction » ou « l'original » ; barre plus discrète ; deux bulles collées côte à côte ne sont plus mélangées ; page de crédits reconnue même en petits morceaux ; « WHAT'S THIIIS » et « (~10 MILLION YEN) » mieux lus ; plus jamais de codes « <0xC3><0x87> » dans une bulle, même pour les pages déjà traduites.
+- **Traduction IA (Gemini) retirée** : elle ne donnait pas de bons résultats. Une clé enregistrée est effacée de votre PC.
+
 Des torrents plus rapides, un traducteur de scans qui s'adapte à la page (BD, mangas, romans), et des onglets qui se déplacent à la souris comme dans les autres navigateurs.
 
 **Torrents plus rapides**
@@ -16,7 +23,6 @@ Des torrents plus rapides, un traducteur de scans qui s'adapte à la page (BD, m
 - **S'adapte à la page** : bulles de BD et de mangas comme avant ; texte de livre ou de roman coupé en paragraphes, traduit en entier et réécrit comme un paragraphe ; légendes et titres à part ; tableaux de noms laissés tels quels.
 - **Lecture plus juste** : minuscules dans les bulles en majuscules, lettres H et U mieux reconnues, chiffres mieux lus, ponctuation gardée, page de crédits reconnue.
 - **Lexique** : mots entiers seulement (« HERE » → « ICI » ne transforme plus THERE en « TICI »), majuscules ignorées ; nouvelle page **Paramètres → Lexique des scans** (recherche, modification, suppression de plusieurs mots, mots courants signalés) ; avertissement avant d'ajouter un mot courant.
-- **Traduction IA (Gemini)** : quand Google est surchargé, nouvel essai puis autre modèle gratuit ; une réponse incomplète est gardée (les bulles manquantes passent par la traduction habituelle) ; la vraie raison d'un échec est affichée.
 - **Traduction sur le PC** : les lettres que le modèle ne connaît pas s'affichaient en codes (« <0xC3><0x87>A » au lieu de « ÇA ») : corrigé. La paire déjà installée affiche « Installée ✓ ».
 - **Enregistrer l'original** (.cbz ou PDF) : les pages dans leur langue d'origine, sans traduction. Les PDF ont maintenant une page par image, à la bonne taille (plus de page blanche entre deux pages).
 - Barre du traducteur transparente (pleine quand la souris passe dessus) ; une bulle ne s'étale plus sur le texte d'une autre.
@@ -47,7 +53,6 @@ Faster torrents, an image text translator that adapts to the page (comics, manga
 - **Adapts to the page**: comic and manga bubbles as before; book or novel text split into paragraphs, translated whole and rewritten as paragraphs; captions and titles handled separately; tables of names left as they are.
 - **More accurate reading**: lowercase letters in uppercase bubbles, H and U recognized better, digits read better, punctuation kept, credits page recognized.
 - **Glossary**: whole words only ("HERE" → "ICI" no longer turns THERE into "TICI"), case ignored; new **Settings → Scan glossary** page (search, edit, delete several words, common words flagged); warning before adding a common word.
-- **AI translation (Gemini)**: when Google is overloaded, a new try then another free model; an incomplete answer is kept (missing bubbles use the regular translation); the real reason for a failure is shown.
 - **On-device translation**: letters unknown to the model showed as codes ("<0xC3><0x87>A" instead of "ÇA"): fixed. A pair already installed shows "Installed ✓".
 - **Save the original** (.cbz or PDF): the pages in their original language, without translation. PDFs now have one page per image, at the right size (no more blank page between two pages).
 - See-through translator bar (solid when the mouse is over it); a bubble no longer spreads over another one's text.

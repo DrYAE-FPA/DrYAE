@@ -131,89 +131,6 @@ function forMT(s, caps, lang) {
   return t;
 }
 
-// ---------- traducteur de scans : traduction par IA (facultative, clé personnelle Gemini) ----------
-// L'image et le texte lu partent chez Google (Gemini) ; l'IA corrige la lecture et traduit en tenant compte de l'histoire.
-// En cas d'erreur (limite gratuite du jour atteinte, pas de connexion…), l'appelant revient à la traduction habituelle.
-const LANG_NAMES = { fr: 'French', en: 'English', es: 'Spanish', pt: 'Portuguese', de: 'German', it: 'Italian', ru: 'Russian', ar: 'Arabic', ja: 'Japanese', ko: 'Korean', zh: 'Chinese', 'zh-CN': 'Simplified Chinese', 'zh-TW': 'Traditional Chinese', tr: 'Turkish', pl: 'Polish', vi: 'Vietnamese', id: 'Indonesian', th: 'Thai', hi: 'Hindi', nl: 'Dutch', uk: 'Ukrainian' };
-const AI_THINK = {}; // réglage de réflexion accepté par chaque modèle (appris au premier appel)
-async function aiScan(image, mime, texts, to, cfg) {
-  const key = String(cfg.key || '').trim();
-  if (!key) throw new Error('clé IA manquante');
-  const model = String(cfg.model || 'gemini-flash-latest').replace(/[^\w.-]/g, '');
-  const base = String(cfg.url || 'https://generativelanguage.googleapis.com').replace(/\/+$/, '');
-  const lang = LANG_NAMES[to] || to;
-  const list = texts.map((t, i) => `${i + 1}. ${t}`).join('\n');
-  const prompt = `This image is a page of a manga, manhwa or comic. Below are its ${texts.length} text bubbles in reading order, as read by an OCR program (it can make reading mistakes).
-For each bubble, using the image: fix the OCR mistakes, then translate it into ${lang}. The translation must be natural and fit the conversation and the characters (casual or polite speech as in the original), short enough to fit in the bubble. Keep character names as they are. Do not add explanations.
-Answer only with JSON: {"source_language": "<ISO 639-1 code>", "items": [{"i": 1, "text": "<corrected original>", "tr": "<translation>"}, ...]} with exactly ${texts.length} items, in the same order.
-
-${list}`;
-  // 1.7.0 refaite : la réponse doit arriver vite. Sans délai maximal, une seule page bloquée laissait le traducteur
-  // sur « Lecture des images… » pour toujours. Réflexion du modèle réduite au minimum (traduire n'en a pas besoin),
-  // limite « par minute » : on attend le délai demandé par Google (une fois), puis retour à la traduction habituelle.
-  const body = cfgT => JSON.stringify({ contents: [{ parts: [{ inline_data: { mime_type: mime, data: Buffer.from(image).toString('base64') } }, { text: prompt }] }], generationConfig: { responseMimeType: 'application/json', temperature: 0.3, ...(cfgT ? { thinkingConfig: cfgT } : {}) } });
-  const timeout = cfg.timeout || 45000;
-  const call = async cfgT => {
-    const ac = new AbortController(); const tm = setTimeout(() => ac.abort(), timeout);
-    try { return await net.fetch(`${base}/v1beta/models/${model}:generateContent`, { method: 'POST', signal: ac.signal, headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, body: body(cfgT) }); }
-    catch (e) { throw new Error(ac.signal.aborted ? 'le service IA ne répond pas (délai dépassé)' : 'pas de connexion au service IA'); }
-    finally { clearTimeout(tm); }
-  };
-  const tries = AI_THINK[model] !== undefined ? [AI_THINK[model]] : [{ thinkingBudget: 0 }, { thinkingLevel: 'low' }, null];
-  let r, info = '';
-  for (let k = 0; k < tries.length; k++) {
-    r = await call(tries[k]);
-    if (r.status === 429) {
-      info = await r.text().catch(() => '');
-      // limite par minute (pas la limite du jour) : attendre le délai indiqué, au plus 30 s, et réessayer une fois
-      const wait = +((/"retryDelay":\s*"(\d+(?:\.\d+)?)s"/.exec(info) || [])[1] || 0);
-      if (!/PerDay|per day/i.test(info) && wait && wait <= 30 && !cfg._retried) { await new Promise(res => setTimeout(res, wait * 1000)); return aiScan(image, mime, texts, to, { ...cfg, _retried: true }); }
-      const e = new Error('limite gratuite du jour atteinte'); e.quota = /PerDay|per day/i.test(info) || !wait; e.minute = !e.quota; throw e;
-    }
-    if (r.status === 400) {
-      info = await r.text().catch(() => '');
-      if (/thinking/i.test(info) && k < tries.length - 1) continue; // réglage de réflexion inconnu de ce modèle : essai suivant
-      if (/API_KEY_INVALID|API key not valid/i.test(info)) { const e = new Error('clé IA refusée'); e.badKey = true; throw e; }
-      if (/location is not supported/i.test(info)) { const e = new Error('service IA indisponible dans ce pays'); e.badKey = true; throw e; }
-      throw new Error('service IA : ' + ((/"message":\s*"([^"]{1,120})/.exec(info) || [])[1] || 'requête refusée'));
-    }
-    AI_THINK[model] = tries[k];
-    break;
-  }
-  // 1.7.1 : service surchargé chez Google (503, souvent sur le modèle par défaut) : un nouvel essai après 1,5 s,
-  // puis deux autres modèles gratuits ; si tous sont surchargés, on le dit (pas une clé refusée)
-  if ([500, 502, 503, 504].includes(r.status) || (cfg._alt && r.status === 404)) {
-    const n = cfg._busy || 0, alt = ['gemini-2.5-flash', 'gemini-flash-lite-latest'].filter(m => m !== String(cfg._model0 || model));
-    if (n === 0 && r.status !== 404) { await new Promise(res => setTimeout(res, 1500)); return aiScan(image, mime, texts, to, { ...cfg, _busy: 1, _model0: model }); }
-    const k = Math.max(0, n - 1);
-    if (k < alt.length) return aiScan(image, mime, texts, to, { ...cfg, _busy: n + 1, _alt: true, _model0: cfg._model0 || model, model: alt[k] });
-    const e = new Error('service IA surchargé chez Google'); e.busy = true; throw e;
-  }
-  if (r.status === 401 || r.status === 403) { const e = new Error('clé IA refusée'); e.badKey = true; throw e; }
-  if (r.status === 404) { const e = new Error('modèle IA introuvable : ' + model); e.badKey = true; throw e; }
-  if (!r.ok) throw new Error('service IA : HTTP ' + r.status);
-  const j = await r.json();
-  const txt = (j.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('');
-  // 1.7.1 : réponse entourée de texte ou de ``` : on garde le premier objet JSON trouvé
-  let o; try { o = JSON.parse(txt.replace(/^```(?:json)?\s*|\s*```$/g, '')); } catch { const m = /\{[\s\S]*\}/.exec(txt); try { o = JSON.parse(m ? m[0] : ''); } catch { throw new Error('réponse IA illisible'); } }
-  const items = Array.isArray(o) ? o : Array.isArray(o.items) ? o.items : [];
-  // 1.7.1 : l'IA a fusionné ou oublié des bulles : on garde celles qu'elle a rendues (repérées par leur numéro),
-  // les autres sont traduites comme d'habitude (avant : toute la page repartait en traduction habituelle)
-  const byI = new Array(texts.length).fill(null);
-  items.forEach((x, k) => { const i = Number.isInteger(+x?.i) && +x.i >= 1 && +x.i <= texts.length ? +x.i - 1 : (items.length === texts.length ? k : -1); if (i >= 0 && byI[i] == null && x && (x.tr || x.translation)) byI[i] = x; });
-  if (!byI.some(Boolean)) throw new Error('réponse IA vide');
-  return { texts: byI.map(x => x ? String(x.tr || x.translation || '') : ''), fixed: byI.map((x, i) => String((x && x.text) || texts[i])), from: String(o.source_language || '').toLowerCase().slice(0, 5) };
-}
-
-async function aiCheck(key, url) {
-  const base = String(url || 'https://generativelanguage.googleapis.com').replace(/\/+$/, '');
-  const ac = new AbortController(); const tm = setTimeout(() => ac.abort(), 15000);
-  try {
-    const r = await net.fetch(`${base}/v1beta/models?pageSize=1`, { signal: ac.signal, headers: { 'x-goog-api-key': key } });
-    if (r.ok) return { ok: true };
-    return { ok: false, bad: r.status === 400 || r.status === 401 || r.status === 403 };
-  } catch { return { ok: false }; } finally { clearTimeout(tm); }
-}
 
 // ---------- lecture du texte des images (traducteur de scans) ----------
 // lues par le modèle multilingue (paddle-ocr.js) ; les autres par Tesseract
@@ -442,4 +359,4 @@ function tableCells(groups) {
   if (good.length >= 2) good.forEach(c => c.m.forEach(i => { table[i] = true; }));
   return table;
 }
-module.exports = { tableCells, protect, unprotect, glossApply, interjWord, interjection, cleanScan, forMT, aiScan, aiCheck, MODULES, MOD_DEFAULT, PROVIDERS, PADDLE_LANGS, OCR_FIX, readRegions, translate, setUserAgent, readImage, OCR_LANGS, ocrDownloaded, windowsHello, pwnedCount, weak, generatePassword };
+module.exports = { tableCells, protect, unprotect, glossApply, interjWord, interjection, cleanScan, forMT, MODULES, MOD_DEFAULT, PROVIDERS, PADDLE_LANGS, OCR_FIX, readRegions, translate, setUserAgent, readImage, OCR_LANGS, ocrDownloaded, windowsHello, pwnedCount, weak, generatePassword };

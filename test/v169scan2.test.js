@@ -66,7 +66,7 @@ const FR = s => s.split(/\s+/).map(w => w.length > 3 ? w + 'ée' : w).join(' ');
     await pg.screenshot({ path: `${OUT}/page${i}.png` });
   }
   await Promise.race([app.close(), wait(5000)]);
-  // ---- option IA : clé personnelle, image envoyée, puis limite du jour atteinte → traduction habituelle ----
+  // 1.7.2 : traduction IA retirée — une ancienne clé enregistrée est effacée et l'IA n'est jamais appelée
   const S = JSON.parse(fs.readFileSync(HOME + '/.config/DrYAE/settings.json', 'utf8'));
   S.browser.scan = { ...(S.browser.scan || {}), ai: { on: true, key: 'cle-de-test', url: base } };
   fs.writeFileSync(HOME + '/.config/DrYAE/settings.json', JSON.stringify(S)); fs.rmSync(HOME + '/.config/DrYAE/scan-cache.json', { force: true });
@@ -76,16 +76,11 @@ const FR = s => s.split(/\s+/).map(w => w.length > 3 ? w + 'ée' : w).join(' ');
   b = null; pg = null; for (let i = 0; i < 40 && !b; i++) { b = app2.windows().find(x => x.url().includes('browser.html')); await wait(250); }
   for (let i = 0; i < 40 && !pg; i++) { pg = app2.windows().find(x => x.url().startsWith(base)); await wait(250); }
   await wait(2000);
-  const s0 = seen.length; aiMode = 'once';
+  ok('ancienne clé IA effacée du PC', !JSON.parse(fs.readFileSync(HOME + '/.config/DrYAE/settings.json', 'utf8')).browser?.scan?.ai);
+  aiMode = 'once';
   await b.evaluate(() => pageCmd('scan'));
-  for (let i = 0; i < 120 && aiSeen.length < 1; i++) await wait(500);
-  await pg.evaluate(() => scrollTo(0, document.body.scrollHeight));
-  for (let i = 0; i < 120 && cache().length < IMGS.length; i++) await wait(500);
-  await wait(1000);
-  const c1 = cache(); const blkAI = c1.map(c => c[1].blocks).find(bl => bl.some(x => /^IA \d/.test(x.tr))) || [];
-  ok('IA : image et texte lu envoyés avec la clé', aiSeen.length >= 1 && aiSeen[0].img && aiSeen[0].key === 'cle-de-test' && aiSeen[0].n >= 3, aiSeen);
-  ok('IA : sa traduction est affichée', blkAI.length && blkAI.every(x => /^IA \d/.test(x.tr)), blkAI.map(x => x.tr).slice(0, 3));
-  const blkN = c1.map(c => c[1].blocks).find(bl => bl.every(x => !/^IA \d/.test(x.tr)));
-  ok('limite IA atteinte : traduction habituelle à la place', aiSeen.length === 2 && blkN && blkN.length >= 3 && seen.some(q => q.length > 1), { ia: aiSeen.length, normal: blkN && blkN.length });
+  for (let i = 0; i < 120 && cache().length < 1; i++) await wait(500);
+  await wait(1500);
+  ok('l\'IA n\'est jamais appelée, traduction habituelle', aiSeen.length === 0 && cache().some(c => c[1].blocks.length), aiSeen.length);
   await Promise.race([app2.close(), wait(5000)]); srv.close(); process.exit(0);
 })().catch(e => { console.error(e); process.exit(1); });

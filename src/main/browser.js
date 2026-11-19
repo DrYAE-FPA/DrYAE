@@ -1167,21 +1167,6 @@ class WebBrowser {
     });
   }
   // mémoire des images traduites (300 dernières), gardée sur le disque
-  // réglages de la traduction IA des scans, ou null si elle n'est pas activée
-  aiCfg() {
-    const A = (this.B().scan || {}).ai || {}; if (!A.on) return null;
-    let key = A.key || '';
-    if (A.keyEnc) { try { key = require('electron').safeStorage.decryptString(Buffer.from(A.keyEnc, 'base64')); } catch { key = ''; } }
-    return key ? { key, model: A.model || '', url: A.url || '', mode: A.mode === 'all' ? 'all' : 'hard' } : null;
-  }
-  // 1.7.0 refaite : pages traduites par l'IA aujourd'hui (compteur affiché dans la fenêtre du traducteur de scans)
-  aiCount(add) {
-    const file = path.join(this.userDir, 'ai-count.json'), day = new Date().toISOString().slice(0, 10);
-    if (!this._aic) { try { this._aic = JSON.parse(fs.readFileSync(file, 'utf8')); } catch { this._aic = {}; } }
-    if (this._aic.day !== day) this._aic = { day, n: 0 };
-    if (add) { this._aic.n += add; fsp.writeFile(file, JSON.stringify(this._aic)).catch(() => {}); }
-    return this._aic.n;
-  }
   // noms propres à une série (personnages, lieux), appris en lisant, par site : un nom mal lu plus loin est corrigé
   scanNames() {
     if (this._sn) return this._sn;
@@ -1950,28 +1935,6 @@ class WebBrowser {
       return (this.B().scan || {}).glossary || [];
     });
     // traduction IA des scans : réglages (la clé est chiffrée par Windows quand c'est possible)
-    ipcMain.handle('scan:ai', (e, patch) => {
-      if (!this.isUi(e.sender)) patch = null; // réglage seulement depuis la fenêtre du navigateur (jamais depuis une page web)
-      const { safeStorage } = require('electron'); const cur = { ...((this.B().scan || {}).ai || {}) };
-      if (patch && typeof patch === 'object') {
-        if ('on' in patch) cur.on = !!patch.on;
-        if (typeof patch.key === 'string') {
-          const k = patch.key.trim().slice(0, 200); delete cur.key; delete cur.keyEnc;
-          if (k) { if (safeStorage.isEncryptionAvailable()) cur.keyEnc = safeStorage.encryptString(k).toString('base64'); else cur.key = k; }
-        }
-        if (typeof patch.model === 'string') cur.model = patch.model.replace(/[^\w.-]/g, '').slice(0, 60);
-        if (patch.mode === 'all' || patch.mode === 'hard') cur.mode = patch.mode;
-        if (patch.privacySeen) cur.privacySeen = true;
-        this.settings.set({ browser: { scan: { ...(this.B().scan || {}), ai: cur } } }); this.aiOffUntil = 0;
-      }
-      return { on: !!cur.on, hasKey: !!(cur.keyEnc || cur.key), model: cur.model || '', mode: cur.mode === 'all' ? 'all' : 'hard', off: this.aiOffUntil > Date.now(), offWhy: this.aiOffUntil > Date.now() ? (this.aiWhy || '') : '', today: this.aiCount(0), limit: 500, privacySeen: !!cur.privacySeen };
-    });
-    // 1.7.0 refaite : vérification d'une clé IA (liste des modèles : ne compte pas dans la limite du jour)
-    ipcMain.handle('scan:aiTest', async (e, key) => {
-      if (!this.isUi(e.sender)) return { ok: false };
-      const k = String(key || '').trim() || (this.aiCfg() || {}).key || ''; if (!k) return { ok: false, bad: true };
-      return M.aiCheck(k, ((this.B().scan || {}).ai || {}).url);
-    });
     // 1.7.0 refaite : pages traduites enregistrées en .cbz ou en PDF (choix du fichier par l'utilisateur)
     ipcMain.handle('scan:export', async (e, o) => {
       if (!o || !Array.isArray(o.pages) || !o.pages.length || o.pages.length > 2000) return { error: 'rien à enregistrer' };
@@ -2014,10 +1977,11 @@ class WebBrowser {
       const src = o.lang && /^[a-z_]+$/.test(o.lang) ? o.lang : (S.source || 'auto');
       const PO = require('./paddle-ocr');
       // image déjà traduite (même image, mêmes langues) : réponse immédiate, avec les corrections faites à la main
-      const ckey = crypto.createHash('sha1').update(buf || img.toPNG()).digest('hex').slice(0, 20) + '|' + src + '|' + (o.to || S.target || target()) + '|' + (this.aiCfg() && !(this.aiOffUntil > Date.now()) ? 'ai' : ((this.B().translate || {}).provider || 'google'));
+      const ckey = crypto.createHash('sha1').update(buf || img.toPNG()).digest('hex').slice(0, 20) + '|' + src + '|' + (o.to || S.target || target()) + '|' + ((this.B().translate || {}).provider || 'google');
       // les 20 dernières images lues restent en mémoire (bouton « Garder cette image pour l'améliorer »)
       { const R = this._scanImgs || (this._scanImgs = new Map()); R.delete(ckey); R.set(ckey, { buf: buf && scale !== 0 ? buf : null, img, page: o.page || '' }); while (R.size > 20) R.delete(R.keys().next().value); }
-      if (!o.fresh) { const c = this.scanCache().get(ckey); if (c) return { ...c, key: ckey, cached: true }; }
+      // 1.7.2 : traductions gardées d'avant la correction des codes « <0xC3><0x87> » : nettoyées à la lecture
+      if (!o.fresh) { const c = this.scanCache().get(ckey); if (c) return { ...c, blocks: (c.blocks || []).map(b => b && /<0x[0-9a-f]{2}>/i.test(b.tr || '') ? { ...b, tr: require('./local-mt').bytesFix(b.tr) } : b), key: ckey, cached: true }; }
       const modelFor = MODEL_OF_SRC[src];
       let groups, w, needModel = '';
       if (modelFor && PO.installed().includes(modelFor)) {
@@ -2104,39 +2068,8 @@ class WebBrowser {
       const SQ = (() => { try { return require('./scan-fix').squeeze; } catch { return t => t; } })();
       const prot = groups.map(g => M.protect(SQ(g.text, /^(en|fr)$/.test(pageLang) ? pageLang : ''), pageLang, never, gl));
       const mt = () => groups.map((g, i) => M.forMT(prot[i].t, g.caps, pageLang));
-      let tr = null, ai = '', aiWhy = '';
-      // traduction par IA (facultative, clé personnelle) : elle voit l'image, corrige la lecture et traduit avec le contexte
-      const AI = this.aiCfg();
-      // « pages difficiles seulement » (par défaut) : lecture peu sûre ou mots inconnus → IA ; sinon traduction habituelle
-      const hard = quality < 0.93 || odd > 0.12 || scale === 0;
-      if (AI && !(this.aiOffUntil > Date.now()) && (AI.mode === 'all' || hard)) {
-        try {
-          const mime = buf && /^\x89PNG/.test(buf.subarray(0, 4).toString('latin1')) ? 'image/png' : buf && buf[0] === 0xff && buf[1] === 0xd8 ? 'image/jpeg' : '';
-          // 1.7.0 refaite : image envoyée réduite (1400 px de large au plus) : envoi et réponse bien plus rapides
-          let pic = mime && scale !== 0 ? buf : img.toJPEG(90), pmime = mime && scale !== 0 ? mime : 'image/jpeg';
-          { const sz = img.getSize(); if (sz.width > 1400 || pic.length > 1.5e6) { pic = img.resize({ width: Math.min(1400, sz.width), quality: 'good' }).toJPEG(85); pmime = 'image/jpeg'; } }
-          const r = await M.aiScan(pic, pmime, groups.map(g => prep(g.text)), to, AI);
-          this.aiCount(1);
-          if (!o.to && same(r.from, to)) { const r2 = await M.aiScan(pic, pmime, groups.map(g => prep(g.text)), second(to), AI); this.aiCount(1); to = second(to); tr = r2; } else tr = r;
-          groups = groups.map((g, i) => ({ ...g, text: tr.fixed[i] ? (g.caps ? tr.fixed[i].toUpperCase() : tr.fixed[i]) : g.text }));
-          // 1.7.1 : bulles oubliées par l'IA : traduction habituelle pour celles-là seulement
-          const miss = tr.texts.map((t, i) => t ? -1 : i).filter(i => i >= 0);
-          if (miss.length) { const all = mt(); const r3 = await M.translate(miss.map(i => all[i]), to, 'auto', this.B().translate || {}); miss.forEach((i, k) => { tr.texts[i] = M.unprotect((r3.texts || [])[k] || '', prot[i].keep); }); }
-          ai = 'ok';
-        } catch (err) {
-          // limite du jour atteinte : retour à la traduction habituelle jusqu'à demain ; clé refusée : jusqu'à ce qu'elle change
-          LOGW('ia', err.message);
-          this.aiWhy = String(err.message || err).slice(0, 90);
-          if (err.quota) { const d = new Date(); d.setHours(24, 0, 0, 0); this.aiOffUntil = d.getTime(); ai = 'quota'; }
-          else if (err.minute) { this.aiOffUntil = Date.now() + 60e3; ai = 'minute'; }
-          else if (err.badKey) { this.aiOffUntil = Date.now() + 3600e3; ai = 'badkey'; }
-          // 1.7.1 : Google surchargé : traduction habituelle pendant 2 min (les pages suivantes n'attendent plus)
-          else if (err.busy) { this.aiOffUntil = Date.now() + 120e3; ai = 'busy'; }
-          else ai = 'error';
-          aiWhy = String(err.message || err).slice(0, 90);
-          tr = null;
-        }
-      }
+      // 1.7.2 : la traduction IA (Gemini) est retirée : jamais de bons résultats
+      let tr = null; const ai = '', aiWhy = '';
       if (!tr) {
         tr = await M.translate(mt(), to, 'auto', this.B().translate || {});
         if (!o.to && same(tr.from, to)) { to = second(to); tr = await M.translate(mt(), to, tr.from, this.B().translate || {}); }
@@ -2144,6 +2077,8 @@ class WebBrowser {
       const res = { blocks: groups.map((g, i) => ({ x0: g.x0, y0: g.y0, x1: g.x1, y1: g.y1, text: g.text, tr: keep[i] ? g.text : ai === 'ok' ? (tr.texts[i] || '') : M.unprotect(tr.texts[i] || '', prot[i].keep), vertical: g.vertical, bg: g.bg || '', bubble: g.bubble || null, caps: !!g.caps, lh: g.lh || 0, n: g.n || 1, ...(table[i] ? { skip: true } : {}), ...(g.prose ? { prose: true } : {}) })), w, captured: scale === 0, from: tr.from, to, needModel, model: usedModel, ai, aiWhy };
       // traduction habituelle après un échec de l'IA : gardée sous la clé du traducteur habituel (l'IA reprendra demain)
       const skey = ai && ai !== 'ok' ? ckey.replace(/\|ai$/, '|' + ((this.B().translate || {}).provider || 'google')) : ckey;
+      // 1.7.2 : jamais de codes « <0x..> » dans une bulle, quel que soit le chemin de la traduction
+      for (const b of res.blocks || []) if (b && /<0x[0-9a-f]{2}>/i.test(b.tr || '')) b.tr = require('./local-mt').bytesFix(b.tr);
       if (scale !== 0 && ai !== 'error') this.scanCache().set(skey, res, true);
       return { ...res, key: skey };
     });

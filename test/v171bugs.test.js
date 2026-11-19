@@ -7,6 +7,10 @@ const ok = (n, v, x) => console.log((v ? 'OK  ' : 'ÉCHEC ') + n, x !== undefine
   ok('« <0xC3><0x87>a suffit » → « Ça suffit »', bytesFix('<0xC3><0x87>a suffit, Marie ?') === 'Ça suffit, Marie ?');
   ok('en majuscules aussi (bulle déjà mise en capitales)', M.unprotect('<0XC3><0X87>A NE VA PAS', []) === 'ÇA NE VA PAS');
   ok('texte normal inchangé', bytesFix('Où vas-tu ?') === 'Où vas-tu ?' && M.unprotect('[1] arrive', ['Paul']) === 'Paul arrive');
+  // 1.7.2 : pages gardées par le propriétaire
+  const SF = require('../src/main/scan-fix');
+  ok("« WHAT'S THIIIS? » lu « THUS » → THIS", SF.fixWords("WHAT'S THUS?") === "WHAT'S THIS?");
+  ok('« (~10 MILLION YEN) » lu « ID » → 10', SF.fixParts(['(ID MILLION YEN)']) === '(10 MILLION YEN)' && SF.fixParts(['I DID IT']) === 'I DID IT');
   // PDF : une page par image, à la taille de l'image
   const HOME = '/tmp/claude-0/uihome-v171b'; fs.mkdirSync(HOME, { recursive: true });
   const app = await _electron.launch({ args: ['.', '--no-sandbox'], cwd: ROOT, executablePath: ROOT + '/node_modules/electron/dist/electron', env: { ...process.env, HOME, XDG_CONFIG_HOME: HOME + '/.config' } });

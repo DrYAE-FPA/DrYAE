@@ -11,6 +11,7 @@
 
 ## ✨ Nouveautés de la version 1.7.1 / What's new
 
+- 🚀 **Mode turbo** (OneDrive et Windows Update en pause pendant les téléchargements), **dossier par catégorie** et **dossier du moment**, menu ⋮ raccourci (version refaite). / **Turbo mode**, folder per category and folder for now, shorter menu (rebuilt version).
 - ⚡ **Torrents plus rapides** : port ouvert tout seul sur la box (UPnP / NAT-PMP), voyant « Connexion entrante », jusqu'à 150 pairs, file de 3 torrents actifs. / **Faster torrents**: port opened on the router, incoming-connection indicator, up to 150 peers, queue of 3 active torrents.
 - 📖 **Traducteur de scans qui s'adapte à la page** : bulles de BD et mangas, paragraphes de romans, légendes ; lexique géré dans les paramètres ; pages originales enregistrées en .cbz ou PDF. / **Image text translator adapts to the page**: bubbles, novel paragraphs, captions; glossary in settings; original pages saved as .cbz or PDF.
 - 🗂️ **Onglets déplacés à la souris** vers une autre fenêtre ou une nouvelle fenêtre (2e écran compris), avec une vignette qui suit la souris. / **Drag tabs** to another window or a new one (second screen too).

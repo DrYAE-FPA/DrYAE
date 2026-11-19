@@ -68,6 +68,8 @@ If no video is found, start playing it, then try again. If a YouTube video stops
 
 DRM-protected videos (Netflix, Disney+…) cannot be downloaded.
 
+- **Turbo mode (1.7.1 rebuilt)**: ⚡ Turbo button under the speed. OneDrive paused and Windows Update stopped (with your approval) during downloads; everything comes back by itself. **Folders**: Settings → General → "Folder for each category"; "Use this folder for the next downloads" box under "Save to".
+
 ## 4. Torrents
 - Use **Add → Torrent**, click a `magnet:` / `.torrent` link in the DrYAE browser (the file picker opens on the page, you stay there), or drop a `.torrent` file.
 - The torrent engine (aria2) is native and very light: it only runs while torrents are downloading.
@@ -138,7 +140,7 @@ DRM-protected videos (Netflix, Disney+…) cannot be downloaded.
 - **Performance** (Settings → Tabs and performance): memory saver (sleeping tabs), energy saver on battery, data saver, vertical tabs.
 - **Profiles** (⋮ menu → Profiles): each profile has its own bookmarks, passwords, cookies, history and downloads, in its own window.
 - **Image text translator:** bubbles are found one by one (the translated text takes the bubble's colour), translated together in reading order, and an image already translated shows at once. **Right-click a bubble** to fix the text or the translation, or add a word to the **glossary** (character names…). For Korean, Russian, Arabic, Thai or Hindi, download the **reading model** once from the image text translator window.
-- **Image text translator, reworked:** it turns on **only when you click** its button. The original text is erased inside the bubble and the translation is written in its place, in a comic font, never bigger than the original and without breaking words. In English, misread letters and words split at the end of a line are fixed before translating; "SFX" notes are not translated. **AI translation (optional)**: in the image text translator window, paste your free Google Gemini key ("Get a free key" button, no payment). The AI sees the page and understands the conversation; the image is then sent to Google. When the free daily limit is reached, the usual translation takes over.
+- **Image text translator, reworked:** it turns on **only when you click** its button. The original text is erased inside the bubble and the translation is written in its place, in a comic font, never bigger than the original and without breaking words. In English, misread letters and words split at the end of a line are fixed before translating; "SFX" notes are not translated.
 - **Image text translator, small text:** when a site protects its images, DrYAE redraws the area larger before reading it. Black bubbles (white text) are recognized. "SFX" notes, drawn Japanese letters and shouts (AHHH, HEHE…) are not translated. By default, the AI (if you turned it on) only gets the difficult pages. **Right-click a bubble → "Keep this image to improve it"**: the image is saved in Documents\DrYAE\Images à améliorer, nothing is sent.
 - **Image text translator, comics in French:** solid-colour bubbles are recognized, French reading is fixed (mixed-up letters, glued words) and drawn sound effects stay intact.
 - **Side-by-side view:** the ⋮ button on the divider (or a right-click on the divider) lets you swap sides, choose the width, scroll both sides together, separate the tabs or close one side.
@@ -175,7 +177,6 @@ DRM-protected videos (Netflix, Disney+…) cannot be downloaded.
 - **Translate**: "Image text translator" button in the toolbar. The next pages are translated ahead.
 - **Save the translation**: Image text translator window → "Save the translation (.cbz)" or "(PDF)". Only for your own files, or files you have the right to copy.
 - **On-device translation**: Settings → Translation → "On-device translation". Nothing is sent online. A model is downloaded once per language pair.
-- **AI translation (Gemini)**: Image text translator window → "AI translation" → "Get a free key": the steps are shown. The key is checked as soon as you save it.
 
 ## 5b. Accessibility
 Settings → **Accessibility**: DrYAE text size (up to 200%), **high contrast** (or as Windows), **easy reading** (simple font and wider letter spacing, helpful for dyslexia), **reduce animations**, **simple mode** (only the essential buttons). Everything also works from the keyboard: Tab, arrows, Esc, F6 (address bar → buttons → page), Alt+F (menu). DrYAE works with screen readers (NVDA, Narrator). Your own shortcuts: Settings → **Keyboard shortcuts**.

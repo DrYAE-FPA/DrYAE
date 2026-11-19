@@ -111,6 +111,8 @@ class Settings extends EventEmitter {
     this.data = deepMerge(this.def, saved);
     // 1.7.1 : torrents plus rapides — l'ancien réglage par défaut (55 pairs) passe à 150
     if (!saved.v171) { if (this.data.torrent && this.data.torrent.maxConns === 55) this.data.torrent.maxConns = 150; this.data.v171 = true; }
+    // 1.7.2 : traduction IA retirée : la clé Gemini enregistrée est effacée de ce PC
+    if (this.data.browser && this.data.browser.scan && this.data.browser.scan.ai) { delete this.data.browser.scan.ai; try { fs.writeFileSync(this.file, JSON.stringify(this.data, null, 2)); } catch {} }
     // 1.6.1 : on demande désormais quoi faire en cas de doublon (l'ancien réglage par défaut était « renommer »)
     if (!saved.v161) { this.data.duplicate = 'ask'; this.data.v161 = true; }
     // 1.6.4 : le bloqueur devient une extension intégrée ; la liste française passe dans les listes proposées

@@ -346,10 +346,12 @@ function group(lines, bm, inBubble) {
       gs.sort((a, b) => v ? b.x1 - a.x1 : a.y0 - b.y0);
       const clusters = [];
       for (const g of gs) {
-        const last = clusters[clusters.length - 1], lh = Math.max(g.lh || 0, last ? last.lh : 0) || 20;
-        const gap = !last ? Infinity : v ? last.x0 - g.x1 : g.y0 - last.y1;
-        if (last && gap < lh * 2.2) { last.items.push(g); last.y1 = Math.max(last.y1, g.y1); last.x0 = Math.min(last.x0, g.x0); last.lh = Math.max(last.lh, g.lh || 0); }
-        else clusters.push({ items: [g], y1: g.y1, x0: g.x0, lh: g.lh || 0 });
+        // 1.7.2 : deux bulles côte à côte qui se touchent (« HEY, DANTON. » à droite de « I CAN'T UNDERSTAND… ») :
+        // un espace vide vertical entre les deux colonnes de texte les garde séparées ; on rejoint le groupe de sa colonne
+        const fits = c => { const lh = Math.max(g.lh || 0, c.lh) || 20; const gap = v ? c.x0 - g.x1 : g.y0 - c.y1; return gap < lh * 2.2 && (v || Math.max(g.x0 - c.x1, c.x0 - g.x1) <= lh * 0.8); };
+        const last = v ? clusters[clusters.length - 1] : [...clusters].reverse().find(fits);
+        if (last && fits(last)) { last.items.push(g); last.y1 = Math.max(last.y1, g.y1); last.x0 = Math.min(last.x0, g.x0); last.x1 = Math.max(last.x1, g.x1); last.lh = Math.max(last.lh, g.lh || 0); }
+        else clusters.push({ items: [g], y1: g.y1, x0: g.x0, x1: g.x1, lh: g.lh || 0 });
       }
       clusters.forEach((cl, ci) => {
         const same = cl.items, cj = /[぀-ヿ㐀-鿿]/.test(same[0].text);
@@ -363,7 +365,9 @@ function group(lines, bm, inBubble) {
           const lo = it => Math.min(...it.items.map(o => v ? o.x0 : o.y0)), hi = it => Math.max(...it.items.map(o => v ? o.x1 : o.y1));
           // largeur : celle du texte, un peu élargie (la zone claire voisine peut appartenir à l'autre cadre)
           const m = (g.lh || 20) * 0.6;
-          if (!v) { if (prev) bb.y0 = (hi(prev) + g.y0) / 2; if (next) bb.y1 = (g.y1 + lo(next)) / 2; bb.x0 = Math.max(bb.x0, g.x0 - m); bb.x1 = Math.min(bb.x1, g.x1 + m); }
+          // voisin à côté (pas au-dessus ni en dessous) : on ne coupe pas en hauteur, la largeur suffit
+          const beside = it => it && (Math.max(g.x0 - it.x1, it.x0 - g.x1) > (g.lh || 20) * 0.8);
+          if (!v) { if (prev && !beside(prev)) bb.y0 = (hi(prev) + g.y0) / 2; if (next && !beside(next)) bb.y1 = (g.y1 + lo(next)) / 2; bb.x0 = Math.max(bb.x0, g.x0 - m); bb.x1 = Math.min(bb.x1, g.x1 + m); }
           else { if (prev) bb.x1 = (lo(prev) + g.x1) / 2; if (next) bb.x0 = (g.x0 + hi(next)) / 2; bb.y0 = Math.max(bb.y0, g.y0 - m); bb.y1 = Math.min(bb.y1, g.y1 + m); }
         }
         g.bubble = bb; merged.push(g);
@@ -562,7 +566,11 @@ async function readBubbles(img, opts = {}) {
     // ne sont pas des mots à corriger. Une page d'histoire avec un seul bloc de crédits est corrigée (pseudonymes mis de côté).
     // (si scan-fix.js est une ancienne version sans ces fonctions : pas de détection, le reste marche comme avant)
     const credLike = SF.creditsHint ? groups.filter(g => SF.creditsHint(g.text) > 0).length : 0;
-    if (credLike && SF.isCreditsPage(txs, groups.filter(g => g.bubble).length, groups.length) && credLike >= Math.max(2, groups.length * 0.4)) {
+    // 1.7.2 : page de crédits découpée en beaucoup de petits morceaux (rôles en minuscules, pseudonymes, flèches) :
+    // au moins 3 mots de crédits différents répartis dans 3 morceaux, et aucune bulle de dialogue
+    const credWords = SF.creditsHint ? new Set(txs.flatMap(t => (String(t).match(/\b(scanlations?|credits?|typeset\w*|proofread\w*|raws?|translat\w*|clean\w*|redraw\w*|staff)\b/gi) || []).map(w => w.toLowerCase().replace(/s$/, '')))).size : 0;
+    const manyBits = credLike >= 3 && credWords >= 3 && groups.filter(g => g.bubble).length === 0;
+    if (credLike && SF.isCreditsPage(txs, groups.filter(g => g.bubble).length, groups.length) && (credLike >= Math.max(2, groups.length * 0.4) || manyBits)) {
       groups.credits = true; groups.lang = fr >= 0.35 && fr > er ? 'fr' : er >= 0.35 ? 'en' : '';
     } else
     // 1.6.9 : page en français (BD, mangas en VF) : confusions U/L, O/Q, petit « i » des lettrages, « Δ » pour À, mots collés

@@ -52,7 +52,7 @@ function pageFeatures() {
   };
   const UI_CSS = `:host{all:initial}
     *{box-sizing:border-box;font-family:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif}
-    .card input,.card textarea{cursor:text}.card button,.card a{cursor:pointer}.card{position:fixed;pointer-events:auto;background:#151922;color:#e9ebf1;border:1px solid #2c3242;border-radius:12px;box-shadow:0 14px 40px #0009;font-size:13.5px;line-height:1.45}
+    .scanbar .btn{background:rgba(255,255,255,.07)!important;border-color:rgba(255,255,255,.12)!important;padding:3px 8px!important;font-size:11.5px!important}.scanbar:hover .btn{background:rgba(255,255,255,.12)!important}.card input,.card textarea{cursor:text}.card button,.card a{cursor:pointer}.card{position:fixed;pointer-events:auto;background:#151922;color:#e9ebf1;border:1px solid #2c3242;border-radius:12px;box-shadow:0 14px 40px #0009;font-size:13.5px;line-height:1.45}
     .btn{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:8px;background:#232938;color:#e9ebf1;font-size:12.5px;font-weight:600}
     .btn:hover{background:#2e3546}.btn.pri{background:var(--a,#8b5cf6);color:#fff}
     svg{width:16px;height:16px;flex:none}`;
@@ -922,9 +922,9 @@ function pageFeatures() {
     if (scan) return;
     const layer = el('<div style="position:fixed;inset:0;pointer-events:none;z-index:0"></div>');
     // 1.7.1 : barre transparente (on voit la page à travers) ; elle redevient pleine quand la souris passe dessus
-    const bar = el(`<div class="card scanbar" style="right:16px;bottom:16px;padding:8px 10px;display:flex;align-items:center;gap:8px;font-size:12px;background:rgba(22,26,34,.6);backdrop-filter:blur(3px);text-shadow:0 1px 2px #000;transition:background .2s,opacity .2s;opacity:.88""><span style="color:#c4b5fd;display:flex">${ICO.tr}</span><b>${esc(pt('Traducteur de scans'))}</b><span class="st" style="color:#8f97aa"></span><button class="btn sel" title="${esc(pt('Affiche le texte lu dans les bulles : sélectionnez un mot pour le corriger ou l\'ajouter au lexique'))}">${esc(pt('Texte lu'))}</button><button class="btn tg">${esc(pt('Afficher l\'original'))}</button><button class="btn st2">${esc(pt('Arrêter'))}</button></div>`);
+    const bar = el(`<div class="card scanbar" style="right:16px;bottom:16px;padding:5px 7px;display:flex;align-items:center;gap:6px;font-size:11.5px;background:rgba(22,26,34,.45);backdrop-filter:blur(3px);text-shadow:0 1px 2px #000;transition:background .2s,opacity .2s;opacity:.7""><span style="color:#c4b5fd;display:flex" title="${esc(pt('Traducteur de scans'))}">${ICO.tr}</span><span class="st" style="color:#8f97aa"></span><button class="btn sel" title="${esc(pt('Affiche le texte lu dans les bulles : sélectionnez un mot pour le corriger ou l\'ajouter au lexique'))}">${esc(pt('Texte lu'))}</button><button class="btn tg">${esc(pt('Afficher l\'original'))}</button><button class="btn st2">${esc(pt('Arrêter'))}</button></div>`);
     bar.addEventListener('mouseenter', () => { bar.style.background = 'rgba(22,26,34,.96)'; bar.style.opacity = 1; });
-    bar.addEventListener('mouseleave', () => { bar.style.background = 'rgba(22,26,34,.6)'; bar.style.opacity = .88; });
+    bar.addEventListener('mouseleave', () => { bar.style.background = 'rgba(22,26,34,.45)'; bar.style.opacity = .7; });
     scan = { layer, bar, items: new Map(), queue: [], busy: false, shown: true, n: 0, io: null, tools: null, hover: null };
     bar.querySelector('.tg').onclick = () => { scan.shown = !scan.shown; layer.style.display = scan.shown ? '' : 'none'; bar.querySelector('.tg').textContent = pt(scan.shown ? 'Afficher l\'original' : 'Afficher la traduction'); };
     bar.querySelector('.st2').onclick = scanStop;
