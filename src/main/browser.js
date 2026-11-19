@@ -1948,6 +1948,17 @@ class WebBrowser {
       else await fsp.writeFile(r.filePath, require('./pdf-images').imagesToPdf(bufs).pdf);
       return { file: r.filePath };
     });
+    // 1.7.1 : page d'un chapitre pas affichée par le lecteur (lecture page par page) : récupérée pour l'enregistrement
+    ipcMain.handle('scan:page', async (e, o) => {
+      if (!o || !/^https?:/.test(o.src || '')) return null;
+      try {
+        const ses = e.sender.session || this.win.webContents.session;
+        const ac = new AbortController(), t = setTimeout(() => ac.abort(), 30000);
+        const r = await ses.fetch(o.src, { signal: ac.signal, headers: { Referer: o.page || '' } }).finally(() => clearTimeout(t));
+        if (!r.ok || !/^image\//.test(r.headers.get('content-type') || 'image/')) return null;
+        const b = Buffer.from(await r.arrayBuffer()); return b.length > 60 * 1024 * 1024 ? null : b;
+      } catch { return null; }
+    });
     // police « bande dessinée » des bulles traduites (Comic Neue, licence SIL OFL 1.1)
     ipcMain.handle('scan:font', () => { try { return fs.readFileSync(path.join(__dirname, '..', '..', 'assets', 'fonts', 'comic-neue', 'comic-neue-latin-700-normal.woff2')); } catch { return null; } });
     ipcMain.handle('scan:image', async (e, o) => {

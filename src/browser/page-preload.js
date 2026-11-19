@@ -1016,18 +1016,55 @@ function pageFeatures() {
     }
     return { size, lines };
   }
+  // 1.7.1 : toutes les pages du chapitre, dans l'ordre. Si la page ne montre qu'une partie des images (lecteur page par page,
+  // chargement au défilement), on cherche dans la page la liste des adresses d'images du même dossier que l'image affichée.
+  function chapterPages(imgs) {
+    const src = i => i.currentSrc || i.src || '';
+    const dir = u => { try { const x = new URL(u, location.href); return x.origin + x.pathname.replace(/[^/]*$/, ''); } catch { return ''; } };
+    const lazy = [...document.querySelectorAll('img')].map(i => !i.naturalWidth && (i.dataset.src || i.dataset.lazySrc || i.dataset.original || '')).filter(Boolean);
+    const dirs = new Set([...imgs.map(i => dir(src(i))), ...lazy.map(dir)].filter(Boolean));
+    if (!dirs.size) return imgs;
+    const text = [...document.scripts].filter(x => !x.src).map(x => x.textContent).join('\n').replace(/\\\//g, '/') + '\n' + lazy.join('\n');
+    const by = new Map();
+    for (const m of text.matchAll(/(?:https?:)?\/\/[^\s"'<>()\\,]+?\.(?:jpe?g|png|webp|avif)(?:\?[^\s"'<>()\\,]*)?/gi)) {
+      let u = m[0]; if (u.startsWith('//')) u = location.protocol + u;
+      const d = dir(u); if (!dirs.has(d)) continue;
+      if (!by.has(d)) by.set(d, new Set()); by.get(d).add(u);
+    }
+    // le dossier des pages = celui (parmi les images de la page) qui a le plus d'adresses dans la liste du lecteur
+    let d = '', found = [];
+    for (const [k, v] of by) if (v.size > found.length) { d = k; found = [...v]; }
+    const shown = imgs.filter(i => dir(src(i)) === d);
+    if (found.length < 3 || found.length <= shown.length) return imgs;
+    // pages du lecteur dans l'ordre de la liste ; les autres images (bannière, logo…) sont laissées de côté
+    return found.slice(0, 2000).map(u => shown.find(i => src(i) === u) || u);
+  }
+
   // 1.7.1 : orig = pages dans leur langue d'origine (sans traduction), même sans lancer le traducteur
   async function scanExport(fmt, orig) {
     if (!scan && !orig) { scanStart(); return hint(pt('Traduction des images en cours : enregistrez quand la page est traduite')); }
     if (!orig) await loadFont();
     const min = SC.minSize || 250;
     const imgs = [...document.querySelectorAll('img')].filter(i => i.naturalWidth >= min && i.naturalHeight >= min * 0.6);
-    const out = []; let done = 0, blocked = 0;
+    // 1.7.1 : lecteurs « page par page » : une seule image est affichée, la liste complète des pages est dans la page
+    // (script du lecteur ou images pas encore chargées) → on prend toutes les pages, dans l'ordre
+    const list = chapterPages(imgs);
+    const out = []; let done = 0, blocked = 0, k = 0;
     status(pt('Enregistrement des pages…'));
-    for (const img of imgs) {
+    for (const entry of list) {
+      k++; if (list.length > 3) status(ptf('Enregistrement des pages… {0}/{1}', k, list.length));
+      let img = entry instanceof HTMLImageElement ? entry : imgs.find(i => (i.currentSrc || i.src) === entry), url = null;
+      if (!img) {
+        // page pas affichée : on la télécharge comme le lecteur l'aurait fait (même session, même page d'origine)
+        try {
+          const b = await ipcRenderer.invoke('scan:page', { src: entry, page: location.href });
+          if (!b) throw 0; url = URL.createObjectURL(new Blob([b]));
+          img = new Image(); img.src = url; await img.decode();
+        } catch { if (url) URL.revokeObjectURL(url); blocked++; continue; }
+      }
       const it = scan?.items.get(img);
       const c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight;
-      const ctx = c.getContext('2d'); ctx.drawImage(img, 0, 0);
+      const ctx = c.getContext('2d'); ctx.drawImage(img, 0, 0); if (url) URL.revokeObjectURL(url);
       if (!orig && it?.blocks?.length) {
         done++;
         const k = img.naturalWidth / (it.w || img.naturalWidth), font = FONT;
