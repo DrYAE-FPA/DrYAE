@@ -26,6 +26,8 @@ function defaults(app) {
     maxRetries: 10,
     userAgent: '',
     proxy: { enabled: false, url: '' },
+    // 1.7.2 : mode turbo (OneDrive et Windows Update mis en pause pendant les gros téléchargements)
+    turbo: { auto: false, stopWhenDone: true, onedrive: true, winupdate: true },
     // accessibilité : taille du texte de DrYAE (%), contraste élevé, lecture facilitée, animations, mode simple
     a11y: { scale: 100, contrast: 'auto', easy: false, motion: 'auto', simple: false },
     rmFiles: false,           // case « Supprimer aussi le fichier » (dernier choix)

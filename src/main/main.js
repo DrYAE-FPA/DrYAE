@@ -32,7 +32,7 @@ if (!app.requestSingleInstanceLock()) { app.quit(); process.exit(0); }
 
 const ASSETS = path.join(__dirname, '..', '..', 'assets');
 const UI = path.join(__dirname, '..', 'ui');
-let win, tray, settings, manager, browser, quitting = false, psb = null;
+let win, tray, settings, manager, browser, quitting = false, psb = null, turbo = null;
 const pendingArgs = [];
 
 const enc = s => { try { return safeStorage.isEncryptionAvailable() ? 'e:' + safeStorage.encryptString(s).toString('base64') : 'p:' + s; } catch { return 'p:' + s; } };
@@ -218,6 +218,8 @@ app.whenReady().then(async () => {
   const userDir = app.getPath('userData');
   manager = new Manager({ userDir, settings, decrypt: dec });
   api.manager = manager;
+  // mode turbo : toute la connexion pour DrYAE pendant les gros téléchargements
+  turbo = new (require('./turbo').Turbo)(settings, path.join(userDir, 'turbo.json'));
   browser = new WebBrowser({
     main: api, settings, userDir, assetsDir: ASSETS, getPassword: api.getPassword,
     onDownload: (o) => { api.showMain(); send('prompt-add', o); },
@@ -239,6 +241,16 @@ app.whenReady().then(async () => {
   manager.on('progress', v => { if (win && win.isVisible() && !win.isMinimized() && !browser.visible()) send('progress', v); updateTray(v); });
   manager.on('reload', () => send('reload', manager.views()));
   manager.on('torrentPort', p => send('torrent-port', p));
+  // mode turbo : s'arrête tout seul quand plus rien ne se télécharge ; peut aussi se lancer tout seul (réglage)
+  const busy = () => manager.list.some(d => ['running', 'queued', 'merging'].includes(d.status));
+  let turboIdle = 0;
+  setInterval(async () => {
+    if (!turbo) return; const C = turbo.cfg();
+    if (turbo.st.on) {
+      global.DRYAE_TURBO = true;
+      if (C.stopWhenDone && !busy()) { if (++turboIdle >= 3) { turboIdle = 0; send('turbo', await turbo.stop()); send('toast', T('Mode turbo terminé : tout est revenu comme avant.')); global.DRYAE_TURBO = false; } } else turboIdle = 0;
+    } else { global.DRYAE_TURBO = false; if (C.auto && manager.list.some(d => d.status === 'running' && (d.type === 'torrent' || d.size > 300 * 1048576))) send('turbo', await turbo.start()); }
+  }, 10000).unref?.();
   manager.on('torrentProbe', p => { send('torrent-probe', p); browser?.wc?.send('torrent-probe', p); });
   manager.on('notice', n => { api.notify(n.title, n.body); send('toast', n.body); });
   manager.on('itemFinished', d => {
@@ -295,7 +307,7 @@ function updateTray(active) {
   }
 }
 
-app.on('before-quit', () => { quitting = true; browser?.onQuit(); manager?.shutdownAll(); });
+app.on('before-quit', () => { quitting = true; try { turbo?.stop(); } catch {} browser?.onQuit(); manager?.shutdownAll(); });
 app.on('window-all-closed', () => { if (!settings.get().tray) app.quit(); });
 
 // ================= IPC =================
@@ -513,6 +525,8 @@ H('torrent:addQuick', src => manager.add({ type: 'torrent', url: src }));
 // 1.7.1 : voyant « connexion entrante » des torrents (porte ouverte sur la box, pare-feu Windows)
 H('torrent:portStatus', retry => manager.torrents.portStatus(!!retry));
 H('torrent:allowFirewall', () => manager.torrents.allowFirewall());
+H('turbo:status', () => turbo?.status());
+H('turbo:set', async on => { const st = on ? await turbo.start() : await turbo.stop(); global.DRYAE_TURBO = !!st.on; send('turbo', st); return st; });
 H('torrent:cancelProbe', hash => { if (hash) manager.torrents.probeCancel.add(String(hash).toLowerCase()); });
 H('torrent:select', (id, sel) => manager.get(id)?.setSelection(sel));
 H('torrent:sequential', (id, v) => manager.get(id)?.setSequential(v));

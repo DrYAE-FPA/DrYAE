@@ -896,6 +896,17 @@ $('#limitChip').onclick = async () => {
   if (!S.speedLimit) return showSettings('net');
   S = await call('setSettings', { speedLimitOn: !S.speedLimitOn }); updLimit();
 };
+// 1.7.2 : mode turbo
+let TURBO = { on: false };
+function turboDraw(st) { if (st) TURBO = st; $('#turboChip').classList.toggle('on', !!TURBO.on); $('#turboChip').setAttribute('aria-pressed', TURBO.on ? 'true' : 'false'); }
+function turboSay(st) {
+  if (!st.on) return toast(T('Mode turbo arrêté : tout est revenu comme avant.'));
+  const p = [st.onedrive === 'paused' ? T('OneDrive en pause') : '', st.winupdate === 'paused' ? T('Windows Update arrêté') : st.winupdate === 'refused' ? T('Windows Update non arrêté (accord refusé)') : ''].filter(Boolean);
+  toast(T('Mode turbo actif') + (p.length ? ' : ' + p.join(', ') : ' : ' + T('rien d\'autre à mettre en pause')) + '.');
+}
+$('#turboChip').onclick = async () => { $('#turboChip').disabled = true; try { const st = await call('turbo:set', !TURBO.on); turboDraw(st); turboSay(st); } catch {} $('#turboChip').disabled = false; };
+D.on('turbo', st => turboDraw(st));
+call('turbo:status').then(turboDraw).catch(() => {});
 function updLimit() { $('#limitChip').classList.toggle('on', !!(S.speedLimitOn && S.speedLimit)); $('#limitTxt').textContent = S.speedLimitOn && S.speedLimit ? `${S.speedLimit >= 1024 ? (S.speedLimit / 1024).toFixed(1) + ' Mo/s' : S.speedLimit + ' Ko/s'}` : 'MAX'; }
 
 $('#bulk').addEventListener('click', async e => {
@@ -1050,7 +1061,7 @@ async function showSettings(sec = 'gen') {
   const Y = S.ytdl || {}; v('#sYtMode', Y.mode === 'audio' ? (Y.audioFormat || 'mp3') : 'video'); v('#sYtQ', Y.quality || '1080'); v('#sYtB', Y.audioBitrate || '320');
   call('ytdl:version').then(x => ($('#sYtVer').textContent = 'Version de yt-dlp : ' + x)).catch(() => {});
   call('extInfo').then(x => ($('#eInfo').textContent = x.port ? `DrYAE écoute l'extension sur le port ${x.port}. Identifiant de l'extension : ${x.id}` : 'Le service de l\'extension n\'a pas pu démarrer.')).catch(() => {});
-  c('#sLimOn', S.speedLimitOn); v('#sLim', S.speedLimit); c('#sDataOn', S.dataLimit.enabled); v('#sDataMb', S.dataLimit.mb); c('#sProxyOn', S.proxy.enabled); v('#sProxy', S.proxy.url); v('#sUA', S.userAgent);
+  c('#sLimOn', S.speedLimitOn); v('#sLim', S.speedLimit); c('#sDataOn', S.dataLimit.enabled); v('#sDataMb', S.dataLimit.mb); c('#sProxyOn', S.proxy.enabled); v('#sProxy', S.proxy.url); v('#sUA', S.userAgent); { const TB = S.turbo || {}; c('#tbOd', TB.onedrive !== false); c('#tbWu', TB.winupdate !== false); c('#tbDone', TB.stopWhenDone !== false); c('#tbAuto', !!TB.auto); }
   const st = await call('stats'); v('#sDataUsed', fmt(st.dataToday));
   const TO = S.torrent;
   c('#tEn', TO.enabled); c('#tMeta', TO.fetchMetadata); c('#tSeqD', TO.sequential); c('#tSeedD', TO.seed); v('#tRatio', TO.ratio); v('#tUp', TO.uploadLimit); v('#tDown', TO.downloadLimit); v('#tConns', TO.maxConns); v('#tPort', TO.port); v('#tMaxAct', TO.maxActive || 3); tPortShow(null, false); c('#tDht', TO.dht); c('#tLsd', TO.lsd); c('#tDefTr', TO.useDefaultTrackers); v('#tTrackers', TO.trackers); v('#tTrUrl', TO.trackersUrl);
@@ -1158,7 +1169,7 @@ $('#sOk').onclick = async () => {
     connections: n('#sConn'), parallel: n('#sPar'), maxRetries: n('#sRetry'), duplicate: v('#sDup'), perSite: n('#sPerSite'), siteLimits: sTmp.siteLimits,
     hls: { connections: Math.max(1, n('#sHlsC')), quality: v('#sHlsQ'), convert: c('#sHlsConv') },
     ytdl: { mode: v('#sYtMode') === 'video' ? 'video' : 'audio', audioFormat: v('#sYtMode') === 'm4a' ? 'm4a' : 'mp3', quality: v('#sYtQ'), audioBitrate: v('#sYtB') },
-    speedLimitOn: c('#sLimOn'), speedLimit: n('#sLim'), dataLimit: { enabled: c('#sDataOn'), mb: n('#sDataMb') }, proxy: { enabled: c('#sProxyOn'), url: v('#sProxy').trim() }, userAgent: v('#sUA').trim(),
+    speedLimitOn: c('#sLimOn'), speedLimit: n('#sLim'), dataLimit: { enabled: c('#sDataOn'), mb: n('#sDataMb') }, proxy: { enabled: c('#sProxyOn'), url: v('#sProxy').trim() }, turbo: { onedrive: c('#tbOd'), winupdate: c('#tbWu'), stopWhenDone: c('#tbDone'), auto: c('#tbAuto') }, userAgent: v('#sUA').trim(),
     torrent: { enabled: c('#tEn'), fetchMetadata: c('#tMeta'), sequential: c('#tSeqD'), seed: c('#tSeedD'), ratio: +v('#tRatio') || 0, uploadLimit: n('#tUp'), downloadLimit: n('#tDown'), maxConns: n('#tConns') || 55, port: n('#tPort'), maxActive: Math.max(1, Math.min(20, n('#tMaxAct') || 3)), dht: c('#tDht'), lsd: c('#tLsd'), useDefaultTrackers: c('#tDefTr'), trackers: v('#tTrackers'), trackersUrl: v('#tTrUrl').trim() },
     scheduler: { enabled: c('#cOn'), start: v('#cStart') || '02:00', stop: v('#cStop'), days: $$('#cDays [data-day]').filter(x => x.checked).map(x => +x.dataset.day), addNew: c('#cAdd'), shutdown: c('#cShut') },
     theme: { mode: v('#lMode'), accent: $('#lColor').dataset.sys ? 'system' : $('#lColor').value },

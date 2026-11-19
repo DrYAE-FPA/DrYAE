@@ -79,7 +79,7 @@
     </nav>
     <div class="side-foot">
       <div class="speedbox">
-        <div class="row1"><span>Vitesse</span><button class="chip" id="limitChip" title="Activer / désactiver la limite de vitesse"><svg style="width:11px;height:11px"><use href="#i-gauge"/></svg><span id="limitTxt">MAX</span></button></div>
+        <div class="row1"><span>Vitesse</span><button class="chip" id="limitChip" title="Activer / désactiver la limite de vitesse"><svg style="width:11px;height:11px"><use href="#i-gauge"/></svg><span id="limitTxt">MAX</span></button><button class="chip turbo" id="turboChip" title="Mode turbo : toute la connexion pour DrYAE (OneDrive et Windows Update mis en pause pendant les téléchargements)">⚡ <span>Turbo</span></button></div>
         <div class="v" id="total">0 o/s</div>
         <div class="up" id="totalUp"></div>
       </div>
@@ -275,6 +275,12 @@
         <h4>Vitesse &amp; réseau</h4>
         <label class="check"><input type="checkbox" id="sLimOn"> Limiter la vitesse de téléchargement</label>
         <div class="grid2"><div><label>Vitesse max. (Ko/s)</label><input type="number" id="sLim" min="0"></div></div>
+        <div class="sect">Mode turbo</div>
+        <p class="hint">Pendant les gros téléchargements, DrYAE met en pause les programmes qui utilisent beaucoup internet en arrière-plan. Tout revient tout seul : OneDrive est relancé à la fin, et Windows relance Windows Update quand il en a besoin.</p>
+        <label class="check"><input type="checkbox" id="tbOd"> Mettre OneDrive en pause</label>
+        <label class="check"><input type="checkbox" id="tbWu"> Arrêter Windows Update et l'Optimisation de la distribution (Windows demande ton accord)</label>
+        <label class="check"><input type="checkbox" id="tbDone"> Arrêter le mode turbo quand les téléchargements sont finis</label>
+        <label class="check"><input type="checkbox" id="tbAuto"> Lancer le mode turbo tout seul pour les torrents et les fichiers de plus de 300 Mo</label>
         <div class="sect">Limite de données</div>
         <label class="check"><input type="checkbox" id="sDataOn"> Mettre en pause quand la limite quotidienne est atteinte</label>
         <div class="grid2"><div><label>Limite par jour (Mo)</label><input type="number" id="sDataMb" min="0"></div><div><label>Consommé aujourd'hui</label><input type="text" id="sDataUsed" disabled></div></div>
