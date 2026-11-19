@@ -17,6 +17,6 @@ Protocols:
 Installers:
 - Architecture: x64
   InstallerUrl: https://github.com/DrYAE-FPA/DrYAE/releases/download/v1.7.1/DrYAE-Setup-1.7.1.exe
-  InstallerSha256: 27BBE68BF484C2D10DB058D371FA48432A0350A6CCBD4F36535A8753D0C4E551
+  InstallerSha256: 7D4B55BACA0122F6662E68CAE0BB108E1E745AA4A716DD803AC869A9593037A9
 ManifestType: installer
 ManifestVersion: 1.9.0
