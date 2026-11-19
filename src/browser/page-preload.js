@@ -1018,6 +1018,7 @@ function pageFeatures() {
   }
   // 1.7.1 : toutes les pages du chapitre, dans l'ordre. Si la page ne montre qu'une partie des images (lecteur page par page,
   // chargement au défilement), on cherche dans la page la liste des adresses d'images du même dossier que l'image affichée.
+  const sameOrigin = u => { if (!u || /^(data|blob):/.test(u)) return true; try { return new URL(u, location.href).origin === location.origin; } catch { return false; } };
   function chapterPages(imgs) {
     const src = i => i.currentSrc || i.src || '';
     const dir = u => { try { const x = new URL(u, location.href); return x.origin + x.pathname.replace(/[^/]*$/, ''); } catch { return ''; } };
@@ -1045,15 +1046,21 @@ function pageFeatures() {
     if (!scan && !orig) { scanStart(); return hint(pt('Traduction des images en cours : enregistrez quand la page est traduite')); }
     if (!orig) await loadFont();
     const min = SC.minSize || 250;
-    const imgs = [...document.querySelectorAll('img')].filter(i => i.naturalWidth >= min && i.naturalHeight >= min * 0.6);
+    let imgs = [...document.querySelectorAll('img')].filter(i => i.naturalWidth >= min && i.naturalHeight >= min * 0.6);
+    // bandeaux très larges (logo, bannière du site) : pas des pages, laissés de côté s'il y a d'autres images
+    const pages = imgs.filter(i => i.naturalWidth <= i.naturalHeight * 3); if (pages.length) imgs = pages;
     // 1.7.1 : lecteurs « page par page » : une seule image est affichée, la liste complète des pages est dans la page
     // (script du lecteur ou images pas encore chargées) → on prend toutes les pages, dans l'ordre
     const list = chapterPages(imgs);
     const out = []; let done = 0, blocked = 0, k = 0;
     status(pt('Enregistrement des pages…'));
-    for (const entry of list) {
+    for (let entry of list) {
       k++; if (list.length > 3) status(ptf('Enregistrement des pages… {0}/{1}', k, list.length));
       let img = entry instanceof HTMLImageElement ? entry : imgs.find(i => (i.currentSrc || i.src) === entry), url = null;
+      const it = img && scan?.items.get(img), w0 = img?.naturalWidth;
+      // image venue d'un autre serveur (souvent le cas des lecteurs en ligne) : elle ne peut pas être recopiée telle quelle
+      // depuis la page → on la récupère comme le lecteur l'a fait (même session), puis on la recopie
+      if (img && !sameOrigin(img.currentSrc || img.src)) entry = img.currentSrc || img.src, img = null;
       if (!img) {
         // page pas affichée : on la télécharge comme le lecteur l'aurait fait (même session, même page d'origine)
         try {
@@ -1062,12 +1069,11 @@ function pageFeatures() {
           img = new Image(); img.src = url; await img.decode();
         } catch { if (url) URL.revokeObjectURL(url); blocked++; continue; }
       }
-      const it = scan?.items.get(img);
       const c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight;
       const ctx = c.getContext('2d'); ctx.drawImage(img, 0, 0); if (url) URL.revokeObjectURL(url);
       if (!orig && it?.blocks?.length) {
         done++;
-        const k = img.naturalWidth / (it.w || img.naturalWidth), font = FONT;
+        const k = img.naturalWidth / (it.w || w0 || img.naturalWidth), font = FONT;
         for (const b of it.blocks) {
           const tr = b.tr || ''; if (!tr || tr === b.text) continue;
           const x = b.x0 * k, y = b.y0 * k, w = (b.x1 - b.x0) * k, h = (b.y1 - b.y0) * k, pad = Math.max(2, h * 0.06);

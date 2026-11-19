@@ -16,16 +16,17 @@ function png(w, h, rgb) {
   const srv = require('http').createServer((q, r) => {
     const m = /^\/up\/ch1-(\d+)\.png$/.exec(q.url);
     if (m) { seenRef.push(q.headers.referer || ''); r.setHeader('content-type', 'image/png'); return r.end(png(300, 420, [+m[1] * 25, 90, 160])); }
-    if (q.url === '/logo/banniere.png') { r.setHeader('content-type', 'image/png'); return r.end(png(600, 300, [10, 10, 10])); }
-    const P = 'http://site.test:' + srv.address().port, L = Array.from({ length: N }, (_, i) => `${P}/up/ch1-${i + 1}.png`);
-    const L2 = L.map(u => u.replace('site.test', 'autre.test'));
+    if (q.url === '/logo/banniere.png') { r.setHeader('content-type', 'image/png'); return r.end(png(1200, 200, [10, 10, 10])); }
+    // pages sur un autre serveur que le site (comme les lecteurs en ligne) ; bannière large du site sur le site lui-même
+    const P = 'http://img.test:' + srv.address().port, n = q.url.startsWith('/court') ? 1 : N, L = Array.from({ length: n }, (_, i) => `${P}/up/ch1-${i + 1}.png`);
+    const L2 = L.map(u => u.replace('img.test', 'autre.test')), all = q.url.startsWith('/vertical');
     r.setHeader('content-type', 'text/html; charset=utf-8');
-    r.end(`<!doctype html><title>Chapitre 1</title><body><img src="/logo/banniere.png"><div id="lecteur"><img src="${L[0]}"></div>
-<script>lecteur.run(${JSON.stringify({ mode: 'single', sources: [{ source: 'S1', images: L }, { source: 'S2', images: L2 }] }).replace(/\//g, '\\/')});</script></body>`);
+    r.end(`<!doctype html><title>Chapitre 1</title><body><img src="/logo/banniere.png"><div id="lecteur">${(all ? L : L.slice(0, 1)).map(u => `<img src="${u}">`).join('')}</div>
+<script>lecteur.run(${JSON.stringify({ mode: all ? 'full' : 'single', sources: [{ source: 'S1', images: L }, { source: 'S2', images: L2 }] }).replace(/\//g, '\\/')});</script></body>`);
   }).listen(0); await new Promise(r => srv.once('listening', r)); const port = srv.address().port;
   const HOME = '/tmp/claude-0/uihome-v171ex'; fs.rmSync(HOME, { recursive: true, force: true }); fs.mkdirSync(HOME + '/.config/DrYAE', { recursive: true });
   fs.writeFileSync(HOME + '/.config/DrYAE/settings.json', JSON.stringify({ lang: 'fr', langChosen: true, startView: 'manager' }));
-  const app = await _electron.launch({ args: ['.', '--no-sandbox', '--host-resolver-rules=MAP site.test 127.0.0.1, MAP autre.test 127.0.0.1'], cwd: ROOT, executablePath: ROOT + '/node_modules/electron/dist/electron', env: { ...process.env, HOME, XDG_CONFIG_HOME: HOME + '/.config' } });
+  const app = await _electron.launch({ args: ['.', '--no-sandbox', '--host-resolver-rules=MAP site.test 127.0.0.1, MAP autre.test 127.0.0.1, MAP img.test 127.0.0.1'], cwd: ROOT, executablePath: ROOT + '/node_modules/electron/dist/electron', env: { ...process.env, HOME, XDG_CONFIG_HOME: HOME + '/.config' } });
   const w = await app.firstWindow(); await wait(2000);
   await w.evaluate(p => window.dryae.call('openBrowser', 'http://site.test:' + p + '/chapitre'), port);
   let b; for (let i = 0; i < 40 && !b; i++) { b = app.windows().find(x => x.url().includes('browser.html')); await wait(250); }
@@ -36,10 +37,21 @@ function png(w, h, rgb) {
   for (let i = 0; i < 60 && !fs.existsSync(HOME + '/orig.cbz'); i++) await wait(500); await wait(800);
   let lo = ''; try { lo = execFileSync(z, ['l', HOME + '/orig.cbz']).toString(); } catch {}
   ok('toutes les pages du chapitre enregistrées (.cbz), sans la bannière du site', (lo.match(/\.jpg/g) || []).length === N, lo.split('\n').slice(-3).join(' '));
-  ok('pages demandées comme le ferait le lecteur (page d\'origine indiquée)', seenRef.length >= N - 1 && seenRef.every(x => x.includes('/chapitre')), seenRef.slice(0, 2));
+  ok('pages demandées comme le ferait le lecteur (page d\'origine indiquée)', seenRef.length >= N - 1 && seenRef.every(x => x.startsWith('http://site.test:')), seenRef.slice(0, 2));
   await app.evaluate(({ dialog }, f) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath: f }); }, HOME + '/orig.pdf');
   await b.evaluate(() => pageCmd('scan-export', { fmt: 'pdf', original: true }));
   for (let i = 0; i < 60 && !fs.existsSync(HOME + '/orig.pdf'); i++) await wait(500); await wait(800);
   { const t = fs.existsSync(HOME + '/orig.pdf') ? fs.readFileSync(HOME + '/orig.pdf').toString('latin1') : ''; ok('PDF : une page par page du chapitre', new RegExp('/Count ' + N + '\\b').test(t), (t.match(/\/Count \d+/) || [])[0]); }
+  // lecture verticale : toutes les pages affichées (venant d'un autre serveur), traduction lancée
+  const go = async (u, f, o) => {
+    await b.evaluate(u => { cur.wv.loadURL(u).catch(() => {}); }, 'http://site.test:' + port + u); await wait(3000);
+    await app.evaluate(({ dialog }, f) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath: f }); }, HOME + '/' + f);
+    await b.evaluate(o => pageCmd('scan-export', o), o);
+    for (let i = 0; i < 60 && !fs.existsSync(HOME + '/' + f); i++) await wait(500); await wait(800);
+    try { return (execFileSync(z, ['l', HOME + '/' + f]).toString().match(/\.jpg/g) || []).length; } catch { return 0; }
+  };
+  ok('lecture verticale (pages d\'un autre serveur) : toutes les pages', await go('/vertical', 'vert.cbz', { fmt: 'cbz', original: true }) === N);
+  ok('chapitre d\'une seule page : la page, pas le logo du site', await go('/court', 'court.cbz', { fmt: 'cbz', original: true }) === 1);
+  { let lst = ''; try { lst = execFileSync(z, ['l', '-slt', HOME + '/court.cbz']).toString(); } catch {} ok('la page enregistrée est bien la page du chapitre', /Size = \d+/.test(lst)); }
   await Promise.race([app.close(), wait(5000)]); srv.close(); process.exit(0);
 })().catch(e => { console.log('ÉCHEC exception', e.message); process.exit(1); });

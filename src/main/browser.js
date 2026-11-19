@@ -74,6 +74,10 @@ function unveil(img, v) {
   } catch { return img; }
 }
 
+// 1.7.1 : page d'origine envoyée avec une image, comme le fait le navigateur : l'adresse complète pour le même site,
+// seulement le site (https://site/) pour une image d'un autre serveur (sinon Chromium refuse la demande)
+function refFor(src, page) { try { const a = new URL(src), b = new URL(page); return a.origin === b.origin ? b.href : b.origin + '/'; } catch { return ''; } }
+
 class WebBrowser {
   constructor({ main, settings, userDir, onDownload, onTorrent, getPassword, assetsDir }) {
     Object.assign(this, { main, settings, userDir, onDownload, onTorrent, getPassword, assetsDir });
@@ -570,6 +574,8 @@ class WebBrowser {
         const h = hostOf(details.url);
         if (!this.safeAllow.has(h) && SAFE.isBad(h)) { LOGW('sites dangereux', 'bloqué : ' + h); return cb({ redirectURL: 'dryae://danger/?u=' + encodeURIComponent(details.url) }); }
       }
+      // 1.7.1 : page d'un chapitre récupérée par DrYAE pour l'enregistrer (le bloqueur de pubs la prenait pour une pub)
+      if (this.ownFetch?.has(details.url)) return cb({});
       if (!this.blocker || details.resourceType === 'mainFrame' || CHALLENGE.test(hostOf(details.url)) || NO_BLOCK_URL.test(details.url) || this.cfPass.has(details.webContentsId) || this.loginTabs.has(details.webContentsId)) return cb({});
       const page = details.referrer || (details.webContents && !details.webContents.isDestroyed() ? details.webContents.getURL() : '');
       if (!this.adblockActiveFor(page)) return cb({});
@@ -1097,7 +1103,7 @@ class WebBrowser {
     const say = m => { try { wc.send('dryae-cmd', { cmd: 'hint', text: T(m) }); } catch {} this.main.notify?.('DrYAE', m); };
     try {
       let buf = null;
-      if (/^https?:/.test(p.srcURL)) { const r = await wc.session.fetch(p.srcURL, { headers: { Referer: wc.getURL() } }); if (r.ok) buf = Buffer.from(await r.arrayBuffer()); }
+      if (/^https?:/.test(p.srcURL)) { const r = await wc.session.fetch(p.srcURL, { headers: { Referer: refFor(p.srcURL, wc.getURL()) } }); if (r.ok) buf = Buffer.from(await r.arrayBuffer()); }
       const { nativeImage } = require('electron');
       let img = buf ? nativeImage.createFromBuffer(buf) : null;
       if (buf && (!img || img.isEmpty())) img = await this.decodeImage(buf).catch(() => null);
@@ -1202,7 +1208,7 @@ class WebBrowser {
       if (u.startsWith('data:image/')) { if (u.length < 90000) return this.favKeep(host, u, incognito); continue; }
       try {
         const ac = new AbortController(); const t = setTimeout(() => ac.abort(), 8000);
-        const r = await ses.fetch(u, { signal: ac.signal, headers: { Referer: pageUrl } }).finally(() => clearTimeout(t));
+        const r = await ses.fetch(u, { signal: ac.signal, headers: { Referer: refFor(u, pageUrl) } }).finally(() => clearTimeout(t));
         const ct = (r.headers.get('content-type') || '').split(';')[0];
         if (!r.ok || !/^image\/|octet-stream|x-icon/.test(ct)) continue;
         const buf = Buffer.from(await r.arrayBuffer()); if (!buf.length || buf.length > 65536) continue;
@@ -1954,7 +1960,8 @@ class WebBrowser {
       try {
         const ses = e.sender.session || this.win.webContents.session;
         const ac = new AbortController(), t = setTimeout(() => ac.abort(), 30000);
-        const r = await ses.fetch(o.src, { signal: ac.signal, headers: { Referer: o.page || '' } }).finally(() => clearTimeout(t));
+        (this.ownFetch ||= new Set()).add(o.src);
+        const r = await ses.fetch(o.src, { signal: ac.signal, headers: { Referer: refFor(o.src, o.page) } }).finally(() => { clearTimeout(t); this.ownFetch.delete(o.src); });
         if (!r.ok || !/^image\//.test(r.headers.get('content-type') || 'image/')) return null;
         const b = Buffer.from(await r.arrayBuffer()); return b.length > 60 * 1024 * 1024 ? null : b;
       } catch { return null; }
@@ -1968,7 +1975,7 @@ class WebBrowser {
       let buf = null, scale = 1;
       if (o.data) buf = Buffer.from(o.data);
       else if (/^https?:/i.test(o.src || '')) {
-        try { const r = await wc.session.fetch(o.src, { headers: { Referer: o.page || '' } }); if (r.ok && /^image\//.test(r.headers.get('content-type') || 'image/')) buf = Buffer.from(await r.arrayBuffer()); } catch {}
+        try { const r = await wc.session.fetch(o.src, { headers: { Referer: refFor(o.src, o.page) } }); if (r.ok && /^image\//.test(r.headers.get('content-type') || 'image/')) buf = Buffer.from(await r.arrayBuffer()); } catch {}
       }
       const { nativeImage } = require('electron');
       let img = buf ? nativeImage.createFromBuffer(buf) : null;
