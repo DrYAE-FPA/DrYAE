@@ -57,10 +57,10 @@ class Updater {
       const orig = autoUpdater.isUpdateAvailable.bind(autoUpdater);
       autoUpdater.isUpdateAvailable = async info => (await orig(info)) || rebuilt(info && info.version, info && info.releaseDate);
       autoUpdater.on('checking-for-update', () => this.set({ status: 'checking', error: null }));
-      autoUpdater.on('update-available', i => { const fix = i.version === app.getVersion(); this.set({ status: 'available', version: fix ? i.version + ' (' + this.T('version corrigée') + ')' : i.version, rebuilt: fix }); this.notify(this.T('Mise à jour disponible'), 'DrYAE ' + i.version + (fix ? ' — ' + this.T('version corrigée') : '')); });
+      autoUpdater.on('update-available', i => { const fix = i.version === app.getVersion(); this.set({ status: 'available', version: i.version, rebuilt: fix }); this.notify(this.T('Mise à jour disponible'), 'DrYAE ' + i.version + ''); });
       autoUpdater.on('update-not-available', () => this.set({ status: 'latest' }));
       autoUpdater.on('download-progress', p => this.set({ status: 'downloading', progress: p.percent || 0, transferred: p.transferred || 0, total: p.total || 0, speed: p.bytesPerSecond || 0 }));
-      autoUpdater.on('update-downloaded', i => this.set({ status: 'ready', version: i.version === app.getVersion() ? i.version + ' (' + this.T('version corrigée') + ')' : i.version, progress: 100, speed: 0 }));
+      autoUpdater.on('update-downloaded', i => this.set({ status: 'ready', version: i.version, progress: 100, speed: 0 }));
       autoUpdater.on('error', e => this.set({ status: 'error', error: String(e && e.message || e).split('\n')[0] }));
       this.au = autoUpdater;
       // vérification automatique (désactivable dans Paramètres → À propos)
@@ -73,7 +73,7 @@ class Updater {
     if (!this.au) { // version non installée : on lit simplement la dernière version publiée
       try {
         const r = await fetch(`https://api.github.com/repos/${this.cfg.github.owner}/${this.cfg.github.repo}/releases/latest`, { headers: { Accept: 'application/vnd.github+json' } });
-        if (r.ok) { const j = await r.json(); const v = String(j.tag_name || '').replace(/^v/, ''); const fix = rebuilt(v, j.published_at || j.created_at); this.set({ status: v && (newer(v, app.getVersion()) || fix) ? 'available' : 'latest', version: fix ? v + ' (' + this.T('version corrigée') + ')' : v, rebuilt: fix }); }
+        if (r.ok) { const j = await r.json(); const v = String(j.tag_name || '').replace(/^v/, ''); const fix = rebuilt(v, j.published_at || j.created_at); this.set({ status: v && (newer(v, app.getVersion()) || fix) ? 'available' : 'latest', version: v, rebuilt: fix }); }
         else this.set({ status: 'error', error: 'GitHub ' + r.status });
       } catch (e) { this.set({ status: 'error', error: e.message }); }
       return this.info();

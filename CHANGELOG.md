@@ -4,22 +4,19 @@
 
 ### 🇫🇷 Français
 
-**Version refaite (19 nov.)**
+Des téléchargements plus rapides (torrents et mode turbo), un traducteur de scans qui s'adapte à la page (BD, mangas, romans), des dossiers à votre choix et des onglets qui se déplacent à la souris comme dans les autres navigateurs.
+
+**Téléchargements plus rapides**
 - **Mode turbo** : bouton ⚡ Turbo sous la vitesse du gestionnaire. Pendant vos téléchargements, OneDrive est mis en pause et Windows Update arrêté (Windows demande votre accord) ; tout revient tout seul à la fin. Réglages : Paramètres → Vitesse & réseau → Mode turbo.
 - **Dossier de chaque catégorie** (Paramètres → Général) et **dossier du moment** : la case « Utiliser ce dossier pour les prochains téléchargements » sous « Enregistrer dans » envoie tout dans ce dossier jusqu'à ce que vous la décochiez.
-- **Menu ⋮ raccourci** pour les petits écrans : Profils en tête ; onglet privé et conteneurs au clic droit sur « + » ; recherche dans les onglets avec la loupe de la barre d'onglets ; mode téléphone dans Outils supplémentaires ; ouvrir une BD dans Paramètres → Traducteur de scans ; le reste avec Ctrl+K.
-- **Traducteur de scans** : un bouton .cbz et un bouton PDF, avec le choix « la traduction » ou « l'original » ; barre plus discrète ; deux bulles collées côte à côte ne sont plus mélangées ; page de crédits reconnue même en petits morceaux ; « WHAT'S THIIIS » et « (~10 MILLION YEN) » mieux lus ; plus jamais de codes « <0xC3><0x87> » dans une bulle, même pour les pages déjà traduites.
-- **Traduction IA (Gemini) retirée** : elle ne donnait pas de bons résultats. Une clé enregistrée est effacée de votre PC.
-
-Des torrents plus rapides, un traducteur de scans qui s'adapte à la page (BD, mangas, romans), et des onglets qui se déplacent à la souris comme dans les autres navigateurs.
-
-**Torrents plus rapides**
 - **Porte ouverte sur la box** : DrYAE ouvre tout seul le port des torrents sur votre box (UPnP ou NAT-PMP) et le referme en quittant. Les autres personnes peuvent alors venir vers vous, et non plus seulement l'inverse. Le port est choisi une fois et gardé.
 - **Voyant « Connexion entrante »** (Paramètres → Torrents) : ouverte, fermée par la box, fermée par le pare-feu de Windows (bouton « Autoriser dans le pare-feu Windows », avec l'accord de Windows), ou adresse partagée par le fournisseur d'internet (CGNAT), avec l'explication.
 - **Plus de pairs** : jusqu'à 150 par torrent (au lieu de 55), et DrYAE continue d'en chercher tant que la vitesse reste basse.
 - **File d'attente des torrents** : 3 torrents actifs en même temps (réglable) ; le plus avancé passe en premier, et un torrent bloqué depuis 3 minutes laisse sa place. Les autres téléchargements ne sont plus ralentis par les torrents.
 
 **Traducteur de scans**
+- **Fenêtre du traducteur simplifiée** : un bouton .cbz et un bouton PDF, avec le choix « la traduction » ou « l'original » ; barre plus discrète ; deux bulles collées côte à côte ne sont plus mélangées ; page de crédits reconnue même en petits morceaux ; « WHAT'S THIIIS » et « (~10 MILLION YEN) » mieux lus ; plus jamais de codes « <0xC3><0x87> » dans une bulle, même pour les pages déjà traduites.
+- **La traduction IA (Gemini) est retirée** : elle ne donnait pas de bons résultats. Une clé enregistrée est effacée de votre PC.
 - **S'adapte à la page** : bulles de BD et de mangas comme avant ; texte de livre ou de roman coupé en paragraphes, traduit en entier et réécrit comme un paragraphe ; légendes et titres à part ; tableaux de noms laissés tels quels.
 - **Lecture plus juste** : minuscules dans les bulles en majuscules, lettres H et U mieux reconnues, chiffres mieux lus, ponctuation gardée, page de crédits reconnue.
 - **Lexique** : mots entiers seulement (« HERE » → « ICI » ne transforme plus THERE en « TICI »), majuscules ignorées ; nouvelle page **Paramètres → Lexique des scans** (recherche, modification, suppression de plusieurs mots, mots courants signalés) ; avertissement avant d'ajouter un mot courant.
@@ -28,6 +25,7 @@ Des torrents plus rapides, un traducteur de scans qui s'adapte à la page (BD, m
 - Barre du traducteur transparente (pleine quand la souris passe dessus) ; une bulle ne s'étale plus sur le texte d'une autre.
 
 **Navigateur**
+- **Menu ⋮ raccourci** pour les petits écrans : Profils en tête ; onglet privé et conteneurs au clic droit sur « + » ; recherche dans les onglets avec la loupe de la barre d'onglets ; mode téléphone dans Outils supplémentaires ; ouvrir une BD dans Paramètres → Traducteur de scans ; le reste avec Ctrl+K.
 - **Déplacer un onglet à la souris** : l'onglet se soulève et suit la souris ; sorti de la barre, une vignette de la page le suit ; lâché sur une autre fenêtre DrYAE, il y passe (la barre montre où) ; lâché ailleurs, même sur un 2e écran, il ouvre une nouvelle fenêtre ; seul onglet d'une fenêtre : toute la fenêtre suit. Échap annule.
 - **Lumières tamisées** : la page suivante est sombre dès le début du chargement (plus d'éblouissement), et les lumières, la protection des yeux et le mode nuit marchent aussi sur les fichiers de l'ordinateur (PDF, texte, BD), même sans internet.
 - **Connexion avec Google refusée** dans le navigateur intégré (Google bloque volontairement ces connexions) : DrYAE le repère et propose d'ouvrir le site dans Chrome ou de se connecter par e-mail, au lieu de recharger la page sans fin.
@@ -41,15 +39,19 @@ Des torrents plus rapides, un traducteur de scans qui s'adapte à la page (BD, m
 
 ### 🇬🇧 English
 
-Faster torrents, an image text translator that adapts to the page (comics, manga, novels), and tabs you can drag with the mouse like in other browsers.
+Faster downloads (torrents and turbo mode), an image text translator that adapts to the page (comics, manga, novels), folders of your choice, and tabs you can drag with the mouse like in other browsers.
 
-**Faster torrents**
+**Faster downloads**
+- **Turbo mode**: ⚡ Turbo button under the manager's speed. During your downloads, OneDrive is paused and Windows Update stopped (Windows asks for your approval); everything comes back by itself at the end. Settings: Settings → Speed & network → Turbo mode.
+- **Folder for each category** (Settings → General) and **folder for now**: the "Use this folder for the next downloads" box under "Save to" sends everything to that folder until you untick it.
 - **Port opened on your router**: DrYAE opens the torrent port on your router by itself (UPnP or NAT-PMP) and closes it when quitting, so other people can connect to you too. The port is chosen once and kept.
 - **"Incoming connection" indicator** (Settings → Torrents): open, closed by the router, closed by Windows Firewall ("Allow in Windows Firewall" button, with Windows' approval), or address shared by your internet provider (CGNAT), with an explanation.
 - **More peers**: up to 150 per torrent (instead of 55), and DrYAE keeps looking for more while the speed stays low.
 - **Torrent queue**: 3 torrents active at the same time (adjustable); the most advanced goes first, and a torrent stuck for 3 minutes gives up its place. Other downloads are no longer slowed down by torrents.
 
 **Image text translator**
+- **Simpler translator window**: one .cbz button and one PDF button, with the choice "the translation" or "the original"; a lighter bar; two bubbles touching side by side are no longer mixed; credits page recognized even in small pieces; "WHAT'S THIIIS" and "(~10 MILLION YEN)" read better; never again "<0xC3><0x87>" codes in a bubble, even for pages translated before.
+- **AI translation (Gemini) is removed**: it did not give good results. A saved key is erased from your PC.
 - **Adapts to the page**: comic and manga bubbles as before; book or novel text split into paragraphs, translated whole and rewritten as paragraphs; captions and titles handled separately; tables of names left as they are.
 - **More accurate reading**: lowercase letters in uppercase bubbles, H and U recognized better, digits read better, punctuation kept, credits page recognized.
 - **Glossary**: whole words only ("HERE" → "ICI" no longer turns THERE into "TICI"), case ignored; new **Settings → Scan glossary** page (search, edit, delete several words, common words flagged); warning before adding a common word.
@@ -58,6 +60,7 @@ Faster torrents, an image text translator that adapts to the page (comics, manga
 - See-through translator bar (solid when the mouse is over it); a bubble no longer spreads over another one's text.
 
 **Browser**
+- **Shorter ⋮ menu** for small screens: Profiles first; private tab and containers with a right-click on "+"; tab search with the magnifier in the tab bar; phone mode in More tools; open a comic in Settings → Image text translator; the rest with Ctrl+K.
 - **Drag a tab with the mouse**: the tab lifts and follows the mouse; outside the tab bar, a thumbnail of the page follows it; dropped on another DrYAE window, it moves there (the bar shows where); dropped elsewhere, even on a second screen, it opens a new window; the only tab of a window: the whole window follows. Esc cancels.
 - **Dim lights**: the next page is dark from the very start of loading (no more glare), and dim lights, eye protection and night mode also work on files from your computer (PDF, text, comics), even offline.
 - **Google sign-in refused** in the built-in browser (Google deliberately blocks these sign-ins): DrYAE detects it and offers to open the site in Chrome or sign in by email, instead of reloading the page endlessly.
@@ -69,14 +72,11 @@ Faster torrents, an image text translator that adapts to the page (comics, manga
 - Faster "Choose a format": analysis done ahead and in parallel, detected files shown right away.
 - "Nothing here" centered on the page in every view.
 
-Only download what you have the right to copy.
-
 ## 1.7.0
 
 ### 🇫🇷 Français
 Une version pour les longues sessions de travail (étudiants, professeurs, travailleurs), un traducteur de scans plus juste et DrYAE comme navigateur par défaut.
 
-**Version refaite**
 - **Fichier déjà téléchargé** : la fenêtre d'avertissement propose maintenant « Changer le nom », qui rouvre la fenêtre de téléchargement avec le nom prêt à être modifié (avant, il fallait tout recommencer).
 - **Fenêtre « Choisir un format » plus rapide** : l'analyse de la vidéo commence dès qu'une vidéo est repérée dans la page, et elle est gardée 10 minutes ; les choix s'affichent tout de suite.
 - **Lecteur de BD et de mangas** : ouvrez vos fichiers .cbz, .cbr et .cb7 (ou un dossier d'images) dans DrYAE, en défilement continu, page par page ou deux pages, avec le sens de lecture manga au choix. DrYAE se souvient de la page où vous vous êtes arrêté. Menu ⋮ → « Ouvrir une BD ou un manga », ou « Ouvrir avec → DrYAE » dans l'Explorateur.
@@ -141,7 +141,6 @@ Ne téléchargez que ce que vous avez le droit de copier.
 ### 🇬🇧 English
 A release for long work sessions (students, teachers, workers), a more accurate image text translator, and DrYAE as your default browser.
 
-**Rebuilt version**
 - **File already downloaded**: the warning now offers "Change the name", which reopens the download window with the name ready to edit (before, you had to start over).
 - **Faster "Choose a format" window**: the video analysis starts as soon as a video is found on the page and is kept for 10 minutes; the choices show right away.
 - **Comic and manga reader**: open your .cbz, .cbr and .cb7 files (or an image folder) in DrYAE, scrolling, page by page or two pages, with manga reading order. DrYAE remembers where you stopped. Menu ⋮ → "Open a comic or a manga", or "Open with → DrYAE" in File Explorer.
@@ -208,14 +207,13 @@ Only download what you have the right to copy.
 ### 🇫🇷 Français
 Grosse mise à jour : téléchargements plus sûrs, navigateur plus complet, sécurité et accessibilité.
 
-**Version refaite — traducteur de scans revu**
+**Traducteur de scans revu**
 - Il ne s'allume plus tout seul : seulement quand vous cliquez sur son bouton.
 - Plus de grosses bulles blanches qui cachent la page : chaque bulle et chaque cadre sont repérés séparément, les notes « SFX » ne sont plus traduites.
 - Le texte d'origine est effacé dans la bulle et la traduction écrite à sa place, en police bande dessinée, jamais plus grande que l'original, sans couper les mots, en majuscules comme l'original.
 - Scans en anglais : les lettres mal lues (« PIVE » → FIVE, « NEEO » → NEED…) et les mots coupés en fin de ligne (« EXCEL- / LENT ») sont corrigés avant la traduction ; les noms des personnages ne sont plus traduits.
 - **Traduction IA (facultative)** avec votre propre clé gratuite Google Gemini, sans paiement : l'IA voit la page et comprend la conversation. Quand la limite gratuite du jour est atteinte, la traduction habituelle prend le relais.
 - Tous les boutons de la barre d'outils se déplacent, y compris ceux des téléchargements.
-- DrYAE reconnaît maintenant une version refaite avec le même numéro et propose de l'installer (« version corrigée »).
 - **Petits caractères mieux lus** : quand un site protège ses images, la zone est redessinée plus grande avant la lecture ; les lignes peu sûres sont relues avec plus de contraste ; plus de corrections (Q lu à la place de R, mots collés « IFYOU », formes courtes « TS » → IT'S, « TVE » → I'VE).
 - **Bulles noires** (texte blanc sur fond sombre) reconnues : la traduction y est écrite en blanc.
 - **Bruitages** : notes « SFX » reconnues même mal lues, lettres japonaises dessinées jamais traduites sur une page anglaise ou française ; **cris et onomatopées** (AHHH, HEHE, FUFU…) gardés tels quels.
@@ -271,7 +269,6 @@ A big update: safer downloads, a more complete browser, security and accessibili
 - English scans: misread letters ("PIVE" → FIVE, "NEEO" → NEED…) and words split at the end of a line ("EXCEL- / LENT") are fixed before translating; character names are no longer translated.
 - **AI translation (optional)** with your own free Google Gemini key, no payment: the AI sees the page and understands the conversation. When the free daily limit is reached, the usual translation takes over.
 - All toolbar buttons can be moved, including the download ones.
-- DrYAE now recognizes a version rebuilt with the same number and offers to install it ("fixed version").
 - **Small text read better**: when a site protects its images, the area is redrawn larger before reading; uncertain lines are read again with more contrast; more fixes (Q read instead of R, glued words "IFYOU", short forms "TS" → IT'S, "TVE" → I'VE).
 - **Black bubbles** (white text on a dark background) recognized: the translation is written in white.
 - **Sound effects**: "SFX" notes recognized even when misread, drawn Japanese letters never translated on an English or French page; **shouts and onomatopoeia** (AHHH, HEHE, FUFU…) kept as they are.

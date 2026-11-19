@@ -11,7 +11,7 @@
 
 ## ✨ Nouveautés de la version 1.7.1 / What's new
 
-- 🚀 **Mode turbo** (OneDrive et Windows Update en pause pendant les téléchargements), **dossier par catégorie** et **dossier du moment**, menu ⋮ raccourci (version refaite). / **Turbo mode**, folder per category and folder for now, shorter menu (rebuilt version).
+- 🚀 **Mode turbo** (OneDrive et Windows Update en pause pendant les téléchargements), **dossier par catégorie** et **dossier du moment**, menu ⋮ raccourci. / **Turbo mode**, folder per category and folder for now, shorter menu.
 - ⚡ **Torrents plus rapides** : port ouvert tout seul sur la box (UPnP / NAT-PMP), voyant « Connexion entrante », jusqu'à 150 pairs, file de 3 torrents actifs. / **Faster torrents**: port opened on the router, incoming-connection indicator, up to 150 peers, queue of 3 active torrents.
 - 📖 **Traducteur de scans qui s'adapte à la page** : bulles de BD et mangas, paragraphes de romans, légendes ; lexique géré dans les paramètres ; pages originales enregistrées en .cbz ou PDF. / **Image text translator adapts to the page**: bubbles, novel paragraphs, captions; glossary in settings; original pages saved as .cbz or PDF.
 - 🗂️ **Onglets déplacés à la souris** vers une autre fenêtre ou une nouvelle fenêtre (2e écran compris), avec une vignette qui suit la souris. / **Drag tabs** to another window or a new one (second screen too).
@@ -29,11 +29,11 @@
 - 🖼️ Traducteur de scans : noms et cris jamais traduits, case « Ne jamais traduire », lettres mal lues mieux corrigées, modèle « langues latines », lecture correcte avec les lumières tamisées ; texte d'origine sélectionnable dans les bulles pour l'ajouter au lexique ou le corriger.
 - 🧩 Le panneau des extensions n'affiche plus que les extensions activées.
 - 🎯 **Mode concentration** : minuteur travail / pause et sites qui distraient bloqués.
-- 🪟 **Nouvelle fenêtre** (Ctrl+N) ; barre de favoris cachée tant qu'aucun favori n'y est placé, « Autres favoris » dans le menu (version refaite).
+- 🪟 **Nouvelle fenêtre** (Ctrl+N) ; barre de favoris cachée tant qu'aucun favori n'y est placé, « Autres favoris » dans le menu.
 
 ### Version 1.6.9
 
-- 🖼️ **Traducteur de scans revu** (version refaite) : s'allume seulement quand vous cliquez, plus de grosses bulles, texte effacé et réécrit proprement, corrections de lecture en anglais, **traduction IA facultative** avec votre clé gratuite ; petits caractères et bulles noires mieux lus, bruitages et cris laissés intacts.
+- 🖼️ **Traducteur de scans revu** : s'allume seulement quand vous cliquez, plus de grosses bulles, texte effacé et réécrit proprement, corrections de lecture en anglais, **traduction IA facultative** avec votre clé gratuite ; petits caractères et bulles noires mieux lus, bruitages et cris laissés intacts.
 - 🪟 **Vue côte à côte** : menu pour inverser, régler la largeur et faire défiler les deux côtés ensemble.
 - ⬇️ **Doublons signalés**, suppression du fichier en option (Corbeille), erreurs expliquées en clair avec reprise automatique, analyse antivirus, aide pour les liens magnet.
 - 🗂️ **Groupes d'onglets, côte à côte, recherche dans les onglets, onglets verticaux**, profils, raccourcis personnalisables.
