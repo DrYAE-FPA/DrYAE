@@ -1,0 +1,22 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.9.0.schema.json
+PackageIdentifier: DrYAE-FPA.DrYAE
+PackageVersion: 1.7.1
+PackageLocale: fr-FR
+Publisher: DrYAE-FPA
+PublisherUrl: https://github.com/DrYAE-FPA
+PackageName: DrYAE
+PackageUrl: https://dryae-fpa.github.io/DrYAE/
+License: GPL-3.0
+LicenseUrl: https://github.com/DrYAE-FPA/DrYAE/blob/main/LICENSE
+ShortDescription: Gestionnaire de téléchargements et navigateur gratuits, avec traducteur de pages et de BD.
+Description: DrYAE est un gestionnaire de téléchargements libre avec un navigateur intégré (bloqueur de publicités, extensions Chrome, lecteur PDF), un traducteur de pages, un traducteur des bulles de BD et de mangas et un lecteur de BD (.cbz, .cbr).
+Tags:
+- download-manager
+- browser
+- torrent
+- translator
+- comics
+- manga
+ReleaseNotesUrl: https://github.com/DrYAE-FPA/DrYAE/releases/tag/v1.7.1
+ManifestType: defaultLocale
+ManifestVersion: 1.9.0
