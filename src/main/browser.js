@@ -1973,17 +1973,12 @@ class WebBrowser {
       if (!o || !Array.isArray(o.pages) || !o.pages.length || o.pages.length > 2000) return { error: 'rien à enregistrer' };
       const T = global.DRYAE_T || (x => x), fmt = o.fmt === 'pdf' ? 'pdf' : 'cbz';
       const base = String(o.name || 'chapitre').replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 120) || 'chapitre';
-      const r = await dialog.showSaveDialog(this.win, { title: T('Enregistrer les pages traduites'), defaultPath: path.join(app.getPath('documents'), base + ' (' + T('traduit') + ').' + fmt), filters: [fmt === 'pdf' ? { name: 'PDF', extensions: ['pdf'] } : { name: 'BD (.cbz)', extensions: ['cbz'] }] });
+      const r = await dialog.showSaveDialog(this.win, { title: T(o.original ? 'Enregistrer les pages originales' : 'Enregistrer les pages traduites'), defaultPath: path.join(app.getPath('documents'), base + ' (' + T(o.original ? 'original' : 'traduit') + ').' + fmt), filters: [fmt === 'pdf' ? { name: 'PDF', extensions: ['pdf'] } : { name: 'BD (.cbz)', extensions: ['cbz'] }] });
       if (r.canceled || !r.filePath) return {};
       const bufs = o.pages.map(p => Buffer.from(p));
       if (fmt === 'cbz') { await fsp.writeFile(r.filePath, require('./docx-lite').zip(bufs.map((b, i) => [String(i + 1).padStart(4, '0') + '.jpg', b]))); }
-      else {
-        const html = '<!doctype html><meta charset="utf-8"><style>@page{margin:0}body{margin:0}img{display:block;width:100%;page-break-after:always}</style>' + bufs.map(b => `<img src="data:image/jpeg;base64,${b.toString('base64')}">`).join('');
-        const tmp = path.join(app.getPath('temp'), 'dryae-bd-' + Date.now() + '.html'); await fsp.writeFile(tmp, html);
-        const w = new BrowserWindow({ show: false, webPreferences: { javascript: false, sandbox: true } });
-        try { await w.loadFile(tmp); const pdf = await w.webContents.printToPDF({ pageSize: 'A4', margins: { marginType: 'none' }, printBackground: true }); await fsp.writeFile(r.filePath, pdf); }
-        finally { w.destroy(); fsp.unlink(tmp).catch(() => {}); }
-      }
+      // 1.7.1 : une page par image, à la taille de l'image (avant : pages A4 avec une page blanche entre deux images)
+      else await fsp.writeFile(r.filePath, require('./pdf-images').imagesToPdf(bufs).pdf);
       return { file: r.filePath };
     });
     // police « bande dessinée » des bulles traduites (Comic Neue, licence SIL OFL 1.1)

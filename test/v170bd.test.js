@@ -62,5 +62,12 @@ function png(w, h, rgb) {
   await b.evaluate(() => pageCmd('scan-export', { fmt: 'pdf' }));
   for (let i = 0; i < 40 && !fs.existsSync(HOME + '/export.pdf'); i++) await wait(500); await wait(800);
   ok('chapitre traduit enregistré en PDF', fs.existsSync(HOME + '/export.pdf') && fs.readFileSync(HOME + '/export.pdf').slice(0, 4).toString() === '%PDF');
+  // 1.7.1 : une page de PDF par page de BD (avant : une page blanche entre deux), et les pages originales
+  { const t = fs.readFileSync(HOME + '/export.pdf').toString('latin1'); ok('PDF : une page par image, sans page blanche', /\/Count 13\b/.test(t), (t.match(/\/Count \d+/) || [])[0]); }
+  await app.evaluate(({ dialog }, f) => { dialog.showSaveDialog = async o => ({ canceled: false, filePath: f, _o: o }); }, HOME + '/orig.cbz');
+  await b.evaluate(() => pageCmd('scan-export', { fmt: 'cbz', original: true }));
+  for (let i = 0; i < 40 && !fs.existsSync(HOME + '/orig.cbz'); i++) await wait(500); await wait(800);
+  let lo = ''; try { lo = execFileSync(z, ['l', HOME + '/orig.cbz']).toString(); } catch {}
+  ok('pages originales enregistrées en .cbz', (lo.match(/\.jpg/g) || []).length === 13);
   await app.close().catch(() => {}); srv.close();
 })().catch(e => { console.log('ÉCHEC exception', e.message); process.exit(1); });

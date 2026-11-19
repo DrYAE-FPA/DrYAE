@@ -242,13 +242,21 @@ class Manager extends EventEmitter {
   schedule() {
     const S = this.settings.get();
     const max = S.parallel || 3;
+    // 1.7.1 : les torrents ont leur propre file (3 en même temps par défaut) ; un torrent bloqué (aucune donnée
+    // depuis 3 min) ne compte pas, pour ne pas faire attendre les autres ; le plus avancé passe en premier
+    const tmax = Math.max(1, +S.torrent?.maxActive || 3);
+    const isT = d => d.type === 'torrent';
+    const stalled = d => d.status === 'running' && d._slowSince && Date.now() - d._slowSince > 180000;
     const running = this.list.filter(d => ACTIVE.includes(d.status));
-    let n = running.length;
+    let n = running.filter(d => !isT(d)).length, nt = running.filter(d => isT(d) && !stalled(d)).length;
     const perHost = {};
     running.forEach(d => (perHost[d.host] = (perHost[d.host] || 0) + 1));
-    for (const d of this.list) {
-      if (n >= max) break;
-      if (d.status !== 'queued') continue;
+    const prog = d => (d.size > 0 ? (d.downloaded?.() || 0) / d.size : 0);
+    const queued = this.list.filter(d => d.status === 'queued');
+    const order = [...queued.filter(d => !isT(d)), ...queued.filter(isT).sort((a, b) => prog(b) - prog(a))];
+    for (const d of order) {
+      if (isT(d)) { if (nt >= tmax) continue; nt++; d._slowSince = 0; d._slowFreed = false; d.start(); continue; }
+      if (n >= max) continue;
       const h = d.host;
       const lim = (S.siteLimits.find(x => x.host && (h === x.host || h.endsWith('.' + x.host))) || {}).max || S.perSite || 0;
       if (h && lim && (perHost[h] || 0) >= lim) continue;
@@ -260,6 +268,14 @@ class Manager extends EventEmitter {
   loop() {
     const act = this.list.filter(d => ACTIVE.includes(d.status) || d.status === 'seeding');
     act.forEach(d => d.tick());
+    // 1.7.1 : torrent qui ne reçoit plus rien → il libère sa place dans la file
+    let freed = false;
+    for (const d of act) if (d.type === 'torrent' && d.status === 'running') {
+      if (d.speed > 1024) d._slowSince = 0; else if (!d._slowSince) d._slowSince = Date.now();
+      else if (Date.now() - d._slowSince > 180000 && !d._slowFreed) { d._slowFreed = true; freed = true; }
+      if (d.speed > 1024) d._slowFreed = false;
+    }
+    if (freed && this.list.some(d => d.type === 'torrent' && d.status === 'queued')) this.schedule();
     if (act.length) { this.emit('progress', act.map(d => d.view())); this.save(); }
     const busy = this.list.some(d => ACTIVE.includes(d.status) || d.status === 'queued');
     if (this._wasBusy && !busy) this.emit('allDone', this.list.some(d => d.status === 'error'));

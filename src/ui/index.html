@@ -295,8 +295,13 @@
           <div><label>Limite d'envoi (Ko/s)</label><input type="number" id="tUp" min="0"></div>
           <div><label>Limite de réception (Ko/s)</label><input type="number" id="tDown" min="0"></div>
           <div><label>Connexions max.</label><input type="number" id="tConns" min="5" max="500"></div>
-          <div><label>Port (0 = auto)</label><input type="number" id="tPort" min="0" max="65535"></div>
+          <div><label>Port (0 = choisi par DrYAE et gardé)</label><input type="number" id="tPort" min="0" max="65535"></div>
+          <div><label>Torrents actifs en même temps</label><input type="number" id="tMaxAct" min="1" max="20"></div>
         </div>
+        <div class="sect">Connexion entrante</div>
+        <div class="tport" id="tPortBox"><span class="dot" id="tPortDot"></span><span id="tPortSt">Vérification…</span></div>
+        <div class="row" style="margin-top:8px;gap:8px"><button class="btn" id="tPortRetry">Vérifier à nouveau</button><button class="btn primary" id="tFwAllow" style="display:none">Autoriser dans le pare-feu Windows</button></div>
+        <p class="hint">Quand la porte est ouverte, les autres personnes peuvent venir vers toi : les torrents vont plus vite. DrYAE l'ouvre tout seul sur ta box (UPnP ou NAT-PMP) et la referme en quittant.</p>
         <label class="check"><input type="checkbox" id="tDht"> DHT (trouver des pairs sans tracker)</label>
         <label class="check"><input type="checkbox" id="tLsd"> Découverte locale (LSD)</label>
         <div class="sect">Trackers</div>

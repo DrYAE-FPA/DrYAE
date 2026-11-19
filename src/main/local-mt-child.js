@@ -4,6 +4,14 @@
 const fs = require('fs'); const path = require('path');
 const FX = path.dirname(require.resolve('fxtranslate'));
 const { Translator } = require(path.join(FX, '..', 'wasm', 'fxtranslate_wasm.js'));
+// 1.7.1 : les modèles écrivent les lettres qu'ils ne connaissent pas octet par octet (« <0xC3><0x87>a » au lieu de « Ça ») :
+// on remet les vraies lettres
+function bytesFix(t) {
+  return String(t).replace(/(?:<0x[0-9a-f]{2}>)+/gi, run => {
+    const b = Buffer.from(run.match(/[0-9a-f]{2}(?=>)/gi).map(h => parseInt(h, 16)));
+    const s = b.toString('utf8'); return s.includes('\uFFFD') ? '' : s;
+  });
+}
 const engines = new Map();
 function engine(files) {
   const k = files.model;
@@ -22,7 +30,7 @@ process.parentPort.on('message', ({ data: m }) => {
     const texts = m.texts.map(t => {
       if (!String(t || '').trim()) return t;
       // chaque ligne garde sa place (une bulle peut avoir plusieurs phrases)
-      return eng.reduce((x, e) => e.translate_long(x), String(t));
+      return eng.reduce((x, e) => bytesFix(e.translate_long(x)), String(t));
     });
     process.parentPort.postMessage({ id: m.id, texts });
   } catch (e) { process.parentPort.postMessage({ id: m.id, error: String(e && e.message || e) }); }

@@ -105,6 +105,13 @@ function detect(text) {
 
 // ---------- traduction ----------
 // texts : liste de textes ; to : langue d'arrivée ; from : langue de départ ou 'auto'
+// 1.7.1 : « <0xC3><0x87> » (octets écrits en clair par le modèle) → « Ç » ; aussi refait ici par sécurité
+function bytesFix(t) {
+  return String(t ?? '').replace(/(?:<0x[0-9a-f]{2}>)+/gi, run => {
+    const s = Buffer.from(run.match(/[0-9a-f]{2}(?=>)/gi).map(h => parseInt(h, 16))).toString('utf8');
+    return s.includes('\uFFFD') ? '' : s;
+  });
+}
 async function translate(texts, to, from, onProgress) {
   to = String(to || 'fr').split('-')[0].toLowerCase();
   let src = from && from !== 'auto' ? String(from).split('-')[0].toLowerCase() : detect(texts.join(' \n '));
@@ -117,7 +124,7 @@ async function translate(texts, to, from, onProgress) {
   const t0 = Date.now();
   const res = await ask({ cmd: 'translate', legs: files, texts });
   LOG(`${src}→${to}${r.kind === 'pivot' ? ' (par ' + r.pivot + ')' : ''} : ${texts.length} texte(s) en ${Date.now() - t0} ms`);
-  return { texts: res.texts, from: src, pivot: r.kind === 'pivot' ? r.pivot : '' };
+  return { texts: res.texts.map(bytesFix), from: src, pivot: r.kind === 'pivot' ? r.pivot : '' };
 }
 
-module.exports = { translate, detect, ensurePair, pairs, installed, sizeOnDisk, removeAll, records, route, stop, dir };
+module.exports = { bytesFix, translate, detect, ensurePair, pairs, installed, sizeOnDisk, removeAll, records, route, stop, dir };

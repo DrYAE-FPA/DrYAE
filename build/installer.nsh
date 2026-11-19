@@ -26,5 +26,7 @@
     DeleteRegKey HKCU "Software\Classes\DrYAEURL"
     DeleteRegKey HKCU "Software\Classes\DrYAEHTML"
     DeleteRegKey HKCU "Software\Classes\DrYAEPDF"
+    ; 1.7.1 : règle du pare-feu ajoutée par « Autoriser dans le pare-feu Windows » (sans effet si elle n'existe pas)
+    nsExec::Exec 'netsh advfirewall firewall delete rule name="DrYAE (torrents)"'
   ${EndIf}
 !macroend

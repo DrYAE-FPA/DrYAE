@@ -921,7 +921,10 @@ function pageFeatures() {
   function scanInit() {
     if (scan) return;
     const layer = el('<div style="position:fixed;inset:0;pointer-events:none;z-index:0"></div>');
-    const bar = el(`<div class="card" style="right:16px;bottom:16px;padding:8px 10px;display:flex;align-items:center;gap:8px;font-size:12px"><span style="color:#c4b5fd;display:flex">${ICO.tr}</span><b>${esc(pt('Traducteur de scans'))}</b><span class="st" style="color:#8f97aa"></span><button class="btn sel" title="${esc(pt('Affiche le texte lu dans les bulles : sélectionnez un mot pour le corriger ou l\'ajouter au lexique'))}">${esc(pt('Texte lu'))}</button><button class="btn tg">${esc(pt('Afficher l\'original'))}</button><button class="btn st2">${esc(pt('Arrêter'))}</button></div>`);
+    // 1.7.1 : barre transparente (on voit la page à travers) ; elle redevient pleine quand la souris passe dessus
+    const bar = el(`<div class="card scanbar" style="right:16px;bottom:16px;padding:8px 10px;display:flex;align-items:center;gap:8px;font-size:12px;background:rgba(22,26,34,.6);backdrop-filter:blur(3px);text-shadow:0 1px 2px #000;transition:background .2s,opacity .2s;opacity:.88""><span style="color:#c4b5fd;display:flex">${ICO.tr}</span><b>${esc(pt('Traducteur de scans'))}</b><span class="st" style="color:#8f97aa"></span><button class="btn sel" title="${esc(pt('Affiche le texte lu dans les bulles : sélectionnez un mot pour le corriger ou l\'ajouter au lexique'))}">${esc(pt('Texte lu'))}</button><button class="btn tg">${esc(pt('Afficher l\'original'))}</button><button class="btn st2">${esc(pt('Arrêter'))}</button></div>`);
+    bar.addEventListener('mouseenter', () => { bar.style.background = 'rgba(22,26,34,.96)'; bar.style.opacity = 1; });
+    bar.addEventListener('mouseleave', () => { bar.style.background = 'rgba(22,26,34,.6)'; bar.style.opacity = .88; });
     scan = { layer, bar, items: new Map(), queue: [], busy: false, shown: true, n: 0, io: null, tools: null, hover: null };
     bar.querySelector('.tg').onclick = () => { scan.shown = !scan.shown; layer.style.display = scan.shown ? '' : 'none'; bar.querySelector('.tg').textContent = pt(scan.shown ? 'Afficher l\'original' : 'Afficher la traduction'); };
     bar.querySelector('.st2').onclick = scanStop;
@@ -1013,9 +1016,10 @@ function pageFeatures() {
     }
     return { size, lines };
   }
-  async function scanExport(fmt) {
-    if (!scan) { scanStart(); return hint(pt('Traduction des images en cours : enregistrez quand la page est traduite')); }
-    await loadFont();
+  // 1.7.1 : orig = pages dans leur langue d'origine (sans traduction), même sans lancer le traducteur
+  async function scanExport(fmt, orig) {
+    if (!scan && !orig) { scanStart(); return hint(pt('Traduction des images en cours : enregistrez quand la page est traduite')); }
+    if (!orig) await loadFont();
     const min = SC.minSize || 250;
     const imgs = [...document.querySelectorAll('img')].filter(i => i.naturalWidth >= min && i.naturalHeight >= min * 0.6);
     const out = []; let done = 0, blocked = 0;
@@ -1024,7 +1028,7 @@ function pageFeatures() {
       const it = scan?.items.get(img);
       const c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight;
       const ctx = c.getContext('2d'); ctx.drawImage(img, 0, 0);
-      if (it?.blocks?.length) {
+      if (!orig && it?.blocks?.length) {
         done++;
         const k = img.naturalWidth / (it.w || img.naturalWidth), font = FONT;
         for (const b of it.blocks) {
@@ -1042,9 +1046,9 @@ function pageFeatures() {
     }
     if (!out.length) return hint(pt('Ces images ne peuvent pas être recopiées (elles viennent d\'un autre site)'));
     const name = (document.title || 'chapitre').replace(/ — DrYAE$/, '');
-    const r = await ipcRenderer.invoke('scan:export', { fmt, name, pages: out }).catch(e => ({ error: e.message }));
-    status(ptf('{0} bulle(s) traduite(s)', scan?.n || 0));
-    if (r?.file) hint(ptf('Enregistré : {0} ({1} pages, dont {2} traduites)', r.file, out.length, done) + (blocked ? ' · ' + ptf('{0} image(s) impossibles à recopier', blocked) : ''));
+    const r = await ipcRenderer.invoke('scan:export', { fmt, name, pages: out, original: !!orig }).catch(e => ({ error: e.message }));
+    if (scan) status(ptf('{0} bulle(s) traduite(s)', scan?.n || 0));
+    if (r?.file) hint((orig ? ptf('Enregistré : {0} ({1} pages originales)', r.file, out.length) : ptf('Enregistré : {0} ({1} pages, dont {2} traduites)', r.file, out.length, done)) + (blocked ? ' · ' + ptf('{0} image(s) impossibles à recopier', blocked) : ''));
     else if (r?.error) hint(r.error);
   }
   // police et mise en forme des bulles : texte noir sur fond blanc, coins arrondis, centré, sans bordure visible
@@ -1442,7 +1446,7 @@ function pageFeatures() {
       case 'scan-one': return scanStart(c.src);
       case 'scan-region': return scanRegion();
       case 'scan-icons': scIcons = !!c.on; return drawTools();
-      case 'scan-export': return scanExport(c.fmt === 'pdf' ? 'pdf' : 'cbz');
+      case 'scan-export': return scanExport(c.fmt === 'pdf' ? 'pdf' : 'cbz', !!c.original);
       case 'hides': CFG.hides = c.list || []; return applyHides(CFG.hides);
       case 'state': return toHost('dryae-state', { translated: !!trOrig, lights: !!lights, night: !!nightKey, scan: !!scan });
     }

@@ -75,6 +75,7 @@ Les vidéos protégées par DRM (Netflix, Disney+…) ne peuvent pas être tél�
 - Si vous ajoutez un torrent déjà présent, DrYAE le signale et propose d'**ajouter ses trackers** au téléchargement existant (souvent plus rapide).
 - **Téléchargement séquentiel** : permet de regarder une vidéo pendant qu'elle se télécharge.
 - Le **partage** (seeding) après la fin et le ratio se règlent dans Paramètres → Torrents.
+- **Plus rapide (1.7.1)** : DrYAE ouvre tout seul le port des torrents sur votre box (UPnP ou NAT-PMP). Le voyant **Paramètres → Torrents → Connexion entrante** dit si la porte est ouverte ; sinon, il explique quoi faire (activer UPnP sur la box, bouton « Autoriser dans le pare-feu Windows », ou adresse partagée par le fournisseur). 3 torrents tournent en même temps (réglable), le plus avancé d'abord.
 
 ## 5. Le navigateur intégré
 - **Onglets :** Ctrl+T pour un nouvel onglet, Ctrl+Maj+N pour un onglet privé, Ctrl+W pour fermer. Faites glisser les onglets pour les réorganiser. Un onglet ne se charge que lorsque vous l'ouvrez.

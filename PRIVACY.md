@@ -20,6 +20,7 @@ DrYAE se connecte à Internet uniquement :
 - pour **mettre à jour les extensions Chrome** installées, depuis le Chrome Web Store (désactivable dans les paramètres des extensions) ;
 - pour les **icônes des sites**, demandées au site que vous visitez comme le ferait la page elle-même ;
 - pour le **nombre de téléchargements de DrYAE** (Paramètres → À propos), seulement quand cette ligne est affichée : le total public est demandé à github.com, au plus une fois par jour. Rien ne vous identifie ;
+- pour **ouvrir le port des torrents** (1.7.1) : seulement quand un torrent tourne, DrYAE demande à **votre box, sur votre réseau local**, d'ouvrir le port des torrents (UPnP ou NAT-PMP) et le referme en quittant. Rien n'est envoyé hors de chez vous ;
 - pour les **taux de change** de la barre d'adresse, seulement quand vous tapez une conversion de monnaie (par exemple « 30 euros en FCFA ») : les taux du jour sont demandés au site public open.er-api.com, au plus deux fois par jour. Rien d'autre n'est envoyé.
 
 Le **lecteur de BD** lit vos fichiers .cbz, .cbr et .cb7 sur votre PC, sans rien envoyer. Pour la connexion des extensions Chrome (« identity »), DrYAE ouvre un petit service accessible **seulement depuis votre PC** (127.0.0.1), qui n'accepte que les extensions installées.
@@ -38,6 +39,7 @@ DrYAE only connects to the Internet:
 - to **check for updates** on GitHub. You can turn this off in Settings → About;
 - to **update the ad-blocker lists**. Turning the ad blocker off stops this;
 - to **update the public torrent tracker list**. You can turn this off in Settings → Torrents;
+- to **open the torrent port** (1.7.1): only while a torrent is running, DrYAE asks **your router, on your local network**, to open the torrent port (UPnP or NAT-PMP) and closes it when quitting. Nothing leaves your home;
 - to **update yt-dlp**, only when you click the button;
 - for the **translator** (built-in extension), only when you ask for a translation: the text is sent to the service chosen in settings (Google Translate by default, DeepL or LibreTranslate). The **image text translator** reads image text on your PC; only the text found is sent for translation. Reading text in images happens on your PC (multilingual model shipped with DrYAE); for some scripts (Korean, Thai, Arabic, Cyrillic…), the reading data is downloaded the first time from GitHub (tesseract-ocr/tessdata_fast). Text typed in the translator window is sent to the same service as you type. Detecting "text already in your language" happens on your PC; dimmed-lights screenshots stay on your PC (Pictures\\DrYAE folder);
 - for the **password check-up**, only when you run it: the first 5 characters of a SHA-1 hash of each password are sent to the public Pwned Passwords service (api.pwnedpasswords.com). The password itself never leaves your PC.

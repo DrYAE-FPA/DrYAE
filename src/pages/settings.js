@@ -71,6 +71,7 @@ function draw() {
     ['Icônes des sites', 'Demandées au site que vous visitez, comme le ferait la page elle-même.', ''],
     ['Nombre de téléchargements de DrYAE', 'Seulement quand vous ouvrez « À propos de DrYAE » : le total public est demandé à github.com (une fois par jour au plus). Rien ne vous identifie.', ''],
     ['Taux de change', 'Seulement quand vous tapez une conversion de monnaie dans la barre d\'adresse (par exemple « 30 euros en FCFA ») : les taux du jour sont demandés au site public open.er-api.com, au plus deux fois par jour. Rien d\'autre n\'est envoyé.', ''],
+    ['Ouverture du port des torrents', 'Seulement quand un torrent tourne (ou quand vous cliquez « Vérifier à nouveau ») : DrYAE demande à votre box, sur votre réseau local, d\'ouvrir le port des torrents (UPnP ou NAT-PMP), puis le referme en quittant. Rien ne sort de chez vous.', ''],
     ['Correcteur d\'orthographe', 'Sous Windows, DrYAE utilise le correcteur de Windows : rien n\'est envoyé ni téléchargé.', ''],
   ];
   const hides = STATS.hides || {};
@@ -258,10 +259,18 @@ function draw() {
     const errs = Object.entries(st.prog || {}).filter(([, p]) => p.err).map(([k, p]) => `${k} : ${p.err}`);
     el.textContent = (st.installed.length ? TR('Installées') + ' : ' + st.installed.join(', ') + ' (' + Math.round(st.size / 1048576) + ' Mo)' : TR('Aucun modèle téléchargé')) + (prog.length ? ' · ' + TR('Téléchargement') + ' : ' + prog.join(', ') : '') + (errs.length ? ' · ' + errs.join(' ; ') : '');
     clearTimeout(window._lmT); if (prog.length) window._lmT = setTimeout(lmDraw, 1000);
+    window._lmInst = st.installed || []; lmBtn();
+  };
+  // 1.7.1 : paire déjà sur le PC (directe, ou par l'anglais) : « Installée ✓ » au lieu de « Télécharger »
+  window.lmBtn = () => {
+    const b = $('#lmGet'); if (!b) return; const src = $('#lmSrc').value, trg = $('#lmTrg').value, I = window._lmInst || [];
+    const has = src === trg || I.includes(src + '-' + trg) || (I.includes(src + '-en') && I.includes('en-' + trg));
+    b.disabled = has; b.textContent = has ? TR('Installée ✓') : TR('Télécharger');
   };
   if ($('#lmGet')) {
     $('#lmGet').onclick = async () => { const src = $('#lmSrc').value, trg = $('#lmTrg').value; if (src === trg) return; try { await call('localMt', { get: { src, trg } }); setTimeout(lmDraw, 600); } catch (e) { $('#lmInfo').textContent = String(e.message || e); } };
     $('#lmDel').onclick = async () => { await call('localMt', { remove: true }); lmDraw(); };
+    $('#lmSrc').addEventListener('change', () => lmBtn()); $('#lmTrg').addEventListener('change', () => lmBtn());
     lmDraw();
   }
   if ($('#dlCount')) { const io = new IntersectionObserver(es => { if (!es.some(x => x.isIntersecting)) return; io.disconnect(); call('downloads').then(n => { const el = $('#dlCount'); if (el) el.textContent = TR('Téléchargements de DrYAE') + ' : ' + (n == null ? TR('indisponible') : Number(n).toLocaleString()); }).catch(() => {}); }); io.observe($('#dlCount')); }

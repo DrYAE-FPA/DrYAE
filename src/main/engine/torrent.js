@@ -26,11 +26,25 @@ function aria2Path() {
 }
 const freePort = () => new Promise((res, rej) => { const s = net.createServer(); s.unref(); s.on('error', rej); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => res(p)); }); });
 const kb = v => (v > 0 ? String(Math.round(v * 1024)) : '0');
+const { PortMap } = require('../portmap');
+// 1.7.1 : un port fixe (choisi une fois, gardé) pour que la porte ouverte sur la box reste valable d'un démarrage à l'autre
+const portFree = p => new Promise(res => { const s = net.createServer(); s.unref(); s.once('error', () => res(false)); s.listen(p, '0.0.0.0', () => s.close(() => res(true))); });
+async function listenPort(settings) {
+  const T = settings.get().torrent;
+  if (T.port > 0) return T.port;
+  if (T.autoPort > 0 && await portFree(T.autoPort)) return T.autoPort;
+  for (let i = 0; i < 20; i++) {
+    const p = 20000 + Math.floor(Math.random() * 40000);
+    if (await portFree(p)) { settings.set({ torrent: { autoPort: p } }); return p; }
+  }
+  return 0;
+}
 
 class TorrentHub {
   constructor(ctx) {
     this.ctx = ctx; this.proc = null; this.port = 0; this.secret = ''; this.starting = null;
     this.extraTrackers = []; this.items = new Set(); this.timer = null; this.server = null; this.serverPort = 0; this.probeCancel = new Set();
+    this.portmap = new PortMap(); this.listen = 0;
   }
   // ---- processus aria2 ----
   async ensure() {
@@ -47,18 +61,20 @@ class TorrentHub {
         '--enable-rpc=true', `--rpc-listen-port=${this.port}`, '--rpc-listen-all=false', `--rpc-secret=${this.secret}`, '--rpc-max-request-size=64M',
         `--dir=${S.dir}`, '--continue=true', '--file-allocation=none', '--max-concurrent-downloads=200',
         `--enable-dht=${T.dht !== false}`, '--enable-dht6=false', `--dht-file-path=${dhtFile}`, `--bt-enable-lpd=${!!T.lsd}`, '--enable-peer-exchange=true',
-        `--bt-max-peers=${Math.max(10, Math.min(T.maxConns || 55, 200))}`, '--bt-request-peer-speed-limit=100K',
+        // 1.7.1 : plus de pairs, et aria2 continue d'en chercher tant que la vitesse reste sous 2 Mo/s
+        `--bt-max-peers=${Math.max(10, Math.min(T.maxConns || 150, 300))}`, '--bt-request-peer-speed-limit=2M',
         `--max-overall-download-limit=${kb(this.downLimit())}`, `--max-overall-upload-limit=${kb(T.uploadLimit)}`,
         '--seed-time=0', '--bt-detach-seed-only=true', '--follow-torrent=true', '--bt-save-metadata=true', '--bt-load-saved-metadata=true',
         '--disk-cache=32M', '--auto-save-interval=30', '--summary-interval=0', '--console-log-level=error', '--quiet=true',
         '--check-certificate=true', `--stop-with-process=${process.pid}`,
       ];
-      if (T.port) args.push(`--listen-port=${T.port}`, `--dht-listen-port=${T.port}`);
+      this.listen = await listenPort(this.ctx.settings);
+      if (this.listen) args.push(`--listen-port=${this.listen}`, `--dht-listen-port=${this.listen}`);
       const p = spawn(bin, args, { windowsHide: true, stdio: 'ignore' });
       this.proc = p;
       p.on('exit', () => { if (this.proc === p) this.proc = null; });
       for (let i = 0; i < 80; i++) { // attendre que le serveur RPC réponde
-        try { await this.call('getVersion'); return; } catch { await new Promise(r => setTimeout(r, 100)); }
+        try { await this.call('getVersion'); if (this.listen) this.portmap.open(this.listen, bin).then(st => this.ctx.emit?.('torrentPort', st)).catch(() => {}); return; } catch { await new Promise(r => setTimeout(r, 100)); }
         if (p.exitCode !== null) throw new Error('Le moteur torrent ne démarre pas');
       }
       throw new Error('Le moteur torrent ne répond pas');
@@ -88,6 +104,16 @@ class TorrentHub {
     const T = this.ctx.settings.get().torrent;
     this.call('changeGlobalOption', { 'max-overall-download-limit': kb(this.downLimit()), 'max-overall-upload-limit': kb(T.uploadLimit) }).catch(() => {});
   }
+  // voyant « connexion entrante » ; sans torrent en cours, on fait le bilan sans lancer le moteur
+  async portStatus(retry) {
+    const st = this.portmap.status();
+    if (retry || st.verdict === 'pending' && !this.proc) {
+      const p = this.listen || await listenPort(this.ctx.settings);
+      return this.portmap.open(p, aria2Path());
+    }
+    return st;
+  }
+  async allowFirewall() { this.portmap.exe = this.portmap.exe || aria2Path(); await this.portmap.allowFirewall(); return this.portStatus(true); }
   trackers() {
     const T = this.ctx.settings.get().torrent;
     if (!T.useDefaultTrackers) return [];
@@ -118,6 +144,7 @@ class TorrentHub {
     } catch {} finally { this._polling = false; }
   }
   shutdown() {
+    this.portmap.close().catch(() => {});
     const p = this.proc; if (!p) return;
     this.call('forceShutdown').catch(() => {});
     setTimeout(() => { try { p.kill(); } catch {} }, 3000);

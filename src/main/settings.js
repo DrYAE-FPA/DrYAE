@@ -47,9 +47,9 @@ function defaults(app) {
     restoreSession: true,
     winBounds: null,
     torrent: {
-      enabled: true, seed: true, ratio: 1.0, uploadLimit: 0, downloadLimit: 0, dht: true, lsd: true, port: 0,
+      enabled: true, seed: true, ratio: 1.0, uploadLimit: 0, downloadLimit: 0, dht: true, lsd: true, port: 0, autoPort: 0, maxActive: 3,
       useDefaultTrackers: true, alwaysAllTrackers: true, trackersUrl: 'https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best.txt',
-      trackers: DEFAULT_TRACKERS.join('\n'), fetchMetadata: true, sequential: false, maxConns: 55, folderView: false,
+      trackers: DEFAULT_TRACKERS.join('\n'), fetchMetadata: true, sequential: false, maxConns: 150, folderView: false,
     },
     browser: {
       home: 'dryae://start', search: 'google', adblock: true, whitelist: [], blockPopups: true,
@@ -105,6 +105,8 @@ class Settings extends EventEmitter {
     let saved = {};
     try { saved = JSON.parse(fs.readFileSync(this.file, 'utf8')); } catch {}
     this.data = deepMerge(this.def, saved);
+    // 1.7.1 : torrents plus rapides — l'ancien réglage par défaut (55 pairs) passe à 150
+    if (!saved.v171) { if (this.data.torrent && this.data.torrent.maxConns === 55) this.data.torrent.maxConns = 150; this.data.v171 = true; }
     // 1.6.1 : on demande désormais quoi faire en cas de doublon (l'ancien réglage par défaut était « renommer »)
     if (!saved.v161) { this.data.duplicate = 'ask'; this.data.v161 = true; }
     // 1.6.4 : le bloqueur devient une extension intégrée ; la liste française passe dans les listes proposées

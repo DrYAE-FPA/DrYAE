@@ -742,6 +742,28 @@ $('#tQuick').onclick = async () => {
 const btihOf = s => { const m = /xt=urn:btih:([a-z0-9]+)/i.exec(s || ''); return m ? m[1].toLowerCase() : ''; };
 let tProbe = '';
 // compteur pendant la lecture d'un magnet + bouton Annuler ; aucun pair après 30 s -> aide pare-feu
+// 1.7.1 : voyant « connexion entrante » des torrents
+const TF = (s, ...a) => T(s).replace(/\{(\d)\}/g, (m, i) => (a[i] ?? ''));
+function tPortDraw(st) {
+  const box = $('#tPortBox'); if (!box) return;
+  const v = st?.verdict || 'pending';
+  box.className = 'tport ' + (v === 'open' ? 'ok' : v === 'pending' ? '' : v === 'cgnat' ? 'warn' : 'bad');
+  const via = st?.via || 'UPnP';
+  $('#tPortSt').textContent =
+    v === 'pending' ? T('Vérification…')
+    : v === 'open' ? TF('Ouverte : les autres peuvent venir vers toi (port {0}, ouvert sur la box par {1}).', st.port, via)
+    : v === 'firewall' ? T('Fermée : le pare-feu de Windows bloque les connexions entrantes du moteur torrent.')
+    : v === 'cgnat' ? T('Ton fournisseur d\'internet partage ton adresse avec d\'autres clients : la porte ne peut pas être ouverte depuis chez toi. Les torrents marchent quand même, mais moins vite. Tu peux demander une « adresse IP publique » à ton fournisseur.')
+    : st.localIp ? TF('Fermée : la box n\'a pas ouvert la porte (UPnP désactivé ou absent). Active « UPnP » dans les réglages de ta box, ou ouvre le port {0} (TCP et UDP) vers ce PC ({1}).', st.port, st.localIp)
+    : TF('Fermée : aucune box n\'a répondu (UPnP désactivé ou absent). Active « UPnP » dans les réglages de ta box, ou ouvre le port {0} (TCP et UDP) vers ce PC.', st.port);
+  $('#tFwAllow').style.display = st && st.firewall === 'missing' ? '' : 'none';
+}
+async function tPortShow(_e, retry) { tPortDraw(null); try { tPortDraw(await call('torrent:portStatus', !!retry)); } catch { tPortDraw({ verdict: 'box', port: '?' }); } }
+D.on('torrent-port', st => tPortDraw(st));
+document.addEventListener('click', async e => {
+  if (e.target.closest('#tPortRetry')) tPortShow(null, true);
+  if (e.target.closest('#tFwAllow')) { tPortDraw(null); try { tPortDraw(await call('torrent:allowFirewall')); } catch { tPortShow(null, false); } }
+});
 D.on('torrent-probe', p => {
   if (!tProbe || p.hash !== tProbe) return;
   $('#tStatus').innerHTML = esc(T('Recherche de pairs… {0} s sur {1}').replace('{0}', p.s).replace('{1}', p.max)) + ' · ' + esc(T('{0} pair(s)').replace('{0}', p.peers))
@@ -1031,7 +1053,7 @@ async function showSettings(sec = 'gen') {
   c('#sLimOn', S.speedLimitOn); v('#sLim', S.speedLimit); c('#sDataOn', S.dataLimit.enabled); v('#sDataMb', S.dataLimit.mb); c('#sProxyOn', S.proxy.enabled); v('#sProxy', S.proxy.url); v('#sUA', S.userAgent);
   const st = await call('stats'); v('#sDataUsed', fmt(st.dataToday));
   const TO = S.torrent;
-  c('#tEn', TO.enabled); c('#tMeta', TO.fetchMetadata); c('#tSeqD', TO.sequential); c('#tSeedD', TO.seed); v('#tRatio', TO.ratio); v('#tUp', TO.uploadLimit); v('#tDown', TO.downloadLimit); v('#tConns', TO.maxConns); v('#tPort', TO.port); c('#tDht', TO.dht); c('#tLsd', TO.lsd); c('#tDefTr', TO.useDefaultTrackers); v('#tTrackers', TO.trackers); v('#tTrUrl', TO.trackersUrl);
+  c('#tEn', TO.enabled); c('#tMeta', TO.fetchMetadata); c('#tSeqD', TO.sequential); c('#tSeedD', TO.seed); v('#tRatio', TO.ratio); v('#tUp', TO.uploadLimit); v('#tDown', TO.downloadLimit); v('#tConns', TO.maxConns); v('#tPort', TO.port); v('#tMaxAct', TO.maxActive || 3); tPortShow(null, false); c('#tDht', TO.dht); c('#tLsd', TO.lsd); c('#tDefTr', TO.useDefaultTrackers); v('#tTrackers', TO.trackers); v('#tTrUrl', TO.trackersUrl);
   const C = S.scheduler;
   c('#cOn', C.enabled); v('#cStart', C.start); v('#cStop', C.stop); c('#cAdd', C.addNew); c('#cShut', C.shutdown);
   $('#cDays').innerHTML = DAYS.map((d, i) => `<label><input type="checkbox" data-day="${i}" ${C.days.includes(i) ? 'checked' : ''}>${d}</label>`).join('');
@@ -1137,7 +1159,7 @@ $('#sOk').onclick = async () => {
     hls: { connections: Math.max(1, n('#sHlsC')), quality: v('#sHlsQ'), convert: c('#sHlsConv') },
     ytdl: { mode: v('#sYtMode') === 'video' ? 'video' : 'audio', audioFormat: v('#sYtMode') === 'm4a' ? 'm4a' : 'mp3', quality: v('#sYtQ'), audioBitrate: v('#sYtB') },
     speedLimitOn: c('#sLimOn'), speedLimit: n('#sLim'), dataLimit: { enabled: c('#sDataOn'), mb: n('#sDataMb') }, proxy: { enabled: c('#sProxyOn'), url: v('#sProxy').trim() }, userAgent: v('#sUA').trim(),
-    torrent: { enabled: c('#tEn'), fetchMetadata: c('#tMeta'), sequential: c('#tSeqD'), seed: c('#tSeedD'), ratio: +v('#tRatio') || 0, uploadLimit: n('#tUp'), downloadLimit: n('#tDown'), maxConns: n('#tConns') || 55, port: n('#tPort'), dht: c('#tDht'), lsd: c('#tLsd'), useDefaultTrackers: c('#tDefTr'), trackers: v('#tTrackers'), trackersUrl: v('#tTrUrl').trim() },
+    torrent: { enabled: c('#tEn'), fetchMetadata: c('#tMeta'), sequential: c('#tSeqD'), seed: c('#tSeedD'), ratio: +v('#tRatio') || 0, uploadLimit: n('#tUp'), downloadLimit: n('#tDown'), maxConns: n('#tConns') || 55, port: n('#tPort'), maxActive: Math.max(1, Math.min(20, n('#tMaxAct') || 3)), dht: c('#tDht'), lsd: c('#tLsd'), useDefaultTrackers: c('#tDefTr'), trackers: v('#tTrackers'), trackersUrl: v('#tTrUrl').trim() },
     scheduler: { enabled: c('#cOn'), start: v('#cStart') || '02:00', stop: v('#cStop'), days: $$('#cDays [data-day]').filter(x => x.checked).map(x => +x.dataset.day), addNew: c('#cAdd'), shutdown: c('#cShut') },
     theme: { mode: v('#lMode'), accent: $('#lColor').dataset.sys ? 'system' : $('#lColor').value },
   };

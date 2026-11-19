@@ -238,6 +238,7 @@ app.whenReady().then(async () => {
   manager.on('changed', v => send('changed', v));
   manager.on('progress', v => { if (win && win.isVisible() && !win.isMinimized() && !browser.visible()) send('progress', v); updateTray(v); });
   manager.on('reload', () => send('reload', manager.views()));
+  manager.on('torrentPort', p => send('torrent-port', p));
   manager.on('torrentProbe', p => { send('torrent-probe', p); browser?.wc?.send('torrent-probe', p); });
   manager.on('notice', n => { api.notify(n.title, n.body); send('toast', n.body); });
   manager.on('itemFinished', d => {
@@ -509,6 +510,9 @@ H('torrent:inspect', async (src, opts) => {
 H('torrent:add', o => manager.add({ type: 'torrent', url: o.magnet || ('magnet:?xt=urn:btih:' + o.infoHash), torrentFile: o.torrentFile, infoHash: o.infoHash, name: o.name,
   files: (o.files || []).map(f => ({ path: f.path, length: f.length })), selected: o.selected, dir: o.dir, sequential: o.sequential, seedAfter: o.seedAfter, startNow: o.startNow !== false, schedule: !!o.schedule }));
 H('torrent:addQuick', src => manager.add({ type: 'torrent', url: src }));
+// 1.7.1 : voyant « connexion entrante » des torrents (porte ouverte sur la box, pare-feu Windows)
+H('torrent:portStatus', retry => manager.torrents.portStatus(!!retry));
+H('torrent:allowFirewall', () => manager.torrents.allowFirewall());
 H('torrent:cancelProbe', hash => { if (hash) manager.torrents.probeCancel.add(String(hash).toLowerCase()); });
 H('torrent:select', (id, sel) => manager.get(id)?.setSelection(sel));
 H('torrent:sequential', (id, v) => manager.get(id)?.setSequential(v));

@@ -75,6 +75,7 @@ DRM-protected videos (Netflix, Disney+…) cannot be downloaded.
 - If you add a torrent that is already there, DrYAE says so and offers to **add its trackers** to the existing download (often faster).
 - **Sequential download** lets you watch a video while it downloads.
 - Seeding after the download and the share ratio are set in Settings → Torrents.
+- **Faster (1.7.1)**: DrYAE opens the torrent port on your router by itself (UPnP or NAT-PMP). The **Settings → Torrents → Incoming connection** indicator tells you whether it is open; otherwise it explains what to do (turn on UPnP on the router, "Allow in Windows Firewall" button, or address shared by your provider). 3 torrents run at the same time (adjustable), the most advanced first.
 
 ## 5. The built-in browser
 - **Tabs:** Ctrl+T for a new tab, Ctrl+Shift+N for a private tab, Ctrl+W to close. Drag tabs to reorder them. A tab only loads when you open it.

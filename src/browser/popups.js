@@ -253,6 +253,10 @@ async function drawScanPop() {
       <button id="scCbz" ${h ? '' : 'disabled'} title="${esc(T('Usage personnel seulement, pour des fichiers que vous avez le droit de copier'))}">${ic('save')}<span>${esc(T('Enregistrer la traduction (.cbz)'))}</span></button>
       <button id="scPdf" ${h ? '' : 'disabled'} title="${esc(T('Usage personnel seulement, pour des fichiers que vous avez le droit de copier'))}">${ic('save')}<span>${esc(T('Enregistrer la traduction (PDF)'))}</span></button>
     </div>
+    <div class="tools" style="grid-template-columns:1fr 1fr;margin:0 0 6px">
+      <button id="scOCbz" ${h ? '' : 'disabled'} title="${esc(T('Usage personnel seulement, pour des fichiers que vous avez le droit de copier'))}">${ic('save')}<span>${esc(T('Enregistrer l\'original (.cbz)'))}</span></button>
+      <button id="scOPdf" ${h ? '' : 'disabled'} title="${esc(T('Usage personnel seulement, pour des fichiers que vous avez le droit de copier'))}">${ic('save')}<span>${esc(T('Enregistrer l\'original (PDF)'))}</span></button>
+    </div>
     ${cur?.scanLang?.from ? `<div class="prow"><span class="grow">${esc(T('Langue détectée'))}</span><b class="notr">${esc(langName(cur.scanLang.from))} → ${esc(langName(cur.scanLang.to))}</b></div>` : ''}
     <div class="prow"><span class="grow">${esc(T('Langue des images'))}<small>${esc(T('↓ : téléchargée à la première utilisation'))}</small></span><select id="scSrc">${ocrOpts}</select></div>
     <div class="prow"><span class="grow">${esc(T('Traduire vers'))}</span><select id="scTo">${langOptions(s.target || '', `<option value="">${esc(T('Comme le traducteur'))}</option>`)}</select></div>
@@ -269,7 +273,7 @@ async function drawScanPop() {
       <div id="scAiPriv" hidden style="white-space:normal;font-size:12px;margin:4px 0;padding:6px 8px;border-radius:8px;border:1px solid #f59e0b">${esc(T('Avec la formule gratuite de Google, les images et les textes envoyés peuvent être utilisés par Google pour améliorer ses produits. N\'utilisez pas l\'IA pour des images privées.'))} <button class="btn sm" id="scAiOk">${esc(T('J\'ai compris, enregistrer'))}</button></div>
       ${AI.hasKey ? `<div class="prow"><span class="grow">${esc(T('IA aujourd\'hui'))}<small>${esc(T('Limite gratuite : environ {0} pages par jour (selon Google)').replace('{0}', AI.limit || 500))}</small></span><b style="color:${(AI.today || 0) >= (AI.limit || 500) * 0.8 ? '#f59e0b' : 'inherit'}">${esc(T('{0} page(s)').replace('{0}', AI.today || 0))}</b></div>` : ''}
       ${AI.hasKey && (AI.today || 0) >= (AI.limit || 500) * 0.8 ? `<small style="color:#f59e0b;display:block;white-space:normal">${esc(T('La limite gratuite du jour approche : ensuite, la traduction habituelle prendra le relais jusqu\'à demain.'))}</small>` : ''}
-      ${AI.off ? `<small style="color:#f59e0b;display:block;white-space:normal">${esc(AI.offWhy ? 'IA en pause (' + AI.offWhy + ') : traduction habituelle pour le moment.' : T('Limite gratuite du jour atteinte ou clé refusée : traduction habituelle pour le moment.'))}</small>` : ''}
+      ${AI.off ? `<small style="color:#f59e0b;display:block;white-space:normal">${esc(AI.offWhy ? T('IA en pause ({0}) : traduction habituelle pour le moment.').replace('{0}', T(AI.offWhy)) : T('Limite gratuite du jour atteinte ou clé refusée : traduction habituelle pour le moment.'))}</small>` : ''}
     </details>
     <div class="prow" data-lex style="cursor:pointer"><span class="grow">${esc(T('Lexique'))} (${(s.glossary || []).length})<small>${esc(T('Gérer les mots (rechercher, modifier, supprimer plusieurs) dans les paramètres'))}</small></span><span>›</span></div>
     <div class="pfoot"><small style="color:var(--dim);white-space:normal">${esc(T('Astuce : clic droit sur une image → « Traduire le texte de l\'image ».'))}</small></div>`;
@@ -283,6 +287,8 @@ async function drawScanPop() {
   $('#scPage').onclick = () => { popClose(); pageCmd('scan'); };
   $('#scZone').onclick = () => { popClose(); pageCmd('scan-region'); };
   $('#scCbz').onclick = () => { popClose(); pageCmd('scan-export', { fmt: 'cbz' }); };
+  $('#scOCbz').onclick = () => { popClose(); pageCmd('scan-export', { fmt: 'cbz', original: true }); };
+  $('#scOPdf').onclick = () => { popClose(); pageCmd('scan-export', { fmt: 'pdf', original: true }); };
   $('#scPdf').onclick = () => { popClose(); pageCmd('scan-export', { fmt: 'pdf' }); };
   $('#scSrc').onchange = e => setB({ scan: { source: e.target.value } });
   $('#scTo').onchange = e => setB({ scan: { target: e.target.value } });

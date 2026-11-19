@@ -416,6 +416,8 @@ function protect(text, lang, never, gloss) {
   return { t, keep };
 }
 function unprotect(t, keep) {
+  // 1.7.1 : octets écrits en clair par la traduction sur le PC (« <0xC3><0x87> » → « Ç »)
+  t = String(t ?? '').replace(/(?:<0x[0-9a-f]{2}>)+/gi, run => { const s = Buffer.from(run.match(/[0-9a-f]{2}(?=>)/gi).map(h => parseInt(h, 16))).toString('utf8'); return s.includes('\uFFFD') ? '' : s; });
   if (!keep || !keep.length) return t;
   return String(t).replace(/[[［]\s*(\d+)\s*[\]］]/g, (m, k) => keep[+k - 1] != null ? keep[+k - 1] : m);
 }
