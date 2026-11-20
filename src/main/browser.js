@@ -722,6 +722,8 @@ class WebBrowser {
     this.view.webContents.on('dom-ready', () => { try { const e = this.main.a11y?.(); if (e) this.view.webContents.setZoomFactor(e.scale / 100); } catch {} });
     host.contentView.addChildView(this.view);
     const wc = this.view.webContents;
+    // 1.7.1 : dernier onglet fermé : la fenêtre se ferme (avant : on retombait sur le gestionnaire)
+    wc.once('destroyed', () => { if (this._quitting || this.quitting) return; setTimeout(() => { if (!this.mainWc) this.main.hideWindow?.(); }, 0); });
     // préférences imposées à chaque onglet : scripts DrYAE aussi dans les iframes (vérifications anti-robot)
     wc.on('will-attach-webview', (_e, prefs) => {
       prefs.contextIsolation = true; prefs.sandbox = true; prefs.nodeIntegration = false;

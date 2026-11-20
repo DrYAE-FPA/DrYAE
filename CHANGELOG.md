@@ -22,6 +22,7 @@ Des téléchargements plus rapides (torrents et mode turbo), un traducteur de sc
 - **Lexique** : mots entiers seulement (« HERE » → « ICI » ne transforme plus THERE en « TICI »), majuscules ignorées ; nouvelle page **Paramètres → Lexique des scans** (recherche, modification, suppression de plusieurs mots, mots courants signalés) ; avertissement avant d'ajouter un mot courant.
 - **Traduction sur le PC** : les lettres que le modèle ne connaît pas s'affichaient en codes (« <0xC3><0x87>A » au lieu de « ÇA ») : corrigé. La paire déjà installée affiche « Installée ✓ ».
 - **Enregistrer l'original** (.cbz ou PDF) : les pages dans leur langue d'origine, sans traduction. Les PDF ont maintenant une page par image, à la bonne taille (plus de page blanche entre deux pages).
+- **Enregistrer un chapitre lu en ligne** : toutes les pages du chapitre sont enregistrées, en lecture verticale comme en lecture page par page, même quand les images viennent d'un autre serveur que le site ; le logo et les bannières du site sont laissés de côté.
 - Barre du traducteur transparente (pleine quand la souris passe dessus) ; une bulle ne s'étale plus sur le texte d'une autre.
 
 **Navigateur**
@@ -30,7 +31,7 @@ Des téléchargements plus rapides (torrents et mode turbo), un traducteur de sc
 - **Lumières tamisées** : la page suivante est sombre dès le début du chargement (plus d'éblouissement), et les lumières, la protection des yeux et le mode nuit marchent aussi sur les fichiers de l'ordinateur (PDF, texte, BD), même sans internet.
 - **Connexion avec Google refusée** dans le navigateur intégré (Google bloque volontairement ces connexions) : DrYAE le repère et propose d'ouvrir le site dans Chrome ou de se connecter par e-mail, au lieu de recharger la page sans fin.
 - **Traduire la page** : les très longs paragraphes (romans en ligne) sont traduits.
-- **PDF ouvert depuis l'ordinateur** : il s'ouvre dans la fenêtre du navigateur utilisée en dernier ; le navigateur ne reste plus bloqué sur le gestionnaire après la fermeture de son dernier onglet.
+- **PDF ouvert depuis l'ordinateur** : il s'ouvre dans la fenêtre du navigateur utilisée en dernier ; fermer le dernier onglet ferme la fenêtre, comme dans un navigateur normal (DrYAE reste près de l'heure pour finir les téléchargements).
 
 **Gestionnaire**
 - Fenêtre « Déjà téléchargé » : bouton Annuler toujours visible, boutons qui passent à la ligne, « Voir le téléchargement » quand le fichier n'existe pas encore.
@@ -57,6 +58,7 @@ Faster downloads (torrents and turbo mode), an image text translator that adapts
 - **Glossary**: whole words only ("HERE" → "ICI" no longer turns THERE into "TICI"), case ignored; new **Settings → Scan glossary** page (search, edit, delete several words, common words flagged); warning before adding a common word.
 - **On-device translation**: letters unknown to the model showed as codes ("<0xC3><0x87>A" instead of "ÇA"): fixed. A pair already installed shows "Installed ✓".
 - **Save the original** (.cbz or PDF): the pages in their original language, without translation. PDFs now have one page per image, at the right size (no more blank page between two pages).
+- **Save a chapter read online**: every page of the chapter is saved, in vertical or page-by-page reading, even when the images come from another server than the site; the site's logo and banners are left out.
 - See-through translator bar (solid when the mouse is over it); a bubble no longer spreads over another one's text.
 
 **Browser**
@@ -65,7 +67,7 @@ Faster downloads (torrents and turbo mode), an image text translator that adapts
 - **Dim lights**: the next page is dark from the very start of loading (no more glare), and dim lights, eye protection and night mode also work on files from your computer (PDF, text, comics), even offline.
 - **Google sign-in refused** in the built-in browser (Google deliberately blocks these sign-ins): DrYAE detects it and offers to open the site in Chrome or sign in by email, instead of reloading the page endlessly.
 - **Translate page**: very long paragraphs (online novels) are translated.
-- **PDF opened from your computer**: it opens in the browser window you used last; the browser no longer stays stuck on the manager after its last tab was closed.
+- **PDF opened from your computer**: it opens in the browser window you used last; closing the last tab closes the window, like in a normal browser (DrYAE stays next to the clock to finish downloads).
 
 **Manager**
 - "Already downloaded" window: Cancel button always visible, buttons wrap, "View the download" when the file doesn't exist yet.

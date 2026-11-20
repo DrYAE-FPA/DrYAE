@@ -74,6 +74,9 @@ const api = {
   updateInfo() { try { return updater?.state || {}; } catch { return {}; } },
   openFeedback() { const u = updater?.info(); if (u) shell.openExternal(u.feedbackUrl || u.repoUrl || 'https://github.com'); },
   hostWindow() { if (!win) createWindow(); return win; },
+  // 1.7.1 : dernier onglet du navigateur fermé : la fenêtre se ferme comme dans un navigateur normal
+  // (DrYAE reste près de l'heure pour finir les téléchargements ; sans cette icône, la fenêtre va dans la barre des tâches)
+  hideWindow() { if (!win || win.isDestroyed() || quitting) return; if (settings.get().tray && tray) win.hide(); else win.minimize(); },
   onModeChange(m) { send('mode', m); if (m === 'manager') send('reload', manager.views()); },
   setLang(l) { return setLang(l); },
   languages() { return Object.entries(I18N.LANGS).map(([code, v]) => ({ code, name: v.name })); },

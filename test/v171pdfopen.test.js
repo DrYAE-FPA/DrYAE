@@ -29,6 +29,8 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
   await b.evaluate(() => { while (tabs.length) closeTab(tabs[0]); }).catch(() => {}); await wait(1500);
   const gone = await app.evaluate(({ webContents }) => !webContents.getAllWebContents().some(x => !x.isDestroyed() && /browser\.html(?!\?win=extra)/.test(x.getURL()) && !/win=extra/.test(x.getURL())));
   ok('dernier onglet fermé : le navigateur de la fenêtre principale est fermé', gone);
+  const st = await app.evaluate(({ BrowserWindow }) => { const m = BrowserWindow.getAllWindows().sort((a, b) => a.id - b.id)[0]; return { vis: m.isVisible(), min: m.isMinimized() }; });
+  ok('dernier onglet fermé : la fenêtre se ferme (pas de retour au gestionnaire)', !st.vis || st.min, st);
   await w.evaluate(u => window.dryae.call('openBrowser', u), 'file://' + HOME + '/a.html'); await wait(3000);
   const b3 = app.windows().find(x => x.url().includes('browser.html') && !x.url().includes('win=extra'));
   ok('bouton Navigateur : le navigateur se rouvre dans la fenêtre principale', !!b3 && (await urls(b3)).some(x => /a\.html/.test(x)), b3 && await urls(b3));
