@@ -195,33 +195,7 @@
     <div class="row"><input type="text" id="tSrc" placeholder="magnet:?xt=urn:btih:…"><button class="btn" id="tPick"><svg><use href="#i-folder"/></svg>Fichier .torrent</button></div>
     <div class="modal-foot" style="margin-top:12px"><span class="l" id="tStatus"></span><button class="btn" id="tQuick">Ajouter sans lire les infos</button><button class="btn primary" id="tFetch">Lire les informations</button></div>
   </div>
-  <div id="tInfoBox" style="display:none">
-    <div class="tadd">
-      <div class="tadd-l">
-        <div class="sect">Enregistrer dans</div>
-        <div class="row"><select id="tDirSel" title="Dossier où le torrent sera enregistré"></select><button class="btn" id="tDirPick" title="Choisir un autre dossier"><svg><use href="#i-folder"/></svg>Parcourir</button></div>
-        <div class="hint mono" id="tDirPath"></div>
-        <label class="check"><input type="checkbox" id="tRemember"> Se souvenir du dernier dossier choisi</label>
-        <div class="sect">Options</div>
-        <div class="tadd-opts">
-          <label class="check"><input type="checkbox" id="tStart" checked> Démarrer le torrent</label>
-          <label class="check"><input type="checkbox" id="tTop"> Ajouter en haut de la file d'attente</label>
-          <label class="check"><input type="checkbox" id="tSeq"> Téléchargement séquentiel (lecture pendant le téléchargement)</label>
-          <label class="check"><input type="checkbox" id="tFL"> Premiers et derniers morceaux d'abord</label>
-          <label class="check"><input type="checkbox" id="tSeed"> Partager (seed) une fois terminé</label>
-          <label class="check"><input type="checkbox" id="tSchedule"> Planifier (avec les heures du planificateur)</label>
-        </div>
-        <div class="sect">Informations</div>
-        <dl class="kv" id="tKv"></dl>
-        <button class="btn sm" id="tSaveFile"><svg><use href="#i-down"/></svg>Enregistrer le fichier .torrent sous…</button>
-      </div>
-      <div class="tadd-r">
-        <div class="row tadd-bar"><button class="btn sm" id="tAll">Tout</button><button class="btn sm" id="tNone">Aucun</button><button class="btn sm" id="tVideos">Vidéos seulement</button><input type="text" id="tFilter" placeholder="Filtrer les fichiers…"></div>
-        <div class="ttree" id="tFiles"></div>
-      </div>
-    </div>
-    <div class="modal-foot"><label class="check l" style="margin:0 14px 0 0" title="Les prochains torrents seront ajoutés tout de suite. Pour revoir cette fenêtre : Paramètres → Torrents"><input type="checkbox" id="tNoAsk"> Ne plus afficher</label><span class="l" id="tSel"></span><button class="btn" id="tBack">Retour</button><button class="btn primary" id="tOk">Télécharger</button></div>
-  </div>
+  <div id="tInfoBox" style="display:none"></div>
 </div></div>
 
 <!-- Saisie générique -->
@@ -396,6 +370,7 @@
 <script src="../shared/locales.js"></script>
 <script src="../shared/i18n.js"></script>
 <script src="../shared/a11y.js"></script>
+<script src="../shared/torrent-add.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

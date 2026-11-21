@@ -1518,6 +1518,16 @@ class WebBrowser {
     ipcMain.handle('br:torInspect', async (_e, src, o) => { try { return { ok: true, info: await this.main.torrentInspect(src, o) }; } catch (e) { return { ok: false, error: String(e.message || e) }; } });
     ipcMain.handle('br:torAdd', (_e, o) => { this.main.torrentAdd(o); return true; });
     // 1.7.1 : dossiers proposés pour un torrent (les mêmes que dans le gestionnaire) et réglages de la fenêtre
+    ipcMain.handle('br:diskFree', (_e, d) => this.main.ipc('disk:free', d));
+    ipcMain.handle('br:torSaveFile', async (e, file, name) => {
+      const fs = require('fs'), path = require('path');
+      if (!file || !fs.existsSync(file)) throw new Error('Fichier .torrent introuvable');
+      const base = String(name || 'torrent').replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 120) || 'torrent';
+      const w = BrowserWindow.fromWebContents(e.sender) || this.win;
+      const r = await dialog.showSaveDialog(w, { defaultPath: path.join(app.getPath('downloads'), base + '.torrent'), filters: [{ name: 'Torrent', extensions: ['torrent'] }] });
+      if (r.canceled || !r.filePath) return null;
+      await fs.promises.copyFile(file, r.filePath); return r.filePath;
+    });
     ipcMain.handle('br:torDirs', () => { const r = this.main.torrentDirs(); return { ...r, askAdd: this.settings.get().torrent?.askAdd !== false }; });
     ipcMain.handle('br:torPrefs', (_e, o) => { const t = this.settings.get().torrent || {}; const n = { ...t }; if (o && 'remember' in o) n.rememberDir = !!o.remember; if (o?.lastDir) n.lastDir = String(o.lastDir); if (o?.noAsk) n.askAdd = false; this.settings.set({ torrent: n }); return true; });
     ipcMain.handle('br:torQuick', (_e, src) => this.main.torrentQuick(src));

@@ -57,11 +57,11 @@ const be = v => typeof v === 'number' ? Buffer.from('i' + v + 'e') : Buffer.isBu
   await w.evaluate(() => window.dryae.call('openBrowser', 'dryae://start'));
   let b; for (let i = 0; i < 40 && !b; i++) { b = app.windows().find(x => x.url().includes('browser.html')); await wait(250); } await wait(2500);
   await b.evaluate(f => openQuickTorrent({ src: f, page: 'dryae://start' }), TF3); await wait(2500);
-  const bq = await b.evaluate(() => ({ opts: [...document.querySelectorAll('#qtDir option')].map(o => o.textContent), path: document.querySelector('#qtPath')?.textContent, n: document.querySelectorAll('#qsBody .tfr').length }));
-  ok('navigateur : « Enregistrer dans » avec Torrents par défaut et les dossiers des catégories', /Torrents/.test(bq.opts[0] || '') && bq.opts.some(o => /Vidéos/.test(o)) && bq.n === 5, bq);
-  await b.evaluate(() => { const s = document.querySelector('#qtDir'); s.value = [...s.options].find(o => /Vidéos/.test(o.textContent)).value; s.dispatchEvent(new Event('change')); document.querySelector('#qtTop').checked = true; document.querySelector('#qtFL').checked = true; });
-  await b.screenshot({ path: HOME + '/navigateur-torrent.png' }).catch(() => {});
-  await b.evaluate(() => document.querySelector('#qtGo').click()); await wait(1500);
+  const bq = await b.evaluate(() => ({ opts: [...document.querySelectorAll('#tDirSel option')].map(o => o.textContent), path: document.querySelector('#tDirPath')?.textContent, rows: document.querySelectorAll('#tFiles .tr').length, kv: document.querySelector('#tKv')?.textContent, wide: document.querySelector('#qs .modal').classList.contains('big'), ids: ['#tStart', '#tTop', '#tSeq', '#tFL', '#tSeed', '#tSchedule', '#tRemember', '#tNoAsk', '#tSaveFile', '#tFilter', '#tAll', '#tNone', '#tVideos', '#tOk'].filter(x => !document.querySelector(x)) }));
+  ok('navigateur : la même fenêtre que le gestionnaire (dossiers, options, informations, arbre)', /Torrents/.test(bq.opts[0] || '') && bq.opts.some(o => /Vidéos/.test(o)) && bq.rows === 5 && /place libre/.test(bq.kv) && bq.wide && !bq.ids.length, bq);
+  await b.evaluate(() => { const s = document.querySelector('#tDirSel'); s.value = [...s.options].find(o => /Vidéos/.test(o.textContent)).value; s.dispatchEvent(new Event('change')); document.querySelector('#tTop').checked = true; document.querySelector('#tFL').checked = true; });
+  await wait(400); await b.screenshot({ path: HOME + '/navigateur-torrent.png' }).catch(() => {});
+  await b.evaluate(() => document.querySelector('#tOk').click()); await wait(1500);
   const t3 = (await w.evaluate(() => window.dryae.call('list'))).find(d => d.name === 'Troisieme') || {};
   ok('navigateur : torrent ajouté dans le dossier choisi, avec ses options', t3.dir === HOME + '/Films' && t3.top && t3.firstLast, { dir: t3.dir, top: t3.top, fl: t3.firstLast });
   await Promise.race([app.close(), wait(5000)]); process.exit(0);

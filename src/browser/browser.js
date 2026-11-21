@@ -1018,6 +1018,7 @@ async function qsAdd(o, label) {
   return r;
 }
 function qsShow(title, meta, thumb) {
+  torWide(false);
   $('#qsTitle').textContent = title || 'Téléchargement';
   $('#qsMeta').textContent = meta || '';
   if (thumb) { $('#qsThumb').src = thumb; $('#qsThumb').style.display = ''; } else $('#qsThumb').style.display = 'none';
@@ -1168,50 +1169,23 @@ async function openQuickTorrent(o) {
   }
   if (r.info.duplicate) return torDup(r.info.duplicate);
   const info = r.info;
-  const sel = new Set(info.files.map(f => f.i));
-  $('#qsTitle').textContent = info.name;
-  const meta = () => { const s = info.files.filter(f => sel.has(f.i)).reduce((a, f) => a + f.length, 0); $('#qsMeta').textContent = `${sel.size}/${info.files.length} fichier(s) · ${fmt(s)}`; };
-  const isVid = p => /\.(mp4|mkv|webm|avi|mov|m4v|ts)$/i.test(p);
-  // 1.7.1 : comme la fenêtre d'ajout du gestionnaire : dossier (Torrents par défaut, dossiers des catégories, Parcourir), options, filtre
-  const dl = dirs.list || [], dName = d => d.key === 'auto' ? T('Torrents (par défaut)') : d.key === 'temp' || d.key === 'last' ? T(d.label) : d.key === 'pick' ? (d.dir.split(/[\\/]/).filter(Boolean).pop() || d.dir) : T('Dossier') + ' ' + T(d.label);
-  const lastI = dl.findIndex(d => d.key === 'last');
-  $('#qsBody').innerHTML = `<div class="qt-sect">${esc(T('Enregistrer dans'))}</div>
-    <div class="row" style="gap:6px"><select id="qtDir" style="flex:1;min-width:0">${dl.map((d, i) => `<option value="${i}">${esc(dName(d))}</option>`).join('')}</select><button class="btn sm" id="qtPick">${esc(T('Parcourir'))}</button></div>
-    <div class="qt-path" id="qtPath"></div>
-    <label class="check"><input type="checkbox" id="qtRem" ${dirs.remember ? 'checked' : ''}> ${esc(T('Se souvenir du dernier dossier choisi'))}</label>
-    <div class="row" style="gap:6px;margin:8px 0"><button class="btn sm" data-t="all">Tout</button><button class="btn sm" data-t="none">Aucun</button><button class="btn sm" data-t="vid">Vidéos seulement</button><input type="text" id="qtFilter" placeholder="${esc(T('Filtrer les fichiers…'))}" style="flex:1;min-width:90px"></div>
-    <div class="tfl">${info.files.map(f => `<label class="tfr"><input type="checkbox" data-i="${f.i}" checked><span class="n" title="${esc(f.path)}">${esc(f.path.split(/[\\/]/).slice(1).join('/') || f.path)}</span><span class="s">${fmt(f.length)}</span></label>`).join('')}</div>
-    <label class="check"><input type="checkbox" id="qtTop"> ${esc(T("Ajouter en haut de la file d'attente"))}</label>
-    <label class="check"><input type="checkbox" id="qtSeq"> Téléchargement séquentiel (lecture pendant le téléchargement)</label>
-    <label class="check"><input type="checkbox" id="qtFL"> ${esc(T("Premiers et derniers morceaux d'abord"))}</label>
-    <label class="check"><input type="checkbox" id="qtSeed"> Partager (seed) une fois terminé</label>
-    <div class="row" style="margin-top:12px;gap:8px;align-items:center"><button class="btn primary" id="qtGo">${ic('dl')}Télécharger</button><label class="check" style="margin:0" title="${esc(T('Les prochains torrents seront ajoutés tout de suite. Pour revoir cette fenêtre : Paramètres → Torrents'))}"><input type="checkbox" id="qtNoAsk"> ${esc(T('Ne plus afficher'))}</label></div>`;
-  $('#qtDir').value = dirs.remember && lastI >= 0 ? String(lastI) : '0';
-  const dirNow = () => dl[+$('#qtDir').value] || { key: 'auto', dir: '' };
-  const showPath = () => { $('#qtPath').textContent = dirNow().dir || ''; };
-  showPath(); $('#qtDir').onchange = showPath;
-  $('#qtPick').onclick = async () => {
-    const p = await B.call('br:pickDir', dirNow().dir); if (!p) return;
-    let i = dl.findIndex(d => d.key === 'pick'); if (i < 0) { dl.push({ key: 'pick', label: '', dir: p }); i = dl.length - 1; $('#qtDir').insertAdjacentHTML('beforeend', `<option value="${i}"></option>`); }
-    dl[i].dir = p; $('#qtDir').querySelector(`option[value="${i}"]`).textContent = dName(dl[i]); $('#qtDir').value = String(i); showPath();
-  };
-  $('#qtFilter').oninput = () => { const q = $('#qtFilter').value.trim().toLowerCase(); $$('#qsBody .tfr').forEach(l => { l.style.display = !q || l.querySelector('.n').title.toLowerCase().includes(q) ? '' : 'none'; }); };
-  $('#qtSeq').checked = !!qsDefaults?.torrentSeq; $('#qtSeed').checked = qsDefaults?.torrentSeed !== false;
-  const sync = () => { $$('#qsBody .tfr input').forEach(c => { c.checked = sel.has(+c.dataset.i); }); meta(); };
-  meta();
-  $('#qsBody').onclick = e => {
-    const t = e.target.closest('[data-t]');
-    if (t) { sel.clear(); info.files.forEach(f => { if (t.dataset.t === 'all' || (t.dataset.t === 'vid' && isVid(f.path))) sel.add(f.i); }); sync(); }
-    const c = e.target.closest('.tfr input'); if (c) { c.checked ? sel.add(+c.dataset.i) : sel.delete(+c.dataset.i); meta(); }
-  };
-  $('#qtGo').onclick = async () => {
-    if (!sel.size) return toast('Sélectionne au moins un fichier');
-    const op = qsOpts(), d0 = dirNow(), dir = op.dir || (d0.key === 'auto' ? '' : d0.dir);
-    B.call('br:torPrefs', { remember: $('#qtRem').checked, lastDir: $('#qtRem').checked && d0.key !== 'auto' ? d0.dir : '', noAsk: $('#qtNoAsk').checked }).catch(() => {});
-    await B.call('br:torAdd', { ...info, selected: [...sel], dir, sequential: $('#qtSeq').checked, firstLast: $('#qtFL').checked, top: $('#qtTop').checked, seedAfter: $('#qtSeed').checked, startNow: op.startNow, schedule: op.schedule });
-    closeQuick();
-    toast('Torrent ajouté', { label: 'Voir', fn: () => B.call('br:openMain') });
-  };
+  // 1.7.1 : la même fenêtre d'ajout que dans le gestionnaire (src/shared/torrent-add.js), en grand au-dessus de la page
+  torWide(true);
+  TorrentAdd.mount($('#qsBody'), info, {
+    T, fmt, toast, defaults: { seq: !!qsDefaults?.torrentSeq, seed: qsDefaults?.torrentSeed !== false },
+    dirs: () => B.call('br:torDirs'), free: d => B.call('br:diskFree', d), pickDir: d => B.call('br:pickDir', d),
+    saveFile: (f, n) => B.call('br:torSaveFile', f, n),
+    prefs: o => B.call('br:torPrefs', o),
+    add: o => B.call('br:torAdd', o),
+    done: () => { closeQuick(); toast('Torrent ajouté', { label: 'Voir', fn: () => B.call('br:openMain') }); }
+  });
+}
+// fenêtre large (arbre des fichiers à droite) pendant l'ajout d'un torrent ; l'en-tête et le bas habituels sont cachés
+function torWide(on) {
+  const m = $('#qs .modal'); if (!m) return;
+  m.classList.toggle('wide', on); m.classList.toggle('tmodal', on); m.classList.toggle('big', on); m.style.width = on ? '' : 'min(520px,100%)';
+  $('#qsTitleH').textContent = on ? T('Ajouter un torrent') : $('#qsTitleH').textContent;
+  for (const el of [$('#qsTitle')?.closest('.row'), $('#qs .modal > .modal-foot'), $('#qsAdv')]) if (el) el.style.display = on ? 'none' : (el.id === 'qsAdv' ? 'none' : '');
 }
 B.on('quick-torrent', o => openQuickTorrent(o));
 B.on('quick-file', o => { if (!o.incognito && cur?.incognito) o.incognito = true; openQuickFile(o); });
