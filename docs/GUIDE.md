@@ -74,6 +74,7 @@ Les vidéos protégées par DRM (Netflix, Disney+…) ne peuvent pas être tél�
 - **Ajouter → Torrent**, ou cliquez sur un lien `magnet:` / `.torrent` dans le navigateur DrYAE (le choix des fichiers s'ouvre sur la page, sans la quitter), ou déposez un fichier `.torrent`.
 - Le moteur torrent (aria2) est natif et très léger : il ne tourne que pendant les téléchargements de torrents.
 - DrYAE lit la liste des fichiers. Cochez ceux que vous voulez. Pour un lien magnet, un compteur indique la recherche des pairs (« Recherche de pairs… 12 s ») avec un bouton **Annuler**. Si personne n'est trouvé après 30 secondes, DrYAE explique comment autoriser son moteur de torrents (aria2c) dans le pare-feu de Windows.
+- **Fenêtre d'ajout (1.7.1)** : à gauche, **Enregistrer dans** (dossier Torrents par défaut ; dépliez la liste pour choisir le dossier d'une catégorie, ou **Parcourir**), les options (démarrer ou non, en haut de la file d'attente, premiers et derniers morceaux d'abord…) et les informations du torrent ; à droite, les fichiers en arbre, avec un filtre. **Ne plus afficher** ajoute les torrents suivants tout de suite ; pour revoir la fenêtre : Paramètres → Torrents.
 - Si vous ajoutez un torrent déjà présent, DrYAE le signale et propose d'**ajouter ses trackers** au téléchargement existant (souvent plus rapide).
 - **Téléchargement séquentiel** : permet de regarder une vidéo pendant qu'elle se télécharge.
 - Le **partage** (seeding) après la fin et le ratio se règlent dans Paramètres → Torrents.

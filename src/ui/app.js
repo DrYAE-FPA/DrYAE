@@ -735,8 +735,11 @@ function showTorrent(pre = {}) {
   tInfo = null;
   $('#tSrc').value = pre.src || '';
   $('#tSrcBox').style.display = ''; $('#tInfoBox').style.display = 'none'; $('#tStatus').textContent = '';
-  $('#tSeq').checked = !!S.torrent?.sequential; $('#tSeed').checked = !!S.torrent?.seed; $('#tDir').value = ''; $('#tSchedule').checked = false;
-  showTorrent.ctx = pre;
+  $('#tSeq').checked = !!S.torrent?.sequential; $('#tSeed').checked = !!S.torrent?.seed; $('#tSchedule').checked = false;
+  $('#tStart').checked = true; $('#tTop').checked = false; $('#tFL').checked = false; $('#tFilter').value = ''; $('#tModal .tmodal').classList.remove('big');
+  showTorrent.ctx = pre; $('#tNoAsk').checked = false;
+  // 1.7.1 : « Ne plus afficher » coché une fois : le torrent est ajouté tout de suite, avec les réglages habituels
+  if (pre.src && S.torrent?.askAdd === false) { safe(() => call('torrent:addQuick', pre.src)).then(d => { if (d?.duplicate) return askTorrentDup(d.duplicate, false); if (d?.id) { items.set(d.id, d); render(); toast(T('Torrent ajouté')); } }); return; }
   openM('#tModal');
   if (pre.src && (S.torrent?.fetchMetadata !== false || !/^magnet:/i.test(pre.src))) fetchTorrent();
 }
@@ -790,10 +793,12 @@ async function fetchTorrent() {
     tInfo = await call('torrent:inspect', src, showTorrent.ctx || {});
     tProbe = '';
     if (tInfo && tInfo.duplicate) { $('#tFetch').disabled = false; $('#tStatus').textContent = ''; return askTorrentDup(tInfo.duplicate, true); }
-    $('#tSrcBox').style.display = 'none'; $('#tInfoBox').style.display = '';
-    $('#tKv').innerHTML = `<dt>Nom</dt><dd>${esc(tInfo.name)}</dd><dt>Taille</dt><dd>${fmt(tInfo.size)}</dd><dt>Fichiers</dt><dd>${tInfo.files.length}</dd><dt>Hash</dt><dd class="mono">${tInfo.infoHash}</dd>`;
-    $('#tFiles').innerHTML = tInfo.files.map(f => `<div class="frow"><input type="checkbox" data-ti="${f.i}" checked><span class="n" title="${esc(f.path)}">${esc(f.path)}</span><span class="s">${fmt(f.length)}</span></div>`).join('');
-    updTSel();
+    $('#tSrcBox').style.display = 'none'; $('#tInfoBox').style.display = ''; $('#tModal .tmodal').classList.add('big');
+    tSelSet = new Set(tInfo.files.map(f => f.i)); tOpen = new Set(); tTree = tBuild(tInfo.files);
+    // un seul dossier racine (cas habituel) : il est déjà ouvert
+    if (tTree.kids.size === 1 && [...tTree.kids.values()][0].kids) tOpen.add([...tTree.kids.values()][0].key);
+    await tDirsLoad();
+    tKvDraw(); tDraw(); updTSel();
   } catch (e) {
     tProbe = '';
     if (/Annulé/.test(e.message)) $('#tStatus').textContent = T('Annulé');
@@ -809,22 +814,97 @@ async function askTorrentDup(d, closeAfter) {
   if (r?.value === 'show') { closeM(); openDrawer?.(d.id); return; }
   if (closeAfter && r) closeM();
 }
+// 1.7.1 : fichiers du torrent en arbre (dossiers dépliables, cases à cocher par dossier), filtre, dossier d'enregistrement
+// choisi dans une liste (Torrents par défaut, dossier de chaque catégorie…) ou avec « Parcourir »
+let tSelSet = new Set(), tOpen = new Set(), tTree = null, tDirs = [];
+function tBuild(files) {
+  const root = { key: '', kids: new Map(), files: [] };
+  for (const f of files) {
+    const parts = String(f.path).split(/[\\/]/); let n = root, key = '';
+    for (const part of parts.slice(0, -1)) { key += '/' + part; if (!n.kids.has(part)) n.kids.set(part, { key, name: part, kids: new Map(), files: [] }); n = n.kids.get(part); }
+    n.files.push({ ...f, name: parts[parts.length - 1] });
+  }
+  return root;
+}
+const tAllIn = n => [...n.files.map(f => f.i), ...[...n.kids.values()].flatMap(tAllIn)];
+const tSizeOf = n => n.files.reduce((a, f) => a + f.length, 0) + [...n.kids.values()].reduce((a, k) => a + tSizeOf(k), 0);
+const tIcon = name => { const e = (/\.([a-z0-9]+)$/i.exec(name) || [])[1]?.toLowerCase() || ''; return /^(mp4|mkv|avi|mov|webm|m4v|wmv|flv|ts|mpg|mpeg)$/.test(e) ? '🎬' : /^(mp3|flac|wav|aac|ogg|m4a|opus)$/.test(e) ? '🎵' : /^(jpe?g|png|gif|webp|bmp)$/.test(e) ? '🖼️' : /^(zip|rar|7z|iso|gz|tar|bin)$/.test(e) ? '🗜️' : /^(exe|msi|apk)$/.test(e) ? '⚙️' : /^(srt|vtt|ass|ssa|sub)$/.test(e) ? '💬' : '📄'; };
+function tDraw() {
+  const q = $('#tFilter').value.trim().toLowerCase(), out = [];
+  const match = f => !q || String(f.path).toLowerCase().includes(q);
+  const walk = (n, depth) => {
+    for (const k of [...n.kids.values()].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))) {
+      const ids = tAllIn(k), shown = q ? ids.filter(i => match(tInfo.files[i])) : ids; if (!shown.length) continue;
+      const on = ids.filter(i => tSelSet.has(i)).length, open = q || tOpen.has(k.key);
+      out.push(`<div class="tr${on ? '' : ' off'}" style="padding-left:${4 + depth * 16}px"><button class="tg" data-tg="${esc(k.key)}">${open ? '▼' : '▶'}</button><input type="checkbox" data-td="${esc(k.key)}" ${on === ids.length ? 'checked' : ''} ${on && on < ids.length ? 'data-mid="1"' : ''}><span class="ic">📁</span><span class="n" title="${esc(k.key.slice(1))}">${esc(k.name)}</span><span class="s">${fmt(tSizeOf(k))}</span></div>`);
+      if (open) walk(k, depth + 1);
+    }
+    for (const f of n.files.slice().sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))) {
+      if (!match(f)) continue;
+      out.push(`<div class="tr${tSelSet.has(f.i) ? '' : ' off'}" style="padding-left:${4 + depth * 16}px"><span></span><input type="checkbox" data-ti="${f.i}" ${tSelSet.has(f.i) ? 'checked' : ''}><span class="ic">${tIcon(f.name)}</span><span class="n" title="${esc(f.path)}">${esc(f.name)}</span><span class="s">${fmt(f.length)}</span></div>`);
+    }
+  };
+  walk(tTree, 0);
+  $('#tFiles').innerHTML = out.join('') || `<div class="hint" style="padding:10px">${esc(T('Aucun fichier ne correspond'))}</div>`;
+  $$('#tFiles [data-mid]').forEach(x => (x.indeterminate = true));
+}
+const tNode = key => { let n = tTree; for (const p of key.split('/').slice(1)) n = n.kids.get(p); return n; };
 function updTSel() {
-  const sel = $$('#tFiles [data-ti]').filter(x => x.checked).map(x => +x.dataset.ti);
+  const sel = tInfo.files.map(f => f.i).filter(i => tSelSet.has(i));
   const sz = sel.reduce((a, i) => a + tInfo.files[i].length, 0);
-  $('#tSel').textContent = `${sel.length}/${tInfo.files.length} fichier(s) · ${fmt(sz)}`;
+  $('#tSel').textContent = TF('{0}/{1} fichier(s) · {2}', sel.length, tInfo.files.length, fmt(sz));
+  tFreeDraw(sz);
   return sel;
 }
-$('#tFiles').onchange = updTSel;
-$('#tAll').onclick = () => { $$('#tFiles [data-ti]').forEach(x => (x.checked = true)); updTSel(); };
-$('#tNone').onclick = () => { $$('#tFiles [data-ti]').forEach(x => (x.checked = false)); updTSel(); };
-$('#tVideos').onclick = () => { $$('#tFiles [data-ti]').forEach(x => (x.checked = /\.(mp4|mkv|avi|mov|webm|m4v|wmv|flv|ts)$/i.test(tInfo.files[+x.dataset.ti].path))); updTSel(); };
-$('#tBack').onclick = () => { $('#tSrcBox').style.display = ''; $('#tInfoBox').style.display = 'none'; };
-$('#tDirPick').onclick = async () => { const p = await call('pickDir'); if (p) $('#tDir').value = p; };
+$('#tFiles').onclick = e => {
+  const g = e.target.closest('[data-tg]'); if (g) { const k = g.dataset.tg; tOpen.has(k) ? tOpen.delete(k) : tOpen.add(k); return tDraw(); }
+};
+$('#tFiles').onchange = e => {
+  const x = e.target; if (x.dataset.ti != null) x.checked ? tSelSet.add(+x.dataset.ti) : tSelSet.delete(+x.dataset.ti);
+  else if (x.dataset.td != null) for (const i of tAllIn(tNode(x.dataset.td))) x.checked ? tSelSet.add(i) : tSelSet.delete(i);
+  tDraw(); updTSel();
+};
+const tVisible = () => { const q = $('#tFilter').value.trim().toLowerCase(); return tInfo.files.filter(f => !q || String(f.path).toLowerCase().includes(q)).map(f => f.i); };
+$('#tFilter').oninput = () => tDraw();
+$('#tAll').onclick = () => { tVisible().forEach(i => tSelSet.add(i)); tDraw(); updTSel(); };
+$('#tNone').onclick = () => { tVisible().forEach(i => tSelSet.delete(i)); tDraw(); updTSel(); };
+$('#tVideos').onclick = () => { tSelSet = new Set(tInfo.files.filter(f => /\.(mp4|mkv|avi|mov|webm|m4v|wmv|flv|ts)$/i.test(f.path)).map(f => f.i)); tDraw(); updTSel(); };
+$('#tBack').onclick = () => { $('#tSrcBox').style.display = ''; $('#tInfoBox').style.display = 'none'; $('#tModal .tmodal').classList.remove('big'); };
+async function tDirsLoad() {
+  const r = await call('torrent:dirs').catch(() => ({ list: [], remember: false }));
+  tDirs = r.list || []; $('#tRemember').checked = !!r.remember;
+  const sel = $('#tDirSel');
+  sel.innerHTML = tDirs.map((d, i) => `<option value="${i}">${esc(d.key === 'auto' ? T('Torrents (par défaut)') : d.key === 'temp' || d.key === 'last' ? T(d.label) : T('Dossier') + ' ' + T(d.label))}</option>`).join('');
+  const last = tDirs.findIndex(d => d.key === 'last');
+  sel.value = r.remember && last >= 0 ? String(last) : '0';
+  tDirShow();
+}
+const tDirNow = () => tDirs[+$('#tDirSel').value] || tDirs[0] || { key: 'auto', dir: '' };
+let tFree = -1;
+async function tDirShow() { const d = tDirNow(); $('#tDirPath').textContent = d.dir || ''; tFree = -1; tKvDraw(); tFree = await call('disk:free', d.dir).catch(() => -1); tKvDraw(); }
+function tFreeDraw() { tKvDraw(); }
+function tKvDraw() {
+  if (!tInfo) return;
+  const sel = tInfo.files.filter(f => tSelSet.has(f.i)).reduce((a, f) => a + f.length, 0);
+  const free = tFree >= 0 ? ` <span class="${tFree < sel ? 'bad' : ''}" style="color:${tFree < sel ? 'var(--danger,#e05050)' : 'var(--muted)'}">(${esc(TF('place libre sur le disque : {0}', fmt(tFree)))})</span>` : '';
+  const date = tInfo.created ? new Date(tInfo.created).toLocaleDateString() : T('Non indiquée');
+  $('#tKv').innerHTML = `<dt>${esc(T('Nom'))}</dt><dd>${esc(tInfo.name)}</dd><dt>${esc(T('Taille'))}</dt><dd>${fmt(tInfo.size)}${free}</dd><dt>${esc(T('Fichiers'))}</dt><dd>${tInfo.files.length}</dd><dt>${esc(T('Créé le'))}</dt><dd>${esc(date)}</dd><dt>${esc(T('Empreinte'))}</dt><dd class="mono">${esc(tInfo.infoHash)}</dd>` + (tInfo.comment ? `<dt>${esc(T('Commentaire'))}</dt><dd>${esc(tInfo.comment)}</dd>` : '');
+}
+$('#tDirSel').onchange = tDirShow;
+$('#tDirPick').onclick = async () => {
+  const p = await call('pickDir', tDirNow().dir); if (!p) return;
+  let i = tDirs.findIndex(d => d.key === 'pick');
+  if (i < 0) { tDirs.push({ key: 'pick', label: '', dir: p }); i = tDirs.length - 1; $('#tDirSel').insertAdjacentHTML('beforeend', `<option value="${i}"></option>`); }
+  tDirs[i].dir = p; $('#tDirSel').querySelector(`option[value="${i}"]`).textContent = p.split(/[\\/]/).filter(Boolean).pop() || p;
+  $('#tDirSel').value = String(i); tDirShow();
+};
+$('#tSaveFile').onclick = async () => { const f = await safe(() => call('torrent:saveFile', tInfo.torrentFile, tInfo.name)); if (f) toast(TF('Enregistré : {0}', f)); };
 $('#tOk').onclick = async () => {
   const sel = updTSel();
   if (!sel.length) return toast('Sélectionne au moins un fichier');
-  const d = await safe(() => call('torrent:add', { ...tInfo, selected: sel.length === tInfo.files.length ? null : sel, dir: $('#tDir').value.trim(), sequential: $('#tSeq').checked, seedAfter: $('#tSeed').checked, schedule: $('#tSchedule').checked }));
+  const d0 = tDirNow(), dir = d0.key === 'auto' ? '' : d0.dir, rem = $('#tRemember').checked;
+  S = await call('setSettings', { torrent: { rememberDir: rem, ...(rem && dir ? { lastDir: dir } : {}), ...($('#tNoAsk').checked ? { askAdd: false } : {}) } }).catch(() => S) || S;
+  const d = await safe(() => call('torrent:add', { ...tInfo, selected: sel.length === tInfo.files.length ? null : sel, dir, sequential: $('#tSeq').checked, firstLast: $('#tFL').checked, top: $('#tTop').checked, startNow: $('#tStart').checked, seedAfter: $('#tSeed').checked, schedule: $('#tSchedule').checked }));
   if (d) { items.set(d.id, d); closeM(); render(); toast('Torrent ajouté'); }
 };
 
@@ -1074,7 +1154,7 @@ async function showSettings(sec = 'gen') {
   c('#sLimOn', S.speedLimitOn); v('#sLim', S.speedLimit); c('#sDataOn', S.dataLimit.enabled); v('#sDataMb', S.dataLimit.mb); c('#sProxyOn', S.proxy.enabled); v('#sProxy', S.proxy.url); v('#sUA', S.userAgent); { const TB = S.turbo || {}; c('#tbOd', TB.onedrive !== false); c('#tbWu', TB.winupdate !== false); c('#tbDone', TB.stopWhenDone !== false); c('#tbAuto', !!TB.auto); }
   const st = await call('stats'); v('#sDataUsed', fmt(st.dataToday));
   const TO = S.torrent;
-  c('#tEn', TO.enabled); c('#tMeta', TO.fetchMetadata); c('#tSeqD', TO.sequential); c('#tSeedD', TO.seed); v('#tRatio', TO.ratio); v('#tUp', TO.uploadLimit); v('#tDown', TO.downloadLimit); v('#tConns', TO.maxConns); v('#tPort', TO.port); v('#tMaxAct', TO.maxActive || 3); tPortShow(null, false); c('#tDht', TO.dht); c('#tLsd', TO.lsd); c('#tDefTr', TO.useDefaultTrackers); v('#tTrackers', TO.trackers); v('#tTrUrl', TO.trackersUrl);
+  c('#tEn', TO.enabled); c('#tMeta', TO.fetchMetadata); c('#tAskAdd', TO.askAdd !== false); c('#tSeqD', TO.sequential); c('#tSeedD', TO.seed); v('#tRatio', TO.ratio); v('#tUp', TO.uploadLimit); v('#tDown', TO.downloadLimit); v('#tConns', TO.maxConns); v('#tPort', TO.port); v('#tMaxAct', TO.maxActive || 3); tPortShow(null, false); c('#tDht', TO.dht); c('#tLsd', TO.lsd); c('#tDefTr', TO.useDefaultTrackers); v('#tTrackers', TO.trackers); v('#tTrUrl', TO.trackersUrl);
   const C = S.scheduler;
   c('#cOn', C.enabled); v('#cStart', C.start); v('#cStop', C.stop); c('#cAdd', C.addNew); c('#cShut', C.shutdown);
   $('#cDays').innerHTML = DAYS.map((d, i) => `<label><input type="checkbox" data-day="${i}" ${C.days.includes(i) ? 'checked' : ''}>${d}</label>`).join('');
@@ -1191,7 +1271,7 @@ $('#sOk').onclick = async () => {
     hls: { connections: Math.max(1, n('#sHlsC')), quality: v('#sHlsQ'), convert: c('#sHlsConv') },
     ytdl: { mode: v('#sYtMode') === 'video' ? 'video' : 'audio', audioFormat: v('#sYtMode') === 'm4a' ? 'm4a' : 'mp3', quality: v('#sYtQ'), audioBitrate: v('#sYtB') },
     speedLimitOn: c('#sLimOn'), speedLimit: n('#sLim'), dataLimit: { enabled: c('#sDataOn'), mb: n('#sDataMb') }, proxy: { enabled: c('#sProxyOn'), url: v('#sProxy').trim() }, turbo: { onedrive: c('#tbOd'), winupdate: c('#tbWu'), stopWhenDone: c('#tbDone'), auto: c('#tbAuto') }, userAgent: v('#sUA').trim(),
-    torrent: { enabled: c('#tEn'), fetchMetadata: c('#tMeta'), sequential: c('#tSeqD'), seed: c('#tSeedD'), ratio: +v('#tRatio') || 0, uploadLimit: n('#tUp'), downloadLimit: n('#tDown'), maxConns: n('#tConns') || 55, port: n('#tPort'), maxActive: Math.max(1, Math.min(20, n('#tMaxAct') || 3)), dht: c('#tDht'), lsd: c('#tLsd'), useDefaultTrackers: c('#tDefTr'), trackers: v('#tTrackers'), trackersUrl: v('#tTrUrl').trim() },
+    torrent: { enabled: c('#tEn'), fetchMetadata: c('#tMeta'), askAdd: c('#tAskAdd'), sequential: c('#tSeqD'), seed: c('#tSeedD'), ratio: +v('#tRatio') || 0, uploadLimit: n('#tUp'), downloadLimit: n('#tDown'), maxConns: n('#tConns') || 55, port: n('#tPort'), maxActive: Math.max(1, Math.min(20, n('#tMaxAct') || 3)), dht: c('#tDht'), lsd: c('#tLsd'), useDefaultTrackers: c('#tDefTr'), trackers: v('#tTrackers'), trackersUrl: v('#tTrUrl').trim() },
     scheduler: { enabled: c('#cOn'), start: v('#cStart') || '02:00', stop: v('#cStop'), days: $$('#cDays [data-day]').filter(x => x.checked).map(x => +x.dataset.day), addNew: c('#cAdd'), shutdown: c('#cShut') },
     theme: { mode: v('#lMode'), accent: $('#lColor').dataset.sys ? 'system' : $('#lColor').value },
   };

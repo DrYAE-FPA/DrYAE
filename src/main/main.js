@@ -58,9 +58,10 @@ const api = {
   },
   torrentAdd(o) {
     return manager.add({ type: 'torrent', url: o.magnet || ('magnet:?xt=urn:btih:' + o.infoHash), torrentFile: o.torrentFile, infoHash: o.infoHash, name: o.name,
-      files: (o.files || []).map(f => ({ path: f.path, length: f.length })), selected: o.selected, dir: o.dir, sequential: o.sequential, seedAfter: o.seedAfter, startNow: o.startNow !== false, schedule: !!o.schedule });
+      files: (o.files || []).map(f => ({ path: f.path, length: f.length })), selected: o.selected, dir: o.dir, sequential: o.sequential, seedAfter: o.seedAfter, firstLast: !!o.firstLast, top: !!o.top, startNow: o.startNow !== false, schedule: !!o.schedule });
     return true;
   },
+  torrentDirs: () => torrentDirs(),
   torrentQuick(src) { const d = manager.add({ type: 'torrent', url: src }); return d && d.duplicate ? d : !!d; },
   quit() { quitting = true; app.quit(); },
   openSettings(sec) { api.showMain(); send('open-settings', sec || ''); },
@@ -523,7 +524,31 @@ H('torrent:inspect', async (src, opts) => {
   return manager.torrents.inspect(s, manager.torrentDir);
 });
 H('torrent:add', o => manager.add({ type: 'torrent', url: o.magnet || ('magnet:?xt=urn:btih:' + o.infoHash), torrentFile: o.torrentFile, infoHash: o.infoHash, name: o.name,
-  files: (o.files || []).map(f => ({ path: f.path, length: f.length })), selected: o.selected, dir: o.dir, sequential: o.sequential, seedAfter: o.seedAfter, startNow: o.startNow !== false, schedule: !!o.schedule }));
+  files: (o.files || []).map(f => ({ path: f.path, length: f.length })), selected: o.selected, dir: o.dir, sequential: o.sequential, seedAfter: o.seedAfter, firstLast: !!o.firstLast, top: !!o.top, startNow: o.startNow !== false, schedule: !!o.schedule }));
+// 1.7.1 : fenêtre d'ajout de torrent : dossiers proposés (Torrents par défaut, dossier de chaque catégorie, dossier du moment,
+// dernier dossier choisi), place libre sur le disque, copie du fichier .torrent
+H('torrent:dirs', () => torrentDirs());
+function torrentDirs() {
+  const S = settings.get(), U = require('./util'), out = [], seen = new Set();
+  const put = (key, label, dir) => { if (!dir) return; const k = path.resolve(dir).toLowerCase(); if (seen.has(k) && key !== 'auto') return; seen.add(k); out.push({ key, label, dir }); };
+  put('auto', 'Torrents', U.autoFolder(S, 'torrent'));
+  if (S.tempDir) put('temp', 'Dossier du moment', S.tempDir);
+  for (const c of Object.keys(U.CATS)) put(c, U.CATS[c].label, (S.catDirs || {})[c] || (S.categorize ? path.join(S.dir, U.catFolder(c)) : S.dir));
+  put('other', 'Autres', (S.categorize ? path.join(S.dir, 'Autres') : S.dir));
+  if (S.torrent?.lastDir) put('last', 'Dernier dossier choisi', S.torrent.lastDir);
+  return { list: out, remember: !!S.torrent?.rememberDir };
+}
+H('disk:free', async dir => {
+  let d = dir; for (let i = 0; i < 30 && d && !fs.existsSync(d); i++) { const up = path.dirname(d); if (up === d) break; d = up; }
+  try { const st = await fs.promises.statfs(d); return st.bavail * st.bsize; } catch { return -1; }
+});
+H('torrent:saveFile', async (file, name) => {
+  if (!file || !fs.existsSync(file)) throw new Error('Fichier .torrent introuvable');
+  const base = String(name || 'torrent').replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 120) || 'torrent';
+  const r = await dialog.showSaveDialog(win, { defaultPath: path.join(app.getPath('downloads'), base + '.torrent'), filters: [{ name: 'Torrent', extensions: ['torrent'] }] });
+  if (r.canceled || !r.filePath) return null;
+  await fs.promises.copyFile(file, r.filePath); return r.filePath;
+});
 H('torrent:addQuick', src => manager.add({ type: 'torrent', url: src }));
 // 1.7.1 : voyant « connexion entrante » des torrents (porte ouverte sur la box, pare-feu Windows)
 H('torrent:portStatus', retry => manager.torrents.portStatus(!!retry));

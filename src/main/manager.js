@@ -253,7 +253,7 @@ class Manager extends EventEmitter {
     running.forEach(d => (perHost[d.host] = (perHost[d.host] || 0) + 1));
     const prog = d => (d.size > 0 ? (d.downloaded?.() || 0) / d.size : 0);
     const queued = this.list.filter(d => d.status === 'queued');
-    const order = [...queued.filter(d => !isT(d)), ...queued.filter(isT).sort((a, b) => prog(b) - prog(a))];
+    const order = [...queued.filter(d => !isT(d)), ...queued.filter(isT).sort((a, b) => (!!b.top - !!a.top) || prog(b) - prog(a))];
     for (const d of order) {
       if (isT(d)) { if (nt >= tmax) continue; nt++; d._slowSince = 0; d._slowFreed = false; d.start(); continue; }
       if (n >= max) continue;

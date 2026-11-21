@@ -1517,6 +1517,9 @@ class WebBrowser {
     ipcMain.handle('br:firewall', () => require('child_process').spawn('control.exe', ['/name', 'Microsoft.WindowsFirewall', '/page', 'pageConfigureApps'], { detached: true }));
     ipcMain.handle('br:torInspect', async (_e, src, o) => { try { return { ok: true, info: await this.main.torrentInspect(src, o) }; } catch (e) { return { ok: false, error: String(e.message || e) }; } });
     ipcMain.handle('br:torAdd', (_e, o) => { this.main.torrentAdd(o); return true; });
+    // 1.7.1 : dossiers proposés pour un torrent (les mêmes que dans le gestionnaire) et réglages de la fenêtre
+    ipcMain.handle('br:torDirs', () => { const r = this.main.torrentDirs(); return { ...r, askAdd: this.settings.get().torrent?.askAdd !== false }; });
+    ipcMain.handle('br:torPrefs', (_e, o) => { const t = this.settings.get().torrent || {}; const n = { ...t }; if (o && 'remember' in o) n.rememberDir = !!o.remember; if (o?.lastDir) n.lastDir = String(o.lastDir); if (o?.noAsk) n.askAdd = false; this.settings.set({ torrent: n }); return true; });
     ipcMain.handle('br:torQuick', (_e, src) => this.main.torrentQuick(src));
     // 1.7.0 refaite : l'analyse d'une vidéo (formats, tailles) est gardée 10 minutes et lancée à l'avance dès qu'une
     // vidéo est repérée dans la page : la fenêtre « Choisir un format » s'ouvre alors avec les choix tout de suite
@@ -1626,7 +1629,7 @@ class WebBrowser {
       const r = await dialog.showOpenDialog(this.win, { properties: ['openDirectory', 'createDirectory'], defaultPath: def || this.settings.get().dir });
       return r.canceled ? null : r.filePaths[0];
     });
-    ipcMain.handle('br:defaults', () => { const S = this.settings.get(); return { dir: S.dir, ytdl: S.ytdl, categorize: S.categorize, tempDir: S.tempDir || '' }; });
+    ipcMain.handle('br:defaults', () => { const S = this.settings.get(); return { dir: S.dir, ytdl: S.ytdl, categorize: S.categorize, tempDir: S.tempDir || '', torrentSeq: !!S.torrent?.sequential, torrentSeed: S.torrent?.seed !== false }; });
     // 1.7.2 : « utiliser ce dossier pour les prochains téléchargements » (case sous le dossier) ; '' = retour aux dossiers des paramètres
     ipcMain.handle('br:tempDir', (_e, d) => { this.settings.set({ tempDir: typeof d === 'string' ? d.trim() : '' }); return this.settings.get().tempDir; });
     ipcMain.handle('br:selectTab', (_e, wcId) => { try { const wc = webContents.fromId(wcId); if (wc && this.ext) this.ext.selectTab(wc); } catch {} });

@@ -53,7 +53,7 @@ function defaults(app) {
     torrent: {
       enabled: true, seed: true, ratio: 1.0, uploadLimit: 0, downloadLimit: 0, dht: true, lsd: true, port: 0, autoPort: 0, maxActive: 3,
       useDefaultTrackers: true, alwaysAllTrackers: true, trackersUrl: 'https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best.txt',
-      trackers: DEFAULT_TRACKERS.join('\n'), fetchMetadata: true, sequential: false, maxConns: 150, folderView: false,
+      trackers: DEFAULT_TRACKERS.join('\n'), fetchMetadata: true, sequential: false, maxConns: 150, folderView: false, rememberDir: false, lastDir: '', askAdd: true,
     },
     browser: {
       home: 'dryae://start', search: 'google', adblock: true, whitelist: [], blockPopups: true,

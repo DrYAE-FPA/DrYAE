@@ -1607,3 +1607,28 @@ Enregistrer en PDF	Save as PDF	Guardar en PDF	Guardar em PDF	Сохранить 
 La traduction	The translation	La traducción	A tradução	Перевод	الترجمة
 L'original (sans traduction)	The original (no translation)	El original (sin traducción)	O original (sem tradução)	Оригинал (без перевода)	الأصل (بدون ترجمة)
 Enregistrement des pages… {0}/{1}	Saving pages… {0}/{1}	Guardando páginas… {0}/{1}	A guardar as páginas… {0}/{1}	Сохранение страниц… {0}/{1}	جارٍ حفظ الصفحات… {0}/{1}
+Dossier où le torrent sera enregistré	Folder where the torrent will be saved	Carpeta donde se guardará el torrent	Pasta onde o torrent será guardado	Папка, куда будет сохранён торрент	المجلد الذي سيُحفظ فيه التورنت
+Se souvenir du dernier dossier choisi	Remember the last folder chosen	Recordar la última carpeta elegida	Lembrar a última pasta escolhida	Запомнить последнюю выбранную папку	تذكّر آخر مجلد تم اختياره
+Démarrer le torrent	Start the torrent	Iniciar el torrent	Iniciar o torrent	Запустить торрент	بدء التورنت
+Ajouter en haut de la file d'attente	Add to the top of the queue	Añadir al principio de la cola	Adicionar ao topo da fila	Добавить в начало очереди	إضافة إلى أعلى قائمة الانتظار
+Premiers et derniers morceaux d'abord	First and last pieces first	Primeras y últimas partes primero	Primeiras e últimas partes primeiro	Сначала первые и последние части	الأجزاء الأولى والأخيرة أولاً
+Planifier (avec les heures du planificateur)	Schedule (using the scheduler hours)	Programar (con las horas del programador)	Agendar (com os horários do agendador)	Запланировать (по часам планировщика)	جدولة (حسب ساعات المُجدول)
+Enregistrer le fichier .torrent sous…	Save the .torrent file as…	Guardar el archivo .torrent como…	Guardar o ficheiro .torrent como…	Сохранить файл .torrent как…	حفظ ملف ‎.torrent‎ باسم…
+Filtrer les fichiers…	Filter files…	Filtrar archivos…	Filtrar ficheiros…	Фильтр файлов…	تصفية الملفات…
+Aucun fichier ne correspond	No matching files	Ningún archivo coincide	Nenhum ficheiro corresponde	Нет подходящих файлов	لا توجد ملفات مطابقة
+Torrents (par défaut)	Torrents (default)	Torrents (predeterminado)	Torrents (predefinido)	Торренты (по умолчанию)	التورنت (افتراضي)
+Dossier du moment	Current folder	Carpeta del momento	Pasta do momento	Текущая папка	المجلد الحالي
+Dernier dossier choisi	Last folder chosen	Última carpeta elegida	Última pasta escolhida	Последняя выбранная папка	آخر مجلد تم اختياره
+place libre sur le disque : {0}	free disk space: {0}	espacio libre en el disco: {0}	espaço livre no disco: {0}	свободно на диске: {0}	المساحة الحرة على القرص: {0}
+Non indiquée	Not given	No indicada	Não indicada	Не указана	غير محددة
+Créé le	Created on	Creado el	Criado em	Создан	أُنشئ في
+Empreinte	Info hash	Huella (hash)	Impressão (hash)	Хеш	البصمة (hash)
+Commentaire	Comment	Comentario	Comentário	Комментарий	تعليق
+Fichier .torrent introuvable	.torrent file not found	Archivo .torrent no encontrado	Ficheiro .torrent não encontrado	Файл .torrent не найден	ملف ‎.torrent‎ غير موجود
+Ne plus afficher	Don't show again	No volver a mostrar	Não mostrar de novo	Больше не показывать	عدم الإظهار مجددًا
+Les prochains torrents seront ajoutés tout de suite. Pour revoir cette fenêtre : Paramètres → Torrents	The next torrents will be added right away. To see this window again: Settings → Torrents	Los próximos torrents se añadirán enseguida. Para volver a ver esta ventana: Ajustes → Torrents	Os próximos torrents serão adicionados de imediato. Para voltar a ver esta janela: Definições → Torrents	Следующие торренты будут добавляться сразу. Чтобы снова видеть это окно: Настройки → Торренты	ستُضاف ملفات التورنت التالية فورًا. لإظهار هذه النافذة مجددًا: الإعدادات ← التورنت
+Afficher la fenêtre d'ajout d'un torrent (dossier, options, choix des fichiers)	Show the add-torrent window (folder, options, file choice)	Mostrar la ventana para añadir un torrent (carpeta, opciones, elección de archivos)	Mostrar a janela para adicionar um torrent (pasta, opções, escolha de ficheiros)	Показывать окно добавления торрента (папка, параметры, выбор файлов)	إظهار نافذة إضافة تورنت (المجلد، الخيارات، اختيار الملفات)
+Vidéos seulement	Videos only	Solo vídeos	Só vídeos	Только видео	الفيديوهات فقط
+Torrent ajouté	Torrent added	Torrent añadido	Torrent adicionado	Торрент добавлен	تمت إضافة التورنت
+Dossier	Folder	Carpeta	Pasta	Папка	مجلد
+{0}/{1} fichier(s) · {2}	{0}/{1} file(s) · {2}	{0}/{1} archivo(s) · {2}	{0}/{1} ficheiro(s) · {2}	{0}/{1} файл(ов) · {2}	{0}/{1} ملف · {2}

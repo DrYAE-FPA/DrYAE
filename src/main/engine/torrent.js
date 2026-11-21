@@ -212,7 +212,7 @@ class TorrentHub {
       const dd = dupOf(p.infoHash); if (dd) return dupInfo(p, dd);
       const file = path.join(torrentDir, p.infoHash + '.torrent');
       await fsp.writeFile(file, buf);
-      return { infoHash: p.infoHash, name: p.name, size: p.length, files: p.files.map((f, i) => ({ i, path: f.path, length: f.length })), torrentFile: file, magnet: null };
+      return { infoHash: p.infoHash, name: p.name, size: p.length, comment: p.comment || '', created: p.created ? +new Date(p.created) || 0 : 0, files: p.files.map((f, i) => ({ i, path: f.path, length: f.length })), torrentFile: file, magnet: null };
     }
     const p = await parseTorrent(src).catch(() => null);
     if (!p || !p.infoHash) throw new Error('Lien magnet invalide');
@@ -249,7 +249,7 @@ class TorrentHub {
       await fsp.rename(saved, file).catch(async () => { await fsp.copyFile(saved, file); });
     }
     const t = await parseTorrent(await fsp.readFile(file));
-    return { infoHash: t.infoHash, name: t.name, size: t.length, files: t.files.map((f, i) => ({ i, path: f.path, length: f.length })), torrentFile: file, magnet: src };
+    return { infoHash: t.infoHash, name: t.name, size: t.length, comment: t.comment || '', created: t.created ? +new Date(t.created) || 0 : 0, files: t.files.map((f, i) => ({ i, path: f.path, length: f.length })), torrentFile: file, magnet: src };
   }
 }
 
@@ -261,6 +261,8 @@ class TorrentDownload extends Item {
     this.selected = data.selected || null;   // indices des fichiers à télécharger (null = tous)
     this.files = data.files || [];
     this.sequential = data.sequential ?? ctx.settings.get().torrent.sequential;
+    this.firstLast = !!data.firstLast;   // 1.7.1 : premiers et derniers morceaux d'abord (aperçu possible plus tôt)
+    this.top = !!data.top;               // 1.7.1 : ajouté en haut de la file d'attente
     this.uploaded = data.uploaded || 0;
     this.doneBytes = data.doneBytes || 0;
     this.trackersExtra = data.trackersExtra || [];
@@ -276,7 +278,7 @@ class TorrentDownload extends Item {
   get hub() { return this.ctx.torrents; }
   toJSON() {
     return { ...super.toJSON(), infoHash: this.infoHash, torrentFile: this.torrentFile, selected: this.selected, files: this.files,
-      sequential: this.sequential, uploaded: this.uploadedNow(), doneBytes: this.downloaded(), trackersExtra: this.trackersExtra, seedAfter: this.seedAfter, ratio: this.ratio };
+      sequential: this.sequential, firstLast: this.firstLast, top: this.top, uploaded: this.uploadedNow(), doneBytes: this.downloaded(), trackersExtra: this.trackersExtra, seedAfter: this.seedAfter, ratio: this.ratio };
   }
   selSize() {
     if (!this.files.length) return -1;
@@ -328,6 +330,7 @@ class TorrentDownload extends Item {
     if (tr.length) o['bt-tracker'] = tr.join(',');
     if (this.seedAfter) { delete o['seed-time']; o['seed-ratio'] = this.ratio > 0 ? String(this.ratio) : '0.0'; }
     if (this.sequential) o['bt-prioritize-piece'] = 'head=32M,tail=2M';
+    else if (this.firstLast) o['bt-prioritize-piece'] = 'head,tail';
     if (this.speedLimit > 0) o['max-download-limit'] = this.speedLimit + 'K';
     return o;
   }

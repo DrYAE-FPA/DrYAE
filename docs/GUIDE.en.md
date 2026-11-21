@@ -74,6 +74,7 @@ DRM-protected videos (Netflix, Disney+…) cannot be downloaded.
 - Use **Add → Torrent**, click a `magnet:` / `.torrent` link in the DrYAE browser (the file picker opens on the page, you stay there), or drop a `.torrent` file.
 - The torrent engine (aria2) is native and very light: it only runs while torrents are downloading.
 - DrYAE reads the file list. Tick the files you want. For a magnet link, a counter shows the peer search ("Searching for peers… 12 s") with a **Cancel** button. If nobody is found after 30 seconds, DrYAE explains how to allow its torrent engine (aria2c) in the Windows firewall.
+- **Add window (1.7.1)**: on the left, **Save to** (Torrents folder by default; open the list to pick a category's folder, or **Browse**), the options (start or not, top of the queue, first and last pieces first…) and the torrent's information; on the right, the files as a tree, with a filter. **Don't show again** adds the next torrents right away; to see the window again: Settings → Torrents.
 - If you add a torrent that is already there, DrYAE says so and offers to **add its trackers** to the existing download (often faster).
 - **Sequential download** lets you watch a video while it downloads.
 - Seeding after the download and the share ratio are set in Settings → Torrents.
