@@ -125,7 +125,7 @@ class WebBrowser {
     const base = this.win && !this.win.isDestroyed() ? this.win.getBounds() : { width: 1240, height: 800 };
     // 1.7.0 : chaque nouvelle fenêtre a son propre gestionnaire (dessous) et son propre navigateur (dessus), comme la
     // fenêtre principale. Les données sont les mêmes partout : téléchargements, paramètres, favoris…
-    const w = new BW({ width: base.width, height: base.height, x: base.x != null ? base.x + 30 : undefined, y: base.y != null ? base.y + 30 : undefined, minWidth: 900, minHeight: 560,
+    const w = new BW({ width: base.width, height: base.height, x: base.x != null ? base.x + 30 : undefined, y: base.y != null ? base.y + 30 : undefined, minWidth: 480, minHeight: 400,
       title: (global.DRYAE_T || (s => s))('DrYAE — Navigateur'), backgroundColor: '#0d0f14', autoHideMenuBar: true, show: false,
       icon: this.win?.getIcon?.() || undefined,
       webPreferences: { preload: path.join(__dirname, '..', 'ui', 'preload.js'), contextIsolation: true } });
@@ -771,8 +771,23 @@ class WebBrowser {
     const [w, h] = this.win.getContentSize();
     this.view.setBounds({ x: 0, y: 0, width: w, height: h });
   }
+  // 1.7.1 : fermer le navigateur de la fenêtre principale pour de bon : tous ses onglets (et leur son) sont fermés.
+  // À la réouverture (icône près de l'heure), le navigateur repart comme au démarrage, selon les paramètres.
+  closeMain() {
+    const wc = this.mainWc; if (!wc) return;
+    // onglets fermés par l'utilisateur : à la réouverture, page de départ choisie dans les paramètres (pas les anciens onglets)
+    this._sessT && clearTimeout(this._sessT); this.store.session = { tabs: [], active: 0 }; this.saveStore();
+    for (const g of webContents.getAllWebContents()) { try { if (g !== wc && !g.isDestroyed() && g.hostWebContents === wc) { g.setAudioMuted(true); g.close(); } } catch {} }
+    try { this.win?.contentView?.removeChildView(this.view); } catch {}
+    try { wc.close(); } catch {}
+    this.view = null; this._uiReady = false; this._shown = false; this._activeUi = null;
+    this.reopenStart = true;
+    this.main.onModeChange?.('manager');
+  }
+  get browserShown() { return !!(this._shown && this.mainWc); }
   showView() {
     if (!this.view || !this.mainWc) return;
+    this._shown = true;
     const host = this.win;
     if (host.isMinimized()) host.restore();
     host.show();
@@ -784,6 +799,7 @@ class WebBrowser {
     this.main.onModeChange?.('browser');
   }
   hideView() {
+    this._shown = false;
     if (!this.view) return;
     this.view.setVisible(false);
     if (this.win && !this.win.isDestroyed()) { this.win.setTitle('DrYAE' + (this.main.profile?.() ? ' — ' + this.main.profile().name : '')); this.win.webContents.focus(); }
@@ -1518,6 +1534,8 @@ class WebBrowser {
     ipcMain.handle('br:torInspect', async (_e, src, o) => { try { return { ok: true, info: await this.main.torrentInspect(src, o) }; } catch (e) { return { ok: false, error: String(e.message || e) }; } });
     ipcMain.handle('br:torAdd', (_e, o) => { this.main.torrentAdd(o); return true; });
     // 1.7.1 : dossiers proposés pour un torrent (les mêmes que dans le gestionnaire) et réglages de la fenêtre
+    // 1.7.1 : dernier onglet de la fenêtre principale fermé : tout le navigateur se ferme et la fenêtre va près de l'heure
+    ipcMain.handle('br:lastTab', e => { if (e.sender !== this.mainWc) return false; this.closeMain(); this.main.hideWindow?.(); return true; });
     ipcMain.handle('br:diskFree', (_e, d) => this.main.ipc('disk:free', d));
     ipcMain.handle('br:torSaveFile', async (e, file, name) => {
       const fs = require('fs'), path = require('path');

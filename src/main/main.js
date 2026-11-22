@@ -103,7 +103,7 @@ function sendUpd(ch, v) { send(ch, v); try { browser?.wc?.send(ch, v); } catch {
 function createWindow() {
   const b = settings.get().restoreSession ? settings.get().winBounds : null;
   win = new BrowserWindow({
-    width: b?.width || 1240, height: b?.height || 800, x: b?.x, y: b?.y, minWidth: 900, minHeight: 560, title: 'DrYAE', backgroundColor: '#0d0f14',
+    width: b?.width || 1240, height: b?.height || 800, x: b?.x, y: b?.y, minWidth: 480, minHeight: 400, title: 'DrYAE', backgroundColor: '#0d0f14',
     icon: nativeImage.createFromPath(path.join(ASSETS, process.platform === 'win32' ? 'icon.ico' : 'icon.png')), autoHideMenuBar: true, show: false,
     webPreferences: { preload: path.join(UI, 'preload.js'), contextIsolation: true },
   });
@@ -121,7 +121,9 @@ function createWindow() {
   if (b?.maximized) { if (process.argv.includes('--hidden')) win.once('show', () => win.maximize()); else win.maximize(); }
   const saveB = () => { if (!win || win.isMinimized()) return; settings.set({ winBounds: { ...(win.isMaximized() ? settings.get().winBounds || {} : win.getBounds()), maximized: win.isMaximized() } }); };
   win.on('resized', saveB); win.on('moved', saveB); win.on('maximize', saveB); win.on('unmaximize', saveB);
-  win.on('close', e => { if (!quitting && settings.get().tray && tray) { e.preventDefault(); win.hide(); } });
+  // 1.7.1 : fermer la fenêtre pendant qu'on est dans le navigateur ferme aussi ses onglets (plus de son en arrière-plan)
+  win.on('close', e => { if (!quitting && settings.get().tray && tray) { e.preventDefault(); if (browser?.browserShown) browser.closeMain(); win.hide(); } });
+  win.on('restore', () => { if (browser?.reopenStart) { browser.reopenStart = false; setTimeout(() => api.showStart(), 0); } });
   win.on('closed', () => { win = null; if (browser) { browser.view = null; browser.win = null; } });
 }
 
@@ -144,7 +146,8 @@ function createTray() {
   tray.setContextMenu(menu());
   settings.on('change', () => tray && tray.setContextMenu(menu()));
   // clic sur l'icône (zone de notification) : ouvre directement le navigateur
-  tray.on('click', () => browser.open());
+  // 1.7.1 : navigateur fermé (dernier onglet ou fenêtre fermée) : on rouvre comme au démarrage (écran choisi dans les paramètres)
+  tray.on('click', () => { if (!win || !win.isVisible() || !browser?.mainWc) { if (browser) browser.reopenStart = false; return api.showStart(); } browser.open(); });
 }
 
 // --- arguments : magnet:, fichiers .torrent, liens http ---

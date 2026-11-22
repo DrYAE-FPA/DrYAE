@@ -26,11 +26,19 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
   ok('la fenêtre principale n\'a rien reçu', (await urls(b)).join() === before.join(), await urls(b));
   // la fenêtre principale : son dernier onglet fermé, puis le bouton « Navigateur » du gestionnaire
   await w.evaluate(() => window.focus()); await app.evaluate(({ BrowserWindow }) => { const ws = BrowserWindow.getAllWindows().sort((a, b) => a.id - b.id); ws[0].focus(); }); await wait(300);
+  const guests = await app.evaluate(({ webContents }) => { const ui = webContents.getAllWebContents().find(x => /browser\.html/.test(x.getURL()) && !/win=extra/.test(x.getURL())); return webContents.getAllWebContents().filter(g => g.getType() === 'webview' && g.hostWebContents === ui).map(g => g.id); });
   await b.evaluate(() => { while (tabs.length) closeTab(tabs[0]); }).catch(() => {}); await wait(1500);
+  const left = await app.evaluate(({ webContents }, ids) => ids.filter(id => { const g = webContents.fromId(id); return g && !g.isDestroyed(); }), guests);
+  ok('dernier onglet fermé : tous les onglets sont vraiment fermés (plus de son en arrière-plan)', guests.length > 0 && !left.length, { guests, left });
   const gone = await app.evaluate(({ webContents }) => !webContents.getAllWebContents().some(x => !x.isDestroyed() && /browser\.html(?!\?win=extra)/.test(x.getURL()) && !/win=extra/.test(x.getURL())));
   ok('dernier onglet fermé : le navigateur de la fenêtre principale est fermé', gone);
   const st = await app.evaluate(({ BrowserWindow }) => { const m = BrowserWindow.getAllWindows().sort((a, b) => a.id - b.id)[0]; return { vis: m.isVisible(), min: m.isMinimized() }; });
   ok('dernier onglet fermé : la fenêtre se ferme (pas de retour au gestionnaire)', !st.vis || st.min, st);
+  if (st.min) {
+    await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().sort((a, b) => a.id - b.id)[0].restore()); await wait(2500);
+    const back = await app.evaluate(({ webContents }) => webContents.getAllWebContents().some(x => !x.isDestroyed() && /browser\.html/.test(x.getURL()) && !/win=extra/.test(x.getURL())));
+    ok('rouverte depuis la barre des tâches : elle repart sur le navigateur (écran de démarrage choisi)', back);
+  }
   await w.evaluate(u => window.dryae.call('openBrowser', u), 'file://' + HOME + '/a.html'); await wait(3000);
   const b3 = app.windows().find(x => x.url().includes('browser.html') && !x.url().includes('win=extra'));
   ok('bouton Navigateur : le navigateur se rouvre dans la fenêtre principale', !!b3 && (await urls(b3)).some(x => /a\.html/.test(x)), b3 && await urls(b3));

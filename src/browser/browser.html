@@ -29,6 +29,9 @@ body.present .tabstrip,body.present .toolbar,body.present .bmbar,body.present .l
 .addr{flex:1;display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--line);border-radius:99px;padding:0 12px;height:34px}
 .addr:focus-within{border-color:var(--accent)}
 .addr input{flex:1;background:none;border:0;outline:0;padding:0;height:100%}
+/* 1.7.1 : fenêtre étroite (moitié d'écran) : la barre d'adresse rétrécit, le menu reste toujours visible */
+.addr{min-width:90px}.addr input{min-width:0;width:0}.toolbar{min-width:0;overflow:hidden}.toolbar>#bMenu{flex:none}
+@media (max-width:620px){#bFwd,#bHome,#bSide,#bExt,.addr .lockb~button:not(:last-child){display:none!important}.toolbar{gap:2px;padding:6px 4px}.addr{padding:0 8px;gap:4px}}
 .addr .lock{color:var(--ok)}.addr .lock.no{color:var(--muted)}
 .tb{position:relative;padding:7px;border-radius:8px;color:var(--muted);display:inline-flex}
 .tb:hover{background:var(--panel2);color:var(--text)}

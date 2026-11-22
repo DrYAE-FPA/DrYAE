@@ -32,7 +32,7 @@ Des téléchargements plus rapides (torrents et mode turbo), un traducteur de sc
 - **Lumières tamisées** : la page suivante est sombre dès le début du chargement (plus d'éblouissement), et les lumières, la protection des yeux et le mode nuit marchent aussi sur les fichiers de l'ordinateur (PDF, texte, BD), même sans internet.
 - **Connexion avec Google refusée** dans le navigateur intégré (Google bloque volontairement ces connexions) : DrYAE le repère et propose d'ouvrir le site dans Chrome ou de se connecter par e-mail, au lieu de recharger la page sans fin.
 - **Traduire la page** : les très longs paragraphes (romans en ligne) sont traduits.
-- **PDF ouvert depuis l'ordinateur** : il s'ouvre dans la fenêtre du navigateur utilisée en dernier ; fermer le dernier onglet ferme la fenêtre, comme dans un navigateur normal (DrYAE reste près de l'heure pour finir les téléchargements).
+- **PDF ouvert depuis l'ordinateur** : il s'ouvre dans la fenêtre du navigateur utilisée en dernier ; fermer le dernier onglet ferme la fenêtre, comme dans un navigateur normal : tous les onglets sont vraiment fermés (plus de son en arrière-plan), DrYAE reste près de l'heure pour finir les téléchargements, et se rouvre ensuite sur l'écran de démarrage choisi dans les paramètres. DrYAE se met maintenant facilement en moitié d'écran, même sur un petit portable : la fenêtre descend jusqu'à 480 pixels de large, le menu de gauche et les boutons passent en icônes, et la barre d'adresse rétrécit en gardant le menu visible.
 
 **Gestionnaire**
 - Fenêtre « Déjà téléchargé » : bouton Annuler toujours visible, boutons qui passent à la ligne, « Voir le téléchargement » quand le fichier n'existe pas encore.
@@ -69,7 +69,7 @@ Faster downloads (torrents and turbo mode), an image text translator that adapts
 - **Dim lights**: the next page is dark from the very start of loading (no more glare), and dim lights, eye protection and night mode also work on files from your computer (PDF, text, comics), even offline.
 - **Google sign-in refused** in the built-in browser (Google deliberately blocks these sign-ins): DrYAE detects it and offers to open the site in Chrome or sign in by email, instead of reloading the page endlessly.
 - **Translate page**: very long paragraphs (online novels) are translated.
-- **PDF opened from your computer**: it opens in the browser window you used last; closing the last tab closes the window, like in a normal browser (DrYAE stays next to the clock to finish downloads).
+- **PDF opened from your computer**: it opens in the browser window you used last; closing the last tab closes the window, like in a normal browser: every tab is really closed (no more sound in the background), DrYAE stays next to the clock to finish downloads, then reopens on the start screen chosen in the settings. DrYAE now fits easily in half of the screen, even on a small laptop: the window goes down to 480 pixels wide, the left menu and the buttons switch to icons, and the address bar shrinks while keeping the menu visible.
 
 **Manager**
 - "Already downloaded" window: Cancel button always visible, buttons wrap, "View the download" when the file doesn't exist yet.

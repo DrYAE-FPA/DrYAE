@@ -1373,3 +1373,5 @@ $('#cbPane').onclick = () => togglePane();
 call('accentColor').then(c => { window.SYS_ACCENT = c; if (S && S.theme && S.theme.accent === 'system') applyTheme(); }).catch(() => {});
 
 $('#lColor').addEventListener('input', e => { e.target.dataset.sys = ''; });
+// 1.7.1 : fenêtre étroite : le menu de gauche et les boutons du haut n'affichent que leur icône → leur nom en info-bulle
+setTimeout(() => { for (const b of document.querySelectorAll('#nav button, .top .btn')) if (!b.title && b.textContent.trim()) b.title = b.textContent.trim(); }, 1500);

@@ -293,7 +293,8 @@ function closeTab(tab) {
   saveSession();
   tab.wv?.remove(); tab.el.remove();
   tabs.splice(i, 1);
-  if (!tabs.length) return window.close();
+  // 1.7.1 : fenêtre principale : DrYAE ferme tout le navigateur lui-même (window.close() ne suffisait pas sous Windows)
+  if (!tabs.length) { if (/[?&]win=extra/.test(location.search)) return window.close(); return B.call('br:lastTab').then(r => { if (!r) window.close(); }); }
   if (cur === tab) select(tabs[Math.min(i, tabs.length - 1)]);
 }
 let sessT = null;
