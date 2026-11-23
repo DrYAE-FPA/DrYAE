@@ -78,6 +78,9 @@ function unveil(img, v) {
 // seulement le site (https://site/) pour une image d'un autre serveur (sinon Chromium refuse la demande)
 function refFor(src, page) { try { const a = new URL(src), b = new URL(page); return a.origin === b.origin ? b.href : b.origin + '/'; } catch { return ''; } }
 
+// 1.7.3 : petits mots courants de l'anglais : jamais « ne pas traduire » ni lexique (entrées ajoutées par erreur)
+const SCAN_COMMON = /^(the|a|an|this|that|these|those|what|which|who|whom|whose|where|when|why|how|your|you|yours|my|mine|me|i|we|us|our|ours|he|him|his|she|her|hers|it|its|they|them|their|theirs|is|are|was|were|be|been|being|am|do|does|did|have|has|had|will|would|can|could|should|shall|may|might|must|not|no|yes|and|or|but|if|so|then|than|to|of|in|on|at|by|for|with|from|up|down|out|over|about|into|all|any|some|just|now|here|there|too|very|well|oh|ah|hey|ok|okay)$/i;
+
 class WebBrowser {
   constructor({ main, settings, userDir, onDownload, onTorrent, getPassword, assetsDir }) {
     Object.assign(this, { main, settings, userDir, onDownload, onTorrent, getPassword, assetsDir });
@@ -1988,7 +1991,7 @@ class WebBrowser {
     ipcMain.handle('scan:report', (_e, o) => { try { return !!require('./bugreport').translation(o || {}); } catch { return false; } });
     // lexique : « mot d'origine » -> « traduction voulue » (noms des personnages, mots de la série)
     ipcMain.handle('scan:glossary', (_e, list) => {
-      if (Array.isArray(list)) this.settings.set({ browser: { scan: { ...(this.B().scan || {}), glossary: list.filter(x => x && x.s && x.t).slice(0, 500).map(x => ({ s: String(x.s).slice(0, 100), t: String(x.t).slice(0, 100), ...(x.n ? { n: true } : {}) })) } } });
+      if (Array.isArray(list)) this.settings.set({ browser: { scan: { ...(this.B().scan || {}), glossary: list.filter(x => x && x.s && x.t && !SCAN_COMMON.test(String(x.s).trim())).slice(0, 500).map(x => ({ s: String(x.s).slice(0, 100), t: String(x.t).slice(0, 100), ...(x.n ? { n: true } : {}) })) } } });
       if (Array.isArray(list)) this.pushCfg();
       return (this.B().scan || {}).glossary || [];
     });
@@ -2118,7 +2121,10 @@ class WebBrowser {
       // langue d'arrivée : celle choisie (par défaut celle du traducteur) ; texte déjà dans cette langue → 2e langue
       // toutes les bulles de l'image partent ensemble, dans l'ordre de lecture (le traducteur a le contexte),
       // et les mots du lexique sont remplacés avant (noms des personnages, mots propres à la série)
-      const gl = (S.glossary || []).filter(x => x && x.s && x.t && !x.n), never = (S.glossary || []).filter(x => x && x.n && x.s).map(x => x.s);
+      // 1.7.3 : jamais « ne pas traduire » ni lexique pour les petits mots courants (THIS, THAT, WHAT, YOUR…) : sinon
+      // « AT THIS RATE » devenait « Au taux THIS » (entrée ajoutée par erreur au lexique)
+      const COMMON = SCAN_COMMON;
+      const gl = (S.glossary || []).filter(x => x && x.s && x.t && !x.n && !COMMON.test(String(x.s).trim())), never = (S.glossary || []).filter(x => x && x.n && x.s && !COMMON.test(String(x.s).trim())).map(x => x.s);
       // 1.7.1 : mots entiers seulement (pour l'IA) ; pour la traduction habituelle, le lexique passe par protect()
       const prep = t => M.glossApply(t, gl);
       let to = o.to || S.target || target();
@@ -2127,6 +2133,8 @@ class WebBrowser {
       groups = groups.map((g, i) => ({ ...g, text: cl[i].text, caps: cl[i].caps }));
       // 1.7.2 : page en anglais : accents inventés par la lecture retirés (« DANTÓN » → DANTON)
       if (pageLang === 'en') { try { const EA = require('./scan-fix').enAccents; groups = groups.map(g => ({ ...g, text: EA(g.text) })); } catch {} }
+      // 1.7.3 : mots coupés en fin de ligne au tiret mal lu (« SPIRI2 TUAL »), « MANIA » pour MANA
+      if (pageLang === 'en') { try { const JB = require('./scan-fix').joinBroken; groups = groups.map(g => ({ ...g, text: JB(g.text) })); } catch {} }
       let learnedNames = [];
       // noms de la série (appris sur ce site) : « TSUKLMOGAMI » → TSUKUMOGAMI quand ce nom a déjà été bien lu souvent
       try {
@@ -2164,7 +2172,7 @@ class WebBrowser {
         tr = await M.translate(mt(), to, 'auto', this.scanTr());
         if (!o.to && same(tr.from, to)) { to = second(to); tr = await M.translate(mt(), to, tr.from, this.scanTr()); }
       }
-      const res = { blocks: groups.map((g, i) => ({ x0: g.x0, y0: g.y0, x1: g.x1, y1: g.y1, text: g.text, tr: keep[i] ? g.text : ai === 'ok' ? (tr.texts[i] || '') : M.unprotect(tr.texts[i] || '', prot[i].keep), vertical: g.vertical, bg: g.bg || '', bubble: g.bubble || null, caps: !!g.caps, lh: g.lh || 0, n: g.n || 1, ...(table[i] ? { skip: true } : {}), ...(g.prose ? { prose: true } : {}) })), w, captured: scale === 0, from: tr.from, to, needModel, model: usedModel, ai, aiWhy };
+      const res = { blocks: groups.map((g, i) => ({ x0: g.x0, y0: g.y0, x1: g.x1, y1: g.y1, text: g.text, tr: keep[i] ? g.text : ai === 'ok' ? (tr.texts[i] || '') : M.unprotect(tr.texts[i] || '', prot[i].keep), vertical: g.vertical, bg: g.bg || '', bubble: g.bubble || null, caps: !!g.caps, lh: g.lh || 0, n: g.n || 1, ...(Array.isArray(g.boxes) && g.boxes.length > 1 ? { boxes: g.boxes } : {}), ...(table[i] ? { skip: true } : {}), ...(g.prose ? { prose: true } : {}) })), w, captured: scale === 0, from: tr.from, to, needModel, model: usedModel, ai, aiWhy };
       // 1.7.2 : « Tutoyer dans les scans » (activé par défaut) : vers le français, « vous » devient « tu » quand l'anglais parle à une seule personne
       if (String(to).split('-')[0] === 'fr' && S.tutoie !== false) { try { const TU = require('./tutoie'); res.blocks.forEach(b => { if (b.tr && b.tr !== b.text) b.tr = TU.toTu(b.tr, b.text); }); } catch {} }
       // traduction habituelle après un échec de l'IA : gardée sous la clé du traducteur habituel (l'IA reprendra demain)

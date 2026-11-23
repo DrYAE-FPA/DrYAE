@@ -162,6 +162,8 @@ async function recognize(img, b, R, enh, shear, sharp, inv, rot) {
   const vertical = bh > bw * 1.5;
   let cw = vertical ? bh : bw, ch = vertical ? bw : bh;
   // 1.7.2 : ligne penchée : longueur et épaisseur réelles de la ligne dans son cadre droit
+  // 1.7.3 : titre en lettres latines tourné d'un quart de tour (lu de bas en haut) : colonne lue dans l'autre sens
+  const flip = rot === 'flip'; if (flip) rot = 0;
   const co = rot ? Math.cos(rot) : 1, si = rot ? Math.sin(rot) : 0, c2 = co * co - si * si;
   if (rot && !vertical) { const L = (bw * co - bh * Math.abs(si)) / c2, T2 = (bh * co - bw * Math.abs(si)) / c2; if (L > 8 && T2 > 4) { cw = L; ch = T2; } else rot = 0; }
   const H = 48, Wt = Math.max(48, Math.min(1600, Math.ceil(H * cw / ch)));
@@ -181,7 +183,7 @@ async function recognize(img, b, R, enh, shear, sharp, inv, rot) {
       // coordonnées dans la ligne (tournée de 90° pour une colonne)
       const u = (x + 0.5) * cw / Wt - 0.5, v = (y + 0.5) * ch / H - 0.5;
       // 1.7.0 : lettres penchées (italique) : la ligne est « redressée » en décalant chaque rangée
-      let px = vertical ? b.x0 + (ch - 1 - v) : b.x0 + u + (shear ? shear * (ch / 2 - v) : 0), py = vertical ? b.y0 + u : b.y0 + v;
+      let px = vertical ? (flip ? b.x0 + v : b.x0 + (ch - 1 - v)) : b.x0 + u + (shear ? shear * (ch / 2 - v) : 0), py = vertical ? (flip ? b.y1 - 1 - u : b.y0 + u) : b.y0 + v;
       // 1.7.2 : texte penché : la ligne est lue le long de son angle (tournée autour du centre du cadre)
       if (rot && !vertical) { const dx = u - cw / 2, dy = v - ch / 2; px = (b.x0 + b.x1) / 2 + dx * co - dy * si; py = (b.y0 + b.y1) / 2 + dx * si + dy * co; }
       const o = y * Wt + x;
@@ -273,6 +275,17 @@ function digitRescue(l) {
 // Zone de couleur unie autour d'un texte (bulle colorée) : remplissage par couleur voisine sur une image réduite.
 // Refusée si elle est trop grande (fond de case, fond de page) ou trop peu remplie.
 // 1.7.2 : couleur du fond autour d'un texte : un anneau juste à l'extérieur du cadre du texte, médiane de chaque couleur
+// 1.7.3 : image tournée d'un quart de tour (dir 1 : vers la gauche, le haut de l'image va à gauche ; -1 : vers la droite)
+function rotate90(img, dir) {
+  const { width: W, height: H, data } = img, out = new Uint8Array(W * H * 4);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    // dir 1 : pixel (x, y) va en (x' = y, y' = W-1-x) ; dir -1 : (x' = H-1-y, y' = x) ; nouvelle largeur = H
+    const nx = dir === 1 ? y : H - 1 - y, ny = dir === 1 ? W - 1 - x : x, q = (y * W + x) * 4, o = (ny * H + nx) * 4;
+    out[o] = data[q]; out[o + 1] = data[q + 1]; out[o + 2] = data[q + 2]; out[o + 3] = 255;
+  }
+  return { width: H, height: W, data: out };
+}
+
 function ringBg(img, g) {
   const { width: W, height: H, data } = img;
   const m = Math.max(2, Math.round((g.lh || 16) * 0.3));
@@ -285,8 +298,14 @@ function ringBg(img, g) {
     const q = (y * W + x) * 4; R.push(data[q]); G.push(data[q + 1]); B.push(data[q + 2]);
   }
   if (R.length < 12) return null;
-  const med = a => { a.sort((u, v) => u - v); return a[a.length >> 1]; };
-  return `rgb(${med(R)},${med(G)},${med(B)})`;
+  // 1.7.3 : le contour noir de la bulle et la trame du dessin autour tombent souvent dans l'anneau (petite bulle bien remplie) :
+  // fond clair → la couleur la plus claire courante (80 % des points sont plus sombres), fond sombre → la plus sombre courante
+  const idx = R.map((_, i) => i), lum = i => R[i] * 0.3 + G[i] * 0.59 + B[i] * 0.11;
+  idx.sort((a, b) => lum(a) - lum(b));
+  const mid = lum(idx[idx.length >> 1]), pick = mid >= 110 ? Math.floor(idx.length * 0.8) : Math.floor(idx.length * 0.2);
+  // on prend la médiane des points autour de ce rang (moins de bruit qu'un seul point)
+  const sl = idx.slice(Math.max(0, pick - 6), pick + 7), md = a => { a.sort((u, v) => u - v); return a[a.length >> 1]; };
+  return `rgb(${md(sl.map(i => R[i]))},${md(sl.map(i => G[i]))},${md(sl.map(i => B[i]))})`;
 }
 
 function colorRegion(img, g) {
@@ -379,6 +398,26 @@ function bubbleMap(img, dark) {
 }
 
 // regroupe les lignes d'une même bulle
+// 1.7.3 : lignes d'une bulle rangées en deux colonnes : toutes d'un côté ou de l'autre d'une coupure verticale,
+// au moins 2 lignes de chaque côté, les deux colonnes à la même hauteur → [colonne de droite, colonne de gauche]
+function splitCols(ls) {
+  const hl = ls.filter(l => !l.vertical);
+  if (hl.length < 4 || hl.length !== ls.length) return null;
+  const hs = hl.map(l => l.y1 - l.y0).sort((a, b) => a - b), tol = Math.max(2, (hs[hs.length >> 1] || 20) * 0.3);
+  const xs = [...new Set(hl.flatMap(l => [l.x0, l.x1]))].sort((a, b) => a - b);
+  for (const sx of xs) {
+    const L = hl.filter(l => l.x1 <= sx + tol), R = hl.filter(l => l.x0 >= sx - tol && !L.includes(l));
+    if (L.length < 2 || R.length < 2 || L.length + R.length !== hl.length) continue;
+    const ly0 = Math.min(...L.map(l => l.y0)), ly1 = Math.max(...L.map(l => l.y1)), ry0 = Math.min(...R.map(l => l.y0)), ry1 = Math.max(...R.map(l => l.y1));
+    if (Math.min(ly1, ry1) - Math.max(ly0, ry0) < 0.5 * Math.min(ly1 - ly0, ry1 - ry0)) continue;
+    // vrai espace entre les colonnes (pas des mots d'une même ligne coupés en deux cadres)
+    const gapRows = L.filter(a => R.some(b => Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0) > 0)).length;
+    if (gapRows < 2) continue;
+    return [R, L];
+  }
+  return null;
+}
+
 function group(lines, bm, inBubble) {
   if (bm) {
     // d'abord par bulle repérée ; les lignes hors bulle sont regroupées par proximité (plus bas)
@@ -387,7 +426,10 @@ function group(lines, bm, inBubble) {
     const merged = [];
     for (const { c, ls } of by.values()) {
       // (1.7.1 : le texte d'une bulle n'est jamais coupé en paragraphes de livre)
-      const gs = group(ls, null, true), v = gs.every(o => o.vertical);
+      // 1.7.3 : deux colonnes de texte côte à côte dans une même bulle (« ASCEN-SION IS CER-TAINLY STRONG! » à droite de
+      // « YOUR SENSES, YOUR SPEED… ») : avant, lues ensemble rangée par rangée (« CERYOUR SPEED ») ; chaque colonne à part
+      const cols = splitCols(ls);
+      const gs = cols ? cols.flatMap(c => group(c, null, true)) : group(ls, null, true), v = gs.every(o => o.vertical);
       // 1.6.9 : dans une même zone claire, les groupes de lignes proches forment une bulle ;
       // un grand espace vide entre eux (deux cadres collés, deux bulles qui se touchent) les garde séparés
       gs.sort((a, b) => v ? b.x1 - a.x1 : a.y0 - b.y0);
@@ -406,7 +448,7 @@ function group(lines, bm, inBubble) {
         const same = cl.items, cj = /[぀-ヿ㐀-鿿]/.test(same[0].text);
         const parts = same.flatMap(o => o.parts || [o.text]);
         const txt = same.map(o => o.text).reduce((a, s) => !a ? s : cj ? a + s : /\p{L}[-‐‑]$/u.test(a) && /^\p{L}/u.test(s) ? a.slice(0, -1) + s : a + ' ' + s, '');
-        const g = { x0: Math.min(...same.map(o => o.x0)), y0: Math.min(...same.map(o => o.y0)), x1: Math.max(...same.map(o => o.x1)), y1: Math.max(...same.map(o => o.y1)), text: txt, parts, vertical: v, lh: Math.max(...same.map(o => o.lh || 0)), n: same.reduce((a, o) => a + (o.n || 1), 0), bg: c.bg, ck: Math.round(c.x0) + ',' + Math.round(c.y0) };
+        const g = { x0: Math.min(...same.map(o => o.x0)), y0: Math.min(...same.map(o => o.y0)), x1: Math.max(...same.map(o => o.x1)), y1: Math.max(...same.map(o => o.y1)), text: txt, parts, boxes: same.flatMap(o => o.boxes || [[o.x0, o.y0, o.x1, o.y1].map(Math.round)]), vertical: v, lh: Math.max(...same.map(o => o.lh || 0)), n: same.reduce((a, o) => a + (o.n || 1), 0), bg: c.bg, ck: Math.round(c.x0) + ',' + Math.round(c.y0) };
         // bulle partagée : chaque groupe n'a que sa part de la zone (jusqu'au milieu de l'espace qui le sépare du voisin)
         const bb = { x0: c.x0, y0: c.y0, x1: c.x1, y1: c.y1 };
         if (clusters.length > 1) {
@@ -429,15 +471,18 @@ function group(lines, bm, inBubble) {
   const out = [];
   hor.sort((a, b) => a.y0 - b.y0);
   for (const it of hor) {
-    const g = out.find(g => !g.vertical && (() => { const gap = it.y0 - g.y1, lh = Math.max(g.lh, it.h), cx = (it.x0 + it.x1) / 2, gcx = (g.x0 + g.x1) / 2; const overlap = Math.min(g.x1, it.x1) - Math.max(g.x0, it.x0); return gap < lh * 0.9 && gap > -lh * 0.6 && (overlap > -lh * 0.3 || Math.abs(cx - gcx) < lh * 2); })());
+    // 1.7.3 : lettres de taille très différente (grand cri « I'LL END IT HERE!!! » au-dessus d'un petit cadre de texte) : pas le même texte
+    const sizeOk = g => { const hs = g.hs.slice().sort((a, b) => a - b), m = hs[hs.length >> 1] || it.h; return Math.max(m, it.h) / Math.max(1, Math.min(m, it.h)) < 2.2; };
+    const ok = g => !g.vertical && sizeOk(g) && (() => { const gap = it.y0 - g.y1, lh = Math.max(g.lh, it.h), cx = (it.x0 + it.x1) / 2, gcx = (g.x0 + g.x1) / 2; const overlap = Math.min(g.x1, it.x1) - Math.max(g.x0, it.x0); return gap < lh * 0.9 && gap > -lh * 0.6 && (overlap > -lh * 0.3 || Math.abs(cx - gcx) < lh * 2); })();
+    const g = out.find(ok);
     if (g) { g.x0 = Math.min(g.x0, it.x0); g.x1 = Math.max(g.x1, it.x1); g.y1 = Math.max(g.y1, it.y1); g.parts.push(it.text); g.lh = Math.max(g.lh, it.h); g.hs.push(it.h); g.ls.push(it); }
     else out.push({ x0: it.x0, y0: it.y0, x1: it.x1, y1: it.y1, parts: [it.text], lh: it.h, hs: [it.h], vertical: false, ls: [it] });
   }
   vert.sort((a, b) => b.x1 - a.x1);
   for (const it of vert) {
     const g = out.find(g => g.vertical && (() => { const gap = g.x0 - it.x1, cw = Math.max(g.cw, it.w); const ov = Math.min(g.y1, it.y1) - Math.max(g.y0, it.y0); return gap < cw * 1.0 && gap > -cw && ov > -cw; })());
-    if (g) { g.x0 = Math.min(g.x0, it.x0); g.x1 = Math.max(g.x1, it.x1); g.y0 = Math.min(g.y0, it.y0); g.y1 = Math.max(g.y1, it.y1); g.parts.push(it.text); g.cw = Math.max(g.cw, it.w); g.hs.push(it.w); }
-    else out.push({ x0: it.x0, y0: it.y0, x1: it.x1, y1: it.y1, parts: [it.text], cw: it.w, hs: [it.w], vertical: true });
+    if (g) { g.x0 = Math.min(g.x0, it.x0); g.x1 = Math.max(g.x1, it.x1); g.y0 = Math.min(g.y0, it.y0); g.y1 = Math.max(g.y1, it.y1); g.parts.push(it.text); g.cw = Math.max(g.cw, it.w); g.hs.push(it.w); g.ls.push(it); }
+    else out.push({ x0: it.x0, y0: it.y0, x1: it.x1, y1: it.y1, parts: [it.text], cw: it.w, hs: [it.w], vertical: true, ls: [it] });
   }
   return (inBubble ? out : out.flatMap(splitProse)).map(g => {
     // japonais / chinois : lignes collées ; coréen : séparées par une espace (comme les mots)
@@ -454,7 +499,9 @@ function group(lines, bm, inBubble) {
     }
     // hauteur d'une ligne d'origine : la traduction ne sera jamais écrite plus gros
     const hs = g.hs.slice().sort((a, b) => a - b), lh = hs[hs.length >> 1] || 0;
-    return { x0: g.x0, y0: g.y0, x1: g.x1, y1: g.y1, text: text.trim(), parts: g.parts, vertical: g.vertical, lh, n: g.parts.length, ...(g.prose ? { prose: true } : {}) };
+    // 1.7.3 : cadre de chaque ligne (la gomme efface ligne par ligne, sans voiler le dessin entre elles)
+    const boxes = (g.ls || []).map(l => [l.x0, l.y0, l.x1, l.y1].map(Math.round));
+    return { x0: g.x0, y0: g.y0, x1: g.x1, y1: g.y1, text: text.trim(), parts: g.parts, vertical: g.vertical, lh, n: g.parts.length, ...(boxes.length ? { boxes } : {}), ...(g.prose ? { prose: true } : {}) };
   }).filter(g => g.text.replace(/\s/g, '').length >= (isCJK(g.text) ? 1 : 2));
 }
 
@@ -510,6 +557,56 @@ async function readBubbles(img, opts = {}) {
     boxes.sort((a, b) => (b.x1 - b.x0) * (b.y1 - b.y0) - (a.x1 - a.x0) * (a.y1 - a.y0));
     boxes = boxes.filter((b, i) => !boxes.slice(0, i).some(a => { const ix = Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0), iy = Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0); return ix > 0 && iy > 0 && ix * iy > 0.5 * (b.x1 - b.x0) * (b.y1 - b.y0); }));
   } else boxes = await detect(img, 2048);
+  // 1.7.3 : page avec peu de texte trouvé (double page, grand titre) : titres latins tournés d'un quart de tour
+  // (« DAEMON DABADA » de haut en bas, « ABSOLUTE TENTAREA!!!! » de bas en haut) : cherchés sur l'image tournée
+  if (H <= W * 2.2 && boxes.filter(b => Math.min(b.x1 - b.x0, b.y1 - b.y0) >= 12 && (b.x1 - b.x0) * (b.y1 - b.y0) > 1500).length < 8) {
+    // 1.7.3 : très grandes lettres (« EIGHT FOLD BLADE!!!! », titres d'attaque) : trop grosses pour la recherche habituelle,
+    // cherchées sur l'image réduite ; puis la ligne juste au-dessus et au-dessous est essayée (mot manquant du même titre)
+    try {
+      const inter = (a, b) => Math.max(0, Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0)) * Math.max(0, Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0));
+      const big = [];
+      for (const ms of [960, 640]) for (const b of await detect(img, ms)) {
+        if (b.y1 - b.y0 < 40 || (b.x1 - b.x0) * (b.y1 - b.y0) < 4000) continue;
+        if (boxes.some(a => inter(a, b) > 0.5 * (b.x1 - b.x0) * (b.y1 - b.y0))) continue;
+        // une vraie ligne de texte déjà trouvée dedans (« MANGA MOINS » dans un logo) : on garde la ligne, pas le grand cadre
+        const inside = boxes.filter(a => inter(a, b) >= 0.5 * (a.x1 - a.x0) * (a.y1 - a.y0));
+        if (inside.some(a => a.x1 - a.x0 > (a.y1 - a.y0) * 2 && a.y1 - a.y0 >= 14)) continue;
+        // seulement un mot bien lu (pas un dessin ou un logo pris pour du texte)
+        const rb = await recognize(img, b, null, true); if (rb.score < 0.85 || !/\p{L}{2,}/u.test(rb.text)) continue;
+        boxes = boxes.filter(a => !inside.includes(a));
+        boxes.push(b); big.push(b);
+      }
+      const TITLE = /^[A-Z0-9!?'.,\- ]{2,}$/;
+      for (const b0 of big) for (const dy of [-1, 1]) {
+        let b = b0;
+        for (let n = 0; n < 3; n++) {
+          const h = b.y1 - b.y0, pad = (b.x1 - b.x0) * 0.12;
+          const c = { x0: Math.max(0, b.x0 - pad), x1: Math.min(W - 1, b.x1 + pad), y0: dy < 0 ? b.y0 - h * 1.05 : b.y1 + h * 0.05, y1: dy < 0 ? b.y0 - h * 0.05 : b.y1 + h * 1.05 };
+          if (c.y0 < 0 || c.y1 > H - 1 || boxes.some(a => inter(a, c) > 0.2 * (c.x1 - c.x0) * (c.y1 - c.y0))) break;
+          const r = await recognize(img, c, null, true);
+          if (r.score < 0.85 || !TITLE.test(r.text.trim())) break;
+          boxes.push(c); b = c;
+        }
+      }
+    } catch {}
+    try {
+      for (const dir of [1, -1]) {
+        const R = rotate90(img, dir);
+        for (const rb of await detect(R, 2048)) {
+          // dir 1 (image tournée vers la gauche) : x = W-1-y', y = x' ; dir -1 (vers la droite) : x = y', y = H-1-x'
+          const b = dir === 1 ? { x0: W - 1 - rb.y1, x1: W - 1 - rb.y0, y0: rb.x0, y1: rb.x1 } : { x0: rb.y0, x1: rb.y1, y0: H - 1 - rb.x1, y1: H - 1 - rb.x0 };
+          if (b.y1 - b.y0 < (b.x1 - b.x0) * 2.5 || b.y1 - b.y0 < 60) continue;
+          const area = (b.x1 - b.x0) * (b.y1 - b.y0), inter = a => Math.max(0, Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0)) * Math.max(0, Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0));
+          // déjà trouvé (une grande partie de la colonne est déjà un texte lu) : on garde l'ancien, sauf s'il n'en était qu'un morceau
+          const big = boxes.find(a => inter(a) > 0.3 * area);
+          if (big && !(big.y1 - big.y0 > (big.x1 - big.x0) * 1.5 && b.y1 - b.y0 > (big.y1 - big.y0) * 1.3)) continue;
+          // les petits morceaux trouvés à l'intérieur (taches, morceau de lettre, « DABAD ») sont remplacés par la colonne entière
+          boxes = boxes.filter(a => inter(a) < 0.5 * (a.x1 - a.x0) * (a.y1 - a.y0));
+          boxes.push(b);
+        }
+      }
+    } catch {}
+  }
   // choix du modèle de lecture : imposé, ou celui qui lit le mieux un échantillon de lignes
   let R = null, used = '';
   if (opts.model && installed().includes(opts.model)) { R = await recOf(opts.model); used = opts.model; }
@@ -526,6 +623,7 @@ async function readBubbles(img, opts = {}) {
     if (best < 0.9 && used !== 'latin') for (const id of installed()) { const RR = await recOf(id); const m = await mean(RR); if (m > best + 0.04) { best = m; R = RR; used = id; } }
   }
   let bm = null; try { bm = bubbleMap(img); bm.dk = bubbleMap(img, true); } catch {}
+  if (process.env.DRYAE_OCR_DEBUG) console.log("BOXES", JSON.stringify(boxes.map(b => [b.x0, b.y0, b.x1, b.y1].map(Math.round))));
   const lines = [], fails = new Map(), kept = new Map();
   const bkey = c => c ? Math.round(c.x0) + ',' + Math.round(c.y0) : '';
   for (const b of boxes) {
@@ -542,6 +640,12 @@ async function readBubbles(img, opts = {}) {
         if (r3.score > r.score + 0.03) r = r3;
         if (r.score >= 0.9) break;
       }
+    }
+    // 1.7.3 : colonne haute et étroite qui n'est pas du japonais : peut-être un titre latin tourné (« ABSOLUTE TENTAREA!!!! »
+    // lu de bas en haut, « DAEMON DABADA » de haut en bas) : les deux sens sont essayés, le plus sûr est gardé
+    if (b.y1 - b.y0 > (b.x1 - b.x0) * 2.5 && !/[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/.test(r.text) && r.score < 0.93) {
+      const r8 = await recognize(img, b, R, true, 0, false, false, 'flip'); if (r8.score > r.score + 0.03) r = r8;
+      if (r.score < 0.85) { const r9 = await recognize(img, b, R, true); if (r9.score > r.score + 0.03) r = r9; }
     }
     // 1.7.2 : lettres claires sur fond sombre (souvenirs, nuit, cadres noirs) : relue en négatif (noir sur blanc)
     if (r.score < 0.85 && r.text.replace(/\s/g, '').length >= 1 && darkBg(img, b)) { const r6 = await recognize(img, b, R, true, 0, false, true); if (r6.score > r.score + 0.03) r = r6; }
@@ -563,6 +667,8 @@ async function readBubbles(img, opts = {}) {
     let keep = good(l) || (good(l, 0.45) && c);
     // 1.7.1 : « 0O30 » lu pour DOJO avec un score bas : gardée, chiffres remplacés par les lettres
     if (!keep) { const t = digitRescue(l); if (t) { l.text = t; keep = true; } }
+    // 1.7.3 : cadre de quelques points de large (« MA » lu dans un trait du dessin) : pas un texte
+    if (keep && Math.min(b.x1 - b.x0, b.y1 - b.y0) < 9 && l.text.replace(/\s/g, '').length >= 2 && !isCJK(l.text)) keep = false;
     if (keep) { lines.push(l); if (k) kept.set(k, (kept.get(k) || 0) + 1); }
     else if (k) fails.set(k, (fails.get(k) || 0) + 1);
   }
@@ -589,6 +695,7 @@ async function readBubbles(img, opts = {}) {
       if (!b) continue;
       a.text = a.text.slice(0, -1) + b.text; a.parts = [...(a.parts || [a.text]).slice(0, -1), String((a.parts || []).slice(-1)[0] || '').replace(/[-‐‑]$/, '') + String((b.parts || [b.text])[0]), ...(b.parts || [b.text]).slice(1)];
       a.x0 = Math.min(a.x0, b.x0); a.x1 = Math.max(a.x1, b.x1); a.y1 = Math.max(a.y1, b.y1); a.n = (a.n || 1) + (b.n || 1);
+      if (a.boxes || b.boxes) a.boxes = [...(a.boxes || [[a.x0, a.y0, a.x1, a.y1]]), ...(b.boxes || [[b.x0, b.y0, b.x1, b.y1]])];
       if (a.bubble && b.bubble) a.bubble = { x0: Math.min(a.bubble.x0, b.bubble.x0), y0: Math.min(a.bubble.y0, b.bubble.y0), x1: Math.max(a.bubble.x1, b.bubble.x1), y1: Math.max(a.bubble.y1, b.bubble.y1) };
       groups.splice(groups.indexOf(b), 1); again = true; break;
     }
@@ -714,4 +821,4 @@ function panelsOf(img) {
 }
 
 module.exports = { detect, recognize, readBubbles, SFX, load, EXTRA, EXTRA_OF, installed, download, removeModel, setDir, splitProse };
-module.exports.ringBg = ringBg;
+module.exports.ringBg = ringBg; module.exports.rotate90 = rotate90;

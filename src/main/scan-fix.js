@@ -240,7 +240,7 @@ function fixWords0(text) {
     return c ? m.replace(core, likeCase(core, c)) : m;
   });
   // apostrophe non lue : « ILL HELP » → I'LL HELP ; « Y » non lu en début de bulle : « OU ARE » → YOU ARE
-  text = String(text).replace(/\b(ill)(\s+)(be|help|go|do|get|take|make|show|tell|kill|find|come|give|need|have|try|protect|never|always|just|see|wait|bring|beat|win|stop|let|keep|leave|return|handle|teach|pay|call|buy)\b/gi, (m, a, s2, v) => (a === a.toUpperCase() ? "I'LL" : "I'll") + s2 + v);
+  text = String(text).replace(/\b(ill)(\s+)(be|help|go|do|get|take|make|show|tell|kill|find|come|give|need|have|try|protect|never|always|just|see|wait|bring|beat|win|stop|let|keep|leave|return|handle|teach|pay|call|buy|end|finish|fight|crush|destroy|save|use|tear|break|send|put|eat|look|be)\b/gi, (m, a, s2, v) => (a === a.toUpperCase() ? "I'LL" : "I'll") + s2 + v);
   text = String(text).replace(/(^|[.…!?"“«\s])(ou)(\s+)(are|were|know|can|can't|don't|will|won't|should|must|have|see|look|need|want|guys|bastard|idiot|again|too)\b/gi, (m, b, a, s2, v) => b + (a === a.toUpperCase() ? 'YOU' : 'you') + s2 + v);
   // lettre isolée après « WILL », « TO »… : « BE » mal lu (« YOU WILL E ENTRUSTING »)
   text = String(text).replace(/\b(will|would|can|could|should|must|might|may|to|not|won't|can't|don't)(\s+)[eb]\b(?!['’])/gi, (m, a, s) => a + s + (a === a.toUpperCase() ? 'BE' : 'be'));
@@ -681,3 +681,21 @@ function outsideRule(text, o = {}) {
   return null;
 }
 module.exports.outsideRule = outsideRule;
+
+// 1.7.3 : mot coupé en fin de ligne dont le tiret a été mal lu (« SPIRI2 TUAL », « TENTA~ CLE », « CER- TAINLY ») :
+// recollé quand les deux morceaux forment un mot connu ; et « MANA » (énergie magique) lu « MANIA » dans le lettrage des BD
+function joinBroken(text) {
+  load();
+  let t = String(text).replace(/(\p{L}{2,})([2~=—–‐‑,-])\s+(\p{L}{2,})/gu, (m, a, sep, b) => {
+    let w = (a + b).toLowerCase();
+    // « SPIRIT, TUAL » : le tiret lu comme une lettre suivie d'une virgule
+    if (sep === ',' && !known(w) && /^[a-z]+$/.test(w) && known((a.slice(0, -1) + b).toLowerCase()) && !known(b.toLowerCase())) return a.slice(0, -1) + b;
+    if (sep === ',') return m;
+    if (!/^[a-z]+$/.test(w) || !known(w)) return m;
+    if (known(a.toLowerCase()) && known(b.toLowerCase()) && sep === '-') return m; // « WELL- DONE » : vrai tiret entre deux mots
+    return a + b;
+  });
+  t = t.replace(/\bMANIA\b/g, 'MANA');
+  return t;
+}
+module.exports.joinBroken = joinBroken;

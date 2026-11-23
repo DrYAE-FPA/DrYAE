@@ -142,8 +142,8 @@ function pageFeatures() {
       hostEl.style.cssText = 'all:initial;position:fixed;z-index:2147483647;top:0;left:0;pointer-events:none';
       const root = hostEl.attachShadow({ mode: 'closed' });
       setHTML(root, `<style>
-        .b{pointer-events:auto;display:flex;align-items:center;gap:0;font:600 13px "Segoe UI",system-ui,sans-serif;color:#fff;background:linear-gradient(135deg,#8b5cf6,#6d28d9);border-radius:10px;box-shadow:0 6px 24px #0007;overflow:hidden;opacity:.94;transition:opacity .2s,transform .2s;user-select:none}
-        .b:hover{opacity:1;transform:translateY(-1px)}
+        .b{pointer-events:auto;display:flex;align-items:center;gap:0;font:600 12.5px "Segoe UI",system-ui,sans-serif;color:#fff;background:rgba(20,16,36,.38);border:1px solid rgba(255,255,255,.22);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border-radius:10px;box-shadow:0 2px 10px #0003;overflow:hidden;opacity:.72;transition:opacity .2s,transform .2s,background .2s;user-select:none;text-shadow:0 1px 2px #0009}
+        .b:hover{opacity:1;background:rgba(109,40,217,.88);transform:translateY(-1px)}
         .go{display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer}
         .x{padding:8px 9px;cursor:pointer;border-left:1px solid #ffffff33;opacity:.8}.x:hover{opacity:1;background:#0002}
         svg{width:16px;height:16px}
@@ -152,7 +152,11 @@ function pageFeatures() {
       root.querySelector('.go').addEventListener('click', e => {
         e.preventDefault(); e.stopPropagation();
         const v = target;
-        toHost('dryae-video', { page: location.href, src: v && /^https?:/.test(v.currentSrc || '') ? v.currentSrc : '', title: document.title, duration: v && isFinite(v.duration) ? v.duration : 0 });
+        // 1.7.3 : fil d'actualité (Twitter / X, réseaux sociaux) : l'adresse de la publication qui contient la vidéo,
+        // pas celle du fil (sinon c'était la page d'accueil qui partait au téléchargement)
+        let page = location.href;
+        try { const art = v && v.closest('article, [role="article"]'); const a = art && [...art.querySelectorAll('a[href*="/status/"], a[href*="/post/"], a[href*="/reel/"], a[href*="/videos/"]')].find(x => /\/(status|post|reel|videos)\/[\w-]+/.test(x.href)); if (a) page = a.href.replace(/\/(photo|video|analytics)\/\d+$/, ''); } catch {}
+        toHost('dryae-video', { page, src: v && /^https?:/.test(v.currentSrc || '') ? v.currentSrc : '', title: document.title, duration: v && isFinite(v.duration) ? v.duration : 0 });
       }, true);
       root.querySelector('.x').addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); hiddenFor = location.href; hostEl.style.display = 'none'; }, true);
       (document.documentElement || document).appendChild(hostEl);
@@ -165,8 +169,24 @@ function pageFeatures() {
       if (!hostEl || !hostEl.isConnected) make();
       const r = target.getBoundingClientRect();
       hostEl.style.display = 'block';
-      const w = btn.offsetWidth || 220;
-      hostEl.style.transform = `translate(${Math.max(4, Math.min(innerWidth - w - 8, r.right - w - 12))}px, ${Math.max(4, r.top + 12)}px)`;
+      const w = btn.offsetWidth || 220, bh = btn.offsetHeight || 34, x = Math.max(4, Math.min(innerWidth - w - 8, r.right - w - 12));
+      // 1.7.3 : jamais par-dessus la barre fixe du site (Twitter / X, YouTube…) : sous ce qui recouvre le haut de la vidéo,
+      // ou en bas de la vidéo ; caché si la partie visible est trop petite
+      let y = Math.max(4, r.top + 12);
+      const covered = yy => {
+        try {
+          let e = document.elementFromPoint(Math.min(innerWidth - 2, x + w / 2), Math.min(innerHeight - 2, Math.max(0, yy + bh / 2)));
+          if (!e || e === target || e.contains(target)) return false;
+          // un bandeau fixe ou collant (barre du haut) qui ne contient pas la vidéo
+          for (let n = 0; e && e !== document.body && n < 12; n++, e = e.parentElement) { const ps = getComputedStyle(e).position; if ((ps === 'fixed' || ps === 'sticky') && !e.contains(target)) return true; }
+        } catch {}
+        return false;
+      };
+      hostEl.style.visibility = 'hidden';
+      for (let n = 0; n < 8 && covered(y); n++) y += 24;
+      hostEl.style.visibility = '';
+      if (y + bh > Math.min(innerHeight, r.bottom) - 8) { hostEl.style.display = 'none'; return; }
+      hostEl.style.transform = `translate(${x}px, ${y}px)`;
     };
     let raf = 0;
     const schedule = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; place(); }); };
@@ -1096,13 +1116,18 @@ function pageFeatures() {
             const [X0, Y0, X1, Y1] = Z[i]; if (Y1 * kx < sy - 10 || Y0 * kx > sy + sh + 10) return;
             const bg = b.bg || '#fff', pad = 4 * kx;
             // gomme : sur le texte d'origine seulement (comme à l'écran)
+            // 1.7.3 : texte hors bulle sur plusieurs lignes : gomme ligne par ligne (comme à l'écran)
+            const lined = !b.bubble && !b.prose && Array.isArray(b.boxes) && b.boxes.length > 1;
             ctx.fillStyle = bg; ctx.beginPath();
-            const ex = b.x0 * kx - 4, ey = b.y0 * kx - 4, ew = (b.x1 - b.x0) * kx + 8, eh = (b.y1 - b.y0) * kx + 8;
-            (ctx.roundRect ? ctx.roundRect(ex, ey, ew, eh, 6) : ctx.rect(ex, ey, ew, eh)); ctx.fill();
+            for (const q of lined ? b.boxes : [[b.x0, b.y0, b.x1, b.y1]]) {
+              const ex = q[0] * kx - 4, ey = q[1] * kx - 4, ew = (q[2] - q[0]) * kx + 8, eh = (q[3] - q[1]) * kx + 8;
+              (ctx.roundRect ? ctx.roundRect(ex, ey, ew, eh, 6) : ctx.rect(ex, ey, ew, eh));
+            }
+            ctx.fill();
             let x = X0 * kx - pad, y = Y0 * kx - pad, w = (X1 - X0) * kx + pad * 2, h = (Y1 - Y0) * kx + pad * 2;
             if (b.vertical && !b.bubble) { const ww = Math.max(w, h * 0.55); x -= (ww - w) / 2; w = ww; }
             // pas de bulle repérée : la zone entière prend la couleur du fond (comme à l'écran)
-            if (!b.bubble || b.prose) { ctx.fillStyle = bg; ctx.fillRect(x, y, w, h); }
+            if ((!b.bubble || b.prose) && !lined) { ctx.fillStyle = bg; ctx.fillRect(x, y, w, h); }
             const prose = !!b.prose, font = prose ? 'Georgia, "Times New Roman", serif' : FONT;
             const orig0 = b.lh ? b.lh * kx * (b.vertical ? 0.75 : prose ? 0.95 : 1.08) : h * 0.5;
             const max = Math.max(5 * kx, Math.min(24 * kx, Math.max(8 * kx, orig0)));
@@ -1112,7 +1137,12 @@ function pageFeatures() {
             const rtl = RTL.test(lg); ctx.direction = rtl ? 'rtl' : 'ltr';
             const lh = f.size * (prose ? 1.25 : 1.12), yy = y + h / 2 - (f.lines.length - 1) * lh / 2;
             if (prose) { ctx.textAlign = rtl ? 'right' : 'left'; f.lines.forEach((l, j) => ctx.fillText(l, rtl ? x + w - 2 : x + 2, yy + j * lh)); }
-            else { ctx.textAlign = 'center'; f.lines.forEach((l, j) => ctx.fillText(l, x + w / 2, yy + j * lh)); }
+            else {
+              ctx.textAlign = 'center';
+              // contour de la couleur du fond (texte lisible sur le dessin, sans rectangle)
+              if (lined) { ctx.save(); ctx.strokeStyle = bg; ctx.lineWidth = Math.max(2, f.size * 0.22); ctx.lineJoin = 'round'; f.lines.forEach((l, j) => ctx.strokeText(l, x + w / 2, yy + j * lh)); ctx.restore(); ctx.fillStyle = inkOn(bg); }
+              f.lines.forEach((l, j) => ctx.fillText(l, x + w / 2, yy + j * lh));
+            }
           });
           ctx.restore();
         }
@@ -1242,7 +1272,11 @@ function pageFeatures() {
       const er = document.createElement('div');
       er.style.cssText = `position:absolute;pointer-events:none;background:${bg};border-radius:6px;box-shadow:0 0 2px 2px ${bg}`;
       box.appendChild(er); d._e = er;
-      d.style.cssText = `position:absolute;pointer-events:auto;display:flex;align-items:center;justify-content:center;text-align:center;background:${b.bubble ? 'transparent' : bg};color:${inkOn(bg)};border-radius:8px;padding:1px 2px;font:700 12px/1.12 ${FONT};overflow:hidden;cursor:text;user-select:text;-webkit-user-select:text;word-break:normal;overflow-wrap:normal;hyphens:manual;letter-spacing:0;${b.caps ? 'text-transform:uppercase;' : ''}`;
+      // 1.7.3 : texte hors bulle sur plusieurs lignes (cri sur le dessin, titre) : gomme ligne par ligne, et la traduction
+      // s'écrit avec un contour de la couleur du fond au lieu d'un grand rectangle qui voilait le dessin
+      const lined = !b.bubble && !b.prose && Array.isArray(b.boxes) && b.boxes.length > 1;
+      if (lined) { er.remove(); d._e = null; d._es = b.boxes.map(q => { const e2 = er.cloneNode(); e2._q = q; box.appendChild(e2); return e2; }); }
+      d.style.cssText = `position:absolute;pointer-events:auto;display:flex;align-items:center;justify-content:center;text-align:center;background:${b.bubble || lined ? 'transparent' : bg};${lined ? `text-shadow:0 0 2px ${bg},0 0 2px ${bg},0 0 3px ${bg},0 0 4px ${bg};` : ''}color:${inkOn(bg)};border-radius:8px;padding:1px 2px;font:700 12px/1.12 ${FONT};overflow:hidden;cursor:text;user-select:text;-webkit-user-select:text;word-break:normal;overflow-wrap:normal;hyphens:manual;letter-spacing:0;${b.caps ? 'text-transform:uppercase;' : ''}`;
       // clic : original / traduction (pas après une sélection de texte) ; sélection : petite fenêtre d'actions
       d.onclick = e => { if (e.detail > 1) return; clearTimeout(d._t); d._t = setTimeout(() => { if (scanSel().trim()) return; d.textContent = d.textContent.replace(/\u00ad/g, '') === b.text ? (b.tr || b.text) : b.text; d._w = 0; }, 280); };
       d.ondblclick = () => clearTimeout(d._t);
@@ -1321,7 +1355,9 @@ function pageFeatures() {
     return p[n] <= (Math.max(m, n) >= 6 ? 2 : 1);
   };
   const lexCommon = src => { const w = String(src).trim().toLowerCase().replace(/[?!.,…]+$/g, '').trim(); if (w.split(/\s+/).length >= 4) return true; return w.split(/\s+/).every(x => LEX_COMMON.has(x.replace(/^\W+|\W+$/g, '').replace(/'s$/, ''))); };
-  const addGlossary = async item => { const list = await ipcRenderer.invoke('scan:glossary').catch(() => []); await ipcRenderer.invoke('scan:glossary', [...list.filter(x => x.s !== item.s), item]).catch(() => {}); };
+  // 1.7.3 : petits mots courants (THIS, THAT, YOUR…) : toujours traduits, jamais ajoutés au lexique
+  const COMMON_W = /^(the|a|an|this|that|these|those|what|which|who|where|when|why|how|your|you|my|me|i|we|our|he|him|his|she|her|it|its|they|them|their|is|are|was|were|be|do|does|did|have|has|had|will|would|can|could|should|must|not|no|yes|and|or|but|if|so|then|to|of|in|on|at|by|for|with|from|all|just|now|here|there|too|very|well)$/i;
+  const addGlossary = async item => { if (COMMON_W.test(String(item.s || '').trim())) { hint(pt('« {0} » est un petit mot courant : il est toujours traduit').replace('{0}', item.s)); return; } const list = await ipcRenderer.invoke('scan:glossary').catch(() => []); await ipcRenderer.invoke('scan:glossary', [...list.filter(x => x.s !== item.s), item]).catch(() => {}); };
   async function reBubble(it, i, d) {
     const b = it.blocks[i]; if (!b) return;
     b.tr = await ipcRenderer.invoke('scan:retranslate', b.text, null, String(it.from || '').split('-')[0]).catch(() => b.tr);
@@ -1363,6 +1399,7 @@ function pageFeatures() {
     for (const d of it.box.children) {
       const b = d._b; if (!b) continue; const pad = 4;
       if (d._e) Object.assign(d._e.style, { left: (b.x0 * k - 3) + 'px', top: (b.y0 * k - 3) + 'px', width: ((b.x1 - b.x0) * k + 6) + 'px', height: ((b.y1 - b.y0) * k + 6) + 'px' });
+      if (d._es) for (const e2 of d._es) { const q = e2._q; Object.assign(e2.style, { left: (q[0] * k - 3) + 'px', top: (q[1] * k - 3) + 'px', width: ((q[2] - q[0]) * k + 6) + 'px', height: ((q[3] - q[1]) * k + 6) + 'px' }); }
       // zone de dessin : le texte d'origine, agrandie dans la bulle repérée (même règle que pour l'enregistrement)
       const [X0, Y0, X1, Y1] = Z[it.blocks.indexOf(b)] || [b.x0, b.y0, b.x1, b.y1];
       const w = (X1 - X0) * k + pad * 2, h = (Y1 - Y0) * k + pad * 2;
