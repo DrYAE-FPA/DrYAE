@@ -152,7 +152,7 @@ function pageFeatures() {
       root.querySelector('.go').addEventListener('click', e => {
         e.preventDefault(); e.stopPropagation();
         const v = target;
-        // 1.7.3 : fil d'actualité (Twitter / X, réseaux sociaux) : l'adresse de la publication qui contient la vidéo,
+        // 1.7.2 : fil d'actualité (Twitter / X, réseaux sociaux) : l'adresse de la publication qui contient la vidéo,
         // pas celle du fil (sinon c'était la page d'accueil qui partait au téléchargement)
         let page = location.href;
         try { const art = v && v.closest('article, [role="article"]'); const a = art && [...art.querySelectorAll('a[href*="/status/"], a[href*="/post/"], a[href*="/reel/"], a[href*="/videos/"]')].find(x => /\/(status|post|reel|videos)\/[\w-]+/.test(x.href)); if (a) page = a.href.replace(/\/(photo|video|analytics)\/\d+$/, ''); } catch {}
@@ -170,7 +170,7 @@ function pageFeatures() {
       const r = target.getBoundingClientRect();
       hostEl.style.display = 'block';
       const w = btn.offsetWidth || 220, bh = btn.offsetHeight || 34, x = Math.max(4, Math.min(innerWidth - w - 8, r.right - w - 12));
-      // 1.7.3 : jamais par-dessus la barre fixe du site (Twitter / X, YouTube…) : sous ce qui recouvre le haut de la vidéo,
+      // 1.7.2 : jamais par-dessus la barre fixe du site (Twitter / X, YouTube…) : sous ce qui recouvre le haut de la vidéo,
       // ou en bas de la vidéo ; caché si la partie visible est trop petite
       let y = Math.max(4, r.top + 12);
       const covered = yy => {
@@ -1116,7 +1116,7 @@ function pageFeatures() {
             const [X0, Y0, X1, Y1] = Z[i]; if (Y1 * kx < sy - 10 || Y0 * kx > sy + sh + 10) return;
             const bg = b.bg || '#fff', pad = 4 * kx;
             // gomme : sur le texte d'origine seulement (comme à l'écran)
-            // 1.7.3 : texte hors bulle sur plusieurs lignes : gomme ligne par ligne (comme à l'écran)
+            // 1.7.2 : texte hors bulle sur plusieurs lignes : gomme ligne par ligne (comme à l'écran)
             const lined = !b.bubble && !b.prose && Array.isArray(b.boxes) && b.boxes.length > 1;
             ctx.fillStyle = bg; ctx.beginPath();
             for (const q of lined ? b.boxes : [[b.x0, b.y0, b.x1, b.y1]]) {
@@ -1272,7 +1272,7 @@ function pageFeatures() {
       const er = document.createElement('div');
       er.style.cssText = `position:absolute;pointer-events:none;background:${bg};border-radius:6px;box-shadow:0 0 2px 2px ${bg}`;
       box.appendChild(er); d._e = er;
-      // 1.7.3 : texte hors bulle sur plusieurs lignes (cri sur le dessin, titre) : gomme ligne par ligne, et la traduction
+      // 1.7.2 : texte hors bulle sur plusieurs lignes (cri sur le dessin, titre) : gomme ligne par ligne, et la traduction
       // s'écrit avec un contour de la couleur du fond au lieu d'un grand rectangle qui voilait le dessin
       const lined = !b.bubble && !b.prose && Array.isArray(b.boxes) && b.boxes.length > 1;
       if (lined) { er.remove(); d._e = null; d._es = b.boxes.map(q => { const e2 = er.cloneNode(); e2._q = q; box.appendChild(e2); return e2; }); }
@@ -1355,7 +1355,7 @@ function pageFeatures() {
     return p[n] <= (Math.max(m, n) >= 6 ? 2 : 1);
   };
   const lexCommon = src => { const w = String(src).trim().toLowerCase().replace(/[?!.,…]+$/g, '').trim(); if (w.split(/\s+/).length >= 4) return true; return w.split(/\s+/).every(x => LEX_COMMON.has(x.replace(/^\W+|\W+$/g, '').replace(/'s$/, ''))); };
-  // 1.7.3 : petits mots courants (THIS, THAT, YOUR…) : toujours traduits, jamais ajoutés au lexique
+  // 1.7.2 : petits mots courants (THIS, THAT, YOUR…) : toujours traduits, jamais ajoutés au lexique
   const COMMON_W = /^(the|a|an|this|that|these|those|what|which|who|where|when|why|how|your|you|my|me|i|we|our|he|him|his|she|her|it|its|they|them|their|is|are|was|were|be|do|does|did|have|has|had|will|would|can|could|should|must|not|no|yes|and|or|but|if|so|then|to|of|in|on|at|by|for|with|from|all|just|now|here|there|too|very|well)$/i;
   const addGlossary = async item => { if (COMMON_W.test(String(item.s || '').trim())) { hint(pt('« {0} » est un petit mot courant : il est toujours traduit').replace('{0}', item.s)); return; } const list = await ipcRenderer.invoke('scan:glossary').catch(() => []); await ipcRenderer.invoke('scan:glossary', [...list.filter(x => x.s !== item.s), item]).catch(() => {}); };
   async function reBubble(it, i, d) {

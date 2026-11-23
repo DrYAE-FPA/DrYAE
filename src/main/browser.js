@@ -78,7 +78,7 @@ function unveil(img, v) {
 // seulement le site (https://site/) pour une image d'un autre serveur (sinon Chromium refuse la demande)
 function refFor(src, page) { try { const a = new URL(src), b = new URL(page); return a.origin === b.origin ? b.href : b.origin + '/'; } catch { return ''; } }
 
-// 1.7.3 : petits mots courants de l'anglais : jamais « ne pas traduire » ni lexique (entrées ajoutées par erreur)
+// 1.7.2 : petits mots courants de l'anglais : jamais « ne pas traduire » ni lexique (entrées ajoutées par erreur)
 const SCAN_COMMON = /^(the|a|an|this|that|these|those|what|which|who|whom|whose|where|when|why|how|your|you|yours|my|mine|me|i|we|us|our|ours|he|him|his|she|her|hers|it|its|they|them|their|theirs|is|are|was|were|be|been|being|am|do|does|did|have|has|had|will|would|can|could|should|shall|may|might|must|not|no|yes|and|or|but|if|so|then|than|to|of|in|on|at|by|for|with|from|up|down|out|over|about|into|all|any|some|just|now|here|there|too|very|well|oh|ah|hey|ok|okay)$/i;
 
 class WebBrowser {
@@ -2121,7 +2121,7 @@ class WebBrowser {
       // langue d'arrivée : celle choisie (par défaut celle du traducteur) ; texte déjà dans cette langue → 2e langue
       // toutes les bulles de l'image partent ensemble, dans l'ordre de lecture (le traducteur a le contexte),
       // et les mots du lexique sont remplacés avant (noms des personnages, mots propres à la série)
-      // 1.7.3 : jamais « ne pas traduire » ni lexique pour les petits mots courants (THIS, THAT, WHAT, YOUR…) : sinon
+      // 1.7.2 : jamais « ne pas traduire » ni lexique pour les petits mots courants (THIS, THAT, WHAT, YOUR…) : sinon
       // « AT THIS RATE » devenait « Au taux THIS » (entrée ajoutée par erreur au lexique)
       const COMMON = SCAN_COMMON;
       const gl = (S.glossary || []).filter(x => x && x.s && x.t && !x.n && !COMMON.test(String(x.s).trim())), never = (S.glossary || []).filter(x => x && x.n && x.s && !COMMON.test(String(x.s).trim())).map(x => x.s);
@@ -2133,7 +2133,7 @@ class WebBrowser {
       groups = groups.map((g, i) => ({ ...g, text: cl[i].text, caps: cl[i].caps }));
       // 1.7.2 : page en anglais : accents inventés par la lecture retirés (« DANTÓN » → DANTON)
       if (pageLang === 'en') { try { const EA = require('./scan-fix').enAccents; groups = groups.map(g => ({ ...g, text: EA(g.text) })); } catch {} }
-      // 1.7.3 : mots coupés en fin de ligne au tiret mal lu (« SPIRI2 TUAL »), « MANIA » pour MANA
+      // 1.7.2 : mots coupés en fin de ligne au tiret mal lu (« SPIRI2 TUAL »), « MANIA » pour MANA
       if (pageLang === 'en') { try { const JB = require('./scan-fix').joinBroken; groups = groups.map(g => ({ ...g, text: JB(g.text) })); } catch {} }
       let learnedNames = [];
       // noms de la série (appris sur ce site) : « TSUKLMOGAMI » → TSUKUMOGAMI quand ce nom a déjà été bien lu souvent

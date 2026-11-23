@@ -682,7 +682,7 @@ function outsideRule(text, o = {}) {
 }
 module.exports.outsideRule = outsideRule;
 
-// 1.7.3 : mot coupé en fin de ligne dont le tiret a été mal lu (« SPIRI2 TUAL », « TENTA~ CLE », « CER- TAINLY ») :
+// 1.7.2 : mot coupé en fin de ligne dont le tiret a été mal lu (« SPIRI2 TUAL », « TENTA~ CLE », « CER- TAINLY ») :
 // recollé quand les deux morceaux forment un mot connu ; et « MANA » (énergie magique) lu « MANIA » dans le lettrage des BD
 function joinBroken(text) {
   load();

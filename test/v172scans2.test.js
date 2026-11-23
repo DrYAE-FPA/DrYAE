@@ -1,10 +1,10 @@
-// 1.7.3 : mots coupés au tiret mal lu, MANA, petits mots jamais protégés, gomme ligne par ligne, bouton vidéo discret
+// 1.7.2 : mots coupés au tiret mal lu, MANA, petits mots jamais protégés, gomme ligne par ligne, bouton vidéo discret
 const { _electron } = require('playwright'); const fs = require('fs'); const path = require('path');
 const ROOT = path.resolve(__dirname, '..');
 const ok = (n, v, x) => console.log((v ? 'OK  ' : 'ÉCHEC ') + n, x !== undefined ? JSON.stringify(x).slice(0, 300) : '');
 
 (async () => {
-  const HOME = '/tmp/claude-0/uihome-v173'; fs.rmSync(HOME, { recursive: true, force: true }); fs.mkdirSync(HOME + '/.config/DrYAE', { recursive: true });
+  const HOME = '/tmp/claude-0/uihome-v172b'; fs.rmSync(HOME, { recursive: true, force: true }); fs.mkdirSync(HOME + '/.config/DrYAE', { recursive: true });
   fs.writeFileSync(HOME + '/.config/DrYAE/settings.json', JSON.stringify({ lang: 'fr', langChosen: true, startView: 'manager' }));
   const app = await _electron.launch({ args: ['.', '--no-sandbox'], cwd: ROOT, executablePath: ROOT + '/node_modules/electron/dist/electron', env: { ...process.env, HOME, XDG_CONFIG_HOME: HOME + '/.config' } });
   await app.firstWindow();

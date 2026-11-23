@@ -1,64 +1,10 @@
 # Nouveautés / Changelog
 
-## 1.7.3
-
-### 🇫🇷 Français
-
-Le Traducteur de scans corrige les problèmes signalés sur les pages gardées pour l'améliorer, et le bouton « Télécharger cette vidéo » devient plus discret.
-
-**Traducteur de scans — traduction**
-- **Plus de mots anglais oubliés** dans la traduction (« Au taux THIS », « YOUR sens ») : les petits mots courants (THIS, THAT, WHAT, YOUR…) sont toujours traduits, même s'ils avaient été ajoutés par erreur au lexique ou à « Ne jamais traduire ».
-- **« MANA »** n'est plus lu « MANIA » (« manie ») dans le lettrage des BD.
-- **Mots coupés en fin de ligne** recollés même quand le tiret est mal lu (« SPIRI2 TUAL » → SPIRITUAL, « TENTA- CLE » → TENTACLE).
-- « ILL END IT HERE » est lu « I'LL END IT HERE ».
-
-**Traducteur de scans — lecture des bulles**
-- **Deux colonnes dans une même bulle** lues chacune à son tour (avant : mélangées ligne par ligne, « ASCENSION IS CERYOUR SPEED »).
-- **Titres tournés d'un quart de tour** (texte écrit de haut en bas ou de bas en haut sur une double page) lus.
-- **Très grandes lettres** (noms d'attaque, titres) trouvées et lues.
-- Un grand cri sur le dessin et un petit cadre de texte voisin ne sont plus mélangés.
-
-**Traducteur de scans — écriture**
-- **Plus de voile blanc ou gris sur le dessin** : le texte hors des bulles est effacé ligne par ligne, et la traduction s'écrit avec un contour au lieu d'un grand rectangle (à l'écran comme dans le PDF / .cbz).
-- **Gomme de la bonne couleur** dans les petites bulles bien remplies (plus de rectangle gris).
-
-**Navigateur**
-- **Bouton « Télécharger cette vidéo » transparent** sur tous les sites ; il s'affiche en entier au survol.
-- **Réseaux sociaux (X / Twitter…)** : le bouton ne passe plus sous la barre du haut du site, et télécharge la vidéo de la publication (avant : l'adresse du fil d'actualité partait au téléchargement).
-
-Ne téléchargez que ce que vous avez le droit de copier.
-
-### 🇬🇧 English
-
-The image text translator fixes the problems reported on the pages kept for improvement, and the "Download this video" button becomes more discreet.
-
-**Image text translator — translation**
-- **No more English words left behind** in the translation: common little words (THIS, THAT, WHAT, YOUR…) are always translated, even if they had been added by mistake to the glossary or to "Never translate".
-- **"MANA"** is no longer read as "MANIA" in comic lettering.
-- **Words split at the end of a line** are joined back even when the hyphen is misread ("SPIRI2 TUAL" → SPIRITUAL, "TENTA- CLE" → TENTACLE).
-- "ILL END IT HERE" is read as "I'LL END IT HERE".
-
-**Image text translator — reading the bubbles**
-- **Two columns in one bubble** are read one after the other (before: mixed line by line).
-- **Titles turned a quarter turn** (text written top to bottom or bottom to top on a double page) are read.
-- **Very large letters** (attack names, titles) are found and read.
-- A big shout over the drawing and a small nearby text box are no longer mixed together.
-
-**Image text translator — writing**
-- **No more white or grey veil over the drawing**: text outside the bubbles is erased line by line, and the translation is written with an outline instead of a big rectangle (on screen and in the PDF / .cbz).
-- **Eraser of the right colour** in small, well-filled bubbles (no more grey rectangle).
-
-**Browser**
-- **Transparent "Download this video" button** on every site; it shows fully when you hover over it.
-- **Social networks (X / Twitter…)**: the button no longer goes under the site's top bar, and it downloads the video of the post (before: the address of the news feed was sent to the download).
-
-Only download what you have the right to copy.
-
 ## 1.7.2
 
 ### 🇫🇷 Français
 
-Un traducteur de scans entièrement sur votre PC, plus rapide et plus juste : DrYAE ne se fige plus pendant la lecture des bulles, lit mieux les pages difficiles, traduit dans un français plus naturel et écrit le texte proprement dans les bulles, à l'écran comme dans les fichiers enregistrés.
+Un traducteur de scans entièrement sur votre PC, plus rapide et plus juste : DrYAE ne se fige plus pendant la lecture des bulles, lit mieux les pages difficiles, traduit dans un français plus naturel et écrit le texte proprement dans les bulles, à l'écran comme dans les fichiers enregistrés. Le bouton « Télécharger cette vidéo » devient aussi plus discret.
 
 **Traducteur de scans — traduction**
 - **100 % sur votre PC** : les scans sont toujours traduits sur l'ordinateur (rien n'est envoyé), même si un autre traducteur est choisi pour les pages web. Un petit cadenas 🔒 le rappelle dans la barre du traducteur.
@@ -67,6 +13,10 @@ Un traducteur de scans entièrement sur votre PC, plus rapide et plus juste : Dr
 - **Notes du traducteur traduites** : les « NB : », « N.B. », « T/N : », « TL NOTE » hors des bulles sont toujours traduites ; les crédits des équipes, les adresses de sites et de Discord restent en original.
 - **Prénoms et mots de jeu gardés** : les noms des personnages déjà vus souvent dans la série ne sont plus traduits (Will, Hope, May…), ni les mots de jeu comme MANA, HP, XP ou PNJ.
 - **Lexique pris en compte tout de suite** : un mot ajouté ou changé s'applique aussi aux pages déjà traduites.
+- **Plus de mots anglais oubliés** dans la traduction (« Au taux THIS », « YOUR sens ») : les petits mots courants (THIS, THAT, WHAT, YOUR…) sont toujours traduits, même s'ils avaient été ajoutés par erreur au lexique ou à « Ne jamais traduire ».
+- **« MANA »** n'est plus lu « MANIA » (« manie ») dans le lettrage des BD.
+- **Mots coupés en fin de ligne** recollés même quand le tiret est mal lu (« SPIRI2 TUAL » → SPIRITUAL, « TENTA- CLE » → TENTACLE).
+- « ILL END IT HERE » est lu « I'LL END IT HERE ».
 
 **Traducteur de scans — lecture des bulles**
 - **DrYAE ne se fige plus** : la lecture des bulles se fait à part, le navigateur reste fluide. « Arrêter » arrête vraiment le travail en cours.
@@ -75,13 +25,18 @@ Un traducteur de scans entièrement sur votre PC, plus rapide et plus juste : Dr
 - **Ordre de lecture** : DrYAE repère les cases et lit case par case ; une double page est coupée en deux.
 - **Plus de mots jetés** : « STARE », « STEP », « NOD » sont traduits (ce ne sont pas des bruitages) ; points de suspension et points d'exclamation mieux gardés.
 - **Japonais** : les petits caractères de lecture à côté des kanji ne se collent plus au mot ; les cris courts en katakana restent tels quels.
+- **Deux colonnes dans une même bulle** lues chacune à son tour (avant : mélangées ligne par ligne, « ASCENSION IS CERYOUR SPEED »).
+- **Titres tournés d'un quart de tour** (texte écrit de haut en bas ou de bas en haut sur une double page) lus.
+- **Très grandes lettres** (noms d'attaque, titres) trouvées et lues.
+- Un grand cri sur le dessin et un petit cadre de texte voisin ne sont plus mélangés.
 
 **Traducteur de scans — écriture dans la bulle**
-- **Gomme de la bonne couleur** : la couleur est prise autour du texte, sans les lettres ; plus de rectangle sombre ni de blanc pur sur une bulle crème ou grise.
+- **Gomme de la bonne couleur** : la couleur est prise autour du texte, sans les lettres ; plus de rectangle sombre ou gris, ni de blanc pur sur une bulle crème ou grise, même dans les petites bulles bien remplies.
 - **Le français tient dans la bulle** : d'abord toute la bulle, puis une taille plus petite, et un mot est coupé à une syllabe (« main-tenant ») seulement si le texte deviendrait trop petit. L'arabe s'écrit de droite à gauche.
 - **Plusieurs bulles dans une case** : le texte d'une bulle ne passe plus sur celui de sa voisine.
 - **PDF et .cbz identiques à l'écran** : même place, même taille, mêmes coupures que ce que vous voyez.
 - **Webtoons très longs dans le PDF / .cbz** : les images trop hautes sont coupées en plusieurs pages, entre deux bulles (avant, elles manquaient dans le fichier).
+- **Plus de voile blanc ou gris sur le dessin** : le texte hors des bulles est effacé ligne par ligne, et la traduction s'écrit avec un contour au lieu d'un grand rectangle (à l'écran comme dans le PDF / .cbz).
 
 **Aider à améliorer DrYAE (avec votre accord)**
 - À la première ouverture, DrYAE demande si vous voulez aider. Si vous acceptez, quand un problème arrive, DrYAE prépare un signalement sur GitHub (versions, Windows, dernières erreurs — sans mots de passe, sans historique, sans adresses de pages). **Rien n'est envoyé tout seul** : vous le relisez et c'est vous qui cliquez sur « Envoyer ». Réglage dans Paramètres → Système.
@@ -90,12 +45,14 @@ Un traducteur de scans entièrement sur votre PC, plus rapide et plus juste : Dr
 
 **Navigateur**
 - **Au démarrage, la page d'accueil** : DrYAE n'ouvre plus vos anciens onglets après « Quitter ». Pour les retrouver, choisissez « Reprendre là où je m'étais arrêté » dans Paramètres → Au démarrage. Si vous l'aviez choisi vous-même, rien ne change. La taille et la place de la fenêtre sont toujours gardées.
+- **Bouton « Télécharger cette vidéo » transparent** sur tous les sites ; il s'affiche en entier au survol.
+- **Réseaux sociaux (X / Twitter…)** : le bouton ne passe plus sous la barre du haut du site, et télécharge la vidéo de la publication (avant : l'adresse du fil d'actualité partait au téléchargement).
 
 Ne téléchargez que ce que vous avez le droit de copier.
 
 ### 🇬🇧 English
 
-An image text translator that runs entirely on your PC, faster and more accurate: DrYAE no longer freezes while reading speech bubbles, reads difficult pages better, translates into more natural French, and writes the text neatly in the bubbles, on screen and in saved files alike.
+An image text translator that runs entirely on your PC, faster and more accurate: DrYAE no longer freezes while reading speech bubbles, reads difficult pages better, translates into more natural French, and writes the text neatly in the bubbles, on screen and in saved files alike. The "Download this video" button also becomes more discreet.
 
 **Image text translator — translation**
 - **100% on your PC**: scans are always translated on the computer (nothing is sent), even if another translator is chosen for web pages. A small padlock 🔒 in the translator bar says so.
@@ -104,6 +61,10 @@ An image text translator that runs entirely on your PC, faster and more accurate
 - **Translator notes translated**: "NB:", "N.B.", "T/N:", "TL NOTE" outside the bubbles are always translated; team credits and website or Discord addresses stay as they are.
 - **First names and game words kept**: names of characters already seen often in the series are no longer translated (Will, Hope, May…), nor game words such as MANA, HP, XP or NPC.
 - **Glossary applied right away**: a word added or changed also applies to pages already translated.
+- **No more English words left behind** in the translation: common little words (THIS, THAT, WHAT, YOUR…) are always translated, even if they had been added by mistake to the glossary or to "Never translate".
+- **"MANA"** is no longer read as "MANIA" in comic lettering.
+- **Words split at the end of a line** are joined back even when the hyphen is misread ("SPIRI2 TUAL" → SPIRITUAL, "TENTA- CLE" → TENTACLE).
+- "ILL END IT HERE" is read as "I'LL END IT HERE".
 
 **Image text translator — reading the bubbles**
 - **No more freezing**: bubbles are read separately, the browser stays smooth. "Stop" really stops the work in progress.
@@ -112,13 +73,18 @@ An image text translator that runs entirely on your PC, faster and more accurate
 - **Reading order**: DrYAE finds the panels and reads panel by panel; a double page is split in two.
 - **Fewer words thrown away**: "STARE", "STEP", "NOD" are translated (they are not sound effects); ellipses and exclamation marks kept better.
 - **Japanese**: small reading characters next to kanji no longer stick to the word; short katakana cries stay as they are.
+- **Two columns in one bubble** are read one after the other (before: mixed line by line).
+- **Titles turned a quarter turn** (text written top to bottom or bottom to top on a double page) are read.
+- **Very large letters** (attack names, titles) are found and read.
+- A big shout over the drawing and a small nearby text box are no longer mixed together.
 
 **Image text translator — writing in the bubble**
-- **Eraser of the right colour**: the colour is taken around the text, without the letters; no more dark rectangle or pure white on a cream or grey bubble.
+- **Eraser of the right colour**: the colour is taken around the text, without the letters; no more dark or grey rectangle, nor pure white on a cream or grey bubble, even in small, well-filled bubbles.
 - **French fits in the bubble**: first the whole bubble, then a smaller size, and a word is split at a syllable ("main-tenant") only if the text would become too small. Arabic is written right to left.
 - **Several bubbles in one panel**: the text of one bubble no longer runs over its neighbour's.
 - **PDF and .cbz identical to the screen**: same place, same size, same line breaks as what you see.
 - **Very long webtoons in the PDF / .cbz**: images that are too tall are split into several pages, between two bubbles (before, they were missing from the file).
+- **No more white or grey veil over the drawing**: text outside the bubbles is erased line by line, and the translation is written with an outline instead of a big rectangle (on screen and in the PDF / .cbz).
 
 **Help improve DrYAE (with your consent)**
 - The first time it opens, DrYAE asks whether you want to help. If you agree, when a problem happens DrYAE prepares a report on GitHub (versions, Windows, latest errors — no passwords, no history, no page addresses). **Nothing is sent on its own**: you read it and you click "Submit" yourself. Setting in Settings → System.
@@ -127,6 +93,8 @@ An image text translator that runs entirely on your PC, faster and more accurate
 
 **Browser**
 - **The home page at startup**: DrYAE no longer reopens your old tabs after "Quit". To get them back, choose "Continue where I left off" in Settings → On startup. If you had chosen it yourself, nothing changes. The window's size and position are still remembered.
+- **Transparent "Download this video" button** on every site; it shows fully when you hover over it.
+- **Social networks (X / Twitter…)**: the button no longer goes under the site's top bar, and it downloads the video of the post (before: the address of the news feed was sent to the download).
 
 Only download what you have the right to copy.
 

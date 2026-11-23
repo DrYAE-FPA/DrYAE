@@ -5,7 +5,7 @@ set -u
 cd "$(dirname "$0")/.."
 # les tests du traducteur de scans regardent le texte envoyé à un faux traducteur : ils gardent le traducteur des réglages
 export DRYAE_SCAN_TR=settings DRYAE_NO_BUGASK=1
-TESTS="${TESTS:-v168start v169dl v169tor v169bm v169a11y v169priv v169tabs v169pdf v169scan2 v169scan3 v169fr v170work v170open v170adtab v170lecture v170crlf v170extsw v170win v170localmt v170bd v171lex v171glogin v171longtr v171lights v171tabdrag v171doclights v171pdfopen v171empty v171torrentport v171bugs v172turbo v172menu v171export v171taddtorrent v171imgopen v172pairs v172scans v173scans}"
+TESTS="${TESTS:-v168start v169dl v169tor v169bm v169a11y v169priv v169tabs v169pdf v169scan2 v169scan3 v169fr v170work v170open v170adtab v170lecture v170crlf v170extsw v170win v170localmt v170bd v171lex v171glogin v171longtr v171lights v171tabdrag v171doclights v171pdfopen v171empty v171torrentport v171bugs v172turbo v172menu v171export v171taddtorrent v171imgopen v172pairs v172scans v172scans2}"
 fail=0
 for t in $TESTS; do
   echo "::group::$t"

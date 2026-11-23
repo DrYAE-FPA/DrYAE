@@ -162,7 +162,7 @@ async function recognize(img, b, R, enh, shear, sharp, inv, rot) {
   const vertical = bh > bw * 1.5;
   let cw = vertical ? bh : bw, ch = vertical ? bw : bh;
   // 1.7.2 : ligne penchée : longueur et épaisseur réelles de la ligne dans son cadre droit
-  // 1.7.3 : titre en lettres latines tourné d'un quart de tour (lu de bas en haut) : colonne lue dans l'autre sens
+  // 1.7.2 : titre en lettres latines tourné d'un quart de tour (lu de bas en haut) : colonne lue dans l'autre sens
   const flip = rot === 'flip'; if (flip) rot = 0;
   const co = rot ? Math.cos(rot) : 1, si = rot ? Math.sin(rot) : 0, c2 = co * co - si * si;
   if (rot && !vertical) { const L = (bw * co - bh * Math.abs(si)) / c2, T2 = (bh * co - bw * Math.abs(si)) / c2; if (L > 8 && T2 > 4) { cw = L; ch = T2; } else rot = 0; }
@@ -275,7 +275,7 @@ function digitRescue(l) {
 // Zone de couleur unie autour d'un texte (bulle colorée) : remplissage par couleur voisine sur une image réduite.
 // Refusée si elle est trop grande (fond de case, fond de page) ou trop peu remplie.
 // 1.7.2 : couleur du fond autour d'un texte : un anneau juste à l'extérieur du cadre du texte, médiane de chaque couleur
-// 1.7.3 : image tournée d'un quart de tour (dir 1 : vers la gauche, le haut de l'image va à gauche ; -1 : vers la droite)
+// 1.7.2 : image tournée d'un quart de tour (dir 1 : vers la gauche, le haut de l'image va à gauche ; -1 : vers la droite)
 function rotate90(img, dir) {
   const { width: W, height: H, data } = img, out = new Uint8Array(W * H * 4);
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
@@ -298,7 +298,7 @@ function ringBg(img, g) {
     const q = (y * W + x) * 4; R.push(data[q]); G.push(data[q + 1]); B.push(data[q + 2]);
   }
   if (R.length < 12) return null;
-  // 1.7.3 : le contour noir de la bulle et la trame du dessin autour tombent souvent dans l'anneau (petite bulle bien remplie) :
+  // 1.7.2 : le contour noir de la bulle et la trame du dessin autour tombent souvent dans l'anneau (petite bulle bien remplie) :
   // fond clair → la couleur la plus claire courante (80 % des points sont plus sombres), fond sombre → la plus sombre courante
   const idx = R.map((_, i) => i), lum = i => R[i] * 0.3 + G[i] * 0.59 + B[i] * 0.11;
   idx.sort((a, b) => lum(a) - lum(b));
@@ -398,7 +398,7 @@ function bubbleMap(img, dark) {
 }
 
 // regroupe les lignes d'une même bulle
-// 1.7.3 : lignes d'une bulle rangées en deux colonnes : toutes d'un côté ou de l'autre d'une coupure verticale,
+// 1.7.2 : lignes d'une bulle rangées en deux colonnes : toutes d'un côté ou de l'autre d'une coupure verticale,
 // au moins 2 lignes de chaque côté, les deux colonnes à la même hauteur → [colonne de droite, colonne de gauche]
 function splitCols(ls) {
   const hl = ls.filter(l => !l.vertical);
@@ -426,7 +426,7 @@ function group(lines, bm, inBubble) {
     const merged = [];
     for (const { c, ls } of by.values()) {
       // (1.7.1 : le texte d'une bulle n'est jamais coupé en paragraphes de livre)
-      // 1.7.3 : deux colonnes de texte côte à côte dans une même bulle (« ASCEN-SION IS CER-TAINLY STRONG! » à droite de
+      // 1.7.2 : deux colonnes de texte côte à côte dans une même bulle (« ASCEN-SION IS CER-TAINLY STRONG! » à droite de
       // « YOUR SENSES, YOUR SPEED… ») : avant, lues ensemble rangée par rangée (« CERYOUR SPEED ») ; chaque colonne à part
       const cols = splitCols(ls);
       const gs = cols ? cols.flatMap(c => group(c, null, true)) : group(ls, null, true), v = gs.every(o => o.vertical);
@@ -471,7 +471,7 @@ function group(lines, bm, inBubble) {
   const out = [];
   hor.sort((a, b) => a.y0 - b.y0);
   for (const it of hor) {
-    // 1.7.3 : lettres de taille très différente (grand cri « I'LL END IT HERE!!! » au-dessus d'un petit cadre de texte) : pas le même texte
+    // 1.7.2 : lettres de taille très différente (grand cri « I'LL END IT HERE!!! » au-dessus d'un petit cadre de texte) : pas le même texte
     const sizeOk = g => { const hs = g.hs.slice().sort((a, b) => a - b), m = hs[hs.length >> 1] || it.h; return Math.max(m, it.h) / Math.max(1, Math.min(m, it.h)) < 2.2; };
     const ok = g => !g.vertical && sizeOk(g) && (() => { const gap = it.y0 - g.y1, lh = Math.max(g.lh, it.h), cx = (it.x0 + it.x1) / 2, gcx = (g.x0 + g.x1) / 2; const overlap = Math.min(g.x1, it.x1) - Math.max(g.x0, it.x0); return gap < lh * 0.9 && gap > -lh * 0.6 && (overlap > -lh * 0.3 || Math.abs(cx - gcx) < lh * 2); })();
     const g = out.find(ok);
@@ -499,7 +499,7 @@ function group(lines, bm, inBubble) {
     }
     // hauteur d'une ligne d'origine : la traduction ne sera jamais écrite plus gros
     const hs = g.hs.slice().sort((a, b) => a - b), lh = hs[hs.length >> 1] || 0;
-    // 1.7.3 : cadre de chaque ligne (la gomme efface ligne par ligne, sans voiler le dessin entre elles)
+    // 1.7.2 : cadre de chaque ligne (la gomme efface ligne par ligne, sans voiler le dessin entre elles)
     const boxes = (g.ls || []).map(l => [l.x0, l.y0, l.x1, l.y1].map(Math.round));
     return { x0: g.x0, y0: g.y0, x1: g.x1, y1: g.y1, text: text.trim(), parts: g.parts, vertical: g.vertical, lh, n: g.parts.length, ...(boxes.length ? { boxes } : {}), ...(g.prose ? { prose: true } : {}) };
   }).filter(g => g.text.replace(/\s/g, '').length >= (isCJK(g.text) ? 1 : 2));
@@ -557,10 +557,10 @@ async function readBubbles(img, opts = {}) {
     boxes.sort((a, b) => (b.x1 - b.x0) * (b.y1 - b.y0) - (a.x1 - a.x0) * (a.y1 - a.y0));
     boxes = boxes.filter((b, i) => !boxes.slice(0, i).some(a => { const ix = Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0), iy = Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0); return ix > 0 && iy > 0 && ix * iy > 0.5 * (b.x1 - b.x0) * (b.y1 - b.y0); }));
   } else boxes = await detect(img, 2048);
-  // 1.7.3 : page avec peu de texte trouvé (double page, grand titre) : titres latins tournés d'un quart de tour
+  // 1.7.2 : page avec peu de texte trouvé (double page, grand titre) : titres latins tournés d'un quart de tour
   // (« DAEMON DABADA » de haut en bas, « ABSOLUTE TENTAREA!!!! » de bas en haut) : cherchés sur l'image tournée
   if (H <= W * 2.2 && boxes.filter(b => Math.min(b.x1 - b.x0, b.y1 - b.y0) >= 12 && (b.x1 - b.x0) * (b.y1 - b.y0) > 1500).length < 8) {
-    // 1.7.3 : très grandes lettres (« EIGHT FOLD BLADE!!!! », titres d'attaque) : trop grosses pour la recherche habituelle,
+    // 1.7.2 : très grandes lettres (« EIGHT FOLD BLADE!!!! », titres d'attaque) : trop grosses pour la recherche habituelle,
     // cherchées sur l'image réduite ; puis la ligne juste au-dessus et au-dessous est essayée (mot manquant du même titre)
     try {
       const inter = (a, b) => Math.max(0, Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0)) * Math.max(0, Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0));
@@ -641,7 +641,7 @@ async function readBubbles(img, opts = {}) {
         if (r.score >= 0.9) break;
       }
     }
-    // 1.7.3 : colonne haute et étroite qui n'est pas du japonais : peut-être un titre latin tourné (« ABSOLUTE TENTAREA!!!! »
+    // 1.7.2 : colonne haute et étroite qui n'est pas du japonais : peut-être un titre latin tourné (« ABSOLUTE TENTAREA!!!! »
     // lu de bas en haut, « DAEMON DABADA » de haut en bas) : les deux sens sont essayés, le plus sûr est gardé
     if (b.y1 - b.y0 > (b.x1 - b.x0) * 2.5 && !/[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/.test(r.text) && r.score < 0.93) {
       const r8 = await recognize(img, b, R, true, 0, false, false, 'flip'); if (r8.score > r.score + 0.03) r = r8;
@@ -667,7 +667,7 @@ async function readBubbles(img, opts = {}) {
     let keep = good(l) || (good(l, 0.45) && c);
     // 1.7.1 : « 0O30 » lu pour DOJO avec un score bas : gardée, chiffres remplacés par les lettres
     if (!keep) { const t = digitRescue(l); if (t) { l.text = t; keep = true; } }
-    // 1.7.3 : cadre de quelques points de large (« MA » lu dans un trait du dessin) : pas un texte
+    // 1.7.2 : cadre de quelques points de large (« MA » lu dans un trait du dessin) : pas un texte
     if (keep && Math.min(b.x1 - b.x0, b.y1 - b.y0) < 9 && l.text.replace(/\s/g, '').length >= 2 && !isCJK(l.text)) keep = false;
     if (keep) { lines.push(l); if (k) kept.set(k, (kept.get(k) || 0) + 1); }
     else if (k) fails.set(k, (fails.get(k) || 0) + 1);
