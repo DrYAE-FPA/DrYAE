@@ -935,7 +935,17 @@ function pageFeatures() {
       bar.querySelector('.sel').textContent = pt(scan.orig ? 'Traduction' : 'Texte lu');
       if (scan.orig) status(pt('Sélectionnez un mot du texte lu : corriger, ajouter au lexique, ne jamais traduire'));
     };
-    const loop = () => { if (!scan) return; for (const [img, it] of scan.items) placeScan(img, it); placeTools(); scan.raf = requestAnimationFrame(loop); };
+    // 1.7.1 : les bulles ne sont replacées que si la page a bougé (défilement, taille, nouvelles images) ou toutes les 0,5 s :
+    // avant, tout était recalculé 60 fois par seconde, même page immobile (processeur et batterie)
+    let lastSig = '', lastT = 0;
+    const loop = () => {
+      if (!scan) return;
+      const now = performance.now(), de = document.scrollingElement || document.documentElement;
+      const sig = scrollX + ',' + scrollY + ',' + innerWidth + ',' + innerHeight + ',' + (de ? de.scrollHeight + ',' + de.scrollTop : '') + ',' + scan.items.size;
+      if (sig !== lastSig || now - lastT > 500) { lastSig = sig; lastT = now; for (const [img, it] of scan.items) placeScan(img, it); placeTools(); }
+      scan.raf = requestAnimationFrame(loop);
+    };
+    addEventListener('scroll', () => { lastSig = ''; }, { passive: true, capture: true });
     loop();
     // 1.7.0 refaite : les images qui arrivent sont traduites plus tôt (traduction à l'avance pendant la lecture)
     scan.io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { scanQueue(e.target); scan.io.unobserve(e.target); } }), { rootMargin: '3200px 3200px' });
@@ -1148,7 +1158,7 @@ function pageFeatures() {
     ed.addEventListener('mousedown', e => e.stopPropagation(), true);
     const close = () => { ed.remove(); if (scan) scan.editor = null; };
     ed.querySelector('.no').onclick = close;
-    ed.querySelector('.rt').onclick = async () => { ed.querySelector('.t').value = await ipcRenderer.invoke('scan:retranslate', ed.querySelector('.o').value, null).catch(() => ed.querySelector('.t').value); };
+    ed.querySelector('.rt').onclick = async () => { ed.querySelector('.t').value = await ipcRenderer.invoke('scan:retranslate', ed.querySelector('.o').value, null, String(it.from || '').split('-')[0]).catch(() => ed.querySelector('.t').value); };
     // « Ajouter au lexique » et (1.7.0 refaite) « Ne jamais traduire » : même petite ligne, sans traduction pour le second
     let never = false;
     const openGl = nv => { never = nv; const g = ed.querySelector('.glx'); g.style.display = 'grid'; g.style.gridTemplateColumns = nv ? '1fr auto' : '1fr 1fr auto'; ed.querySelector('.gt').style.display = nv ? 'none' : ''; ed.querySelector('.gs').placeholder = nv ? pt('Mot ou nom à ne jamais traduire') : pt('Mot d\'origine'); const o = ed.querySelector('.o'); const sel = (o.value.slice(o.selectionStart, o.selectionEnd) || scanSel() || '').trim(); ed.querySelector('.gs').value = sel; (sel && !nv ? ed.querySelector('.gt') : ed.querySelector('.gs')).focus(); };
@@ -1167,7 +1177,7 @@ function pageFeatures() {
       await ipcRenderer.invoke('scan:glossary', [...list.filter(x => x.s !== s), never ? { s, t: s, n: true } : { s, t }]).catch(() => {});
       ed.querySelector('.glx').style.display = 'none'; hint(never ? pt('« {0} » ne sera plus jamais traduit').replace('{0}', s) : pt('Ajouté au lexique'));
       // la traduction de la bulle est refaite tout de suite avec le nouveau lexique
-      const tt = await ipcRenderer.invoke('scan:retranslate', ed.querySelector('.o').value, null).catch(() => null); if (tt) ed.querySelector('.t').value = tt;
+      const tt = await ipcRenderer.invoke('scan:retranslate', ed.querySelector('.o').value, null, String(it.from || '').split('-')[0]).catch(() => null); if (tt) ed.querySelector('.t').value = tt;
     };
     ed.querySelector('.ok').onclick = () => {
       b.text = ed.querySelector('.o').value; b.tr = ed.querySelector('.t').value;
@@ -1184,7 +1194,7 @@ function pageFeatures() {
   const addGlossary = async item => { const list = await ipcRenderer.invoke('scan:glossary').catch(() => []); await ipcRenderer.invoke('scan:glossary', [...list.filter(x => x.s !== item.s), item]).catch(() => {}); };
   async function reBubble(it, i, d) {
     const b = it.blocks[i]; if (!b) return;
-    b.tr = await ipcRenderer.invoke('scan:retranslate', b.text, null).catch(() => b.tr);
+    b.tr = await ipcRenderer.invoke('scan:retranslate', b.text, null, String(it.from || '').split('-')[0]).catch(() => b.tr);
     if (!scan?.orig) d.textContent = b.tr || b.text; d._w = 0;
     if (it.key) ipcRenderer.invoke('scan:edit', it.key, i, { text: b.text, tr: b.tr }).catch(() => {});
   }
@@ -1194,7 +1204,7 @@ function pageFeatures() {
     const b = it.blocks[i], orig = d.textContent === b.text;
     const card = el(`<div class="card" style="left:${Math.max(8, Math.min(innerWidth - 330, e.clientX - 20))}px;top:${Math.max(8, Math.min(innerHeight - 170, e.clientY + 14))}px;width:310px;padding:9px 10px;font-size:12.5px;display:grid;gap:7px">
       <div style="color:#c4b5fd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">« ${esc(w)} »</div>
-      ${orig ? `<div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn gl">${esc(pt('Ajouter au lexique'))}</button><button class="btn nv" title="${esc(pt('Ce mot ou ce nom ne sera plus jamais traduit'))}">${esc(pt('Ne jamais traduire'))}</button><button class="btn nv">${esc(pt('Ne jamais traduire'))}</button><button class="btn fx">${esc(pt('Corriger la bulle'))}</button></div>
+      ${orig ? `<div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn gl">${esc(pt('Ajouter au lexique'))}</button><button class="btn nv" title="${esc(pt('Ce mot ou ce nom ne sera plus jamais traduit'))}">${esc(pt('Ne jamais traduire'))}</button><button class="btn fx">${esc(pt('Corriger la bulle'))}</button></div>
       <div class="glx" style="display:none;gap:6px;grid-template-columns:1fr auto"><input class="gt" placeholder="${esc(pt('Toujours traduire par'))}" style="all:unset;background:#0d0f14;border:1px solid #2a3040;border-radius:6px;padding:4px 6px;color:#e7e9ef"><button class="btn pri gok">OK</button></div>`
       : `<div style="color:#8f97aa">${esc(pt('C\'est la traduction : cliquez sur la bulle (ou « Texte lu ») pour sélectionner le texte d\'origine.'))}</div><div style="display:flex;gap:6px"><button class="btn sh">${esc(pt('Voir le texte lu'))}</button><button class="btn fx">${esc(pt('Corriger la bulle'))}</button></div>`}</div>`);
     scan.selCard = card;

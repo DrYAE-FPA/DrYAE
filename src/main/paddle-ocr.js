@@ -190,7 +190,8 @@ async function recognize(img, b, R, enh, shear, sharp) {
     t[2 * H * Wt + i] = Math.max(0, Math.min(255, (buf[i] - off) * k)) / 127.5 - 1;
   }
   const out = await R.sess.run({ [R.sess.inputNames[0]]: new ort.Tensor('float32', t, [1, 3, H, Wt]) });
-  const o = out[rec.outputNames[0]], [, T, C] = o.dims, p = o.data;
+  // 1.7.1 : sortie lue sur le modèle réellement utilisé (un modèle de lecture en plus peut nommer sa sortie autrement)
+  const o = out[(R.sess.outputNames || rec.outputNames)[0]], [, T, C] = o.dims, p = o.data;
   let text = '', last = 0, sc = 0, n = 0;
   for (let i = 0; i < T; i++) {
     let best = 0, bv = -1;

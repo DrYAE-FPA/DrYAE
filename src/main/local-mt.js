@@ -75,12 +75,12 @@ let child = null, seq = 0; const waits = new Map();
 function proc() {
   if (child) return child;
   child = utilityProcess.fork(path.join(__dirname, 'local-mt-child.js'), [], { serviceName: 'DrYAE traduction sur le PC' });
-  child.on('message', m => { const w = waits.get(m.id); if (!w) return; waits.delete(m.id); m.error ? w.no(new Error(m.error)) : w.ok(m); });
+  child.on('message', m => { const w = waits.get(m.id); if (!w) return; waits.delete(m.id); clearTimeout(w.t); m.error ? w.no(new Error(m.error)) : w.ok(m); });
   child.on('exit', () => { child = null; for (const w of waits.values()) w.no(new Error('traduction sur le PC interrompue')); waits.clear(); });
   return child;
 }
 function stop() { try { child && child.kill(); } catch {} child = null; }
-const ask = (msg, timeout = 120000) => new Promise((ok, no) => { const id = ++seq; waits.set(id, { ok, no }); proc().postMessage({ ...msg, id }); setTimeout(() => { if (waits.has(id)) { waits.delete(id); no(new Error('traduction sur le PC trop lente')); } }, timeout); });
+const ask = (msg, timeout = 120000) => new Promise((ok, no) => { const id = ++seq; const w = { ok, no }; waits.set(id, w); proc().postMessage({ ...msg, id }); w.t = setTimeout(() => { if (waits.has(id)) { waits.delete(id); no(new Error('traduction sur le PC trop lente')); } }, timeout); });
 
 // ---------- détection de la langue (sur le PC, sans rien envoyer) ----------
 const SCRIPT = [['ja', /[぀-ヿ]/g], ['ko', /[가-힯]/g], ['zh', /[一-鿿]/g], ['ru', /[Ѐ-ӿ]/g], ['ar', /[؀-ۿ]/g], ['el', /[Ͱ-Ͽ]/g], ['hi', /[ऀ-ॿ]/g], ['he', /[֐-׿]/g]];
