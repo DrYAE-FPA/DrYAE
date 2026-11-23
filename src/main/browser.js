@@ -233,6 +233,9 @@ class WebBrowser {
     ipcMain.handle('@ghostery/adblocker/is-mutation-observer-enabled', e => this.blocker?.onIsMutationObserverEnabled(e));
   }
   // réglages envoyés à l'interface du navigateur
+  // 1.7.2 : le Traducteur de scans traduit toujours sur le PC (modèles libres de Firefox) : aucun texte des bulles n'est
+  // envoyé sur Internet, même si le traducteur des pages web utilise un service en ligne
+  scanTr() { const t = this.B().translate || {}; return process.env.DRYAE_SCAN_TR === 'settings' ? t : { ...t, provider: 'local' }; } // (variable : tests automatiques seulement)
   cfg() { return { ...this.B(), theme: this.theme(), rawTheme: this.settings.get().theme || {}, restoreSession: this.settings.get().restoreSession, searchUrl: SEARCH[this.B().search] || SEARCH.google, ua: this.B().ua, partitions: { normal: PART, incognito: PART_PRIV }, mods: Object.fromEntries(M.MODULES.map(m => [m.id, { ...M.MOD_DEFAULT, ...(this.B().modules || {})[m.id], on: this.modOn(m.id) }])), lang: this.settings.get().lang, a11y: this.main.a11y?.() || {}, a11yRaw: this.settings.get().a11y || {}, root: { autoUpdateCheck: this.settings.get().autoUpdateCheck !== false, fetchTrackers: (this.settings.get().torrent || {}).fetchTrackers !== false, trackersUrl: (this.settings.get().torrent || {}).trackersUrl || '' } }; }
   pushCfg() { clearTimeout(this._pc); this._pc = setTimeout(() => { const c = this.cfg(); this.uiAll().forEach(w => w.send('cfg', c)); pages.broadcast('cfg', c); }, 50); }
 
@@ -1940,7 +1943,7 @@ class WebBrowser {
     });
     // traducteur de scans : lecture du texte d'une image puis traduction
     // modèles de lecture supplémentaires (coréen, russe, arabe, thaï, hindi…)
-    require('./paddle-ocr').setDir(path.join(this.userDir, 'ocr-models'));
+    require('./paddle-ocr').setDir(path.join(this.userDir, 'ocr-models')); require('./ocr-pool').setDir(path.join(this.userDir, 'ocr-models'));
     ipcMain.handle('scan:models', () => { const PO = require('./paddle-ocr'); const have = PO.installed(); return Object.entries(PO.EXTRA).map(([id, m]) => ({ id, label: m.label, size: m.size, installed: have.includes(id), busy: !!this.modelDl?.[id] })); });
     ipcMain.handle('scan:modelGet', async (e, id) => {
       const PO = require('./paddle-ocr'); this.modelDl = this.modelDl || {};
@@ -1973,10 +1976,12 @@ class WebBrowser {
     // retraduire une bulle : avec le lexique et les mots « jamais traduits » (1.7.0 refaite)
     ipcMain.handle('scan:retranslate', async (_e, text, to, lang) => {
       const S = this.B().scan || {};
-      const gl = (S.glossary || []).filter(x => x && x.s && x.t && !x.n), never = (S.glossary || []).filter(x => x && x.n && x.s).map(x => x.s);
+      // 1.7.2 : mots de jeux et de fantasy gardés tels quels sans avoir à les mettre dans le lexique (« MANA » devenait « MANIA »)
+      const BASE_NEVER = ['MANA', 'HP', 'MP', 'EXP', 'XP', 'SP', 'NPC', 'PNJ', 'RPG', 'MMORPG', 'DPS', 'AOE', 'BUFF', 'DEBUFF', 'COOLDOWN'];
+      const gl = (S.glossary || []).filter(x => x && x.s && x.t && !x.n), never = [...(S.glossary || []).filter(x => x && x.n && x.s).map(x => x.s), ...BASE_NEVER];
       const SQ = (() => { try { return require('./scan-fix').squeeze; } catch { return t => t; } })();
       const p = M.protect(SQ(String(text || ''), lang || ''), lang || 'en', never, gl);
-      const r = (await M.translate([p.t], to || S.target || target(), 'auto', this.B().translate || {})).texts[0] || '';
+      const r = (await M.translate([p.t], to || S.target || target(), 'auto', this.scanTr())).texts[0] || '';
       return M.unprotect(r, p.keep);
     });
     // lexique : « mot d'origine » -> « traduction voulue » (noms des personnages, mots de la série)
@@ -2013,6 +2018,7 @@ class WebBrowser {
     });
     // police « bande dessinée » des bulles traduites (Comic Neue, licence SIL OFL 1.1)
     ipcMain.handle('scan:font', () => { try { return fs.readFileSync(path.join(__dirname, '..', '..', 'assets', 'fonts', 'comic-neue', 'comic-neue-latin-700-normal.woff2')); } catch { return null; } });
+    ipcMain.handle('scan:cancel', e => require('./ocr-pool').cancel(e.sender.id));
     ipcMain.handle('scan:image', async (e, o) => {
       if (!this.modOn('scan')) throw new Error('Traducteur de scans désactivé');
       if (o.region && o.rect) { o.src = ''; o.data = null; } // capture d'une zone choisie à l'écran
@@ -2038,11 +2044,14 @@ class WebBrowser {
         scale = 0;
       }
       const src = o.lang && /^[a-z_]+$/.test(o.lang) ? o.lang : (S.source || 'auto');
-      const PO = require('./paddle-ocr');
+      const PO = require('./paddle-ocr'), OP = require('./ocr-pool'), owner = e?.sender?.id || 0;
       // image déjà traduite (même image, mêmes langues) : réponse immédiate, avec les corrections faites à la main
-      const ckey = crypto.createHash('sha1').update(buf || img.toPNG()).digest('hex').slice(0, 20) + '|' + src + '|' + (o.to || S.target || target()) + '|' + ((this.B().translate || {}).provider || 'google');
+      // 1.7.2 : la clé tient aussi compte du lexique et du tutoiement : un changement est pris en compte tout de suite
+      const glk = crypto.createHash('sha1').update(JSON.stringify(S.glossary || []) + (S.tutoie === false ? 'v' : 't')).digest('hex').slice(0, 8);
+      const ckey = crypto.createHash('sha1').update(buf || img.toPNG()).digest('hex').slice(0, 20) + '|' + src + '|' + (o.to || S.target || target()) + '|' + glk + '|' + ((this.scanTr()).provider || 'google');
       // les 20 dernières images lues restent en mémoire (bouton « Garder cette image pour l'améliorer »)
-      { const R = this._scanImgs || (this._scanImgs = new Map()); R.delete(ckey); R.set(ckey, { buf: buf && scale !== 0 ? buf : null, img, page: o.page || '' }); while (R.size > 20) R.delete(R.keys().next().value); }
+      // 1.7.2 : 12 images au lieu de 20, et l'image décodée n'est gardée que si le fichier d'origine manque (moins de mémoire)
+      { const R = this._scanImgs || (this._scanImgs = new Map()); R.delete(ckey); const fb = buf && scale !== 0 ? buf : null; R.set(ckey, { buf: fb, img: fb ? null : img, page: o.page || '' }); while (R.size > 12) R.delete(R.keys().next().value); }
       // 1.7.2 : traductions gardées d'avant la correction des codes « <0xC3><0x87> » : nettoyées à la lecture
       if (!o.fresh) { const c = this.scanCache().get(ckey); if (c) return { ...c, blocks: (c.blocks || []).map(b => b && /<0x[0-9a-f]{2}>/i.test(b.tr || '') ? { ...b, tr: require('./local-mt').bytesFix(b.tr) } : b), key: ckey, cached: true }; }
       const modelFor = MODEL_OF_SRC[src];
@@ -2052,7 +2061,7 @@ class WebBrowser {
         let sz = img.getSize();
         img = upscale(img); sz = img.getSize();
         const bm = img.toBitmap(); for (let i = 0; i < bm.length; i += 4) { const t = bm[i]; bm[i] = bm[i + 2]; bm[i + 2] = t; }
-        groups = await PO.readBubbles({ width: sz.width, height: sz.height, data: bm }, { model: modelFor });
+        groups = await OP.readBubbles({ width: sz.width, height: sz.height, data: bm }, { model: modelFor }, owner);
         w = sz.width;
       } else if (M.PADDLE_LANGS.includes(src)) {
         // lecture « automatique » (modèle multilingue) : la langue n'a pas besoin d'être choisie
@@ -2061,7 +2070,7 @@ class WebBrowser {
         const bm = img.toBitmap(); // BGRA
         for (let i = 0; i < bm.length; i += 4) { const t = bm[i]; bm[i] = bm[i + 2]; bm[i + 2] = t; }
         const RGBA = { width: sz.width, height: sz.height, data: bm };
-        groups = await PO.readBubbles(RGBA);
+        groups = await OP.readBubbles(RGBA, {}, owner);
         w = sz.width;
         // 1.7.0 refaite : page en lettres latines (anglais, français…) et modèle « langues latines » absent : il est
         // téléchargé en arrière-plan une seule fois (8 Mo, même source que le modèle de base). Il lit bien mieux
@@ -2076,11 +2085,12 @@ class WebBrowser {
         // les bulles sont relues avec les données de cette langue (téléchargées la première fois)
         if (groups.length && src === 'auto') {
           try {
-            const guess = await M.translate([groups.map(g => g.text).join('\n').slice(0, 2000)], 'en', 'auto', this.B().translate || {});
+            // 1.7.2 : langue reconnue sur le PC (avant : en envoyant le texte au traducteur en ligne)
+            const guess = { from: require('./local-mt').detect(groups.map(g => g.text).join('\n').slice(0, 2000)) };
             const lg = String(guess.from || '').split('-')[0], xm = PO.EXTRA_OF[lg];
             const fix = M.OCR_FIX[lg];
             // écriture qui a son propre modèle (coréen, russe…) : relecture avec lui s'il est installé, sinon on le propose
-            if (xm && groups.model !== xm && PO.installed().includes(xm)) { groups = await PO.readBubbles(RGBA, { model: xm }); }
+            if (xm && groups.model !== xm && PO.installed().includes(xm)) { groups = await OP.readBubbles(RGBA, { model: xm }, owner); }
             else if (xm && groups.model !== xm) needModel = xm;
             if (fix && !(xm && PO.installed().includes(xm))) {
               const pad = 6, texts = await M.readRegions(img.toPNG(), fix, groups.map(g => ({ x0: g.x0 - pad, y0: g.y0 - pad, x1: g.x1 + pad, y1: g.y1 + pad })));
@@ -2099,7 +2109,7 @@ class WebBrowser {
       if (!groups.length) return { blocks: [], w, needModel, unreadable: (groups.unread || 0) >= 3 && !groups.model };
       // 1.7.0 : page en anglais ou en français lue sans le modèle « langues latines » : DrYAE propose de le télécharger
       if (!needModel && (groups.lang === 'en' || groups.lang === 'fr') && !require('./paddle-ocr').installed().includes('latin')) needModel = 'latin';
-      const usedModel = groups.model || '', quality = groups.quality ?? 1, odd = groups.odd || 0, pageLang = groups.lang || '';
+      const usedModel = groups.model || '', quality = groups.quality ?? 1, odd = groups.odd || 0, pageLang = groups.lang || '', credPage = !!groups.credits;
       // couleurs des bulles telles que le navigateur les affiche (image avec un profil de couleur : ProPhoto, Adobe RGB…)
       if (buf && scale !== 0) { try { const dc = require('./icc').displayColor(buf); if (dc) for (const g of groups) if (g.bg) g.bg = dc(g.bg); } catch {} }
       groups = readingOrder(groups);
@@ -2113,11 +2123,14 @@ class WebBrowser {
       // texte lu remis en forme (majuscules, points de suspension) ; pour la traduction, en minuscules « normales »
       const cl = groups.map(g => M.cleanScan(g.text));
       groups = groups.map((g, i) => ({ ...g, text: cl[i].text, caps: cl[i].caps }));
+      // 1.7.2 : page en anglais : accents inventés par la lecture retirés (« DANTÓN » → DANTON)
+      if (pageLang === 'en') { try { const EA = require('./scan-fix').enAccents; groups = groups.map(g => ({ ...g, text: EA(g.text) })); } catch {} }
+      let learnedNames = [];
       // noms de la série (appris sur ce site) : « TSUKLMOGAMI » → TSUKUMOGAMI quand ce nom a déjà été bien lu souvent
       try {
         const SF = require('./scan-fix'); const host = (() => { try { return new URL(o.page).hostname; } catch { return ''; } })();
         // 1.7.1 : aussi pour les BD et mangas en français (« TIFAlNE » → TIFAINE quand TIFAINE a déjà été bien lu souvent)
-        if (host && (pageLang === 'en' || pageLang === 'fr')) { const NM = this.scanNames(); const names = NM.get(host); groups = groups.map(g => ({ ...g, text: SF.fixNames(g.text, names, pageLang) })); SF.learnNames(groups.map(g => g.text), names, pageLang); NM.save(); }
+        if (host && (pageLang === 'en' || pageLang === 'fr')) { const NM = this.scanNames(); const names = NM.get(host); try { learnedNames = Object.keys(names || {}).filter(k => names[k] >= 4 && k.length >= 4); } catch {} groups = groups.map(g => ({ ...g, text: SF.fixNames(g.text, names, pageLang) })); SF.learnNames(groups.map(g => g.text), names, pageLang); NM.save(); }
       } catch {}
       // cris et onomatopées (AHHH, HEHE, FUFU, HMM…) : gardés tels quels, pas traduits
       const keep = groups.map(g => M.interjection(g.text));
@@ -2125,21 +2138,35 @@ class WebBrowser {
       // alignées en colonne. Elles ne sont ni traduites ni recouvertes (avant : « FOX MASK » → « PURÉE DE RENARD »
       // et des cases grises posées les unes sur les autres)
       const table = M.tableCells(groups); table.forEach((t, i) => { if (t) keep[i] = true; });
+      // 1.7.2 : crédits des équipes, adresses de sites et de Discord : toujours laissés en original ; page de crédits entière
+      // aussi. Mais les notes pour le lecteur (« NB : », « N.B. », « T/N : », « TL NOTE ») sont toujours traduites.
+      try {
+        const SFc = require('./scan-fix');
+        groups.forEach((g, i) => {
+          const r = SFc.outsideRule(g.text, { credPage, bubble: !!g.bubble });
+          if (r === 'note') { keep[i] = false; table[i] = null; } else if (r === 'keep') keep[i] = true;
+        });
+      } catch {}
       // cris et noms dans une phrase : marques [1], [2]… recopiées par le traducteur puis remplacées (jamais traduits)
       // 1.7.0 refaite : lettres répétées pour crier (ATTENNNNNTION, VAAAAS Y, REAAALLY) ramenées au vrai mot avant
       // la traduction (sinon le mot inconnu était pris pour un nom et laissé tel quel)
       const SQ = (() => { try { return require('./scan-fix').squeeze; } catch { return t => t; } })();
-      const prot = groups.map(g => M.protect(SQ(g.text, /^(en|fr)$/.test(pageLang) ? pageLang : ''), pageLang, never, gl));
+      // 1.7.2 : noms des personnages appris sur ce site (vus souvent, absents du dictionnaire) : jamais traduits
+      // 1.7.2 : honorifiques japonais traduits (-SAN, -KUN… retirés ; ONII-CHAN → grand frère ; SENSEI → professeur)
+      const HON = t => (pageLang === 'en' && !/^ja/.test(String(to)) ? M.honorifics(t) : t);
+      const prot = groups.map(g => M.protect(HON(SQ(g.text, /^(en|fr)$/.test(pageLang) ? pageLang : '')), pageLang, [...never, ...learnedNames.filter(n => !never.some(x => x.toUpperCase() === n))], gl));
       const mt = () => groups.map((g, i) => M.forMT(prot[i].t, g.caps, pageLang));
       // 1.7.2 : la traduction IA (Gemini) est retirée : jamais de bons résultats
       let tr = null; const ai = '', aiWhy = '';
       if (!tr) {
-        tr = await M.translate(mt(), to, 'auto', this.B().translate || {});
-        if (!o.to && same(tr.from, to)) { to = second(to); tr = await M.translate(mt(), to, tr.from, this.B().translate || {}); }
+        tr = await M.translate(mt(), to, 'auto', this.scanTr());
+        if (!o.to && same(tr.from, to)) { to = second(to); tr = await M.translate(mt(), to, tr.from, this.scanTr()); }
       }
       const res = { blocks: groups.map((g, i) => ({ x0: g.x0, y0: g.y0, x1: g.x1, y1: g.y1, text: g.text, tr: keep[i] ? g.text : ai === 'ok' ? (tr.texts[i] || '') : M.unprotect(tr.texts[i] || '', prot[i].keep), vertical: g.vertical, bg: g.bg || '', bubble: g.bubble || null, caps: !!g.caps, lh: g.lh || 0, n: g.n || 1, ...(table[i] ? { skip: true } : {}), ...(g.prose ? { prose: true } : {}) })), w, captured: scale === 0, from: tr.from, to, needModel, model: usedModel, ai, aiWhy };
+      // 1.7.2 : « Tutoyer dans les scans » (activé par défaut) : vers le français, « vous » devient « tu » quand l'anglais parle à une seule personne
+      if (String(to).split('-')[0] === 'fr' && S.tutoie !== false) { try { const TU = require('./tutoie'); res.blocks.forEach(b => { if (b.tr && b.tr !== b.text) b.tr = TU.toTu(b.tr, b.text); }); } catch {} }
       // traduction habituelle après un échec de l'IA : gardée sous la clé du traducteur habituel (l'IA reprendra demain)
-      const skey = ai && ai !== 'ok' ? ckey.replace(/\|ai$/, '|' + ((this.B().translate || {}).provider || 'google')) : ckey;
+      const skey = ai && ai !== 'ok' ? ckey.replace(/\|ai$/, '|' + ((this.scanTr()).provider || 'google')) : ckey;
       // 1.7.2 : jamais de codes « <0x..> » dans une bulle, quel que soit le chemin de la traduction
       for (const b of res.blocks || []) if (b && /<0x[0-9a-f]{2}>/i.test(b.tr || '')) b.tr = require('./local-mt').bytesFix(b.tr);
       if (scale !== 0 && ai !== 'error') this.scanCache().set(skey, res, true);
@@ -2150,9 +2177,11 @@ class WebBrowser {
 
 // petite image (page réduite, capture d'écran) : agrandie avant la lecture (lettres de 8 px illisibles sinon)
 function upscale(img) {
-  const { width: w } = img.getSize();
+  const { width: w, height: h } = img.getSize();
   if (w >= 1100) return img;
-  const k = Math.min(3, 1400 / w);
+  // 1.7.2 : image très haute (webtoon) : agrandie moins, pour ne pas dépasser 40 millions de points (environ 160 Mo)
+  const k = Math.min(3, 1400 / w, Math.sqrt(40e6 / Math.max(1, w * h)));
+  if (k <= 1.05) return img;
   return img.resize({ width: Math.round(w * k), quality: 'best' });
 }
 // langue choisie pour les images -> modèle de lecture supplémentaire
@@ -2161,6 +2190,21 @@ const MODEL_OF_SRC = { kor: 'korean', kor_vert: 'korean', rus: 'eslav', ukr: 'es
 // (texte vertical), sinon de gauche à droite
 function readingOrder(gs) {
   const rtl = gs.filter(g => g.vertical).length > gs.length / 2;
+  // 1.7.2 : cases repérées sur la page : lecture case par case (bande par bande, de gauche à droite, ou de droite à
+  // gauche pour un manga), puis dans chaque case comme avant ; propriétés du tableau (modèle, langue…) gardées
+  const P = gs.panels;
+  if (Array.isArray(P) && P.length > 1) {
+    const cellOf = g => { const cx = (g.x0 + g.x1) / 2, cy = (g.y0 + g.y1) / 2; const i = P.findIndex(p => cx >= p.x0 && cx < p.x1 && cy >= p.y0 && cy < p.y1); return i < 0 ? null : P[i]; };
+    const bands = new Map();
+    for (const g of gs) { const c = cellOf(g); const key = c ? c.band + ':' + c.colIndex : 'x'; if (!bands.has(key)) bands.set(key, { c, items: [] }); bands.get(key).items.push(g); }
+    const cells = [...bands.values()].sort((a, b) => { if (!a.c || !b.c) return (a.c ? a.c.y0 : Math.min(...a.items.map(g => g.y0))) - (b.c ? b.c.y0 : Math.min(...b.items.map(g => g.y0))); return a.c.band - b.c.band || (rtl ? b.c.colIndex - a.c.colIndex : a.c.colIndex - b.c.colIndex); });
+    const out = cells.flatMap(c => rowsOrder(c.items, rtl));
+    for (const k of Object.keys(gs)) if (!/^\d+$/.test(k)) out[k] = gs[k];
+    return out;
+  }
+  const out = rowsOrder(gs, rtl); for (const k of Object.keys(gs)) if (!/^\d+$/.test(k)) out[k] = gs[k]; return out;
+}
+function rowsOrder(gs, rtl) {
   const s = gs.slice().sort((a, b) => a.y0 - b.y0), rows = [];
   for (const g of s) {
     const r = rows.find(r => g.y0 < r.y1 - Math.min(r.y1 - r.y0, g.y1 - g.y0) * 0.4);

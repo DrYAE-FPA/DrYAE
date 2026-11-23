@@ -1,5 +1,71 @@
 # Nouveautés / Changelog
 
+## 1.7.2
+
+### 🇫🇷 Français
+
+Un traducteur de scans entièrement sur votre PC, plus rapide et plus juste : DrYAE ne se fige plus pendant la lecture des bulles, lit mieux les pages difficiles, traduit dans un français plus naturel et écrit le texte proprement dans les bulles, à l'écran comme dans les fichiers enregistrés.
+
+**Traducteur de scans — traduction**
+- **100 % sur votre PC** : les scans sont toujours traduits sur l'ordinateur (rien n'est envoyé), même si un autre traducteur est choisi pour les pages web. Un petit cadenas 🔒 le rappelle dans la barre du traducteur.
+- **Tutoiement** : nouveau réglage « Tutoyer dans les scans » (activé par défaut, Paramètres → Traducteur de scans). Vers le français, les personnages se disent « tu » quand l'anglais parle à une seule personne (« Tu es fou ! Attends-moi ! », « Où vas-tu ? ») ; « vous » est gardé pour un groupe.
+- **Honorifiques japonais traduits** dans les scans anglais : « -SAN », « -KUN », « -CHAN » retirés, « ONII-CHAN » → grand frère, « SENSEI » → professeur, « -SAMA » → seigneur.
+- **Notes du traducteur traduites** : les « NB : », « N.B. », « T/N : », « TL NOTE » hors des bulles sont toujours traduites ; les crédits des équipes, les adresses de sites et de Discord restent en original.
+- **Prénoms et mots de jeu gardés** : les noms des personnages déjà vus souvent dans la série ne sont plus traduits (Will, Hope, May…), ni les mots de jeu comme MANA, HP, XP ou PNJ.
+- **Lexique pris en compte tout de suite** : un mot ajouté ou changé s'applique aussi aux pages déjà traduites.
+
+**Traducteur de scans — lecture des bulles**
+- **DrYAE ne se fige plus** : la lecture des bulles se fait à part, le navigateur reste fluide. « Arrêter » arrête vraiment le travail en cours.
+- **Moins de mémoire** : les webtoons très longs sont lus par morceaux, la mémoire est libérée au fil des pages.
+- **Texte blanc sur fond noir** mieux lu, **texte penché** redressé, **deux bulles collées** (« HEY, DANTON. ») séparées.
+- **Ordre de lecture** : DrYAE repère les cases et lit case par case ; une double page est coupée en deux.
+- **Plus de mots jetés** : « STARE », « STEP », « NOD » sont traduits (ce ne sont pas des bruitages) ; points de suspension et points d'exclamation mieux gardés.
+- **Japonais** : les petits caractères de lecture à côté des kanji ne se collent plus au mot ; les cris courts en katakana restent tels quels.
+
+**Traducteur de scans — écriture dans la bulle**
+- **Gomme de la bonne couleur** : la couleur est prise autour du texte, sans les lettres ; plus de rectangle sombre ni de blanc pur sur une bulle crème ou grise.
+- **Le français tient dans la bulle** : d'abord toute la bulle, puis une taille plus petite, et un mot est coupé à une syllabe (« main-tenant ») seulement si le texte deviendrait trop petit. L'arabe s'écrit de droite à gauche.
+- **Plusieurs bulles dans une case** : le texte d'une bulle ne passe plus sur celui de sa voisine.
+- **PDF et .cbz identiques à l'écran** : même place, même taille, mêmes coupures que ce que vous voyez.
+- **Webtoons très longs dans le PDF / .cbz** : les images trop hautes sont coupées en plusieurs pages, entre deux bulles (avant, elles manquaient dans le fichier).
+
+**Navigateur**
+- **Au démarrage, la page d'accueil** : DrYAE n'ouvre plus vos anciens onglets après « Quitter ». Pour les retrouver, choisissez « Reprendre là où je m'étais arrêté » dans Paramètres → Au démarrage. Si vous l'aviez choisi vous-même, rien ne change. La taille et la place de la fenêtre sont toujours gardées.
+
+Ne téléchargez que ce que vous avez le droit de copier.
+
+### 🇬🇧 English
+
+An image text translator that runs entirely on your PC, faster and more accurate: DrYAE no longer freezes while reading speech bubbles, reads difficult pages better, translates into more natural French, and writes the text neatly in the bubbles, on screen and in saved files alike.
+
+**Image text translator — translation**
+- **100% on your PC**: scans are always translated on the computer (nothing is sent), even if another translator is chosen for web pages. A small padlock 🔒 in the translator bar says so.
+- **Informal "tu"**: new setting "Informal “tu” in scans" (on by default, Settings → Image text translator). Into French, characters say "tu" when the English speaks to one person; "vous" is kept for a group.
+- **Japanese honorifics translated** in English scans: "-SAN", "-KUN", "-CHAN" removed, "ONII-CHAN" → big brother, "SENSEI" → teacher, "-SAMA" → lord.
+- **Translator notes translated**: "NB:", "N.B.", "T/N:", "TL NOTE" outside the bubbles are always translated; team credits and website or Discord addresses stay as they are.
+- **First names and game words kept**: names of characters already seen often in the series are no longer translated (Will, Hope, May…), nor game words such as MANA, HP, XP or NPC.
+- **Glossary applied right away**: a word added or changed also applies to pages already translated.
+
+**Image text translator — reading the bubbles**
+- **No more freezing**: bubbles are read separately, the browser stays smooth. "Stop" really stops the work in progress.
+- **Less memory**: very long webtoons are read in pieces, memory is freed page after page.
+- **White text on black** read better, **slanted text** straightened, **two touching bubbles** ("HEY, DANTON.") kept apart.
+- **Reading order**: DrYAE finds the panels and reads panel by panel; a double page is split in two.
+- **Fewer words thrown away**: "STARE", "STEP", "NOD" are translated (they are not sound effects); ellipses and exclamation marks kept better.
+- **Japanese**: small reading characters next to kanji no longer stick to the word; short katakana cries stay as they are.
+
+**Image text translator — writing in the bubble**
+- **Eraser of the right colour**: the colour is taken around the text, without the letters; no more dark rectangle or pure white on a cream or grey bubble.
+- **French fits in the bubble**: first the whole bubble, then a smaller size, and a word is split at a syllable ("main-tenant") only if the text would become too small. Arabic is written right to left.
+- **Several bubbles in one panel**: the text of one bubble no longer runs over its neighbour's.
+- **PDF and .cbz identical to the screen**: same place, same size, same line breaks as what you see.
+- **Very long webtoons in the PDF / .cbz**: images that are too tall are split into several pages, between two bubbles (before, they were missing from the file).
+
+**Browser**
+- **The home page at startup**: DrYAE no longer reopens your old tabs after "Quit". To get them back, choose "Continue where I left off" in Settings → On startup. If you had chosen it yourself, nothing changes. The window's size and position are still remembered.
+
+Only download what you have the right to copy.
+
 ## 1.7.1
 
 ### 🇫🇷 Français

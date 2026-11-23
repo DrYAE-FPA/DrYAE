@@ -292,6 +292,8 @@ function interjWord(w) {
   return true;
 }
 function interjection(t) {
+  // 1.7.2 : cri ou bruitage japonais court en katakana (« ドドド », « ガッ », « キャー ») : gardé tel quel, pas traduit comme une phrase
+  { const k = String(t || '').replace(/[\s!?！？…・。、〜~]/g, ''); if (k && k.length <= 6 && /^[\u30a0-\u30ffー]+$/.test(k) && (/[ーッァィゥェォャュョ]/.test(k) || /(.)\1/.test(k))) return true; }
   const ws = String(t || '').match(/\p{L}+/gu) || [];
   return ws.length > 0 && ws.length <= 6 && ws.every(w => interjWord(w));
 }
@@ -360,3 +362,21 @@ function tableCells(groups) {
   return table;
 }
 module.exports = { tableCells, protect, unprotect, glossApply, interjWord, interjection, cleanScan, forMT, MODULES, MOD_DEFAULT, PROVIDERS, PADDLE_LANGS, OCR_FIX, readRegions, translate, setUserAgent, readImage, OCR_LANGS, ocrDownloaded, windowsHello, pwnedCount, weak, generatePassword };
+// 1.7.2 : honorifiques japonais dans les scans anglais : traduits (réponse du propriétaire) avant la traduction.
+// « KAITO-SAN » → « KAITO », « RIN-SAMA » → « LORD RIN », « ONII-CHAN » → « BIG BROTHER », « SENSEI » → « TEACHER »
+function honorifics(text) {
+  const up = s => s === s.toUpperCase();
+  const cs = (src, t) => (up(src) && /\p{L}/u.test(src) ? t.toUpperCase() : t);
+  let t = String(text || '');
+  t = t.replace(/\b(o?nii|o?nii)[-‐]?(chan|san|sama|kun)\b|\bonii\b/gi, m => cs(m, 'big brother'));
+  t = t.replace(/\b(o?nee|o?nee)[-‐]?(chan|san|sama)\b|\bonee\b/gi, m => cs(m, 'big sister'));
+  t = t.replace(/\b(\p{L}[\p{L}']+)[-‐](sama)\b/giu, (m, n) => cs(m, 'lord ') .replace(/LORD |lord /, x => x) + n);
+  t = t.replace(/\b(\p{L}[\p{L}']+)[-‐](sensei)\b/giu, (m, n) => cs(m, 'teacher ') + n);
+  t = t.replace(/\b(\p{L}[\p{L}']+)[-‐](senpai|sempai)\b/giu, (m, n) => n);
+  t = t.replace(/\b(\p{L}[\p{L}']+)[-‐](san|kun|chan|chin|tan|dono|tachi)\b/giu, (m, n) => n);
+  t = t.replace(/\b(senpai|sempai)\b/gi, m => cs(m, 'upperclassman'));
+  t = t.replace(/\bkouhai\b|\bkohai\b/gi, m => cs(m, 'junior'));
+  t = t.replace(/\bsensei\b/gi, m => cs(m, 'teacher'));
+  return t;
+}
+module.exports.honorifics = honorifics;

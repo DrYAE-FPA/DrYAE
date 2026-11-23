@@ -30,7 +30,8 @@ function load() {
   return DICT;
 }
 let APOS = new Map();
-const SPECIAL = { ts: "it's", tm: "i'm", im: "i'm", tve: "i've", ive: "i've", tll: "i'll", tid: "i'd", dint: "didn't", didnt: "didn't", cant: "can't", wont: "won't", youre: "you're", theyre: "they're", thats: "that's", whats: "what's", hes: "he's", shes: "she's", theres: "there's", heres: "here's", lts: "it's", "t's": "it's" };
+// 1.7.2 : « EY, » = HEY dont le H n'a pas été lu (bord de bulle)
+const SPECIAL = { ey: 'hey', ts: "it's", tm: "i'm", im: "i'm", tve: "i've", ive: "i've", tll: "i'll", tid: "i'd", dint: "didn't", didnt: "didn't", cant: "can't", wont: "won't", youre: "you're", theyre: "they're", thats: "that's", whats: "what's", hes: "he's", shes: "she's", theres: "there's", heres: "here's", lts: "it's", "t's": "it's" };
 
 // lettres que la lecture confond souvent dans les bulles (écriture « bande dessinée » en majuscules)
 const CONF = {
@@ -208,6 +209,8 @@ function fixWords(text) {
   return creditsUnmask(fixWords0(cm.t), cm.keep);
 }
 function fixWords0(text) {
+  // 1.7.2 : « …H-HOW » dont deux points n'ont pas été lus : « .H-HOW » → « ...H-HOW »
+  text = String(text).replace(/^(\s*)\.(?=\p{L})/u, '$1...');
   text = fixEllipsis(capsLike(text));
   { const m = /^(\s*)(\p{L}+)([?!]+\s*)$/u.exec(text); if (m && LOST_W[m[2].toLowerCase()] && /\?/.test(m[3])) text = m[1] + likeCase(m[2], LOST_W[m[2].toLowerCase()]) + m[3]; }
   text = digitWords(halfwidth(text), w => known(w), w => rank(w));
@@ -219,6 +222,8 @@ function fixWords0(text) {
     // texte en minuscules : un mot à majuscule au milieu d'une phrase est un nom propre (« Rea », « Chaosah ») : pas touché
     if (mixed && /^\p{Lu}\p{Ll}+$/u.test(m) && off > 0 && !/[.!?…:"“«]\s*$/.test(all.slice(Math.max(0, off - 3), off)) && !known(w)) return m;
     if (!/^[a-z']+$/.test(w)) return m;
+    // 1.7.2 : mot inconnu après un nombre (« TEN MILLION MARLS ») : une monnaie ou une unité de la série, pas un mot mal lu
+    if (!known(w) && !SPECIAL[w] && w.length >= 4 && /(?:\d|\b(?:million|millions|thousand|hundred|billion|ten|twenty|hundreds|thousands))\s+$/i.test(all.slice(Math.max(0, off - 12), off))) return m;
     if (!known(w) && !APOS.has(w) && !SPECIAL[w] && /l/.test(w)) { const u = lToU(w, x => known(x), x => rank(x), w.length <= 2 ? 0 : 3); if (u) { const core = m.replace(/^'+|'+$/g, ''); return m.replace(core, likeCase(core, u)); } }
     // apostrophe ou « I » non lus dans les formes courtes : « TS » → IT'S, « TVE » → I'VE, « DINT » → DIDN'T
     if (SPECIAL[w]) { const core = m.replace(/^'+|'+$/g, ''); return m.replace(core, likeCase(core, SPECIAL[w])); }
@@ -653,3 +658,26 @@ function squeezeWord(w, lang) {
 }
 function squeeze(text, lang) { return String(text).replace(/\p{L}+/gu, w => squeezeWord(w, lang)); }
 module.exports.squeeze = squeeze; module.exports.squeezeWord = squeezeWord;
+// 1.7.2 : page en anglais : accent inventé par la lecture sur un mot inconnu (« DANTÓN ») retiré ; les vrais mots
+// accentués (CAFÉ, NAÏVE…) et les mots d'une autre langue connue sont gardés
+function enAccents(text) {
+  load();
+  return String(text).replace(/\p{L}*[À-ÖØ-öø-ÿ]\p{L}*/gu, w => {
+    const l = w.toLowerCase(); if (known(l) || w.length < 3) return w;
+    const plain = w.normalize('NFD').replace(/[̀-ͯ]/g, '');
+    return /^[A-Za-z]+$/.test(plain) ? plain : w;
+  });
+}
+module.exports.enAccents = enAccents;
+
+// 1.7.2 : texte hors des bulles : notes pour le lecteur (« NB : », « N.B. », « T/N : », « TL NOTE », « NOTE DU TRAD ») → 'note'
+// (toujours traduites) ; crédits des équipes, adresses de sites, Discord, @pseudos, page de crédits → 'keep' (laissés en original)
+const NOTE_RE = /^\W*(N\s?\.?\s?B\b|T\s?\/\s?N\b|TN\s?:|TL\s?NOTES?\b|NOTE\s+(DU|DE LA|DES)?\s*TRAD|TRANSLATOR'?S?\s+NOTE)/i;
+const LINK_RE = /(https?:\/\/|www\.|discord\.(gg|com)|\.(com|net|org|io|fr|xyz|site)\b|@\w{3,})/i;
+function outsideRule(text, o = {}) {
+  const t = String(text || '');
+  if (NOTE_RE.test(t)) return 'note';
+  if (o.credPage || LINK_RE.test(t) || (creditsHint(t) > 0 && !o.bubble)) return 'keep';
+  return null;
+}
+module.exports.outsideRule = outsideRule;

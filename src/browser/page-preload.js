@@ -922,7 +922,7 @@ function pageFeatures() {
     if (scan) return;
     const layer = el('<div style="position:fixed;inset:0;pointer-events:none;z-index:0"></div>');
     // 1.7.1 : barre transparente (on voit la page à travers) ; elle redevient pleine quand la souris passe dessus
-    const bar = el(`<div class="card scanbar" style="right:16px;bottom:16px;padding:5px 7px;display:flex;align-items:center;gap:6px;font-size:11.5px;background:rgba(22,26,34,.45);backdrop-filter:blur(3px);text-shadow:0 1px 2px #000;transition:background .2s,opacity .2s;opacity:.7""><span style="color:#c4b5fd;display:flex" title="${esc(pt('Traducteur de scans'))}">${ICO.tr}</span><span class="st" style="color:#8f97aa"></span><button class="btn sel" title="${esc(pt('Affiche le texte lu dans les bulles : sélectionnez un mot pour le corriger ou l\'ajouter au lexique'))}">${esc(pt('Texte lu'))}</button><button class="btn tg">${esc(pt('Afficher l\'original'))}</button><button class="btn st2">${esc(pt('Arrêter'))}</button></div>`);
+    const bar = el(`<div class="card scanbar" style="right:16px;bottom:16px;padding:5px 7px;display:flex;align-items:center;gap:6px;font-size:11.5px;background:rgba(22,26,34,.45);backdrop-filter:blur(3px);text-shadow:0 1px 2px #000;transition:background .2s,opacity .2s;opacity:.7""><span style="color:#c4b5fd;display:flex" title="${esc(pt('Traducteur de scans'))}">${ICO.tr}</span><span title="${esc(pt('Traduit sur votre PC : rien n\'est envoyé'))}" style="color:#8f97aa;cursor:default">🔒</span><span class="st" style="color:#8f97aa"></span><button class="btn sel" title="${esc(pt('Affiche le texte lu dans les bulles : sélectionnez un mot pour le corriger ou l\'ajouter au lexique'))}">${esc(pt('Texte lu'))}</button><button class="btn tg">${esc(pt('Afficher l\'original'))}</button><button class="btn st2">${esc(pt('Arrêter'))}</button></div>`);
     bar.addEventListener('mouseenter', () => { bar.style.background = 'rgba(22,26,34,.96)'; bar.style.opacity = 1; });
     bar.addEventListener('mouseleave', () => { bar.style.background = 'rgba(22,26,34,.45)'; bar.style.opacity = .7; });
     scan = { layer, bar, items: new Map(), queue: [], busy: false, shown: true, n: 0, io: null, tools: null, hover: null };
@@ -997,7 +997,7 @@ function pageFeatures() {
       } finally { clearTimeout(slow); }
       const it = scan?.items.get(img);
       if (it) {
-        it.blocks = res.blocks; it.w = res.w; it.key = res.key; it.captured = res.captured ? { left: Math.max(0, r.left) - r.left, top: Math.max(0, r.top) - r.top, w: vis.w / dpr } : null;
+        it.blocks = res.blocks; it.w = res.w; it.key = res.key; it.to = res.to; it.captured = res.captured ? { left: Math.max(0, r.left) - r.left, top: Math.max(0, r.top) - r.top, w: vis.w / dpr } : null;
         it.box?.remove(); it.box = drawScan(it); it.cmp = 100;
         scan.n += res.blocks.length;
         if (res.from) toHost('dryae-scanlang', { from: res.from, to: res.to });
@@ -1016,16 +1016,6 @@ function pageFeatures() {
   }
   // 1.7.0 refaite : enregistrer les pages traduites (.cbz ou PDF) — la traduction est dessinée sur chaque image.
   // Possible quand les images viennent du PC (lecteur de BD) ou du même site ; sinon l'image ne peut pas être recopiée.
-  function fitText(ctx, text, w, h, font) {
-    const words = String(text).split(/\s+/).filter(Boolean); let size = Math.max(10, Math.min(h * 0.6, 64)), lines = [];
-    for (; size >= 8; size -= 1) {
-      ctx.font = `700 ${size}px ${font}`; lines = []; let line = '';
-      for (const wd of words) { const t = line ? line + ' ' + wd : wd; if (ctx.measureText(t).width <= w || !line) line = t; else { lines.push(line); line = wd; } }
-      if (line) lines.push(line);
-      if (lines.length * size * 1.12 <= h && lines.every(l => ctx.measureText(l).width <= w * 1.02)) break;
-    }
-    return { size, lines };
-  }
   // 1.7.1 : toutes les pages du chapitre, dans l'ordre. Si la page ne montre qu'une partie des images (lecteur page par page,
   // chargement au défilement), on cherche dans la page la liste des adresses d'images du même dossier que l'image affichée.
   const sameOrigin = u => { if (!u || /^(data|blob):/.test(u)) return true; try { return new URL(u, location.href).origin === location.origin; } catch { return false; } };
@@ -1079,23 +1069,59 @@ function pageFeatures() {
           img = new Image(); img.src = url; await img.decode();
         } catch { if (url) URL.revokeObjectURL(url); blocked++; continue; }
       }
-      const c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight;
-      const ctx = c.getContext('2d'); ctx.drawImage(img, 0, 0); if (url) URL.revokeObjectURL(url);
-      if (!orig && it?.blocks?.length) {
-        done++;
-        const k = img.naturalWidth / (it.w || w0 || img.naturalWidth), font = FONT;
-        for (const b of it.blocks) {
-          const tr = b.tr || ''; if (!tr || tr === b.text) continue;
-          const x = b.x0 * k, y = b.y0 * k, w = (b.x1 - b.x0) * k, h = (b.y1 - b.y0) * k, pad = Math.max(2, h * 0.06);
-          ctx.fillStyle = b.bg || '#fff'; ctx.beginPath(); (ctx.roundRect ? ctx.roundRect(x - pad, y - pad, w + pad * 2, h + pad * 2, 6) : ctx.rect(x - pad, y - pad, w + pad * 2, h + pad * 2)); ctx.fill();
-          const f = fitText(ctx, b.caps ? tr.toUpperCase() : tr, w + pad, h + pad, font);
-          ctx.fillStyle = inkOn(b.bg || '#fff'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = `700 ${f.size}px ${font}`;
-          const lh = f.size * 1.12, y0 = y + h / 2 - (f.lines.length - 1) * lh / 2;
-          f.lines.forEach((l, j) => ctx.fillText(l, x + w / 2, y0 + j * lh));
-        }
+      // 1.7.2 : écriture identique à l'écran (mêmes zones, mêmes tailles, mêmes coupures) ; une image très haute (webtoon)
+      // est coupée en plusieurs pages du fichier, entre deux bulles (au-delà de ~16 000 points, elle ne peut pas être recopiée)
+      const W = img.naturalWidth, H = img.naturalHeight, MAXH = 12000;
+      const tr = !orig && it?.blocks?.length;
+      const kx = W / (it?.w || w0 || W);
+      const Z = tr ? scanZones(it) : [];
+      const cuts = [0];
+      while (H - cuts[cuts.length - 1] > MAXH) {
+        let y = cuts[cuts.length - 1] + MAXH;
+        // remonter la coupure tant qu'elle traverse une bulle (au plus d'un quart de page)
+        for (let n = 0; n < 40 && tr && Z.some(z => z[1] * kx - 6 < y && z[3] * kx + 6 > y); n++) y -= MAXH / 160;
+        cuts.push(Math.round(y));
       }
-      try { const b = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.92)); if (!b) throw 0; out.push(new Uint8Array(await b.arrayBuffer())); }
-      catch { blocked++; }
+      cuts.push(H);
+      if (tr) done++;
+      let ok = true;
+      for (let p = 0; p + 1 < cuts.length; p++) {
+        const sy = cuts[p], sh = cuts[p + 1] - sy;
+        const c = document.createElement('canvas'); c.width = W; c.height = sh;
+        const ctx = c.getContext('2d'); ctx.drawImage(img, 0, sy, W, sh, 0, 0, W, sh);
+        if (tr) {
+          ctx.save(); ctx.translate(0, -sy);
+          it.blocks.forEach((b, i) => {
+            const t0 = b.tr || ''; if (b.skip || !t0 || t0 === b.text) return;
+            const [X0, Y0, X1, Y1] = Z[i]; if (Y1 * kx < sy - 10 || Y0 * kx > sy + sh + 10) return;
+            const bg = b.bg || '#fff', pad = 4 * kx;
+            // gomme : sur le texte d'origine seulement (comme à l'écran)
+            ctx.fillStyle = bg; ctx.beginPath();
+            const ex = b.x0 * kx - 4, ey = b.y0 * kx - 4, ew = (b.x1 - b.x0) * kx + 8, eh = (b.y1 - b.y0) * kx + 8;
+            (ctx.roundRect ? ctx.roundRect(ex, ey, ew, eh, 6) : ctx.rect(ex, ey, ew, eh)); ctx.fill();
+            let x = X0 * kx - pad, y = Y0 * kx - pad, w = (X1 - X0) * kx + pad * 2, h = (Y1 - Y0) * kx + pad * 2;
+            if (b.vertical && !b.bubble) { const ww = Math.max(w, h * 0.55); x -= (ww - w) / 2; w = ww; }
+            // pas de bulle repérée : la zone entière prend la couleur du fond (comme à l'écran)
+            if (!b.bubble || b.prose) { ctx.fillStyle = bg; ctx.fillRect(x, y, w, h); }
+            const prose = !!b.prose, font = prose ? 'Georgia, "Times New Roman", serif' : FONT;
+            const orig0 = b.lh ? b.lh * kx * (b.vertical ? 0.75 : prose ? 0.95 : 1.08) : h * 0.5;
+            const max = Math.max(5 * kx, Math.min(24 * kx, Math.max(8 * kx, orig0)));
+            const txt = b.caps ? t0.toUpperCase() : t0, lg = String(it.to || '').split('-')[0];
+            const f = fitCanvas(ctx, txt, w - 4, h - 2, font, max, 5 * kx, lg, prose ? 400 : 700, prose ? 1.25 : 1.12);
+            ctx.fillStyle = inkOn(bg); ctx.textBaseline = 'middle'; ctx.font = `${prose ? 400 : 700} ${f.size}px ${font}`;
+            const rtl = RTL.test(lg); ctx.direction = rtl ? 'rtl' : 'ltr';
+            const lh = f.size * (prose ? 1.25 : 1.12), yy = y + h / 2 - (f.lines.length - 1) * lh / 2;
+            if (prose) { ctx.textAlign = rtl ? 'right' : 'left'; f.lines.forEach((l, j) => ctx.fillText(l, rtl ? x + w - 2 : x + 2, yy + j * lh)); }
+            else { ctx.textAlign = 'center'; f.lines.forEach((l, j) => ctx.fillText(l, x + w / 2, yy + j * lh)); }
+          });
+          ctx.restore();
+        }
+        try { const bl = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.92)); if (!bl) throw 0; out.push(new Uint8Array(await bl.arrayBuffer())); }
+        catch { ok = false; }
+        c.width = c.height = 0;
+      }
+      if (url) URL.revokeObjectURL(url);
+      if (!ok) blocked++;
     }
     if (!out.length) return hint(pt('Ces images ne peuvent pas être recopiées (elles viennent d\'un autre site)'));
     const name = (document.title || 'chapitre').replace(/ — DrYAE$/, '');
@@ -1111,6 +1137,93 @@ function pageFeatures() {
   async function loadFont() {
     if (fontLoaded || SC.font === 'sans' || SC.font === 'serif') return; fontLoaded = true;
     try { const b = await ipcRenderer.invoke('scan:font'); if (b) { const f = new FontFace('DrYAE Comic', b, { weight: '100 900' }); await f.load(); document.fonts.add(f); } } catch {}
+  }
+  // 1.7.2 : une seule règle de placement pour l'écran et pour l'enregistrement (PDF, .cbz).
+  // Zone d'écriture de chaque bulle (en points de l'image) : le texte d'origine, agrandi dans la bulle repérée ;
+  // deux zones agrandies qui se chevauchent (plusieurs bulles dans une case) sont partagées entre elles.
+  function scanZones(it) {
+    if (it._z && it._zb === it.blocks) return it._z;
+    const B = it.blocks || [];
+    const Z = B.map(b => {
+      let z = [b.x0, b.y0, b.x1, b.y1];
+      if (b.bubble && !b.skip) {
+        const bb = b.bubble, ix = (bb.x1 - bb.x0) * 0.16, iy = (bb.y1 - bb.y0) * 0.16;
+        const E = [Math.min(b.x0, Math.max(bb.x0, bb.x0 + ix)), Math.min(b.y0, bb.y0 + iy), Math.max(b.x1, bb.x1 - ix), Math.max(b.y1, bb.y1 - iy)];
+        // jamais par-dessus le texte d'une autre bulle ou d'une case voisine : alors on reste sur le texte d'origine
+        const hit = B.some(o => o !== b && !o.skip && o.x0 < E[2] && o.x1 > E[0] && o.y0 < E[3] && o.y1 > E[1] && !(o.x0 < b.x1 && o.x1 > b.x0 && o.y0 < b.y1 && o.y1 > b.y0));
+        if (!hit) z = E;
+      }
+      return z;
+    });
+    const over = (a, c) => a[0] < c[2] && a[2] > c[0] && a[1] < c[3] && a[3] > c[1];
+    for (let i = 0; i < B.length; i++) for (let j = i + 1; j < B.length; j++) {
+      if (B[i].skip || B[j].skip || !over(Z[i], Z[j])) continue;
+      const a = B[i], c = B[j];
+      // le texte d'origine des deux bulles se touche déjà : rien à partager
+      if (a.x0 < c.x1 && a.x1 > c.x0 && a.y0 < c.y1 && a.y1 > c.y0) continue;
+      const gx = Math.max(c.x0 - a.x1, a.x0 - c.x1), gy = Math.max(c.y0 - a.y1, a.y0 - c.y1);
+      // on coupe au milieu de l'espace entre les deux textes, dans le sens où ils sont le plus écartés
+      const [lo, hi, A, C, k0, k1] = gx >= gy ? (a.x1 <= c.x0 ? [a.x1, c.x0, i, j, 2, 0] : [c.x1, a.x0, j, i, 2, 0]) : (a.y1 <= c.y0 ? [a.y1, c.y0, i, j, 3, 1] : [c.y1, a.y0, j, i, 3, 1]);
+      const m = (lo + hi) / 2;
+      Z[A][k0] = Math.min(Z[A][k0], m); Z[C][k1] = Math.max(Z[C][k1], m);
+    }
+    it._zb = it.blocks; it._z = Z;
+    return Z;
+  }
+  // 1.7.2 : points de coupure possibles dans les longs mots (« main-tenant »), utilisés seulement en dernier recours,
+  // quand le texte deviendrait trop petit sans eux. Règle simple des syllabes pour les langues en lettres latines.
+  const SHY = '­', HY_LANG = /^(fr|en|es|it|pt|de|nl|ro|ca|pl|cs|sk|sv|da|no|nb|fi|id|ms|tr|vi|hu|hr|sl)$/;
+  const HY_KEEP = /^(bl|br|cl|cr|dr|fl|fr|gl|gr|pl|pr|tr|vr|ch|ph|gn|th|qu|gu)$/i;
+  function hyphenate(text, lang) {
+    if (!HY_LANG.test(String(lang || '').split('-')[0])) return text;
+    const V = 'aeiouyàâäéèêëîïôöùûüÿæœáíóúãõ';
+    const isV = ch => V.includes(ch.toLowerCase());
+    return String(text).replace(/[A-Za-zÀ-ÖØ-öø-ÿŒœ]{8,}/g, w => {
+      const cut = [];
+      for (let i = 1; i < w.length - 1; i++) {
+        if (!isV(w[i - 1])) continue;
+        let j = i; while (j < w.length && !isV(w[j])) j++;
+        if (j >= w.length || j === i) continue;
+        const cons = w.slice(i, j); let at;
+        if (cons.length === 1) at = i;
+        else if (HY_KEEP.test(cons.slice(-2))) at = j - 2;
+        else at = j - 1;
+        if (at >= 3 && w.length - at >= 3 && !cut.includes(at)) cut.push(at);
+        i = j - 1;
+      }
+      let o = '', p = 0; for (const c of cut) { o += w.slice(p, c) + SHY; p = c; }
+      return o + w.slice(p);
+    });
+  }
+  const RTL = /^(ar|fa|ur|he|ps|yi)$/;
+  // texte à écrire dans une zone (canevas) : la plus grande taille qui tient sans couper un mot, puis avec les coupures
+  // de syllabes, et un mot coupé n'importe où seulement si rien d'autre ne tient (même règle qu'à l'écran)
+  function fitCanvas(ctx, text, w, h, font, max, min, lang, weight = 700, lhK = 1.12) {
+    const wrap = (t, size, any) => {
+      ctx.font = `${weight} ${size}px ${font}`;
+      const lines = []; let line = '';
+      const width = x => ctx.measureText(x.replace(/­/g, '')).width;
+      // coupe un mot aux syllabes : le plus long début qui tient (avec un tiret) sur la ligne en cours
+      const split = (pre, word) => { const ps = word.split(SHY); for (let k = ps.length - 1; k >= 1; k--) { const hd = ps.slice(0, k).join('') + '-', t3 = pre ? pre + ' ' + hd : hd; if (width(t3) <= w) return [t3, ps.slice(k).join(SHY)]; } return null; };
+      for (const raw of String(t).split(/\s+/).filter(Boolean)) {
+        const t2 = line ? line + ' ' + raw : raw;
+        if (width(t2) <= w) { line = t2; continue; }
+        let rest = raw, r = raw.includes(SHY) ? split(line, rest) : null;
+        if (!r && line) { lines.push(line); line = ''; if (width(rest) <= w) { line = rest; continue; } r = rest.includes(SHY) ? split('', rest) : null; }
+        while (r) { lines.push(r[0]); rest = r[1]; if (width(rest) <= w) break; r = split('', rest); }
+        line = rest;
+        if (any) while (width(line) > w && line.length > 1) { let n = line.length - 1; while (n > 1 && width(line.slice(0, n)) > w) n--; lines.push(line.slice(0, n)); line = line.slice(n); }
+      }
+      if (line) lines.push(line);
+      const clean = lines.map(l => l.replace(/­/g, ''));
+      return { size, lines: clean, ok: clean.length * size * lhK <= h + 1 && clean.every(l => ctx.measureText(l).width <= w + 1) };
+    };
+    const search = (t, any) => { let lo = min, hi = Math.max(min + 0.5, max), best = null; for (let n = 0; n < 9; n++) { const mid = (lo + hi) / 2, r = wrap(t, mid, any); if (r.ok) { best = r; lo = mid; } else hi = mid; } return best; };
+    const plain = search(String(text).replace(/­/g, ''), false);
+    if (plain && plain.size >= Math.min(max * 0.75, 10 * (min / 5))) return plain;
+    const hy = search(hyphenate(text, lang), false);
+    const best = [plain, hy].filter(Boolean).sort((a, b) => b.size - a.size)[0];
+    return best || wrap(text, min, true);
   }
   // couleur du texte lisible sur le fond de la bulle
   const inkOn = bg => { const m = /(\d+),\s*(\d+),\s*(\d+)/.exec(bg || ''); if (!m) return '#111'; return (+m[1] * 0.3 + +m[2] * 0.59 + +m[3] * 0.11) > 140 ? '#111' : '#fff'; };
@@ -1131,13 +1244,15 @@ function pageFeatures() {
       box.appendChild(er); d._e = er;
       d.style.cssText = `position:absolute;pointer-events:auto;display:flex;align-items:center;justify-content:center;text-align:center;background:${b.bubble ? 'transparent' : bg};color:${inkOn(bg)};border-radius:8px;padding:1px 2px;font:700 12px/1.12 ${FONT};overflow:hidden;cursor:text;user-select:text;-webkit-user-select:text;word-break:normal;overflow-wrap:normal;hyphens:manual;letter-spacing:0;${b.caps ? 'text-transform:uppercase;' : ''}`;
       // clic : original / traduction (pas après une sélection de texte) ; sélection : petite fenêtre d'actions
-      d.onclick = e => { if (e.detail > 1) return; clearTimeout(d._t); d._t = setTimeout(() => { if (scanSel().trim()) return; d.textContent = d.textContent === b.text ? (b.tr || b.text) : b.text; d._w = 0; }, 280); };
+      d.onclick = e => { if (e.detail > 1) return; clearTimeout(d._t); d._t = setTimeout(() => { if (scanSel().trim()) return; d.textContent = d.textContent.replace(/\u00ad/g, '') === b.text ? (b.tr || b.text) : b.text; d._w = 0; }, 280); };
       d.ondblclick = () => clearTimeout(d._t);
       d.onmouseup = e => setTimeout(() => selAction(it, i, d, e), 0);
       d.oncontextmenu = e => { e.preventDefault(); e.stopPropagation(); editBubble(it, i, d); };
       // 1.7.1 : paragraphe de livre ou de roman : écrit comme un paragraphe (aligné à gauche, police de texte normale)
       if (b.prose) Object.assign(d.style, { justifyContent: 'flex-start', alignItems: 'flex-start', textAlign: 'justify', fontFamily: 'Georgia, "Times New Roman", serif', fontWeight: '400', lineHeight: '1.25', background: bg, borderRadius: '2px', hyphens: 'auto' });
       d._b = b;
+      // 1.7.2 : langue de la bulle (coupures de mots correctes) ; arabe, persan, hébreu : écrits de droite à gauche
+      const lg = String(it.to || '').split('-')[0]; if (lg) { d.lang = lg; if (RTL.test(lg)) d.dir = 'rtl'; }
       box.appendChild(d);
     });
     return box;
@@ -1187,7 +1302,7 @@ function pageFeatures() {
     };
   }
   // 1.7.0 refaite : texte des bulles sélectionnable (dans la zone de DrYAE, invisible pour la page)
-  const scanSel = () => { try { const s = uiRoot && uiRoot.getSelection ? uiRoot.getSelection() : getSelection(); return s ? String(s) : ''; } catch { return ''; } };
+  const scanSel = () => { try { const s = uiRoot && uiRoot.getSelection ? uiRoot.getSelection() : getSelection(); return s ? String(s).replace(/\u00ad/g, '') : ''; } catch { return ''; } };
   // 1.7.1 : mots anglais très courants (les mettre au lexique abîme la traduction ; « HERE » → ICI changeait THERE en TICI)
   const LEX_COMMON = new Set(('a about after again all also am an and any anyone anything are as aside at be because been before begin being both but by can come could did do does done else elsewhere even every everything fine for from get go going good got had has have he her here him his how i if in into is it its just know let like look made make man many may me mean more most much must my never new no not now of off ok okay on once one only or other our out over please really right said same say see she should so some someone something still such take taken tell than that the their them then there these they thing think this those time to too totally two up us very want was way we well were what when where which who why will with without would yes yet you your amazing hand nose women woman men nine seven eight six five four three first second third').split(' '));
   const lexCommon = src => { const w = String(src).trim().toLowerCase().replace(/[?!.,…]+$/g, '').trim(); if (w.split(/\s+/).length >= 4) return true; return w.split(/\s+/).every(x => LEX_COMMON.has(x.replace(/^\W+|\W+$/g, '').replace(/'s$/, ''))); };
@@ -1229,19 +1344,12 @@ function pageFeatures() {
     const k = base.w / (it.w || 1);
     // comparer : seule la partie gauche (jusqu'au curseur) montre la traduction
     Object.assign(it.box.style, { left: base.left + 'px', top: base.top + 'px', width: (r.right - base.left) + 'px', height: (r.bottom - base.top) + 'px', clipPath: it.cmp < 100 ? `inset(0 ${100 - it.cmp}% 0 0)` : '' });
+    const Z = scanZones(it);
     for (const d of it.box.children) {
       const b = d._b; if (!b) continue; const pad = 4;
       if (d._e) Object.assign(d._e.style, { left: (b.x0 * k - 3) + 'px', top: (b.y0 * k - 3) + 'px', width: ((b.x1 - b.x0) * k + 6) + 'px', height: ((b.y1 - b.y0) * k + 6) + 'px' });
-      // zone de dessin : le texte d'origine, agrandie à l'intérieur de la bulle quand elle a été repérée
-      let X0 = b.x0, Y0 = b.y0, X1 = b.x1, Y1 = b.y1;
-      // la zone d'écriture s'agrandit dans la bulle repérée (sans en sortir), un peu en retrait de son bord
-      if (b.bubble) {
-        const bb = b.bubble, ix = (bb.x1 - bb.x0) * 0.16, iy = (bb.y1 - bb.y0) * 0.16;
-        const E = [Math.min(X0, Math.max(bb.x0, bb.x0 + ix)), Math.min(Y0, bb.y0 + iy), Math.max(X1, bb.x1 - ix), Math.max(Y1, bb.y1 - iy)];
-        // 1.7.1 : jamais par-dessus le texte d'une autre bulle ou d'une case voisine : alors on reste sur le texte d'origine
-        const hit = it.blocks.some(o => o !== b && o.x0 < E[2] && o.x1 > E[0] && o.y0 < E[3] && o.y1 > E[1] && !(o.x0 < b.x1 && o.x1 > b.x0 && o.y0 < b.y1 && o.y1 > b.y0));
-        if (!hit) [X0, Y0, X1, Y1] = E;
-      }
+      // zone de dessin : le texte d'origine, agrandie dans la bulle repérée (même règle que pour l'enregistrement)
+      const [X0, Y0, X1, Y1] = Z[it.blocks.indexOf(b)] || [b.x0, b.y0, b.x1, b.y1];
       const w = (X1 - X0) * k + pad * 2, h = (Y1 - Y0) * k + pad * 2;
       if (d._w !== w || d._t !== d.textContent) {
         // bulle verticale étroite (japonais, coréen) : un peu plus large pour un texte traduit horizontal
@@ -1253,7 +1361,14 @@ function pageFeatures() {
         let lo = 5, hi = Math.max(lo + 0.5, Math.min(24, Math.max(8, orig))), fs = 0;
         d.style.overflowWrap = 'normal';
         const fits = () => d.scrollHeight <= h + 1 && d.scrollWidth <= ww + 1;
-        for (let n = 0; n < 8; n++) { const mid = (lo + hi) / 2; d.style.fontSize = mid + 'px'; if (fits()) { fs = mid; lo = mid; } else hi = mid; }
+        const search = () => { let a = lo, z = hi, f = 0; for (let n = 0; n < 8; n++) { const mid = (a + z) / 2; d.style.fontSize = mid + 'px'; if (fits()) { f = mid; a = mid; } else z = mid; } return f; };
+        // 1.7.2 : d'abord toute la bulle sans couper de mot ; si le texte devient trop petit, coupures aux syllabes (« main-tenant »)
+        const plain = d.textContent.replace(/\u00ad/g, ''); if (plain !== d.textContent) d.textContent = plain;
+        fs = search();
+        if (fs < Math.min(hi * 0.75, 10) && !b.prose) {
+          const hy = hyphenate(plain, it.to);
+          if (hy !== plain) { d.textContent = hy; const f2 = search(); if (f2 > fs * 1.08) fs = f2; else d.textContent = plain; }
+        }
         // même au plus petit, un mot trop long pour la bulle : seulement alors il peut être coupé
         if (!fs) { fs = 5; d.style.fontSize = fs + 'px'; if (!fits()) d.style.overflowWrap = 'anywhere'; }
         d.style.fontSize = fs + 'px';
@@ -1300,7 +1415,8 @@ function pageFeatures() {
     cover.addEventListener('click', () => { cover.remove(); line.remove(); it.cmp = 100; });
     mv({ clientX: (r0.left + r0.right) / 2 });
   }
-  function scanStop() { if (!scan) return; cancelAnimationFrame(scan.raf); scan.io?.disconnect(); scan.mo?.disconnect(); removeEventListener('mousemove', scan.move, true); scan.layer.remove(); scan.bar.remove(); scan.tools?.remove(); scan.editor?.remove(); scan = null; }
+  // 1.7.2 : arrêter le traducteur arrête aussi la lecture en cours (avant : elle continuait jusqu'au bout)
+  function scanStop() { if (!scan) return; ipcRenderer.invoke('scan:cancel').catch(() => {}); cancelAnimationFrame(scan.raf); scan.io?.disconnect(); scan.mo?.disconnect(); removeEventListener('mousemove', scan.move, true); scan.layer.remove(); scan.bar.remove(); scan.tools?.remove(); scan.editor?.remove(); scan = null; }
   // capture d'une zone de l'écran : on dessine un rectangle, puis « Traduire la zone »
   let region = null;
   function scanRegion() {
@@ -1337,7 +1453,7 @@ function pageFeatures() {
         anchor.style.cssText = `position:absolute;left:${b.x + scrollX}px;top:${b.y + scrollY}px;width:${b.w}px;height:${b.h}px;pointer-events:none`;
         anchor.setAttribute('data-dryae-zone', '');
         document.body.appendChild(anchor);
-        const it = { blocks: res.blocks, w: res.w, captured: null, cmp: 100 };
+        const it = { blocks: res.blocks, w: res.w, captured: null, cmp: 100, to: res.to };
         it.box = drawScan(it); scan.items.set(anchor, it); scan.n += res.blocks.length;
         if (res.from) toHost('dryae-scanlang', { from: res.from, to: res.to });
         status(ptf('{0} bulle(s) traduite(s)', scan.n));

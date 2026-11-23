@@ -48,7 +48,7 @@ function defaults(app) {
     autoOpenWebpage: true,
     hls: { connections: 6, convert: true, quality: 'best' },
     ytdl: { mode: 'video', quality: '1080', audioFormat: 'mp3', audioBitrate: '320', updated: 0 },
-    restoreSession: true,
+    restoreSession: false,
     winBounds: null,
     torrent: {
       enabled: true, seed: true, ratio: 1.0, uploadLimit: 0, downloadLimit: 0, dht: true, lsd: true, port: 0, autoPort: 0, maxActive: 3,
@@ -77,10 +77,10 @@ function defaults(app) {
       adLists: { privacy: true, cookies: false, annoyances: false, regional: true, malware: true, peterLowe: true },
       adModes: {}, adDefaultMode: 'optimal', extUnpinned: [], tbOrder: [],
       translate: { target: '', provider: 'google', selection: 'button', deeplKey: '', libreUrl: '', libreKey: '', second: '', hideSame: false, delay: 0, offSites: [], autoSites: [] },
-      scan: { source: 'auto', target: '', font: 'auto', icons: true, withEng: false, autoSites: [] },
+      scan: { source: 'auto', target: '', font: 'auto', icons: true, withEng: false, autoSites: [], tutoie: true },
       lights: { opacity: 85, auto: false, color: '#000000', fade: true, clickOff: false, eye: false, eyeLevel: 30, glow: false, wheelVolume: false, stopAutoplay: false, videoTools: true, nightAll: false, nightSchedule: false, nightFrom: '20:00', nightTo: '07:00', nightHosts: [], nightExcept: [] },
       pip: { side: 'right', hidden: [] },
-      showBookmarksBar: false, showHome: true, startup: 'restore', startupPages: [],
+      showBookmarksBar: false, showHome: true, startup: 'newtab', startupPages: [],
       nativeDl: { ask: false, dir: '' },
       zoomDefault: 0,
     },
@@ -110,6 +110,8 @@ class Settings extends EventEmitter {
     try { saved = JSON.parse(fs.readFileSync(this.file, 'utf8')); } catch {}
     this.data = deepMerge(this.def, saved);
     // 1.7.1 : torrents plus rapides — l'ancien réglage par défaut (55 pairs) passe à 150
+    // 1.7.2 : au démarrage, DrYAE ouvre la page d'accueil ; les anciens onglets reviennent seulement si on l'a choisi soi-même
+    if (!saved.v172) { const b = this.data.browser || {}; if (!b.startupChosen && b.startup === 'restore') { b.startup = 'newtab'; this.data.restoreSession = false; } this.data.v172 = true; try { fs.writeFileSync(this.file, JSON.stringify(this.data, null, 2)); } catch {} }
     if (!saved.v171) { if (this.data.torrent && this.data.torrent.maxConns === 55) this.data.torrent.maxConns = 150; this.data.v171 = true; }
     // 1.7.2 : traduction IA retirée : la clé Gemini enregistrée est effacée de ce PC
     if (this.data.browser && this.data.browser.scan && this.data.browser.scan.ai) { delete this.data.browser.scan.ai; try { fs.writeFileSync(this.file, JSON.stringify(this.data, null, 2)); } catch {} }

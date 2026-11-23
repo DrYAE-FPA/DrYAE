@@ -101,7 +101,7 @@ function send(ch, v) { if (win && !win.isDestroyed()) win.webContents.send(ch, v
 function sendUpd(ch, v) { send(ch, v); try { browser?.wc?.send(ch, v); } catch {} pages.broadcast(ch, v); }
 
 function createWindow() {
-  const b = settings.get().restoreSession ? settings.get().winBounds : null;
+  const b = settings.get().winBounds || null;
   win = new BrowserWindow({
     width: b?.width || 1240, height: b?.height || 800, x: b?.x, y: b?.y, minWidth: 480, minHeight: 400, title: 'DrYAE', backgroundColor: '#0d0f14',
     icon: nativeImage.createFromPath(path.join(ASSETS, process.platform === 'win32' ? 'icon.ico' : 'icon.png')), autoHideMenuBar: true, show: false,
@@ -316,7 +316,7 @@ function updateTray(active) {
   }
 }
 
-app.on('before-quit', () => { quitting = true; try { turbo?.stop(); } catch {} browser?.onQuit(); manager?.shutdownAll(); });
+app.on('before-quit', () => { quitting = true; try { turbo?.stop(); } catch {} try { require('./ocr-pool').stop(); } catch {} browser?.onQuit(); manager?.shutdownAll(); });
 app.on('window-all-closed', () => { if (!settings.get().tray) app.quit(); });
 
 // ================= IPC =================

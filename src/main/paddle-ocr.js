@@ -136,14 +136,34 @@ async function detect(img, maxSide = 1280) {
 }
 
 // --- lecture d'une ligne ---
-async function recognize(img, b, R, enh, shear, sharp) {
+// 1.7.2 : inv = lettres claires sur fond sombre (texte blanc sur noir) lues en négatif ; rot = angle (radians) d'un texte penché
+// 1.7.2 : fond sombre autour des lettres ? (médiane de la luminosité du cadre de la ligne)
+function darkBg(img, b) {
+  const { width: W, height: H, data } = img, x0 = Math.max(0, b.x0 | 0), x1 = Math.min(W - 1, b.x1 | 0), y0 = Math.max(0, b.y0 | 0), y1 = Math.min(H - 1, b.y1 | 0);
+  const st = Math.max(1, Math.round(Math.min(x1 - x0, y1 - y0) / 12)); const v = [];
+  for (let y = y0; y <= y1; y += st) for (let x = x0; x <= x1; x += st) { const i = (y * W + x) * 4; v.push(data[i] * 0.3 + data[i + 1] * 0.59 + data[i + 2] * 0.11); }
+  if (v.length < 10) return false; v.sort((a, c) => a - c); return v[v.length >> 1] < 90;
+}
+// 1.7.2 : angle d'un texte penché : celui (entre -30° et 30°) où les rangées de pixels sombres sont les plus nettes
+function tiltOf(img, b) {
+  const { width: W, height: H, data } = img, cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2, bw = b.x1 - b.x0, bh = b.y1 - b.y0;
+  const lum = (x, y) => { x = Math.max(0, Math.min(W - 1, x | 0)); y = Math.max(0, Math.min(H - 1, y | 0)); const i = (y * W + x) * 4; return data[i] * 0.3 + data[i + 1] * 0.59 + data[i + 2] * 0.11; };
+  const score = a => { const co = Math.cos(a), si = Math.sin(a), rows = 24, cols = 48, prof = []; for (let r = 0; r < rows; r++) { let s = 0; const v = (r + 0.5) / rows * bh - bh / 2; for (let c = 0; c < cols; c++) { const u = (c + 0.5) / cols * bw - bw / 2; s += lum(cx + u * co - v * si, cy + u * si + v * co) < 110 ? 1 : 0; } prof.push(s); } const m = prof.reduce((x, y) => x + y, 0) / rows; return prof.reduce((x, y) => x + (y - m) * (y - m), 0); };
+  let best = 0, bs = score(0);
+  for (const d of [-30, -24, -18, -12, 12, 18, 24, 30]) { const a = d * Math.PI / 180, s = score(a); if (s > bs * 1.25) { bs = s; best = a; } }
+  return best;
+}
+async function recognize(img, b, R, enh, shear, sharp, inv, rot) {
   R = R || { sess: rec, dict };
   const { width: W, data } = img;
   let bw = Math.round(b.x1 - b.x0), bh = Math.round(b.y1 - b.y0);
   if (bw < 4 || bh < 4) return { text: '', score: 0 };
   // colonne verticale (japonais, chinois) : on la tourne pour la lire comme une ligne
   const vertical = bh > bw * 1.5;
-  const cw = vertical ? bh : bw, ch = vertical ? bw : bh;
+  let cw = vertical ? bh : bw, ch = vertical ? bw : bh;
+  // 1.7.2 : ligne penchée : longueur et épaisseur réelles de la ligne dans son cadre droit
+  const co = rot ? Math.cos(rot) : 1, si = rot ? Math.sin(rot) : 0, c2 = co * co - si * si;
+  if (rot && !vertical) { const L = (bw * co - bh * Math.abs(si)) / c2, T2 = (bh * co - bw * Math.abs(si)) / c2; if (L > 8 && T2 > 4) { cw = L; ch = T2; } else rot = 0; }
   const H = 48, Wt = Math.max(48, Math.min(1600, Math.ceil(H * cw / ch)));
   const t = new Float32Array(3 * H * Wt);
   const IH = img.height;
@@ -161,13 +181,16 @@ async function recognize(img, b, R, enh, shear, sharp) {
       // coordonnées dans la ligne (tournée de 90° pour une colonne)
       const u = (x + 0.5) * cw / Wt - 0.5, v = (y + 0.5) * ch / H - 0.5;
       // 1.7.0 : lettres penchées (italique) : la ligne est « redressée » en décalant chaque rangée
-      const px = vertical ? b.x0 + (ch - 1 - v) : b.x0 + u + (shear ? shear * (ch / 2 - v) : 0), py = vertical ? b.y0 + u : b.y0 + v;
+      let px = vertical ? b.x0 + (ch - 1 - v) : b.x0 + u + (shear ? shear * (ch / 2 - v) : 0), py = vertical ? b.y0 + u : b.y0 + v;
+      // 1.7.2 : texte penché : la ligne est lue le long de son angle (tournée autour du centre du cadre)
+      if (rot && !vertical) { const dx = u - cw / 2, dy = v - ch / 2; px = (b.x0 + b.x1) / 2 + dx * co - dy * si; py = (b.y0 + b.y1) / 2 + dx * si + dy * co; }
       const o = y * Wt + x;
       for (let c = 0; c < 3; c++) buf[c * H * Wt + o] = smp(px, py, c);
     }
   }
   // deuxième lecture (lignes peu sûres) : contraste étiré au maximum (texte bien noir sur fond bien blanc)
   const N = H * Wt;
+  // 1.7.2 : bornes prises à 2 % et 98 % (un point de bruit ne fausse plus le contraste des scans flous ou tachés)
   if (enh) for (let i = 0; i < 3 * N; i++) { const val = buf[i]; if (val < lo) lo = val; if (val > hi) hi = val; }
   const k = enh && hi - lo > 30 ? 255 / (hi - lo) : 1, off = enh && hi - lo > 30 ? lo : 0;
   // 1.7.1 : lettres floues (scan flou, image agrandie) : netteté renforcée (masque flou soustrait)
@@ -183,13 +206,15 @@ async function recognize(img, b, R, enh, shear, sharp) {
       for (let i = 0; i < N; i++) buf[B + i] = Math.max(0, Math.min(255, tmp[i]));
     }
   }
+  if (inv) for (let i = 0; i < 3 * N; i++) buf[i] = 255 - buf[i];
   for (let i = 0; i < H * Wt; i++) {
     // ordre des couleurs attendu par le modèle : bleu, vert, rouge
     t[i] = Math.max(0, Math.min(255, (buf[2 * H * Wt + i] - off) * k)) / 127.5 - 1;
     t[H * Wt + i] = Math.max(0, Math.min(255, (buf[H * Wt + i] - off) * k)) / 127.5 - 1;
     t[2 * H * Wt + i] = Math.max(0, Math.min(255, (buf[i] - off) * k)) / 127.5 - 1;
   }
-  const out = await R.sess.run({ [R.sess.inputNames[0]]: new ort.Tensor('float32', t, [1, 3, H, Wt]) });
+  const inT = new ort.Tensor('float32', t, [1, 3, H, Wt]);
+  const out = await R.sess.run({ [R.sess.inputNames[0]]: inT });
   // 1.7.1 : sortie lue sur le modèle réellement utilisé (un modèle de lecture en plus peut nommer sa sortie autrement)
   const o = out[(R.sess.outputNames || rec.outputNames)[0]], [, T, C] = o.dims, p = o.data;
   let text = '', last = 0, sc = 0, n = 0;
@@ -199,12 +224,16 @@ async function recognize(img, b, R, enh, shear, sharp) {
     if (best !== 0 && best !== last) { text += R.dict[best] || ''; sc += bv; n++; }
     last = best;
   }
+  // 1.7.2 : tableaux de calcul libérés tout de suite (la mémoire ne grimpe plus au fil des pages)
+  try { inT.dispose?.(); for (const k in out) out[k].dispose?.(); } catch {}
   return { text: text.trim(), score: n ? sc / n : 0, vertical };
 }
 
 // note de bruitage : « SFX: … », « SFX - … », « S.F.X »
 // notes des traducteurs pour les bruitages (« SFX: FWIP »), y compris mal lues : « SFC:FOOM », « 5FX », « SPX », « SeX: », « 5FIX », « X:ROOM »
 // bruitages anglais courants (dessinés sur la page, pas dits par un personnage)
+// 1.7.2 : mots de la liste qui sont aussi de vrais mots anglais (actions) : jamais jetés dans une bulle normale
+const ACTION_WORDS = new Set('grab clench shake shuffle tap knock stab slash nod glare stare squeeze grip step stand gasp sniff sob tremble flutter flap dash jolt flinch twitch'.split(' '));
 const SFX_WORDS = new Set('clap claps cap ting ling ding dring tink clink stomp bam bäm boom crash thud slam whoosh swoosh bang crack snap grab clench rumble thump whack smack splash zoom wham pow clang click clack drip ding dong creak growl roar shake shuffle tap knock stab slash swish fwip fwoom whirl twirl poom foom fwoosh shing shink fwap thwack thwip krak kaboom vroom vrooom zing zap ziiing slurp gulp munch chomp crunch rustle rattle clatter tremble jolt flinch twitch nod glare stare squeeze grip step stand stomp gasp sniff sob tremble flutter flap whirr whirrr buzz bzz shff shf tmp tmp dash ba dum badum'.split(' '));
 const SFX = /^\W*S\W?F\W?[XY]?\b|^\W*[S5$]\s?[FPE3]\s?I?[XKC]|^\W*[S5$]?[FPE3]?X\s?[:;]|^\W*(EFFETS? SONORES?|SOUND EFFECTS?)\W/i;
 const isCJK = s => /[぀-ヿ㐀-鿿가-힯]/.test(s);
@@ -243,6 +272,23 @@ function digitRescue(l) {
 
 // Zone de couleur unie autour d'un texte (bulle colorée) : remplissage par couleur voisine sur une image réduite.
 // Refusée si elle est trop grande (fond de case, fond de page) ou trop peu remplie.
+// 1.7.2 : couleur du fond autour d'un texte : un anneau juste à l'extérieur du cadre du texte, médiane de chaque couleur
+function ringBg(img, g) {
+  const { width: W, height: H, data } = img;
+  const m = Math.max(2, Math.round((g.lh || 16) * 0.3));
+  const x0 = Math.max(0, Math.floor(g.x0) - m), y0 = Math.max(0, Math.floor(g.y0) - m), x1 = Math.min(W - 1, Math.ceil(g.x1) + m), y1 = Math.min(H - 1, Math.ceil(g.y1) + m);
+  const ix0 = Math.floor(g.x0), iy0 = Math.floor(g.y0), ix1 = Math.ceil(g.x1), iy1 = Math.ceil(g.y1);
+  const per = 2 * ((x1 - x0) + (y1 - y0)) * m, st = Math.max(1, Math.round(per / 3000));
+  const R = [], G = [], B = [];
+  for (let y = y0; y <= y1; y += st) for (let x = x0; x <= x1; x += st) {
+    if (x >= ix0 && x <= ix1 && y >= iy0 && y <= iy1) continue;
+    const q = (y * W + x) * 4; R.push(data[q]); G.push(data[q + 1]); B.push(data[q + 2]);
+  }
+  if (R.length < 12) return null;
+  const med = a => { a.sort((u, v) => u - v); return a[a.length >> 1]; };
+  return `rgb(${med(R)},${med(G)},${med(B)})`;
+}
+
 function colorRegion(img, g) {
   const { width: W, height: H, data } = img;
   let G = img._cg;
@@ -349,10 +395,12 @@ function group(lines, bm, inBubble) {
       for (const g of gs) {
         // 1.7.2 : deux bulles côte à côte qui se touchent (« HEY, DANTON. » à droite de « I CAN'T UNDERSTAND… ») :
         // un espace vide vertical entre les deux colonnes de texte les garde séparées ; on rejoint le groupe de sa colonne
-        const fits = c => { const lh = Math.max(g.lh || 0, c.lh) || 20; const gap = v ? c.x0 - g.x1 : g.y0 - c.y1; return gap < lh * 2.2 && (v || Math.max(g.x0 - c.x1, c.x0 - g.x1) <= lh * 0.8); };
+        // 1.7.2 : deux groupes à la même hauteur, côte à côte sans se recouvrir en largeur = deux bulles (dans une bulle, les lignes sont empilées)
+        const sideBySide = c => { if (v) return false; const hx = Math.max(g.x0 - c.x1, c.x0 - g.x1), oy = Math.min(g.y1, c.y1) - Math.max(g.y0, c.y0); return hx > 0 && oy > 0.5 * Math.min(g.y1 - g.y0, c.y1 - c.y0); };
+        const fits = c => { const lh = Math.max(g.lh || 0, c.lh) || 20; const gap = v ? c.x0 - g.x1 : g.y0 - c.y1; return gap < lh * 2.2 && (v || Math.max(g.x0 - c.x1, c.x0 - g.x1) <= lh * 0.8) && !sideBySide(c); };
         const last = v ? clusters[clusters.length - 1] : [...clusters].reverse().find(fits);
-        if (last && fits(last)) { last.items.push(g); last.y1 = Math.max(last.y1, g.y1); last.x0 = Math.min(last.x0, g.x0); last.x1 = Math.max(last.x1, g.x1); last.lh = Math.max(last.lh, g.lh || 0); }
-        else clusters.push({ items: [g], y1: g.y1, x0: g.x0, x1: g.x1, lh: g.lh || 0 });
+        if (last && fits(last)) { last.items.push(g); last.y0 = Math.min(last.y0, g.y0); last.y1 = Math.max(last.y1, g.y1); last.x0 = Math.min(last.x0, g.x0); last.x1 = Math.max(last.x1, g.x1); last.lh = Math.max(last.lh, g.lh || 0); }
+        else clusters.push({ items: [g], y0: g.y0, y1: g.y1, x0: g.x0, x1: g.x1, lh: g.lh || 0 });
       }
       clusters.forEach((cl, ci) => {
         const same = cl.items, cj = /[぀-ヿ㐀-鿿]/.test(same[0].text);
@@ -455,7 +503,8 @@ async function readBubbles(img, opts = {}) {
     for (let y = 0; y < H; y += step) {
       const y0 = Math.max(0, y - over), y1 = Math.min(H, y + step + over);
       const part = { width: W, height: y1 - y0, data: img.data.subarray(y0 * W * 4, y1 * W * 4) };
-      for (const b of await detect(part)) boxes.push({ ...b, y0: b.y0 + y0, y1: b.y1 + y0 });
+      // 1.7.2 : chaque morceau lu plus finement (petites lettres des webtoons), sans aller jusqu’à couper les points d’exclamation
+      for (const b of await detect(part, 1600)) boxes.push({ ...b, y0: b.y0 + y0, y1: b.y1 + y0 });
     }
     // doublons dans les zones de chevauchement
     boxes.sort((a, b) => (b.x1 - b.x0) * (b.y1 - b.y0) - (a.x1 - a.x0) * (a.y1 - a.y0));
@@ -491,12 +540,18 @@ async function readBubbles(img, opts = {}) {
       if (r.score < 0.9 && b.x1 - b.x0 > (b.y1 - b.y0) * 1.5) for (const sh of [0.22, -0.18]) {
         const r3 = await recognize(img, b, R, true, sh);
         if (r3.score > r.score + 0.03) r = r3;
+        if (r.score >= 0.9) break;
       }
     }
+    // 1.7.2 : lettres claires sur fond sombre (souvenirs, nuit, cadres noirs) : relue en négatif (noir sur blanc)
+    if (r.score < 0.85 && r.text.replace(/\s/g, '').length >= 1 && darkBg(img, b)) { const r6 = await recognize(img, b, R, true, 0, false, true); if (r6.score > r.score + 0.03) r = r6; }
+    // 1.7.2 : texte penché (10 à 30°) : angle estimé sur la ligne, relue le long de cet angle
+    if (r.score < 0.75 && b.x1 - b.x0 > (b.y1 - b.y0) * 1.8) { const a = tiltOf(img, b); if (a) { const r7 = await recognize(img, b, R, true, 0, false, false, a); if (r7.score > r.score + 0.04) r = r7; } }
     // 1.7.0 refaite : ligne toujours peu sûre (« DOJO » lu « 0O30 ») : relue avec les autres modèles installés
     // (modèle « langues latines » ou modèle de base) ; on garde la lecture la plus sûre
-    if (r.score < 0.75 && r.text.replace(/\s/g, '').length >= 2) for (const id of ['', ...installed()]) {
-      if (id === used) continue;
+    // 1.7.2 : seulement le modèle de base et « langues latines » (avant : tous les modèles installés, très lent), arrêt dès que c'est assez sûr
+    if (r.score < 0.75 && r.text.replace(/\s/g, '').length >= 2) for (const id of ['', ...installed().filter(x => x === 'latin')]) {
+      if (id === used || r.score >= 0.85) continue;
       try { const RR = id ? await recOf(id) : null; const r4 = await recognize(img, b, RR, true); if (r4.score > r.score + 0.05) r = r4; } catch {}
     }
     // 1.7.1 : toujours peu sûre : lettres floues (vieux scan, image agrandie) → relue avec la netteté renforcée
@@ -513,6 +568,15 @@ async function readBubbles(img, opts = {}) {
   }
   // notes ajoutées par les traducteurs (« SFX: FWIP », « SFX : debout ») : bruitages, non traduits ;
   // zone surtout illisible (petites lettres d'une affiche, d'un panneau) : laissée telle quelle plutôt que traduite au hasard
+  // 1.7.2 : japonais : petits caractères de lecture (furigana) à côté des kanji : retirés (ils se collaient au mot)
+  try {
+    const KANA = /^[\u3040-\u30ffー・]+$/, vw = lines.filter(l => l.vertical).map(l => l.x1 - l.x0).sort((a, b) => a - b), mw = vw.length >= 3 ? vw[vw.length >> 1] : 0;
+    if (mw) for (let i = lines.length - 1; i >= 0; i--) {
+      const l = lines[i]; if (!l.vertical || !KANA.test(l.text) || l.x1 - l.x0 > mw * 0.6) continue;
+      const w = l.x1 - l.x0;
+      if (lines.some(o => o !== l && o.vertical && o.x1 - o.x0 >= mw * 0.8 && /[\u3400-\u9fff]/.test(o.text) && Math.min(Math.abs(l.x0 - o.x1), Math.abs(o.x0 - l.x1)) < w * 1.5 && Math.min(l.y1, o.y1) - Math.max(l.y0, o.y0) > 0)) lines.splice(i, 1);
+    }
+  } catch {}
   let groups = group(lines, bm).filter(g => !SFX.test(g.text) && !(g.ck && (fails.get(g.ck) || 0) >= 3 && (fails.get(g.ck) || 0) >= (kept.get(g.ck) || 0)));
   // 1.6.9 : mot coupé en fin de ligne (« SUMI- » / « RE ») dont la fin a été prise pour une autre bulle :
   // les deux morceaux sont réunis avant toute traduction
@@ -555,6 +619,9 @@ async function readBubbles(img, opts = {}) {
       const m = (g.lh || 20) * 0.35; g.bubble = { x0: g.x0 - m, y0: g.y0 - m, x1: g.x1 + m, y1: g.y1 + m };
     }
   }
+  // 1.7.2 : couleur de la gomme prise dans la petite marge autour du texte (sans les lettres), couleur du milieu (médiane)
+  // pour ignorer les traits ; avant, sans couleur trouvée, la gomme était blanc pur (visible sur une bulle crème ou grise)
+  for (const g of groups) { if (!g.bg) { const c = ringBg(img, g); if (c) g.bg = c; } }
   // qualité de la lecture (sert à n'envoyer à l'IA que les pages difficiles)
   const sc = lines.map(l => l.score || 0); groups.quality = sc.length ? sc.reduce((a, b) => a + b, 0) / sc.length : 1;
   // 1.6.9 : page en anglais (au moins un bon tiers de mots anglais : les noms des personnages n'en sont pas) :
@@ -601,7 +668,9 @@ async function readBubbles(img, opts = {}) {
       if (ws.length > 2) return !(ns >= ws.length * 0.6 && (groups.lang === 'fr' || !g.bubble || (md && (g.lh || 0) > md * 1.6)));
       if (ws.length === 1 && ws[0].length <= 6 && !/[aeiouyàâéèêëîïôûù]/i.test(ws[0]) && !/^(hmm+|pff+|grr+|tch|psst)$/i.test(ws[0])) return false;
       const sfx = ws.every(w => SFX_WORDS.has(w.toLowerCase()));
-      if (sfx && (groups.lang === 'fr' || !g.bubble || (md && (g.lh || 0) > md * 1.6))) return false;
+      // 1.7.2 : vrais mots d'action (STARE, NOD, STEP, GRAB…) dans une vraie bulle, à la taille du texte : une réplique, gardée
+      const act = ws.some(w => ACTION_WORDS.has(w.toLowerCase())) && g.bubble && !(md && (g.lh || 0) > md * 1.6);
+      if (sfx && !act && (groups.lang === 'fr' || !g.bubble || (md && (g.lh || 0) > md * 1.6))) return false;
       return true;
     }), { lang: groups.lang, odd: groups.odd, quality: groups.quality, unread: groups.unread, credits: groups.credits });
   }
@@ -615,7 +684,34 @@ async function readBubbles(img, opts = {}) {
   // page anglaise ou française : les lettres japonaises sont des bruitages dessinés → jamais traduites
   const res = latin > cjk && used !== 'korean' ? groups.filter(g => !(isCJK(g.text) && (latin >= 2 * cjk || !g.bubble || g.text.replace(/[\s\p{P}]/gu, '').length <= 2))) : groups;
   res.model = used; res.unread = groups.unread; res.quality = groups.quality; res.odd = groups.odd || 0; res.lang = groups.lang || ''; res.credits = !!groups.credits;
+  try { res.panels = panelsOf(img); } catch {}
   return res;
 }
 
+// 1.7.2 : cases de la page (ordre de lecture case par case) : bandes vides (blanches ou noires) qui traversent
+// toute la page, puis, dans chaque bande, les séparations verticales ; une double page est coupée au milieu.
+// Retour : liste de rectangles { x0, y0, x1, y1 } dans l'ordre haut → bas (gauche → droite ; l'ordre manga est fait à l'appel)
+function panelsOf(img) {
+  const { width: W, height: H, data } = img;
+  if (H > W * 2.2) return null; // webtoon : pas de cases
+  const k = Math.min(1, 500 / Math.max(W, H)), w = Math.max(2, Math.round(W * k)), h = Math.max(2, Math.round(H * k));
+  const L = new Uint8Array(w * h);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = ((Math.min(H - 1, (y / k) | 0)) * W + Math.min(W - 1, (x / k) | 0)) * 4; L[y * w + x] = (data[i] * 0.3 + data[i + 1] * 0.59 + data[i + 2] * 0.11) | 0; }
+  const plain = (vals) => { let lo = 255, hi = 0, white = 0, black = 0; for (const v of vals) { if (v > 225) white++; else if (v < 35) black++; } return white >= vals.length * 0.985 || black >= vals.length * 0.985; };
+  const runs = (n, isGap, minRun) => { const cuts = []; let st = -1; for (let i = 0; i <= n; i++) { const g = i < n && isGap(i); if (g && st < 0) st = i; if (!g && st >= 0) { if (i - st >= minRun && st > 0 && i < n) cuts.push((st + i) / 2); st = -1; } } return cuts; };
+  const row = (y, x0, x1) => { const v = []; for (let x = x0; x < x1; x++) v.push(L[y * w + x]); return v; };
+  const col = (x, y0, y1) => { const v = []; for (let y = y0; y < y1; y++) v.push(L[y * w + x]); return v; };
+  const ys = [0, ...runs(h, y => plain(row(y, 0, w)), Math.max(2, Math.round(h * 0.006))), h];
+  const out = [];
+  for (let i = 0; i < ys.length - 1; i++) {
+    const y0 = Math.round(ys[i]), y1 = Math.round(ys[i + 1]); if (y1 - y0 < 4) continue;
+    let xs = [0, ...runs(w, x => plain(col(x, y0, y1)), Math.max(2, Math.round(w * 0.006))), w];
+    // double page sans séparation visible : coupée au milieu
+    if (xs.length === 2 && W > H * 1.2) xs = [0, w / 2, w];
+    for (let j = 0; j < xs.length - 1; j++) out.push({ x0: xs[j] / k, y0: y0 / k, x1: xs[j + 1] / k, y1: y1 / k, band: i, colIndex: j });
+  }
+  return out.length > 1 ? out : null;
+}
+
 module.exports = { detect, recognize, readBubbles, SFX, load, EXTRA, EXTRA_OF, installed, download, removeModel, setDir, splitProse };
+module.exports.ringBg = ringBg;

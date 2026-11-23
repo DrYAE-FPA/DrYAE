@@ -78,8 +78,8 @@ function draw() {
   const updTxt = { checking: 'Recherche de mises à jour…', available: 'DrYAE {0} est disponible.', downloading: 'Téléchargement de la mise à jour… {0} %', ready: 'La mise à jour {0} est prête.', latest: 'DrYAE est à jour.', error: 'Vérification impossible.' }[upd.status] || '';
   $('#wrap').innerHTML =
     sec('startup', 'Au démarrage', `
-      <label class="cbx" style="padding:12px 18px"><input type="radio" name="st" value="restore" ${b.startup === 'restore' || !b.startup ? 'checked' : ''}><div><b>${esc(TR('Reprendre là où je m\'étais arrêté'))}</b><span>${esc(TR('Les onglets ouverts sont rouverts (chargés au moment où vous les affichez).'))}</span></div></label>
-      <label class="cbx" style="padding:12px 18px;border-top:1px solid var(--line)"><input type="radio" name="st" value="newtab" ${b.startup === 'newtab' ? 'checked' : ''}><div><b>${esc(TR('Ouvrir la page d\'accueil de DrYAE'))}</b></div></label>
+      <label class="cbx" style="padding:12px 18px"><input type="radio" name="st" value="restore" ${b.startup === 'restore' ? 'checked' : ''}><div><b>${esc(TR('Reprendre là où je m\'étais arrêté'))}</b><span>${esc(TR('Les onglets ouverts sont rouverts (chargés au moment où vous les affichez).'))}</span></div></label>
+      <label class="cbx" style="padding:12px 18px;border-top:1px solid var(--line)"><input type="radio" name="st" value="newtab" ${b.startup === 'newtab' || !b.startup ? 'checked' : ''}><div><b>${esc(TR('Ouvrir la page d\'accueil de DrYAE'))}</b></div></label>
       <label class="cbx" style="padding:12px 18px;border-top:1px solid var(--line)"><input type="radio" name="st" value="pages" ${b.startup === 'pages' ? 'checked' : ''}><div><b>${esc(TR('Ouvrir des pages précises'))}</b><span>${esc(TR('Une adresse par ligne.'))}</span></div></label>
       ${row('Rouvrir aussi les autres fenêtres', 'Avec « Reprendre là où je m\'étais arrêté » : chaque fenêtre ouverte avec Ctrl+N revient avec ses onglets.', `<label class="sw"><input type="checkbox" data-k="restoreAllWindows" ${b.restoreAllWindows ? 'checked' : ''}><i></i></label>`, 'style="border-top:1px solid var(--line)"')}
       <div class="prow" style="${b.startup === 'pages' ? '' : 'display:none'}" id="spRow"><textarea id="sp" placeholder="https://www.exemple.com" style="font:inherit;min-height:70px">${esc(startPages.join('\n'))}</textarea></div>`) +
@@ -183,6 +183,7 @@ function draw() {
       ${row('Langue du texte dans les images', 'La première fois, les données de lecture de cette langue sont téléchargées (2 à 15 Mo).', sel('scSrc', Object.entries(OCR.langs).map(([k, l]) => [k, TR(l) + (OCR.have.includes(k) ? ' ✓' : '')]), S.source || 'eng'))}
       ${row('Traduire vers', '', sel('scTo', langOpts(true), S.target || ''))}
       ${row('Lire aussi l\'anglais', 'Pour les images qui mélangent deux langues (plus lent).', swk('scan.withEng', !!S.withEng))}
+      ${row('Tutoyer dans les scans', 'Vers le français : les personnages se tutoient (« tu ») quand l\'anglais parle à une seule personne. « Vous » est gardé pour un groupe.', swk('scan.tutoie', S.tutoie !== false))}
       ${row('Icônes d\'action sur les images', 'Au survol d\'une image traduite : original / traduction, comparer, relire, copier, retirer.', swk('scan.icons', S.icons !== false))}
       ${row('Police des bulles', '', selk('scan.font', [['auto', 'Bande dessinée'], ['sans', 'Standard'], ['serif', 'Avec empattements']], S.font === 'comic' ? 'auto' : S.font || 'auto'))}
 
@@ -304,7 +305,7 @@ function bind() {
     }
     const t = e.target, id = t.id;
     if (id.startsWith('ctn_')) { await call('containerRename', id.slice(4), t.value); return toast('Paramètre enregistré'); }
-    if (t.name === 'st') { await setB({ startup: t.value }); await setRoot({ restoreSession: t.value === 'restore' }); v('spRow').style.display = t.value === 'pages' ? '' : 'none'; }
+    if (t.name === 'st') { await setB({ startup: t.value, startupChosen: true }); await setRoot({ restoreSession: t.value === 'restore' }); v('spRow').style.display = t.value === 'pages' ? '' : 'none'; }
     else if (id === 'sp') await setB({ startupPages: t.value.split(/\n+/).map(x => x.trim()).filter(Boolean).map(x => (/^[a-z]+:\/\//i.test(x) ? x : 'https://' + x)) });
     else if (id === 'theme') await setRoot({ theme: { ...(C.rawTheme || {}), mode: t.value } });
     else if (id.startsWith('a11y')) { const k = { a11yScale: 'scale', a11yContrast: 'contrast', a11yEasy: 'easy', a11yMotion: 'motion', a11ySimple: 'simple' }[id]; if (!k) return; await setRoot({ a11y: { ...(C.a11yRaw || {}), [k]: t.type === 'checkbox' ? t.checked : k === 'scale' ? +t.value : t.value } }); }
