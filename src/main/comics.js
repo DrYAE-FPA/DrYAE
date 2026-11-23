@@ -44,8 +44,22 @@ async function list(file, kind) {
   return names.filter(n => IMG.test(n)).sort(natural);
 }
 
+// 1.7.1 : une image ouverte avec DrYAE (Explorateur, « Ouvrir avec ») : toutes les images de son dossier, en commençant par elle
+function registerImage(file) {
+  file = path.resolve(file); const dir = path.dirname(file), base = path.basename(file);
+  let id = [...open].find(([, c]) => c.path === dir && c.kind === 'imgs')?.[0];
+  if (!id) {
+    const pages = fs.readdirSync(dir, { withFileTypes: true }).filter(e => e.isFile() && IMG.test(e.name)).map(e => e.name).sort(natural);
+    if (!pages.includes(base)) pages.unshift(base);
+    id = crypto.randomBytes(9).toString('hex');
+    open.set(id, { path: dir, kind: 'imgs', pages, name: path.basename(dir) || dir, image: true, key: crypto.createHash('sha1').update('img:' + dir).digest('hex').slice(0, 16) });
+  }
+  const c = open.get(id);
+  return { id, name: c.name, count: c.pages.length, start: Math.max(0, c.pages.indexOf(base)) };
+}
 async function register(file) {
   file = path.resolve(file);
+  if (IMG.test(file) && fs.statSync(file).isFile()) return registerImage(file);
   for (const [id, c] of open) if (c.path === file) return { id, name: c.name, count: c.pages.length };
   const kind = kindOf(file), pages = await list(file, kind);
   if (!pages.length) throw new Error('aucune image dans ce fichier');
@@ -54,14 +68,14 @@ async function register(file) {
   open.set(id, { path: file, kind, pages, name, key: crypto.createHash('sha1').update(file).digest('hex').slice(0, 16) });
   return { id, name, count: pages.length };
 }
-function info(id) { const c = open.get(id); return c ? { name: c.name, count: c.pages.length, key: c.key, pages: c.pages.map(p => path.basename(p)) } : null; }
+function info(id) { const c = open.get(id); return c ? { name: c.name, count: c.pages.length, key: c.key, image: !!c.image, pages: c.pages.map(p => path.basename(p)) } : null; }
 
 async function page(id, i) {
   const c = open.get(id); if (!c) throw new Error('fichier non ouvert');
   i = Math.max(0, Math.min(c.pages.length - 1, i | 0));
   const k = id + '|' + i; if (cache.has(k)) return { buf: cache.get(k), name: c.pages[i] };
   const name = c.pages[i]; let buf;
-  if (c.kind === 'dir') buf = await fs.promises.readFile(path.join(c.path, name));
+  if (c.kind === 'dir' || c.kind === 'imgs') buf = await fs.promises.readFile(path.join(c.path, name));
   else if (c.kind === 'rar') { const x = await rarExtractor(c.path); const r = x.extract({ files: [name] }); const f = [...r.files][0]; buf = Buffer.from(f.extraction); }
   else buf = await new Promise((ok, no) => { const z = sevenZip(); if (!z) return no(new Error('7-Zip introuvable')); const p = spawn(z, ['e', '-so', '-sccUTF-8', c.path, name], { windowsHide: true }); const parts = []; p.stdout.on('data', d => parts.push(d)); p.on('error', no); p.on('close', code => code === 0 ? ok(Buffer.concat(parts)) : no(new Error('lecture impossible (' + code + ')'))); });
   cache.set(k, buf); if (cache.size > 60) cache.delete(cache.keys().next().value);

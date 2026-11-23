@@ -902,7 +902,7 @@ class WebBrowser {
   }
   // 1.7.0 refaite : lecteur de BD et de mangas
   async openComic(file, from) {
-    try { const r = await require('./comics').register(file); this.open('dryae://bd/viewer.html#' + r.id, { from }); return r; }
+    try { const r = await require('./comics').register(file); this.open('dryae://bd/viewer.html#' + r.id + (r.start != null ? '&p=' + r.start : ''), { from }); return r; }
     catch (e) { this.wc?.send('toast', (global.DRYAE_T || (x => x))('Impossible d\'ouvrir cette BD : {0}').replace('{0}', e.message)); return null; }
   }
   async pickComic(from) {
@@ -1377,6 +1377,18 @@ class WebBrowser {
       return { on: !!c.on, pdf: !!c.pdf, supported: D.supported(), portable: D.portable(), isDefault: await D.isDefault().catch(() => false) };
     });
     P('defaultOpen', () => require('./defaultbrowser').openWindowsSettings());
+    // 1.7.1 : DrYAE application par défaut pour les torrents, et pour les images et les BD
+    const filesInfo = async () => { const D = require('./defaultbrowser'); const c = this.B().defaultFiles || {}; return { torrent: !!c.torrent, images: !!c.images, supported: D.supported(), portable: D.portable(), torDefault: await D.isTorrentDefault().catch(() => false) }; };
+    P('filesInfo', filesInfo);
+    P('filesSet', async patch => {
+      const D = require('./defaultbrowser'); const c = { ...(this.B().defaultFiles || {}) };
+      for (const k of ['torrent', 'images']) if (patch && k in patch) c[k] = !!patch[k];
+      this.settings.set({ browser: { defaultFiles: c } });
+      await D.registerFiles(c); if (c.torrent && D.supported()) try { app.setAsDefaultProtocolClient('magnet'); } catch {}
+      if (patch && patch.open && (c.torrent || c.images)) await D.openFilesSettings();
+      return filesInfo();
+    });
+    P('filesOpen', () => require('./defaultbrowser').openFilesSettings());
     P('updateCheck', () => this.main.updateCheck?.());
     P('updateInstall', () => this.main.updateInstall?.());
     P('pickDir', async def => { const r = await dialog.showOpenDialog(this.win, { properties: ['openDirectory', 'createDirectory'], defaultPath: def || app.getPath('downloads') }); return r.canceled ? null : r.filePaths[0]; });

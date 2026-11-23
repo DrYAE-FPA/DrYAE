@@ -1107,7 +1107,7 @@ document.addEventListener('click', async e => {
   if (e.target.closest('#sTmpOff')) { S = await call('setSettings', { tempDir: '' }); catDirsDraw(); toast(T('Retour aux dossiers habituels')); }
 });
 $('#sDirPick').onclick = async () => { const p = await call('pickDir', $('#sDir').value); if (p) $('#sDir').value = p; };
-$('#sMagnet').onclick = async () => { const ok = await call('registerMagnet'); $('#sMagnetSt').textContent = ok ? 'DrYAE ouvre maintenant les liens magnet ✔' : 'Windows a refusé — choisis DrYAE dans Paramètres > Applications par défaut'; };
+$('#sMagnet').onclick = async () => { const ok = await call('registerMagnet'); $('#sMagnetSt').textContent = T(ok ? 'Dans la fenêtre de Windows qui s\'ouvre, choisissez DrYAE pour « MAGNET » et « .torrent »' : 'Windows a refusé — choisis DrYAE dans Paramètres > Applications par défaut'); };
 $('#abReset').onclick = async () => { if (!confirmAsk('Réinitialiser tous les paramètres ?')) return; await call('resetSettings'); closeM(); S = await call('getSettings'); applyTheme(); updLimit(); toast('Paramètres réinitialisés'); };
 // ---- mises à jour, avis, langue ----
 function updText(u) {

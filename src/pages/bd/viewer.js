@@ -1,6 +1,7 @@
 // DrYAE — lecteur de BD et de mangas (page sans accès à DrYAE : les images viennent de dryae://bd/_img)
 const $ = s => document.querySelector(s);
-const id = location.hash.slice(1).replace(/[^a-f0-9]/g, '');
+const hp = new URLSearchParams(location.hash.slice(1).replace(/^([a-f0-9]+)/, 'id=$1'));
+const id = (hp.get('id') || '').replace(/[^a-f0-9]/g, ''), startAt = hp.has('p') ? +hp.get('p') : null; // 1.7.1 : p = image ouverte
 let info = null, cur = 0;
 const st = (() => { try { return localStorage; } catch { return null; } })();
 const get = (k, d) => { try { return st?.getItem(k) ?? d; } catch { return d; } };
@@ -12,14 +13,16 @@ async function load() {
   info = await r.json(); document.title = info.name + ' — DrYAE'; $('#title').textContent = info.name;
   const box = $('#pages');
   info.pages.forEach((n, i) => { const im = document.createElement('img'); im.alt = n; im.dataset.i = i; im.loading = i < 3 ? 'eager' : 'lazy'; im.decoding = 'async'; im.src = '_img?id=' + id + '&i=' + i; box.appendChild(im); });
-  $('#mode').value = get('bd.mode', 'scroll'); $('#dir').value = get('bd.dir:' + info.key, get('bd.dir', 'ltr')); $('#fit').value = get('bd.fit', 'width');
-  apply(); go(+get('bd.pos:' + info.key, 0), true);
+  // 1.7.1 : images ouvertes depuis l'ordinateur : une image à la fois, à la hauteur de l'écran (réglages gardés à part de ceux des BD)
+  const K = info.image ? 'img.' : 'bd.';
+  $('#mode').value = get(K + 'mode', info.image ? 'page' : 'scroll'); $('#dir').value = get('bd.dir:' + info.key, get('bd.dir', 'ltr')); $('#fit').value = get(K + 'fit', info.image ? 'height' : 'width');
+  apply(); go(startAt != null ? startAt : +get('bd.pos:' + info.key, 0), true);
 }
 const imgs = () => [...document.querySelectorAll('#pages img')];
 function apply() {
   const m = $('#mode').value, d = $('#dir').value, f = $('#fit').value;
   document.body.className = `mode-${m} fit-${f} ${d}`;
-  set('bd.mode', m); set('bd.fit', f); if (info) { set('bd.dir:' + info.key, d); set('bd.dir', d); }
+  const K = info?.image ? 'img.' : 'bd.'; set(K + 'mode', m); set(K + 'fit', f); if (info) { set('bd.dir:' + info.key, d); set('bd.dir', d); }
   show();
 }
 function show() {

@@ -161,6 +161,8 @@ function handleArgs(argv) {
     else if (/\.(html?|xhtml|svg|pdf)$/i.test(a) && !a.startsWith('-') && fs.existsSync(a)) pendingArgs.push({ browse: require('url').pathToFileURL(a).href });
     // 1.7.0 refaite : BD et mangas (.cbz, .cbr, .cb7) ouverts avec DrYAE : lecteur de BD
     else if (/\.cb[zr7]$/i.test(a) && !a.startsWith('-') && fs.existsSync(a)) pendingArgs.push({ comic: a });
+    // 1.7.1 : images ouvertes avec DrYAE (Explorateur, « Ouvrir avec ») : visionneuse des BD, avec les images du même dossier
+    else if (/\.(jpe?g|png|webp|gif|bmp|avif)$/i.test(a) && !a.startsWith('-') && fs.existsSync(a)) pendingArgs.push({ comic: a });
     else if (/^https?:\/\//i.test(a)) pendingArgs.push({ url: a });
     else if (/^--open=dryae:\/\/\w+/i.test(a)) pendingArgs.push({ page: a.slice(7) });
   }
@@ -179,7 +181,7 @@ function flushArgs() {
   }
 }
 // clic sur l'icône alors que DrYAE tourne déjà : écran d'ouverture choisi ; un lien ou un torrent ouvre le gestionnaire
-const docArg = argv => argv.slice(1).some(a => /\.(html?|xhtml|svg|pdf|cb[zr7])$/i.test(a) && !a.startsWith('-'));
+const docArg = argv => argv.slice(1).some(a => /\.(html?|xhtml|svg|pdf|cb[zr7]|jpe?g|png|webp|gif|bmp|avif)$/i.test(a) && !a.startsWith('-'));
 app.on('second-instance', (_e, argv) => { if (argv.includes('--browse') || docArg(argv)) { handleArgs(argv); return; } if (argv.slice(1).some(a => /^magnet:|\.torrent$|^https?:\/\//i.test(a))) api.showMain(); else api.showStart(); handleArgs(argv); });
 app.on('open-url', (e, url) => { e.preventDefault(); pendingArgs.push({ torrent: url }); flushArgs(); });
 
@@ -510,11 +512,17 @@ H('openNotices', () => {
 H('openExternal', u => { if (/^(https?:|mailto:|ms-settings:)/i.test(String(u))) shell.openExternal(u); });
 H('openBrowser', (url, incognito) => browser.open(url, { incognito, from: global.DRYAE_SENDER }));
 H('cancelShutdown', () => tools.cancelShutdown());
-H('registerMagnet', () => {
+H('registerMagnet', async () => {
   const ok = process.defaultApp ? app.setAsDefaultProtocolClient('magnet', process.execPath, [path.resolve(process.argv[1])]) : app.setAsDefaultProtocolClient('magnet');
+  // 1.7.1 : DrYAE déclaré à Windows pour les liens magnet et les fichiers .torrent, puis la page des Paramètres où le choisir
+  const D = require('./defaultbrowser');
+  if (D.supported()) {
+    const c = { ...(settings.get().browser?.defaultFiles || {}), torrent: true };
+    settings.set({ browser: { defaultFiles: c } }); await D.registerFiles(c).catch(() => {}); await D.openFilesSettings().catch(() => {});
+  }
   return ok;
 });
-H('isMagnetDefault', () => app.isDefaultProtocolClient('magnet'));
+H('isMagnetDefault', () => require('./defaultbrowser').isTorrentDefault().catch(() => app.isDefaultProtocolClient('magnet')));
 
 // torrents
 H('torrent:inspect', async (src, opts) => {

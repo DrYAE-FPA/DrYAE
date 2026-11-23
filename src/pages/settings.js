@@ -216,6 +216,9 @@ function draw() {
       ${row('Navigateur par défaut', 'Les liens ouverts depuis d\'autres programmes (Word, Discord, e-mails) s\'ouvrent dans DrYAE. Windows demande toujours de confirmer : DrYAE ouvre la bonne page des Paramètres de Windows, il suffit d\'y choisir DrYAE.', `<label class="sw"><input type="checkbox" id="defOn"><i></i></label>`)}
       <div class="prow" id="defRow"><div class="tx"><b id="defTxt">…</b><span id="defSub"></span></div><button class="btn sm" id="defGo">${esc(TR('Choisir DrYAE dans Windows'))}</button></div>
       ${row('Ouvrir aussi les PDF avec DrYAE', '', `<label class="sw"><input type="checkbox" id="defPdf"><i></i></label>`)}
+      ${row('Application torrent par défaut', 'Les liens magnet et les fichiers .torrent ouverts ailleurs (autre navigateur, Explorateur) s\'ouvrent dans DrYAE, avec sa fenêtre d\'ajout. Windows demande de confirmer : choisissez DrYAE pour « MAGNET » et « .torrent ».', `<label class="sw"><input type="checkbox" id="defTor"><i></i></label>`)}
+      ${row('Ouvrir les images et les BD avec DrYAE', 'Photos (.jpg, .png, .webp…) et BD (.cbz, .cbr, .cb7) de l\'ordinateur : la visionneuse de DrYAE, avec les autres images du dossier, le zoom et les lumières tamisées. DrYAE est aussi proposé dans « Ouvrir avec ».', `<label class="sw"><input type="checkbox" id="defImg"><i></i></label>`)}
+      <div class="prow" id="defFRow"><div class="tx"><b id="defFTxt">…</b></div><button class="btn sm" id="defFGo">${esc(TR('Choisir DrYAE dans Windows'))}</button></div>
       ${row('Mode d\'affichage des sites', '', sel('ua', [['desktop', 'Ordinateur'], ['mobile', 'Mobile']], b.ua))}
       ${row('Lecteur PDF de DrYAE', 'Ouvre les PDF avec des outils pour surligner, écrire, dessiner et signer, puis enregistrer le PDF modifié (bouton « Enregistrer » du lecteur).', swk('pdfViewer', b.pdfViewer !== false))}
       ${row('Détecter les sous-titres', 'Dans le panneau des fichiers détectés.', sw('subs', b.captureSubtitles))}
@@ -249,6 +252,18 @@ function draw() {
     $('#defOn').onchange = async e => show(await call('defaultSet', { on: e.target.checked, open: e.target.checked }));
     $('#defPdf').onchange = async e => show(await call('defaultSet', { pdf: e.target.checked }));
     $('#defGo').onclick = () => call('defaultOpen');
+  }
+  // 1.7.1 : torrents, images et BD
+  if ($('#defTor')) {
+    const showF = d => {
+      $('#defTor').checked = d.torrent; $('#defImg').checked = d.images; $('#defTor').disabled = !d.supported && !d.torrent; $('#defImg').disabled = !d.supported && !d.images;
+      $('#defFGo').hidden = !(d.torrent || d.images) || !d.supported;
+      $('#defFTxt').textContent = !d.supported ? TR(d.portable ? 'Version portable : impossible de la déclarer à Windows' : 'Seulement dans la version installée de DrYAE sous Windows') : d.torDefault && d.torrent ? TR('DrYAE ouvre les liens magnet') : (d.torrent || d.images) ? TR('DrYAE est déclaré à Windows : choisissez-le dans les Paramètres de Windows') : '';
+    };
+    call('filesInfo').then(showF).catch(() => {});
+    $('#defTor').onchange = async e => showF(await call('filesSet', { torrent: e.target.checked, open: e.target.checked }));
+    $('#defImg').onchange = async e => showF(await call('filesSet', { images: e.target.checked, open: e.target.checked }));
+    $('#defFGo').onclick = () => call('filesOpen');
   }
   // le total n'est demandé à GitHub que quand la ligne « À propos » est affichée à l'écran
   // 1.7.0 refaite : état des modèles de la traduction sur le PC
