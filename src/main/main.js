@@ -84,6 +84,8 @@ const api = {
   updateInfo() { return updater?.info(); },
   updateCheck() { return updater?.check(); },
   updateInstall() { return updater?.install(); },
+  updateVersions() { return updater?.versions().catch(() => []); },
+  updateRollback(v) { return updater?.rollback(v); },
   savePassword(host, user, pass) {
     const list = settings.get().passwords.filter(p => p.host !== host);
     list.push({ host, user, pass: enc(pass) });
@@ -244,7 +246,7 @@ app.whenReady().then(async () => {
   const BR = require('./bugreport');
   BR.init({ settings, T, version: app.getVersion(), extra: () => ({ Langue: settings.get().lang, 'Démarrage sur': settings.get().startView }) });
   setTimeout(() => BR.ask(win && !win.isDestroyed() && win.isVisible() ? win : (BrowserWindow.getFocusedWindow() || null)).catch(() => {}), 6000);
-  updater = new Updater({ send: sendUpd, notify: api.notify, T, beforeInstall: () => { browser?.saveStoreSync(); manager?.saveSync(); settings?.save?.(); backupData(); }, auto: () => settings.get().autoUpdateCheck !== false });
+  updater = new Updater({ send: sendUpd, notify: api.notify, T, beforeInstall: () => { browser?.saveStoreSync(); manager?.saveSync(); settings?.save?.(); backupData(); }, auto: () => settings.get().autoUpdateCheck !== false, prefs: { get: () => settings.get().updSkip || null, set: v => settings.set({ updSkip: v }) } });
   updater.init();
   settings.on('change', (_d, patch) => { if (patch.theme) browser.sendTheme(); if (patch.a11y) applyA11y(); });
   require('electron').nativeTheme.on('updated', () => applyA11y());
@@ -487,6 +489,8 @@ H('setLang', setLang);
 H('upd:info', () => updater.info());
 H('upd:check', () => updater.check());
 H('upd:install', () => updater.install());
+H('upd:versions', () => updater.versions().catch(() => []));
+H('upd:rollback', (_e, v) => updater.rollback(v));
 // « Signaler un problème » : rapport texte sur le Bureau (rien n'est envoyé), puis la page GitHub des signalements
 H('report', async () => report());
 H('a11y', () => a11yEff());

@@ -25,6 +25,27 @@ const ok = (n, v, x) => console.log((v ? 'OK  ' : 'ÉCHEC ') + n, x !== undefine
     return h({});
   });
   ok('lexique : les petits mots courants (THIS, YOUR) ne sont jamais enregistrés', Array.isArray(set) ? !set.some(x => /^(THIS|YOUR)$/.test(x.s)) && set.some(x => x.s === 'Kazuya') : true, set);
+  // revenir à une version précédente (Paramètres → À propos)
+  const rb = await app.evaluate(async ({ app: A, shell }, root) => {
+    const { Updater } = process.mainModule.require(root + '/src/main/updater.js');
+    let skip = null; const feeds = []; let checks = 0;
+    const u = new Updater({ send: () => {}, notify: () => {}, T: s => s, prefs: { get: () => skip, set: v => { skip = v; } } });
+    u.cfg = { github: { owner: 'DrYAE-FPA', repo: 'DrYAE' } };
+    u.versions = async () => [{ version: '1.7.2', date: '2026-11-23T14:40:00Z' }, { version: '1.7.1', date: '2026-11-19T10:00:00Z' }];
+    u.au = { allowDowngrade: false, setFeedURL: f => feeds.push(f), checkForUpdates: async () => { checks++; } };
+    const cur = A.getVersion();
+    await u.rollback('1.7.1');
+    const r1 = { feed: feeds[0], down: u.au.allowDowngrade, target: u.target, skip, checks, cur };
+    const want = await u.wanted({ version: '1.7.1', releaseDate: '2026-11-19T10:00:00Z' }, null);
+    const notOther = await u.wanted({ version: cur, releaseDate: '2026-11-23T14:40:00Z' }, null);
+    u.normalFeed();
+    const skipped = await u.wanted({ version: cur, releaseDate: skip.at }, async () => true);
+    const republished = await u.wanted({ version: cur, releaseDate: new Date(Date.parse(skip.at) + 3 * 3600e3).toISOString() }, async () => true);
+    return { r1, want, notOther, skipped, republished, back: feeds[1] };
+  }, ROOT);
+  ok('retour en arrière : la version choisie est téléchargée depuis GitHub (versions plus anciennes acceptées)', rb.r1.feed?.provider === 'generic' && /releases\/download\/v1\.7\.1$/.test(rb.r1.feed.url) && rb.r1.down === true && rb.r1.checks === 1 && rb.want === true && rb.notOther === false, rb);
+  ok('retour en arrière : la version quittée n\'est plus proposée, sauf si elle est republiée plus tard', rb.skipped === false && rb.republished === true && rb.back?.provider === 'github', rb);
+  ok('bouton « Revenir à une version précédente… » dans Paramètres → À propos', /id="updBack"/.test(fs.readFileSync(ROOT + '/src/pages/settings.js', 'utf8')));
   const src = fs.readFileSync(ROOT + '/src/main/browser.js', 'utf8'), pre = fs.readFileSync(ROOT + '/src/browser/page-preload.js', 'utf8'), po = fs.readFileSync(ROOT + '/src/main/paddle-ocr.js', 'utf8');
   ok('traduction : petits mots ignorés dans « Ne jamais traduire » (anciennes entrées)', /COMMON\.test\(String\(x\.s\)\.trim\(\)\)\)\.map\(x => x\.s\)/.test(src));
   ok('gomme ligne par ligne hors bulle (plus de voile sur le dessin), écran et fichier', /lined \? b\.boxes/.test(pre) && /d\._es = b\.boxes/.test(pre) && /boxes: g\.boxes/.test(src));

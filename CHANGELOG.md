@@ -39,6 +39,7 @@ Un traducteur de scans entièrement sur votre PC, plus rapide et plus juste : Dr
 - **Plus de voile blanc ou gris sur le dessin** : le texte hors des bulles est effacé ligne par ligne, et la traduction s'écrit avec un contour au lieu d'un grand rectangle (à l'écran comme dans le PDF / .cbz).
 
 **Aider à améliorer DrYAE (avec votre accord)**
+- **Revenir à une version précédente** : en cas de problème après une mise à jour, Paramètres → À propos de DrYAE → « Revenir à une version précédente… », choisissez la version : elle est téléchargée puis installée au redémarrage, avec vos réglages et vos données. La version quittée n'est plus proposée (sauf si elle est republiée).
 - À la première ouverture, DrYAE demande si vous voulez aider. Si vous acceptez, quand un problème arrive, DrYAE prépare un signalement sur GitHub (versions, Windows, dernières erreurs — sans mots de passe, sans historique, sans adresses de pages). **Rien n'est envoyé tout seul** : vous le relisez et c'est vous qui cliquez sur « Envoyer ». Réglage dans Paramètres → Système.
 - **« Signaler cette traduction »** dans la fenêtre « Corriger la bulle » : un signalement prérempli avec le texte lu et la traduction (jamais l'image ni l'adresse de la page).
 - **Lexique plus discret** : « Ajouter au lexique » est maintenant un petit lien. Si le mot ajouté n'est qu'un mot mal lu (« MANIA » → « MANA »), DrYAE conseille de corriger plutôt le « Texte lu ».
@@ -87,6 +88,7 @@ An image text translator that runs entirely on your PC, faster and more accurate
 - **No more white or grey veil over the drawing**: text outside the bubbles is erased line by line, and the translation is written with an outline instead of a big rectangle (on screen and in the PDF / .cbz).
 
 **Help improve DrYAE (with your consent)**
+- **Go back to a previous version**: if something goes wrong after an update, Settings → About DrYAE → "Go back to a previous version…", choose the version: it is downloaded, then installed when DrYAE restarts, with your settings and data. The version you leave is no longer offered (unless it is published again).
 - The first time it opens, DrYAE asks whether you want to help. If you agree, when a problem happens DrYAE prepares a report on GitHub (versions, Windows, latest errors — no passwords, no history, no page addresses). **Nothing is sent on its own**: you read it and you click "Submit" yourself. Setting in Settings → System.
 - **"Report this translation"** in the "Fix the bubble" window: a prefilled report with the text read and the translation (never the image or the page address).
 - **Quieter glossary**: "Add to glossary" is now a small link. If the word added is just a misread word ("MANIA" → "MANA"), DrYAE suggests correcting the "Text read" instead.

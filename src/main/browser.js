@@ -1397,6 +1397,8 @@ class WebBrowser {
     P('filesOpen', () => require('./defaultbrowser').openFilesSettings());
     P('updateCheck', () => this.main.updateCheck?.());
     P('updateInstall', () => this.main.updateInstall?.());
+    P('updateVersions', () => this.main.updateVersions?.());
+    P('updateRollback', v => this.main.updateRollback?.(v));
     P('pickDir', async def => { const r = await dialog.showOpenDialog(this.win, { properties: ['openDirectory', 'createDirectory'], defaultPath: def || app.getPath('downloads') }); return r.canceled ? null : r.filePaths[0]; });
     P('languages', () => this.main.languages?.() || []);
     P('engines', () => Object.keys(SEARCH));

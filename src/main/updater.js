@@ -23,8 +23,11 @@ function readConfig() {
 }
 
 class Updater {
-  constructor({ send, notify, T, auto, beforeInstall }) {
+  constructor({ send, notify, T, auto, beforeInstall, prefs }) {
     this.send = send; this.notify = notify; this.T = T; this.auto = auto || (() => true); this.beforeInstall = beforeInstall || (() => {});
+    // réglages gardés : version écartée après un retour en arrière ({ v, at })
+    this.prefs = prefs || { get: () => null, set: () => {} };
+    this.target = null; // retour à une version précédente en cours
     this.cfg = readConfig();
     this.state = { status: 'idle', version: null, progress: 0, error: null };
     this.au = null;
@@ -55,9 +58,12 @@ class Updater {
       autoUpdater.setFeedURL({ provider: 'github', owner: g.owner, repo: g.repo });
       // même numéro de version mais construction plus récente (version refaite) : proposée aussi
       const orig = autoUpdater.isUpdateAvailable.bind(autoUpdater);
-      autoUpdater.isUpdateAvailable = async info => (await orig(info)) || rebuilt(info && info.version, info && info.releaseDate);
+      autoUpdater.isUpdateAvailable = info => this.wanted(info, orig);
       autoUpdater.on('checking-for-update', () => this.set({ status: 'checking', error: null }));
-      autoUpdater.on('update-available', i => { const fix = i.version === app.getVersion(); this.set({ status: 'available', version: i.version, rebuilt: fix }); this.notify(this.T('Mise à jour disponible'), 'DrYAE ' + i.version + ''); });
+      autoUpdater.on('update-available', i => {
+        if (this.target) { this.set({ status: 'downloading', version: i.version, rollback: true, progress: 0 }); autoUpdater.downloadUpdate().catch(e => this.set({ status: 'error', error: e.message })); return; }
+        const fix = i.version === app.getVersion(); this.set({ status: 'available', version: i.version, rebuilt: fix, rollback: false }); this.notify(this.T('Mise à jour disponible'), 'DrYAE ' + i.version + '');
+      });
       autoUpdater.on('update-not-available', () => this.set({ status: 'latest' }));
       autoUpdater.on('download-progress', p => this.set({ status: 'downloading', progress: p.percent || 0, transferred: p.transferred || 0, total: p.total || 0, speed: p.bytesPerSecond || 0 }));
       autoUpdater.on('update-downloaded', i => this.set({ status: 'ready', version: i.version, progress: 100, speed: 0 }));
@@ -68,8 +74,51 @@ class Updater {
       setInterval(() => this.auto() && this.check(), 6 * 3600 * 1000);
     } catch (e) { console.error('updater', e.message); }
   }
+  // version proposée ? (retour en arrière choisi, version écartée, version refaite avec le même numéro)
+  async wanted(info, orig) {
+    // retour à une version précédente choisie dans les Paramètres : c'est elle qu'on veut
+    if (this.target) return !!info && info.version === this.target;
+    // version écartée après un retour en arrière : plus proposée, sauf si elle est republiée plus tard (même numéro refait)
+    const sk = this.prefs.get();
+    if (info && sk && sk.v === info.version && !(Date.parse(info.releaseDate || '') > Date.parse(sk.at || '') + 30 * 60e3)) return false;
+    return (orig ? await orig(info) : false) || rebuilt(info && info.version, info && info.releaseDate);
+  }
+  // feed GitHub habituel (après un retour en arrière annulé ou terminé)
+  normalFeed() {
+    if (!this.au || !this.target) return;
+    this.target = null; this.au.allowDowngrade = false;
+    try { const g = this.cfg.github; this.au.setFeedURL({ provider: 'github', owner: g.owner, repo: g.repo }); } catch {}
+  }
+  // versions publiées (pour revenir à une version précédente) : les plus récentes d'abord
+  async versions() {
+    if (!this.repoUrl) return [];
+    const g = this.cfg.github;
+    const r = await fetch(`https://api.github.com/repos/${g.owner}/${g.repo}/releases?per_page=30`, { headers: { Accept: 'application/vnd.github+json' } });
+    if (!r.ok) throw new Error('GitHub ' + r.status);
+    const list = (await r.json()).filter(x => !x.draft && !x.prerelease && (x.assets || []).some(a => /^DrYAE-Setup.*\.exe$/i.test(a.name)))
+      .map(x => ({ version: String(x.tag_name || '').replace(/^v/, ''), date: x.published_at || x.created_at || '' }))
+      .filter(x => /^\d+\.\d+\.\d+$/.test(x.version));
+    list.sort((a, b) => newer(a.version, b.version) ? -1 : newer(b.version, a.version) ? 1 : 0);
+    return list;
+  }
+  // 1.7.2 : revenir à une version précédente (en cas de problème avec une mise à jour) : elle est téléchargée puis
+  // installée au redémarrage, avec vos réglages ; la version quittée n'est plus proposée (sauf si elle est republiée)
+  async rollback(version) {
+    version = String(version || '').replace(/^v/, '');
+    if (!/^\d+\.\d+\.\d+$/.test(version) || !this.repoUrl) return this.info();
+    let cur = null; try { cur = (await this.versions()).find(x => x.version === app.getVersion()); } catch {}
+    this.prefs.set({ v: app.getVersion(), at: cur ? cur.date : new Date().toISOString() });
+    if (!this.au) { shell.openExternal(`${this.repoUrl}/releases/tag/v${version}`); return this.info(); }
+    this.target = version;
+    this.au.allowDowngrade = true;
+    this.au.setFeedURL({ provider: 'generic', url: `${this.repoUrl}/releases/download/v${version}` });
+    this.set({ status: 'checking', version, rollback: true, error: null });
+    try { await this.au.checkForUpdates(); } catch (e) { this.set({ status: 'error', error: e.message }); this.normalFeed(); }
+    return this.info();
+  }
   async check() {
     if (!this.repoUrl) return this.info();
+    if (this.state.status !== 'downloading' && this.state.status !== 'ready') this.normalFeed();
     if (!this.au) { // version non installée : on lit simplement la dernière version publiée
       try {
         const r = await fetch(`https://api.github.com/repos/${this.cfg.github.owner}/${this.cfg.github.repo}/releases/latest`, { headers: { Accept: 'application/vnd.github+json' } });

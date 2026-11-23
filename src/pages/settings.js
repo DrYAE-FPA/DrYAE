@@ -75,7 +75,7 @@ function draw() {
   ];
   const hides = STATS.hides || {};
   const upd = ABOUT.update || {};
-  const updTxt = { checking: 'Recherche de mises à jour…', available: 'DrYAE {0} est disponible.', downloading: 'Téléchargement de la mise à jour… {0} %', ready: 'La mise à jour {0} est prête.', latest: 'DrYAE est à jour.', error: 'Vérification impossible.' }[upd.status] || '';
+  const updTxt = (upd.rollback ? { checking: 'Recherche de DrYAE {0}…', downloading: 'Téléchargement de la version précédente… {0} %', ready: 'DrYAE {0} est prête : redémarrez pour y revenir.' }[upd.status] : null) || { checking: 'Recherche de mises à jour…', available: 'DrYAE {0} est disponible.', downloading: 'Téléchargement de la mise à jour… {0} %', ready: 'La mise à jour {0} est prête.', latest: 'DrYAE est à jour.', error: 'Vérification impossible.' }[upd.status] || '';
   $('#wrap').innerHTML =
     sec('startup', 'Au démarrage', `
       <label class="cbx" style="padding:12px 18px"><input type="radio" name="st" value="restore" ${b.startup === 'restore' ? 'checked' : ''}><div><b>${esc(TR('Reprendre là où je m\'étais arrêté'))}</b><span>${esc(TR('Les onglets ouverts sont rouverts (chargés au moment où vous les affichez).'))}</span></div></label>
@@ -234,6 +234,7 @@ function draw() {
     sec('about', 'À propos de DrYAE', `
       <div class="prow"><img src="/_assets/logo.png" style="width:48px;height:48px;border-radius:12px" alt=""><div class="tx"><b style="font-size:15px">DrYAE ${esc(ABOUT.version)}</b><span>${esc(TR('Logiciel libre (GPL-3.0)'))} · Chromium ${esc(ABOUT.chrome)}</span></div></div>
       <div class="prow"><div class="tx"><b id="updTxt">${esc(TRF(updTxt, upd.status === 'downloading' ? Math.round(upd.progress || 0) : upd.version || ''))}</b><span>${upd.error ? esc(upd.error) : ''}</span></div><button class="btn sm" id="updChk">${esc(TR('Rechercher des mises à jour'))}</button>${['available', 'ready'].includes(upd.status) ? `<button class="btn sm primary" id="updGo">${esc(TR(upd.status === 'ready' ? 'Redémarrer et installer' : 'Mettre à jour'))}</button>` : ''}</div>
+      <div class="prow" id="updBackRow" style="${upd.status === 'latest' || upd.status === 'available' || upd.status === 'error' || upd.rollback ? '' : 'display:none'}"><div class="tx"><b>${esc(TR('Un problème depuis la dernière mise à jour ?'))}</b><span>${esc(TR('Revenez à une version précédente de DrYAE. Vos réglages, favoris et téléchargements sont gardés. La version quittée ne sera plus proposée.'))}</span></div><div id="updBackBox" style="display:flex;gap:6px;align-items:center"><button class="btn sm" id="updBack">${esc(TR('Revenir à une version précédente…'))}</button></div></div>
       <div class="prow"><div class="tx"><b id="dlCount">${esc(TR('Téléchargements de DrYAE'))} : …</b><span>${esc(TR('Compté par GitHub, pour toutes les versions. DrYAE ne sait pas qui vous êtes.'))}</span></div></div>
       <div class="prow click" data-url="https://github.com/DrYAE-FPA/DrYAE"><div class="tx"><b>${esc(TR('Code source et nouveautés'))}</b><span>github.com/DrYAE-FPA/DrYAE</span></div><span class="chev">${ic('open')}</span></div>
       <div class="prow click" data-url="https://github.com/DrYAE-FPA/DrYAE/blob/main/docs/GUIDE.md"><div class="tx"><b>${esc(TR('Mode d\'emploi'))}</b></div><span class="chev">${ic('open')}</span></div>
@@ -296,6 +297,8 @@ function draw() {
 function bind() {
   const w = $('#wrap');
   const v = id => $('#' + id);
+  // version a plus ancienne que b (1.7.1 < 1.7.2)
+  const older = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < 3; i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) < (y[i] || 0); } return false; };
   w.onchange = async e => {
     if (e.target.dataset && e.target.dataset.k) {
       const t = e.target, [g, k] = t.dataset.k.split('.');
@@ -369,6 +372,19 @@ function bind() {
     if (id === 'reset') { if (await confirmBox(TR('Rétablir les paramètres du navigateur par défaut ?'), 'Réinitialiser')) { C = await call('resetBrowser'); draw(); toast('Paramètres réinitialisés'); } }
     if (id === 'updChk') { v('updTxt').textContent = TR('Recherche de mises à jour…'); await call('updateCheck'); ABOUT = await call('about'); draw(); }
     if (id === 'updGo') call('updateInstall');
+    // 1.7.2 : revenir à une version précédente (choix de la version, puis téléchargement ; installée au redémarrage)
+    if (id === 'updBack') {
+      const box = v('updBackBox'); box.textContent = TR('Recherche des versions…');
+      const list = ((await call('updateVersions')) || []).filter(x => x.version !== ABOUT.version && older(x.version, ABOUT.version));
+      if (!list.length) { box.textContent = TR('Aucune version précédente trouvée (connexion ?)'); return; }
+      box.innerHTML = `<select id="updBackV">${list.slice(0, 12).map((x, i) => `<option value="${esc(x.version)}">DrYAE ${esc(x.version)}${x.date ? ' — ' + esc(new Date(x.date).toLocaleDateString()) : ''}${i === 0 ? ' (' + esc(TR('précédente')) + ')' : ''}</option>`).join('')}</select><button class="btn sm primary" id="updBackGo">${esc(TR('Revenir à cette version'))}</button>`;
+    }
+    if (id === 'updBackGo') {
+      const ver = v('updBackV')?.value; if (!ver) return;
+      if (!(await confirmBox(TR('Revenir à DrYAE {0} ? Elle sera téléchargée puis installée au redémarrage. Vos réglages et vos données sont gardés.').replace('{0}', ver), 'Revenir à cette version'))) return;
+      v('updBackBox').textContent = TR('Téléchargement de DrYAE {0}…').replace('{0}', ver);
+      await call('updateRollback', ver); ABOUT = await call('about'); draw();
+    }
     if (id === 'a11yKeys') D.call('showShortcuts');
     if (id === 'keysReset') { await setB({ keyList: [] }); return draw(); }
     if ((x = g('kdel'))) { await setB({ keyList: (C.keyList || []).filter(k => k.id !== x) }); return draw(); }
