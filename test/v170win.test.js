@@ -57,7 +57,7 @@ const brOf = async app => { let b; for (let i = 0; i < 60 && !b; i++) { b = app.
   const moved = await b.evaluate(async id => { const t = tabs.find(x => /a-deplacer/.test(x.url)); const ok = await B.call('br:moveTo', id, t.url, false); if (ok) closeTab(t); return ok; }, ws[0] && ws[0].id); await wait(2500);
   const xs = await xb.evaluate(() => tabs.map(t => t.url)), ms = await b.evaluate(() => tabs.map(t => t.url));
   ok('onglet déplacé vers l\'autre fenêtre', moved && xs.some(u => /a-deplacer/.test(u)) && !ms.some(u => /a-deplacer/.test(u)), { ws, xs, ms });
-  await xb.evaluate(() => { const t = tabs.find(x => /a-deplacer/.test(x.url)); if (t) closeTab(t); }); await wait(2000); // l'enregistrement des onglets attend 0,8 s
+  await xb.evaluate(() => { const t = tabs.find(x => /a-deplacer/.test(x.url)); if (t) closeTab(t); }); for (let i = 0; i < 20; i++) { await wait(500); const s = (() => { try { return JSON.parse(fs.readFileSync(HOME + '/.config/DrYAE/browser.json', 'utf8')); } catch { return {}; } })(); if (Object.values(s.extraSessions || {}).some(x => x.tabs.length === 2)) break; } // l'enregistrement des onglets attend 0,8 s (plus long sur une machine lente)
   await app.evaluate(({ app }) => app.quit()).catch(() => {}); await wait(2500);
   const store = (() => { for (const f of ['browser.json', 'browser-store.json', 'store.json']) try { return JSON.parse(fs.readFileSync(HOME + '/.config/DrYAE/' + f, 'utf8')); } catch {} return {}; })();
   ok('onglets de l\'autre fenêtre gardés en quittant', Object.values(store.extraSessions || {}).some(s => s.tabs.length === 2), store.extraSessions);
