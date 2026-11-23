@@ -240,6 +240,10 @@ app.whenReady().then(async () => {
   manager.online = () => { try { return require('electron').net.isOnline(); } catch { return true; } };
   manager.trash = f => shell.trashItem(f);
   startExtensionServer();
+  // 1.7.2 : aider à améliorer DrYAE (avec l'accord de l'utilisateur, question posée une seule fois)
+  const BR = require('./bugreport');
+  BR.init({ settings, T, version: app.getVersion(), extra: () => ({ Langue: settings.get().lang, 'Démarrage sur': settings.get().startView }) });
+  setTimeout(() => BR.ask(win && !win.isDestroyed() && win.isVisible() ? win : (BrowserWindow.getFocusedWindow() || null)).catch(() => {}), 6000);
   updater = new Updater({ send: sendUpd, notify: api.notify, T, beforeInstall: () => { browser?.saveStoreSync(); manager?.saveSync(); settings?.save?.(); backupData(); }, auto: () => settings.get().autoUpdateCheck !== false });
   updater.init();
   settings.on('change', (_d, patch) => { if (patch.theme) browser.sendTheme(); if (patch.a11y) applyA11y(); });

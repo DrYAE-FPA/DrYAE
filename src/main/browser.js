@@ -1984,6 +1984,8 @@ class WebBrowser {
       const r = (await M.translate([p.t], to || S.target || target(), 'auto', this.scanTr())).texts[0] || '';
       return M.unprotect(r, p.keep);
     });
+    // 1.7.2 : « Signaler cette traduction » : signalement GitHub prérempli (texte lu et traduction seulement), envoyé par l'utilisateur
+    ipcMain.handle('scan:report', (_e, o) => { try { return !!require('./bugreport').translation(o || {}); } catch { return false; } });
     // lexique : « mot d'origine » -> « traduction voulue » (noms des personnages, mots de la série)
     ipcMain.handle('scan:glossary', (_e, list) => {
       if (Array.isArray(list)) this.settings.set({ browser: { scan: { ...(this.B().scan || {}), glossary: list.filter(x => x && x.s && x.t).slice(0, 500).map(x => ({ s: String(x.s).slice(0, 100), t: String(x.t).slice(0, 100), ...(x.n ? { n: true } : {}) })) } } });

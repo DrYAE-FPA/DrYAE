@@ -213,6 +213,7 @@ Elle envoie à DrYAE les téléchargements de Google Chrome, les vidéos et les 
 - Quand une nouvelle version sort, un bandeau **Mettre à jour** apparaît. Cliquez dessus : le téléchargement s'affiche dans le gestionnaire. Puis cliquez sur **Redémarrer et installer** : DrYAE s'installe sans fenêtre et se rouvre avec vos réglages et votre langue.
 - Le bouton **Donner mon avis** ouvre la page [Issues](https://github.com/DrYAE-FPA/dryae/issues) pour proposer une idée.
 - **Signaler un problème…** (menu ⋮ → Aide, ou Paramètres du gestionnaire → À propos) crée un petit rapport sur votre Bureau (versions, Windows, dernières erreurs — sans mots de passe, sans historique, sans adresses complètes) et ouvre la page des signalements. Joignez le fichier à votre message.
+- **Aider à améliorer DrYAE** (Paramètres → Système, demandé à la première ouverture) : si vous acceptez, quand un problème arrive, DrYAE prépare un signalement GitHub déjà rempli ; vous le relisez et c'est vous qui l'envoyez. Rien ne part tout seul. Dans le Traducteur de scans, « Corriger la bulle » → **Signaler cette traduction** fait de même pour une mauvaise traduction (texte lu et traduction seulement).
 
 ## 10. Raccourcis clavier
 Appuyez sur **F1** pour ouvrir ce guide dans DrYAE ; la liste complète des raccourcis est en haut du guide. Vous pouvez choisir vos propres raccourcis : Paramètres → Raccourcis clavier.

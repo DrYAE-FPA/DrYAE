@@ -218,6 +218,7 @@ It sends Google Chrome downloads, videos and magnet links to DrYAE.
 - When a new version is out, an **Update** banner appears. Click it: the download shows in the manager. Then click **Restart and install**: DrYAE installs without any window and reopens with your settings and language.
 - **Give feedback** opens the [Issues](https://github.com/DrYAE-FPA/dryae/issues) page to suggest an idea.
 - **Report a problem…** (⋮ menu → Help, or manager settings → About) creates a small report on your Desktop (versions, Windows, latest errors — no passwords, no history, no full addresses) and opens the issue page. Attach the file to your message.
+- **Help improve DrYAE** (Settings → System, asked the first time DrYAE opens): if you agree, when a problem happens DrYAE prepares a prefilled GitHub report; you read it and send it yourself. Nothing is sent on its own. In the image text translator, "Fix the bubble" → **Report this translation** does the same for a wrong translation (text read and translation only).
 
 ## 10. Keyboard shortcuts
 Press **F1** to open this guide inside DrYAE; the full list of shortcuts is at the top of the guide. You can choose your own shortcuts: Settings → Keyboard shortcuts.

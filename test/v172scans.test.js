@@ -65,6 +65,24 @@ const close = app => Promise.race([app.close(), new Promise(r => setTimeout(r, 4
   ok('crédits et adresses (Discord) laissés en original ; une réplique normale est traduite', r.rule[2] === 'keep' && r.rule[3] === 'keep' && r.rule[4] === null, r.rule);
   ok('gomme : couleur de la bulle crème (pas celle des lettres, pas du blanc pur)', r.bg === 'rgb(240,230,200)', r.bg);
   ok('arrêt du traducteur : l\'arrêt du travail en cours ne plante pas', r.cancel === 'ok', r.cancel);
+  // 1.7.2 : aider à améliorer DrYAE (accord demandé, signalement prérempli que l'utilisateur envoie lui-même)
+  const br = await app.evaluate(async ({ dialog, shell }, root) => {
+    const rq = process.mainModule.require, BR = rq(root + '/src/main/bugreport.js'), LOG = rq(root + '/src/main/log.js');
+    const opened = [], boxes = [];
+    shell.openExternal = async u => { opened.push(u); };
+    dialog.showMessageBox = async (...a) => { boxes.push((a[1] || a[0]).message); return { response: 0 }; };
+    const tr = BR.translation({ text: 'WHERE ARE YOU GOING?', tr: 'OÙ ALLEZ-VOUS ?', from: 'en', to: 'fr' });
+    const long = BR.issueUrl('bug.yml', 'x', { what: 'a', report: Array.from({ length: 3000 }, (_, i) => 'ligne ' + i).join('\n') });
+    return { tr, longLen: long.length, longOk: /report=/.test(long), hook: typeof LOG.onError, opened: opened.length, boxes };
+  }, ROOT);
+  ok('signalement de traduction : GitHub prérempli (texte lu et traduction, pas d\'adresse de page)', /issues\/new\?template=bug\.yml/.test(br.tr) && /what=/.test(br.tr) && decodeURIComponent(br.tr).includes('WHERE ARE YOU GOING?') && !/https?%3A/.test(br.tr.split('?')[1]), br.tr.slice(0, 160));
+  ok('signalement : un long journal est raccourci (adresse acceptée par GitHub)', br.longLen <= 7000 && br.longOk, br.longLen);
+  ok('erreurs du journal reliées au signalement', br.hook === 'function');
+  const pre = fs.readFileSync(ROOT + '/src/browser/page-preload.js', 'utf8');
+  const mr = pre.slice(pre.indexOf('  const misread = '), pre.indexOf('  const lexCommon'));
+  const misread = new Function(mr + '\nreturn misread;')();
+  ok('lexique : « MANIA → MANA » signalé comme mot mal lu, pas « ONIGIRI → boulette de riz »', misread('MANIA', 'MANA') && !misread('ONIGIRI', 'boulette de riz'), [misread('MANIA', 'MANA'), misread('ONIGIRI', 'boulette de riz')]);
+  ok('réglage « Aider à améliorer DrYAE » dans Paramètres → Système', /row\('Aider à améliorer DrYAE'/.test(fs.readFileSync(ROOT + '/src/pages/settings.js', 'utf8')));
   // traduction des scans toujours sur le PC, même si Google est choisi dans les réglages
   const src = fs.readFileSync(ROOT + '/src/main/browser.js', 'utf8');
   ok('scans : traduction forcée sur le PC (rien n\'est envoyé)', /scanTr\(\)[^\n]*provider: 'local'/.test(src) && /ipcMain\.handle\('scan:cancel'/.test(src));

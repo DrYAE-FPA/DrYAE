@@ -9,18 +9,24 @@ body:
         Astuce : dans DrYAE, menu ⋮ → Aide → **Signaler un problème…** crée un petit rapport sur votre Bureau (sans mots de passe ni historique). Glissez-le dans la dernière case.
         Thank you! Tip: in DrYAE, ⋮ menu → Help → **Report a problem…** creates a small report on your Desktop. Drag it into the last box.
   - type: dropdown
+    id: where
     attributes:
       label: "Où ? / Where?"
       options: ["Gestionnaire de téléchargements / Download manager", "Navigateur / Browser", "Torrents", "Vidéos (MP4/MP3)", "Traducteur de scans / Scan translator", "Installation / mise à jour", "Autre / Other"]
     validations: { required: true }
   - type: textarea
+    id: what
     attributes: { label: "Que s'est-il passé ? / What happened?", description: "Ce que vous avez vu, et ce que vous attendiez." }
     validations: { required: true }
   - type: textarea
+    id: steps
     attributes: { label: "Comment le refaire ? / Steps to reproduce", placeholder: "1. J'ai cliqué sur…\n2. Puis…\n3. Alors…" }
   - type: input
+    id: version
     attributes: { label: "Version de DrYAE (Paramètres → À propos) / DrYAE version", placeholder: "1.6.9" }
   - type: input
+    id: windows
     attributes: { label: "Version de Windows / Windows version", placeholder: "Windows 11" }
   - type: textarea
+    id: report
     attributes: { label: "Rapport et captures d'écran / Report and screenshots", description: "Glissez ici le fichier DrYAE-rapport-….txt et vos captures." }

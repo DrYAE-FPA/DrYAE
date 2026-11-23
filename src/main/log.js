@@ -30,6 +30,8 @@ function write(level, where, msg) {
     if (st && st.size > MAX) fs.renameSync(file, file + '.1');
     fs.appendFileSync(file, `${new Date().toISOString()} [${level}] ${where}: ${clean(msg).slice(0, 4000)}\n`);
   } catch {}
+  // 1.7.2 : avec l'accord de l'utilisateur, proposer un signalement (voir bugreport.js)
+  if (level === 'erreur' && module.exports.onError) try { module.exports.onError(where, clean(msg)); } catch {}
 }
 
 function tail(n = 400) {

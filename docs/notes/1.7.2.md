@@ -29,6 +29,11 @@ Un traducteur de scans entièrement sur votre PC, plus rapide et plus juste : Dr
 - **PDF et .cbz identiques à l'écran** : même place, même taille, mêmes coupures que ce que vous voyez.
 - **Webtoons très longs dans le PDF / .cbz** : les images trop hautes sont coupées en plusieurs pages, entre deux bulles (avant, elles manquaient dans le fichier).
 
+**Aider à améliorer DrYAE (avec votre accord)**
+- À la première ouverture, DrYAE demande si vous voulez aider. Si vous acceptez, quand un problème arrive, DrYAE prépare un signalement sur GitHub (versions, Windows, dernières erreurs — sans mots de passe, sans historique, sans adresses de pages). **Rien n'est envoyé tout seul** : vous le relisez et c'est vous qui cliquez sur « Envoyer ». Réglage dans Paramètres → Système.
+- **« Signaler cette traduction »** dans la fenêtre « Corriger la bulle » : un signalement prérempli avec le texte lu et la traduction (jamais l'image ni l'adresse de la page).
+- **Lexique plus discret** : « Ajouter au lexique » est maintenant un petit lien. Si le mot ajouté n'est qu'un mot mal lu (« MANIA » → « MANA »), DrYAE conseille de corriger plutôt le « Texte lu ».
+
 **Navigateur**
 - **Au démarrage, la page d'accueil** : DrYAE n'ouvre plus vos anciens onglets après « Quitter ». Pour les retrouver, choisissez « Reprendre là où je m'étais arrêté » dans Paramètres → Au démarrage. Si vous l'aviez choisi vous-même, rien ne change. La taille et la place de la fenêtre sont toujours gardées.
 
@@ -60,6 +65,11 @@ An image text translator that runs entirely on your PC, faster and more accurate
 - **Several bubbles in one panel**: the text of one bubble no longer runs over its neighbour's.
 - **PDF and .cbz identical to the screen**: same place, same size, same line breaks as what you see.
 - **Very long webtoons in the PDF / .cbz**: images that are too tall are split into several pages, between two bubbles (before, they were missing from the file).
+
+**Help improve DrYAE (with your consent)**
+- The first time it opens, DrYAE asks whether you want to help. If you agree, when a problem happens DrYAE prepares a report on GitHub (versions, Windows, latest errors — no passwords, no history, no page addresses). **Nothing is sent on its own**: you read it and you click "Submit" yourself. Setting in Settings → System.
+- **"Report this translation"** in the "Fix the bubble" window: a prefilled report with the text read and the translation (never the image or the page address).
+- **Quieter glossary**: "Add to glossary" is now a small link. If the word added is just a misread word ("MANIA" → "MANA"), DrYAE suggests correcting the "Text read" instead.
 
 **Browser**
 - **The home page at startup**: DrYAE no longer reopens your old tabs after "Quit". To get them back, choose "Continue where I left off" in Settings → On startup. If you had chosen it yourself, nothing changes. The window's size and position are still remembered.

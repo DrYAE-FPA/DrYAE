@@ -1265,7 +1265,8 @@ function pageFeatures() {
       <b>${esc(pt('Corriger la bulle'))}</b>
       <label style="color:#8f97aa">${esc(pt('Texte lu'))}</label><textarea class="o" rows="2" style="all:unset;background:#0d0f14;border:1px solid #2a3040;border-radius:6px;padding:5px;color:#e7e9ef;white-space:pre-wrap"></textarea>
       <label style="color:#8f97aa">${esc(pt('Traduction'))}</label><textarea class="t" rows="3" style="all:unset;background:#0d0f14;border:1px solid #2a3040;border-radius:6px;padding:5px;color:#e7e9ef;white-space:pre-wrap"></textarea>
-      <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn rt">${esc(pt('Retraduire'))}</button><button class="btn gl">${esc(pt('Ajouter au lexique'))}</button><button class="btn nv" title="${esc(pt('Ce mot ou ce nom ne sera plus jamais traduit'))}">${esc(pt('Ne jamais traduire'))}</button><button class="btn kp" title="${esc(pt('Enregistre l\'image dans un dossier de votre PC (rien n\'est envoyé)'))}">${esc(pt('Garder cette image pour l\'améliorer'))}</button><span style="flex:1"></span><button class="btn no">${esc(pt('Annuler'))}</button><button class="btn pri ok">${esc(pt('Enregistrer'))}</button></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn rt">${esc(pt('Retraduire'))}</button><button class="btn nv" title="${esc(pt('Ce mot ou ce nom ne sera plus jamais traduit'))}">${esc(pt('Ne jamais traduire'))}</button><button class="btn rp" title="${esc(pt('Prépare un signalement sur GitHub avec le texte lu et la traduction (pas l\'image). Vous le relisez et c\'est vous qui l\'envoyez.'))}">${esc(pt('Signaler cette traduction'))}</button><button class="btn kp" title="${esc(pt('Enregistre l\'image dans un dossier de votre PC (rien n\'est envoyé)'))}">${esc(pt('Garder cette image pour l\'améliorer'))}</button><span style="flex:1"></span><button class="btn no">${esc(pt('Annuler'))}</button><button class="btn pri ok">${esc(pt('Enregistrer'))}</button></div>
+      <a class="gl" href="#" style="color:#8f97aa;font-size:11.5px;justify-self:start" title="${esc(pt('Pour les noms et les mots de la série seulement. Si DrYAE a mal lu un mot, corrigez plutôt le « Texte lu ».'))}">${esc(pt('Ajouter au lexique'))}…</a>
       <div class="glx" style="display:none;gap:6px;grid-template-columns:1fr 1fr auto"><input class="gs" placeholder="${esc(pt('Mot d\'origine'))}" style="all:unset;background:#0d0f14;border:1px solid #2a3040;border-radius:6px;padding:4px;color:#e7e9ef"><input class="gt" placeholder="${esc(pt('Toujours traduire par'))}" style="all:unset;background:#0d0f14;border:1px solid #2a3040;border-radius:6px;padding:4px;color:#e7e9ef"><button class="btn gok">OK</button></div></div>`);
     scan.editor = ed;
     ed.querySelector('.o').value = b.text; ed.querySelector('.t').value = b.tr || '';
@@ -1277,7 +1278,11 @@ function pageFeatures() {
     // « Ajouter au lexique » et (1.7.0 refaite) « Ne jamais traduire » : même petite ligne, sans traduction pour le second
     let never = false;
     const openGl = nv => { never = nv; const g = ed.querySelector('.glx'); g.style.display = 'grid'; g.style.gridTemplateColumns = nv ? '1fr auto' : '1fr 1fr auto'; ed.querySelector('.gt').style.display = nv ? 'none' : ''; ed.querySelector('.gs').placeholder = nv ? pt('Mot ou nom à ne jamais traduire') : pt('Mot d\'origine'); const o = ed.querySelector('.o'); const sel = (o.value.slice(o.selectionStart, o.selectionEnd) || scanSel() || '').trim(); ed.querySelector('.gs').value = sel; (sel && !nv ? ed.querySelector('.gt') : ed.querySelector('.gs')).focus(); };
-    ed.querySelector('.gl').onclick = () => openGl(false);
+    ed.querySelector('.gl').onclick = e => { e.preventDefault(); openGl(false); };
+    ed.querySelector('.rp').onclick = async () => {
+      const ok = await ipcRenderer.invoke('scan:report', { text: ed.querySelector('.o').value, tr: ed.querySelector('.t').value, from: it.from || '', to: it.to || '' }).catch(() => false);
+      hint(ok ? pt('Signalement préparé sur GitHub : relisez-le, écrivez la bonne traduction, puis cliquez sur « Envoyer »') : pt('Impossible de préparer le signalement'), 6000);
+    };
     ed.querySelector('.nv').onclick = () => openGl(true);
     ed.querySelector('.kp').onclick = async () => {
       const r = await ipcRenderer.invoke('scan:keep', it.key || '', it.blocks.map(x => ({ text: x.text, tr: x.tr }))).catch(() => null);
@@ -1287,6 +1292,8 @@ function pageFeatures() {
     ed.querySelector('.gok').onclick = async () => {
       const s = ed.querySelector('.gs').value.trim(), t = never ? s : ed.querySelector('.gt').value.trim(); if (!s || !t) return;
       // 1.7.1 : mot courant ou phrase entière : remplacé partout, il abîme la traduction des autres bulles → avertir une fois
+      // 1.7.2 : « traduction » presque identique au mot (MANIA → MANA) : c'est une erreur de lecture, pas un mot à traduire
+      if (!never && warned !== s + '|r' && misread(s, t)) { warned = s + '|r'; return hint(pt('« {0} » ressemble à un mot mal lu : corrigez plutôt le « Texte lu » au-dessus, le lexique changerait ce mot dans toutes les pages. Recliquez sur OK pour l\'ajouter quand même.').replace('{0}', s), 6000); }
       if (!never && lexCommon(s) && warned !== s) { warned = s; return hint(pt('« {0} » est un mot courant : il serait remplacé dans toutes les bulles. Recliquez sur OK pour l\'ajouter quand même.').replace('{0}', s), 5000); }
       const list = await ipcRenderer.invoke('scan:glossary').catch(() => []);
       await ipcRenderer.invoke('scan:glossary', [...list.filter(x => x.s !== s), never ? { s, t: s, n: true } : { s, t }]).catch(() => {});
@@ -1305,6 +1312,14 @@ function pageFeatures() {
   const scanSel = () => { try { const s = uiRoot && uiRoot.getSelection ? uiRoot.getSelection() : getSelection(); return s ? String(s).replace(/\u00ad/g, '') : ''; } catch { return ''; } };
   // 1.7.1 : mots anglais très courants (les mettre au lexique abîme la traduction ; « HERE » → ICI changeait THERE en TICI)
   const LEX_COMMON = new Set(('a about after again all also am an and any anyone anything are as aside at be because been before begin being both but by can come could did do does done else elsewhere even every everything fine for from get go going good got had has have he her here him his how i if in into is it its just know let like look made make man many may me mean more most much must my never new no not now of off ok okay on once one only or other our out over please really right said same say see she should so some someone something still such take taken tell than that the their them then there these they thing think this those time to too totally two up us very want was way we well were what when where which who why will with without would yes yet you your amazing hand nose women woman men nine seven eight six five four three first second third').split(' '));
+  // 1.7.2 : mot du lexique qui n'est qu'une lecture corrigée (une ou deux lettres de différence, même mot)
+  const misread = (a, b) => {
+    a = String(a).toLowerCase(); b = String(b).toLowerCase(); if (a === b || a.length < 3 || /\s/.test(a) || /\s/.test(b)) return false;
+    const m = a.length, n = b.length; if (Math.abs(m - n) > 2) return false;
+    let p = Array.from({ length: n + 1 }, (_, j) => j);
+    for (let i2 = 1; i2 <= m; i2++) { const q = [i2]; for (let j = 1; j <= n; j++) q[j] = Math.min(p[j] + 1, q[j - 1] + 1, p[j - 1] + (a[i2 - 1] === b[j - 1] ? 0 : 1)); p = q; }
+    return p[n] <= (Math.max(m, n) >= 6 ? 2 : 1);
+  };
   const lexCommon = src => { const w = String(src).trim().toLowerCase().replace(/[?!.,…]+$/g, '').trim(); if (w.split(/\s+/).length >= 4) return true; return w.split(/\s+/).every(x => LEX_COMMON.has(x.replace(/^\W+|\W+$/g, '').replace(/'s$/, ''))); };
   const addGlossary = async item => { const list = await ipcRenderer.invoke('scan:glossary').catch(() => []); await ipcRenderer.invoke('scan:glossary', [...list.filter(x => x.s !== item.s), item]).catch(() => {}); };
   async function reBubble(it, i, d) {
