@@ -28,6 +28,13 @@ hub.exe = fake; hub.bundled = fake;
   // autre erreur (vidéo privée) : jamais de mise à jour
   data.ytdl.autoTried = 0;
   ok('erreur sans rapport (vidéo privée) : pas de mise à jour', !hub.isStale('ERROR: [youtube] x: Private video') && hub.isStale('WARNING: Only images are available for download'));
+  // vérification quotidienne : une fois par jour, jamais pendant un téléchargement ni hors connexion
+  fs.writeFileSync(log, ''); data.ytdl.lastCheck = 0;
+  ok('pendant un téléchargement de vidéo : plus tard', await hub.dailyCheck(() => true) === 'later');
+  ok('hors connexion : plus tard', await hub.dailyCheck(() => false, () => false) === 'later');
+  const r1 = await hub.dailyCheck();
+  ok('vérification faite (yt-dlp -U)', r1 === 'updated' && /-U/.test(fs.readFileSync(log, 'utf8')), r1);
+  { const r2 = await hub.dailyCheck(); ok('pas une deuxième fois le même jour', r2 === 'recent', r2); }
   fs.rmSync(dir, { recursive: true, force: true });
   process.exit(0);
 })().catch(e => { console.log('ÉCHEC exception', e.message); process.exit(1); });

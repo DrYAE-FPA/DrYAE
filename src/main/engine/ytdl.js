@@ -80,9 +80,21 @@ class YtdlHub {
         const r = await this.update();
         return /Updated yt-dlp to/i.test(r);
       } catch (e) { console.error('yt-dlp auto', e.message); return false; }
-      finally { setTimeout(() => { this._upd = null; }, 0); }
+      finally { this._upd = null; }
     })();
     return this._upd;
+  }
+  // 1.7.2 : vérification quotidienne (demande de l'utilisateur) : au plus une fois par jour, en arrière-plan, yt-dlp est
+  // mis à jour s'il existe une version plus récente ; jamais pendant un téléchargement de vidéo ni hors connexion
+  async dailyCheck(busy = () => false, online = () => true) {
+    if (!this.available() || this._upd) return 'skip';
+    const y = this.ctx.settings.get().ytdl || {};
+    if (Date.now() - (y.lastCheck || 0) < 24 * 3600e3) return 'recent';
+    if (busy() || !online()) return 'later';
+    this.ctx.settings.set({ ytdl: { ...y, lastCheck: Date.now() } });
+    this._upd = this.update().then(r => (console.log('yt-dlp (vérification quotidienne) :', r), /Updated yt-dlp to/i.test(r)), e => (console.error('yt-dlp (vérification quotidienne)', e.message), false))
+      .finally(() => { this._upd = null; });
+    return (await this._upd) ? 'updated' : 'checked';
   }
   async inspect(url, headers, cookieFile) {
     try { return await this._inspect(url, headers, cookieFile); }

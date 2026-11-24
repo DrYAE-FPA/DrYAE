@@ -41,6 +41,9 @@ class Manager extends EventEmitter {
     setInterval(() => this.autoRetry(), 3000);
     this.online = () => true; // remplacé par le processus principal (état de la connexion de Windows)
     setTimeout(() => this.torrents.refreshTrackerList(u => this.fetch(u)), 4000);
+    // yt-dlp : vérifié 90 s après le démarrage puis toutes les heures (mis à jour au plus une fois par jour)
+    const ytCheck = () => this.ytdl.dailyCheck(() => this.list.some(d => d.type === 'ytdl' && ['running', 'merging'].includes(d.status)), () => this.online()).catch(() => {});
+    setTimeout(ytCheck, 90e3); setInterval(ytCheck, 3600e3);
   }
 
   // --- réseau ---
