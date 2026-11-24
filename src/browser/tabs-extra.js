@@ -475,7 +475,7 @@ drawTiles = async function () {
   if (N.shortcuts === false) $('#tiles').innerHTML = '';
   else {
     const list = ntTiles(priv);
-    $('#tiles').innerHTML = list.map((x, i) => { const h = hostOf(x.u), f = ntFav[h]; return `<div class="tile" data-u="${esc(x.u)}" data-h="${esc(h)}" ${x.auto ? '' : `draggable="true" data-ti="${i}"`} title="${esc(x.u)}"><div class="ic">${f ? `<img src="${esc(f)}" alt="">` : esc((x.t || '?')[0].toUpperCase())}</div><span class="notr">${esc(x.t)}</span></div>`; }).join('')
+    $('#tiles').innerHTML = list.map((x, i) => { const h = hostOf(x.u), f = ntFav[h]; return `<div class="tile" data-u="${esc(x.u)}" data-h="${esc(h)}" ${x.auto ? '' : `draggable="true" data-ti="${i}"`} title="${esc(x.u)}"><div class="ic">${f ? `<img src="${esc(f)}" alt="">` : esc((x.t || '?')[0].toUpperCase())}</div><span class="notr">${esc(x.t)}</span>${priv ? '' : `<button class="tmore" title="${esc(T('Modifier ou retirer'))}" aria-label="${esc(T('Modifier ou retirer'))}">⋮</button>`}</div>`; }).join('')
       + (priv ? '' : `<div class="tile add" id="ntAdd"><div class="ic">+</div><span>${esc(T('Ajouter'))}</span></div>`);
     ntIcons(list);
   }
@@ -542,21 +542,25 @@ async function ntAddTile(edit) {
 }
 $('#tiles').addEventListener('click', e => { if (e.target.closest('#ntAdd')) { e.stopPropagation(); ntAddTile(); } }, true);
 // raccourcis : clic droit pour modifier ou retirer, glisser pour déplacer
-$('#tiles').addEventListener('contextmenu', async e => {
-  const t = e.target.closest('[data-u]'); if (!t) return; e.preventDefault();
+// raccourcis : bouton ⋮ (au survol) ou clic droit pour modifier ou retirer, glisser pour déplacer
+function ntTileMenu(t, x, y) {
   const N = NTP(); const list = N.tiles && N.tiles.length ? N.tiles : NT_DEFAULT.slice();
-  const i = list.findIndex(x => x.u === t.dataset.u);
-  menu(e.clientX, e.clientY, [{ label: 'Ouvrir dans un nouvel onglet', icon: 'plus', fn: () => newTab(t.dataset.u, { background: true }) },
+  const i = t.dataset.ti != null ? +t.dataset.ti : -1;
+  menu(x, y, [
     i >= 0 ? { label: 'Modifier', icon: 'gear', fn: () => ntAddTile(i) } : { label: 'Ajouter aux raccourcis', icon: 'pin', fn: async () => { await setN({ tiles: [...list, { t: siteName(t.dataset.u), u: t.dataset.u }].slice(0, 24) }); drawTiles(); } },
-    i >= 0 ? { label: 'Retirer ce raccourci', icon: 'x', fn: async () => { await setN({ tiles: list.filter(x => x.u !== t.dataset.u) }); drawTiles(); } } : null].filter(Boolean));
-});
+    i >= 0 ? { label: 'Retirer', icon: 'x', fn: async () => { await setN({ tiles: list.filter((_, k) => k !== i) }); drawTiles(); toast('Raccourci retiré'); } } : null,
+    { label: 'Ouvrir dans un nouvel onglet', icon: 'plus', fn: () => newTab(t.dataset.u, { background: true }) },
+  ].filter(Boolean));
+}
+$('#tiles').addEventListener('click', e => { const m = e.target.closest('.tmore'); if (!m) return; e.stopPropagation(); e.preventDefault(); const r = m.getBoundingClientRect(); ntTileMenu(m.closest('[data-u]'), r.left, r.bottom + 4); }, true);
+$('#tiles').addEventListener('contextmenu', e => { const t = e.target.closest('[data-u]'); if (!t) return; e.preventDefault(); ntTileMenu(t, e.clientX, e.clientY); });
 let tileDrag = null;
-$('#tiles').addEventListener('dragstart', e => { const t = e.target.closest('[data-ti]'); if (t) tileDrag = t.dataset.u; });
+$('#tiles').addEventListener('dragstart', e => { const t = e.target.closest('[data-ti]'); if (t) tileDrag = t.dataset.ti; });
 $('#tiles').addEventListener('dragover', e => { if (tileDrag) e.preventDefault(); });
 $('#tiles').addEventListener('drop', async e => {
   const t = e.target.closest('[data-ti]'); if (!tileDrag || !t) return; e.preventDefault();
   const N = NTP(); const list = (N.tiles && N.tiles.length ? N.tiles : NT_DEFAULT).slice();
-  const a = list.findIndex(x => x.u === tileDrag), b = list.findIndex(x => x.u === t.dataset.u); if (a < 0 || b < 0) return;
+  const a = +tileDrag, b = +t.dataset.ti; if (!(a >= 0) || !(b >= 0) || a === b) { tileDrag = null; return; }
   const [m] = list.splice(a, 1); list.splice(b, 0, m); tileDrag = null;
   await setN({ tiles: list }); drawTiles();
 });

@@ -93,9 +93,11 @@ webview.on{display:flex}
 .start .sbox input::placeholder{color:#6b7180}
 .start .sbox .eng{font-size:12px;color:#3a3f4c;background:#e3e5ea;border-radius:14px;padding:6px 10px;cursor:pointer}
 :root[data-mode=light] .start .sbox{background:#fff;border-color:var(--line2)}
-.start .tiles{display:flex;flex-wrap:wrap;justify-content:center;gap:10px 22px;width:min(880px,94%);margin-top:40px}
-.start .tile{display:flex;flex-direction:column;align-items:center;gap:8px;width:88px;padding:8px 2px;border-radius:12px;cursor:pointer;text-align:center;font-size:12.5px;color:var(--nttext,var(--text))}
+.start .tiles{display:flex;flex-wrap:wrap;justify-content:center;gap:10px 18px;width:min(1000px,96%);margin-top:40px}
+.start .tile{position:relative;display:flex;flex-direction:column;align-items:center;gap:8px;width:88px;padding:8px 2px;border-radius:12px;cursor:pointer;text-align:center;font-size:12.5px;color:var(--nttext,var(--text))}
 .start .tile:hover{background:#ffffff12}
+.start .tile .tmore{position:absolute;top:2px;right:2px;width:24px;height:24px;border-radius:50%;border:0;background:transparent;color:var(--nttext,var(--text));font-size:16px;line-height:1;cursor:pointer;opacity:0;display:grid;place-items:center;padding:0}
+.start .tile:hover .tmore,.start .tile .tmore:focus-visible{opacity:.85}.start .tile .tmore:hover{background:#ffffff26;opacity:1}
 .start .tile .ic{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:var(--panel2);color:var(--text);font-weight:700;font-size:20px;overflow:hidden}
 .start .tile .ic img{width:30px;height:30px;border-radius:6px;box-shadow:none}
 .start .tile.add .ic{background:transparent;border:1.5px dashed var(--line2);color:var(--muted);font-size:26px;font-weight:400}

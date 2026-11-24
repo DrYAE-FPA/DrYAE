@@ -37,6 +37,8 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR
   ok('raccourcis par défaut (Google, YouTube, Wikipédia, GitHub, Archive.org, Gmail) + « Ajouter »', h.tiles.length === 6 && h.add && h.tiles.some(t => /Wikip/.test(t)), h.tiles);
   ok('carte des nouveautés et bouton Personnaliser ; widgets cachés par défaut', h.news && h.wid === 0 && h.edit, h);
   ok('pas de « Coller un lien » ni de raccourcis d\'actions', !h.oldPaste);
+  const tm = await UI(async () => { const b = document.querySelectorAll('#tiles .tmore')[1]; b.click(); await new Promise(r => setTimeout(r, 200)); const m = [...document.querySelectorAll('#menu button')].map(x => x.textContent.trim()); document.getElementById('menu').classList.remove('on'); const t = [...document.querySelectorAll('#tiles .tile')]; return { m, rows: new Set(t.map(x => Math.round(x.getBoundingClientRect().top))).size }; });
+  ok('bouton ⋮ sur chaque raccourci : Modifier, Retirer, Ouvrir ; « + Ajouter » sur la même ligne', tm.m.join('|') === 'Modifier|Retirer|Ouvrir dans un nouvel onglet' && tm.rows === 1, tm);
 
   // 2) panneau Personnaliser + interrupteurs
   const p = await UI(async () => {
