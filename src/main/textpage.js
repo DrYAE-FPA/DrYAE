@@ -34,6 +34,23 @@ function colors(bm, W, H, b) {
 // fond reconstruit sous une ligne (PNG en « data: »), colonne par colonne : du haut vers le bas de la ligne.
 // Pour chaque colonne, on prend au-dessus et au-dessous le premier pixel qui n'est pas de l'encre (une ligne voisine
 // très proche ne laisse donc pas de traînée), sinon la couleur du fond de la ligne.
+// remplissage « du grossier au fin » : chaque trou prend la couleur moyenne de ce qui est connu autour, de plus en plus loin
+function pushPull(w, h, known, getC) {
+  let L = { w, h, r: new Float32Array(w * h), g: new Float32Array(w * h), b: new Float32Array(w * h), k: new Float32Array(w * h) };
+  for (let i = 0; i < w * h; i++) if (known(i)) { const c = getC(i); L.r[i] = c[0]; L.g[i] = c[1]; L.b[i] = c[2]; L.k[i] = 1; }
+  const lv = [L];
+  while (L.w > 2 || L.h > 2) { const nw = Math.ceil(L.w / 2), nh = Math.ceil(L.h / 2), N = { w: nw, h: nh, r: new Float32Array(nw * nh), g: new Float32Array(nw * nh), b: new Float32Array(nw * nh), k: new Float32Array(nw * nh) };
+    for (let y = 0; y < nh; y++) for (let x = 0; x < nw; x++) { let r = 0, g = 0, b = 0, kk = 0; for (let dy = 0; dy < 2; dy++) for (let dx = 0; dx < 2; dx++) { const X = 2 * x + dx, Y = 2 * y + dy; if (X >= L.w || Y >= L.h) continue; const i = Y * L.w + X, q = L.k[i]; r += L.r[i] * q; g += L.g[i] * q; b += L.b[i] * q; kk += q; }
+      const i = y * nw + x; if (kk > 0) { N.r[i] = r / kk; N.g[i] = g / kk; N.b[i] = b / kk; } N.k[i] = Math.min(1, kk); }
+    lv.push(N); L = N; if (lv.length > 14) break; }
+  for (let l = lv.length - 2; l >= 0; l--) { const Fl = lv[l], C = lv[l + 1];
+    for (let y = 0; y < Fl.h; y++) for (let x = 0; x < Fl.w; x++) { const i = y * Fl.w + x; if (Fl.k[i] >= 1) continue;
+      const fx = Math.max(0, Math.min(C.w - 1, (x - 0.5) / 2)), fy = Math.max(0, Math.min(C.h - 1, (y - 0.5) / 2)), ax = Math.floor(fx), ay = Math.floor(fy), bx = Math.min(C.w - 1, ax + 1), by = Math.min(C.h - 1, ay + 1), tx = fx - ax, ty = fy - ay;
+      const at = (Ar, X, Y) => Ar[Y * C.w + X], bil = Ar => (at(Ar, ax, ay) * (1 - tx) + at(Ar, bx, ay) * tx) * (1 - ty) + (at(Ar, ax, by) * (1 - tx) + at(Ar, bx, by) * tx) * ty;
+      const q = Fl.k[i]; Fl.r[i] = Fl.r[i] * q + bil(C.r) * (1 - q); Fl.g[i] = Fl.g[i] * q + bil(C.g) * (1 - q); Fl.b[i] = Fl.b[i] * q + bil(C.b) * (1 - q); Fl.k[i] = 1; } }
+  return lv[0];
+}
+
 function lineMask(bm, W, H, b) {
   // 1.7.2 (demande de l'utilisateur : « l'image ne doit pas perdre sa qualité ») : seules les lettres sont effacées.
   // Pixels d'encre de la ligne (dans le cadre lu, ou reliés au cœur de la ligne pour les jambages et accents), un peu
@@ -58,21 +75,44 @@ function lineMask(bm, W, H, b) {
   const pickM = (x, yy, dy) => { const v = []; for (let k = 0; k < 7; k++) { const c = pick(x, yy + dy * (off + k), dy); v.push(c); } return [0, 1, 2].map(j => median(v.map(c => c[j]))); };
   const T = [], Bo = []; for (let x = 0; x < w; x++) { T.push(pickM(x, y0 + Math.max(0, sy0) - 1, -1)); Bo.push(pickM(x, y0 + Math.min(h - 1, sy1) + 1, 1)); }
   const TT = sm(T), BB = sm(Bo);
-  // couleurs du fond de la zone : les plus fréquentes, hors encre (le bord adouci des lettres, rare, n'en fait pas partie)
+  // 1.7.2 (2e demande : « l'image doit rester identique ») : masque serré. Seule l'encre des lettres (reliée au cœur de
+  // la ligne pour les jambages et accents) + son bord adouci / contour, cherché à quelques pixels seulement de l'encre :
+  // la silhouette et le reste du dessin ne sont jamais pris, même juste à côté.
+  const isInk = i => Math.abs(col[i * 3] - ink[0]) + Math.abs(col[i * 3 + 1] - ink[1]) + Math.abs(col[i * 3 + 2] - ink[2]) < far;
+  const mine = new Uint8Array(w * h), st = [];
+  for (let y = Math.max(0, sy0); y <= Math.min(h - 1, sy1); y++) for (let x = Math.max(0, sx0); x <= Math.min(w - 1, sx1); x++) { const i = y * w + x; if (isInk(i)) { mine[i] = 1; st.push(i); } }
+  while (st.length) { const i = st.pop(), x = i % w, y = (i / w) | 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const X = x + dx, Y = y + dy; if (X < 0 || Y < 0 || X >= w || Y >= h) continue; const j = Y * w + X; if (!mine[j] && (Y < sy0 || Y > sy1) && Y >= gy0 && Y <= gy1 && isInk(j)) { mine[j] = 1; st.push(j); } } }
+  // distance à l'encre (en pixels, jusqu'à RH)
+  const RH = Math.max(3, Math.round(hh * 0.12)), dd = new Uint8Array(w * h).fill(255), q = [];
+  for (let i = 0; i < w * h; i++) if (mine[i]) { dd[i] = 0; q.push(i); }
+  for (let k = 0; k < q.length; k++) { const i = q[k], x = i % w, y = (i / w) | 0, d = dd[i] + 1; if (d > RH) continue; for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const X = x + dx, Y = y + dy; if (X < 0 || Y < 0 || X >= w || Y >= h) continue; const j = Y * w + X; if (dd[j] > d) { dd[j] = d; q.push(j); } } }
+  // distance à n'importe quelle encre de la zone (les lignes voisines ont aussi leur contour clair)
+  const da = new Uint8Array(w * h).fill(255), qa = [];
+  for (let i = 0; i < w * h; i++) if (isInk(i)) { da[i] = 0; qa.push(i); }
+  for (let k = 0; k < qa.length; k++) { const i = qa[k], x = i % w, y = (i / w) | 0, d = da[i] + 1; if (d > RH + 2) continue; for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const X = x + dx, Y = y + dy; if (X < 0 || Y < 0 || X >= w || Y >= h) continue; const j = Y * w + X; if (da[j] > d) { da[j] = d; qa.push(j); } } }
+  // fond tout autour (loin de toute encre) : couleurs les plus fréquentes
   const qk = (r, g, bl) => (r >> 4) << 8 | (g >> 4) << 4 | (bl >> 4);
   const hist = new Map(); let tot = 0;
-  for (let i = 0; i < w * h; i++) { const r = col[i * 3], g = col[i * 3 + 1], bl = col[i * 3 + 2]; if (Math.abs(r - ink[0]) + Math.abs(g - ink[1]) + Math.abs(bl - ink[2]) < far * 1.4) continue; const k = qk(r, g, bl); hist.set(k, (hist.get(k) || 0) + 1); tot++; }
-  const pal = new Set(); for (const [k, n] of hist) if (n >= Math.max(20, tot * 0.02)) pal.add(k);
+  for (let i = 0; i < w * h; i++) { if (da[i] <= RH + 2) continue; const k = qk(col[i * 3], col[i * 3 + 1], col[i * 3 + 2]); hist.set(k, (hist.get(k) || 0) + 1); tot++; }
+  const pal = new Set(); for (const [k, n] of hist) if (n >= Math.max(8, tot * 0.01)) pal.add(k);
   const inPal = (r, g, bl) => { const R0 = r >> 4, G0 = g >> 4, B0 = bl >> 4; for (let dr = -1; dr <= 1; dr++) for (let dg = -1; dg <= 1; dg++) for (let db = -1; db <= 1; db++) if (pal.has((R0 + dr) << 8 | (G0 + dg) << 4 | (B0 + db))) return true; return false; };
-  // pixel de lettre : couleur de l'encre, ou couleur qui n'est pas une couleur du fond (bord adouci, contour)
-  const isText = i => { const r = col[i * 3], g = col[i * 3 + 1], bl = col[i * 3 + 2]; return Math.abs(r - ink[0]) + Math.abs(g - ink[1]) + Math.abs(bl - ink[2]) < far || (pal.size > 0 && !inPal(r, g, bl)); };
-  // lettres : dans le cadre sûr + ce qui y est relié (jambages, accents)
-  const mine = new Uint8Array(w * h), st = [];
-  for (let y = Math.max(0, sy0); y <= Math.min(h - 1, sy1); y++) for (let x = Math.max(0, sx0); x <= Math.min(w - 1, sx1); x++) { const i = y * w + x; if (isText(i)) { mine[i] = 1; st.push(i); } }
-  while (st.length) { const i = st.pop(), x = i % w, y = (i / w) | 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const X = x + dx, Y = y + dy; if (X < 0 || Y < 0 || X >= w || Y >= h) continue; const j = Y * w + X; if (!mine[j] && (Y < sy0 || Y > sy1) && Y >= gy0 && Y <= gy1 && isText(j)) { mine[j] = 1; st.push(j); } } }
-  // élargies de R pixels (bord adouci des lettres)
-  const mask = new Uint8Array(w * h);
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { if (!mine[y * w + x]) continue; for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) { const X = x + dx, Y = y + dy; if (X >= 0 && Y >= Math.max(0, Math.min(sy0, gy0)) && X < w && Y < h && Y <= Math.max(sy1, gy1) && dx * dx + dy * dy <= R * R + 1) mask[Y * w + X] = 1; } }
+  // bord des lettres : près de l'encre, couleur absente du fond, et relié à l'encre par d'autres pixels de bord
+  const mask = new Uint8Array(w * h), st2 = [];
+  for (let i = 0; i < w * h; i++) if (mine[i]) { mask[i] = 1; st2.push(i); }
+  while (st2.length) { const i = st2.pop(), x = i % w, y = (i / w) | 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const X = x + dx, Y = y + dy; if (X < 0 || Y < 0 || X >= w || Y >= h) continue; const j = Y * w + X; if (mask[j] || dd[j] > RH) continue; if (dd[j] <= 2 || (pal.size && !inPal(col[j * 3], col[j * 3 + 1], col[j * 3 + 2]))) { mask[j] = 1; st2.push(j); } } }
+  // contour clair (ou foncé) autour des lettres : comparé au fond tout proche (estimé à partir des pixels plus loin de
+  // toute encre), tout pixel près de l'encre qui en diffère nettement fait partie de la lettre
+  const DM = RH + 5, dd2 = new Uint8Array(w * h).fill(255), q2 = [];
+  for (let i = 0; i < w * h; i++) if (mine[i]) { dd2[i] = 0; q2.push(i); }
+  for (let k = 0; k < q2.length; k++) { const i = q2[k], x = i % w, y = (i / w) | 0, d = dd2[i] + 1; if (d > DM) continue; for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const X = x + dx, Y = y + dy; if (X < 0 || Y < 0 || X >= w || Y >= h) continue; const j = Y * w + X; if (dd2[j] > d) { dd2[j] = d; q2.push(j); } } }
+  const LB = pushPull(w, h, i => da[i] > DM, i => [col[i * 3], col[i * 3 + 1], col[i * 3 + 2]]);
+  const st3 = []; for (let i = 0; i < w * h; i++) if (mask[i]) st3.push(i);
+  while (st3.length) { const i = st3.pop(), x = i % w, y = (i / w) | 0; for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const X = x + dx, Y = y + dy; if (X < 0 || Y < 0 || X >= w || Y >= h) continue; const j = Y * w + X; if (mask[j] || dd2[j] > DM) continue;
+    if (dist([col[j * 3], col[j * 3 + 1], col[j * 3 + 2]], [LB.r[j], LB.g[j], LB.b[j]]) > 9) { mask[j] = 1; st3.push(j); } } }
+  // + 1 pixel (dernier reflet du bord, compression JPEG)
+  const m2 = new Uint8Array(mask);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (mask[y * w + x]) for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) { const X = x + dx, Y = y + dy; if (X >= 0 && Y >= 0 && X < w && Y < h) m2[Y * w + X] = 1; }
+  mask.set(m2);
   return { x0, y0, w, h, mask };
 }
 
@@ -87,9 +127,9 @@ function fillPage(bm, W, H, ms) {
   const M = 48; X0 = Math.max(0, X0 - M); Y0 = Math.max(0, Y0 - M); X1 = Math.min(W - 1, X1 + M); Y1 = Math.min(H - 1, Y1 + M);
   const w = X1 - X0 + 1, h = Y1 - Y0 + 1, hole = new Uint8Array(w * h);
   for (const m of ms) if (m) for (let y = 0; y < m.h; y++) for (let x = 0; x < m.w; x++) if (m.mask[y * m.w + x]) hole[(m.y0 + y - Y0) * w + (m.x0 + x - X0)] = 1;
-  // marge de sécurité de 2 pixels : le bord adouci des lettres ne sert jamais de fond
+  // marge de sécurité de 3 pixels : le bord adouci des lettres ne sert jamais de fond
   const bad = new Uint8Array(hole);
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (hole[y * w + x]) for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) { const X = x + dx, Y = y + dy; if (X >= 0 && Y >= 0 && X < w && Y < h) bad[Y * w + X] = 1; }
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (hole[y * w + x]) for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) { const X = x + dx, Y = y + dy; if (X >= 0 && Y >= 0 && X < w && Y < h) bad[Y * w + X] = 1; }
   // niveau 0
   let L = { w, h, r: new Float32Array(w * h), g: new Float32Array(w * h), b: new Float32Array(w * h), k: new Float32Array(w * h) };
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = y * w + x, j = ((Y0 + y) * W + X0 + x) * 4; if (bad[i]) continue; L.r[i] = bm[j + 2]; L.g[i] = bm[j + 1]; L.b[i] = bm[j]; L.k[i] = 1; }
@@ -109,6 +149,19 @@ function fillPage(bm, W, H, ms) {
       const k = F.k[i]; F.r[i] = F.r[i] * k + bil(C.r) * (1 - k); F.g[i] = F.g[i] * k + bil(C.g) * (1 - k); F.b[i] = F.b[i] * k + bil(C.b) * (1 - k); F.k[i] = 1; }
   }
   const F = levels[0];
+  // 1.7.2 : en travers de chaque trait de lettre, par le chemin le plus court (8 directions) : couleur interpolée entre
+  // les deux bords connus. Un bord de silhouette qui passe sous une lettre continue ainsi tout droit, sans bavure.
+  const dirs = []; for (let k = 0; k < 8; k++) { const a = k * Math.PI / 8; dirs.push([Math.cos(a), Math.sin(a)]); }
+  const LMAX = 80, near = (x, y, dx, dy) => { for (let t = 1; t <= LMAX; t++) { const X = Math.round(x + dx * t), Y = Math.round(y + dy * t); if (X < 0 || Y < 0 || X >= w || Y >= h) return null; const j = Y * w + X; if (!bad[j]) return [t, j]; } return null; };
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = y * w + x; if (!hole[i]) continue;
+    // toutes les traversées comptent, les plus courtes beaucoup plus (résultat régulier d'un pixel à l'autre)
+    let r = 0, g = 0, bl = 0, wt = 0, lmin = 1e9; const cr = [];
+    for (const [dx, dy] of dirs) { const A = near(x, y, dx, dy); if (!A) continue; const B = near(x, y, -dx, -dy); if (!B) continue; const len = A[0] + B[0]; lmin = Math.min(lmin, len); cr.push([len, A, B]); }
+    if (!cr.length) continue;
+    for (const [len, A, B] of cr) { if (len > lmin * 2) continue; const q = 1 / Math.pow(len, 4), t = B[0] / len, ja = ((Y0 + ((A[1] / w) | 0)) * W + X0 + A[1] % w) * 4, jb = ((Y0 + ((B[1] / w) | 0)) * W + X0 + B[1] % w) * 4;
+      r += q * (bm[ja + 2] * t + bm[jb + 2] * (1 - t)); g += q * (bm[ja + 1] * t + bm[jb + 1] * (1 - t)); bl += q * (bm[ja] * t + bm[jb] * (1 - t)); wt += q; }
+    F.r[i] = r / wt; F.g[i] = g / wt; F.b[i] = bl / wt;
+  }
   // couleurs du fond autour des lettres (les plus fréquentes, juste à côté des trous)
   const hist = new Map(); let tot = 0;
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = y * w + x; if (bad[i]) continue; let near = false; for (let d = 3; d <= 12 && !near; d += 3) for (const [dx, dy] of [[d, 0], [-d, 0], [0, d], [0, -d]]) { const X = x + dx, Y = y + dy; if (X >= 0 && Y >= 0 && X < w && Y < h && hole[Y * w + X]) { near = true; break; } } if (!near) continue;
@@ -116,10 +169,72 @@ function fillPage(bm, W, H, ms) {
   const pal = [];
   for (const [, e] of [...hist.entries()].sort((a, b) => b[1].n - a[1].n)) { if (e.n < tot * 0.03) break; const c = [e.r / e.n, e.g / e.n, e.b / e.n]; const m = pal.find(p => dist(p.c, c) < 30); if (m) { m.c = m.c.map((v, q) => (v * m.n + c[q] * e.n) / (m.n + e.n)); m.n += e.n; } else pal.push({ c, n: e.n }); if (pal.length >= 6) break; }
   const out = new Uint8ClampedArray(w * h * 3);
-  for (let i = 0; i < w * h; i++) { if (!hole[i]) continue; const f = [F.r[i], F.g[i], F.b[i]];
-    let best = null, bd = 1e9; for (const p of pal) { const d = dist(p.c, f); if (d < bd) { bd = d; best = p.c; } }
-    // proche d'une couleur du fond : on garde la nuance douce du remplissage ; entre deux couleurs : la plus proche (bord net)
-    const c = best && bd > 24 ? best : f; out[i * 3] = c[0]; out[i * 3 + 1] = c[1]; out[i * 3 + 2] = c[2]; }
+  for (let i = 0; i < w * h; i++) if (hole[i]) { out[i * 3] = F.r[i]; out[i * 3 + 1] = F.g[i]; out[i * 3 + 2] = F.b[i]; }
+  // 1.7.2 (3e demande : « l'image doit être identique ») : fond à deux couleurs (ex. gris + silhouette bleue).
+  // Le bord entre les deux est prolongé sous les lettres : là où il entre dans une lettre, on mesure sa direction et on
+  // la suit tout droit (moyenne des bords les plus proches) ; chaque côté est ensuite rempli avec sa propre couleur,
+  // prise uniquement de son côté. Bord net et à sa place, sans bavure ni marches d'escalier.
+  if (pal.length >= 2) {
+    const A = pal[0].c, Bc = pal[1].c, sep = dist(A, Bc);
+    if (sep > 30) {
+      const lab = new Int8Array(w * h).fill(-1);
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = y * w + x; if (bad[i]) continue; const j = ((Y0 + y) * W + X0 + x) * 4, c = [bm[j + 2], bm[j + 1], bm[j]]; lab[i] = dist(c, A) <= dist(c, Bc) ? 0 : 1; }
+      // points du bord, juste à côté des lettres
+      const G = 24, gw = Math.ceil(w / G), gh = Math.ceil(h / G), grid = Array.from({ length: gw * gh }, () => []);
+      const nearHole = (x, y) => { for (let dy = -8; dy <= 8; dy += 2) for (let dx = -8; dx <= 8; dx += 2) { const X = x + dx, Y = y + dy; if (X >= 0 && Y >= 0 && X < w && Y < h && hole[Y * w + X]) return true; } return false; };
+      for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) { const i = y * w + x; if (lab[i] < 0) continue; if (!((lab[i + 1] >= 0 && lab[i + 1] !== lab[i]) || (lab[i + w] >= 0 && lab[i + w] !== lab[i]))) continue; if (!nearHole(x, y) || bad[i]) continue; if (hole[i - 3] || hole[i + 3] || hole[i - 3 * w] || hole[i + 3 * w]) continue;
+        // direction du bord : vers le côté B, mesurée sur les pixels connus autour (rayon 6)
+        let nx = 0, ny = 0, n = 0; for (let dy = -6; dy <= 6; dy++) for (let dx = -6; dx <= 6; dx++) { const X = x + dx, Y = y + dy; if (X < 0 || Y < 0 || X >= w || Y >= h) continue; const l = lab[Y * w + X]; if (l < 0) continue; nx += dx * (l - 0.5); ny += dy * (l - 0.5); n++; }
+        const L = Math.hypot(nx, ny); if (L < n * 0.4) continue; // pas un vrai bord net (bruit)
+        const ux = nx / L, uy = ny / L;
+        // le bord continue-t-il vraiment de l'autre côté de la lettre ? (même direction, même côtés) — sinon (bord qui
+        // ne fait que frôler la lettre, ou qui tourne), il ne compte que tout près de lui
+        let ok = false;
+        const lab3 = (X, Y) => { X = Math.round(X); Y = Math.round(Y); return X < 0 || Y < 0 || X >= w || Y >= h ? -1 : lab[Y * w + X]; };
+        for (const sg of [1, -1]) { let crossed = false; for (let k = 2; k <= LMAX; k++) { const X = x + 0.5 - uy * k * sg, Y = y + 0.5 + ux * k * sg, Xi = Math.round(X), Yi = Math.round(Y); if (Xi < 0 || Yi < 0 || Xi >= w || Yi >= h) break; const j = Yi * w + Xi;
+            if (hole[j]) { crossed = true; continue; } if (bad[j]) continue; if (!crossed) continue;
+            let good = false; for (let o = -3; o <= 3 && !good; o++) { const Xo = X - uy * o * sg, Yo = Y + ux * o * sg; const a = lab3(Xo + ux * 4, Yo + uy * 4), b = lab3(Xo - ux * 4, Yo - uy * 4); if (a === 1 && b === 0) good = true; }
+            ok = good; break; }
+          if (ok) break; }
+        grid[((y / G) | 0) * gw + ((x / G) | 0)].push([x + 0.5, y + 0.5, ux, uy, ok ? 1 : 0]); }
+      const RT = 72;
+      const side = new Float32Array(w * h).fill(NaN);
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = y * w + x; if (!hole[i]) continue;
+        let sw = 0, ss = 0, gx = (x / G) | 0, gy = (y / G) | 0, R = Math.ceil(RT / G);
+        let dmin = 1e9; const cand = [];
+        for (let cy = Math.max(0, gy - R); cy <= Math.min(gh - 1, gy + R); cy++) for (let cx = Math.max(0, gx - R); cx <= Math.min(gw - 1, gx + R); cx++) for (const t of grid[cy * gw + cx]) { const d2 = (t[0] - x) ** 2 + (t[1] - y) ** 2; if (d2 > (t[4] ? RT * RT : RT * RT / 9)) continue; cand.push([d2, t]); if (d2 < dmin) dmin = d2; }
+        if (!cand.length) continue;
+        for (const [d2, t] of cand) { if (d2 > dmin * 6 + 64) continue; const wgt = 1 / (d2 + 4) ** 1.5; ss += wgt * ((x + 0.5 - t[0]) * t[2] + (y + 0.5 - t[1]) * t[3]); sw += wgt; }
+        side[i] = ss / sw; }
+      // remplissage de chaque côté avec ses seules couleurs (du grossier au fin)
+      // couleurs prises un peu plus loin des lettres (le dernier reflet du bord, même invisible, éclaircissait le remplissage)
+      const far6 = new Uint8Array(bad); for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (hole[y * w + x]) for (let dy = -6; dy <= 6; dy += 2) for (let dx = -6; dx <= 6; dx += 2) { const X = x + dx, Y = y + dy; if (X >= 0 && Y >= 0 && X < w && Y < h) far6[Y * w + X] = 1; }
+      const fillSide = k => { let L = { w, h, r: new Float32Array(w * h), g: new Float32Array(w * h), b: new Float32Array(w * h), k: new Float32Array(w * h) };
+        for (let i = 0; i < w * h; i++) if (lab[i] === k && !far6[i]) { const j = ((Y0 + ((i / w) | 0)) * W + X0 + i % w) * 4; L.r[i] = bm[j + 2]; L.g[i] = bm[j + 1]; L.b[i] = bm[j]; L.k[i] = 1; }
+        const lv = [L];
+        while (L.w > 2 || L.h > 2) { const nw = Math.ceil(L.w / 2), nh = Math.ceil(L.h / 2), N = { w: nw, h: nh, r: new Float32Array(nw * nh), g: new Float32Array(nw * nh), b: new Float32Array(nw * nh), k: new Float32Array(nw * nh) };
+          for (let y = 0; y < nh; y++) for (let x = 0; x < nw; x++) { let r = 0, g = 0, b = 0, kk = 0; for (let dy = 0; dy < 2; dy++) for (let dx = 0; dx < 2; dx++) { const X = 2 * x + dx, Y = 2 * y + dy; if (X >= L.w || Y >= L.h) continue; const i = Y * L.w + X, q = L.k[i]; r += L.r[i] * q; g += L.g[i] * q; b += L.b[i] * q; kk += q; }
+            const i = y * nw + x; if (kk > 0) { N.r[i] = r / kk; N.g[i] = g / kk; N.b[i] = b / kk; } N.k[i] = Math.min(1, kk); }
+          lv.push(N); L = N; if (lv.length > 14) break; }
+        for (let l = lv.length - 2; l >= 0; l--) { const Fl = lv[l], C = lv[l + 1];
+          for (let y = 0; y < Fl.h; y++) for (let x = 0; x < Fl.w; x++) { const i = y * Fl.w + x; if (Fl.k[i] >= 1) continue;
+            const fx = Math.max(0, Math.min(C.w - 1, (x - 0.5) / 2)), fy = Math.max(0, Math.min(C.h - 1, (y - 0.5) / 2)), ax = Math.floor(fx), ay = Math.floor(fy), bx = Math.min(C.w - 1, ax + 1), by = Math.min(C.h - 1, ay + 1), tx = fx - ax, ty = fy - ay;
+            const at = (Ar, X, Y) => Ar[Y * C.w + X], bil = Ar => (at(Ar, ax, ay) * (1 - tx) + at(Ar, bx, ay) * tx) * (1 - ty) + (at(Ar, ax, by) * (1 - tx) + at(Ar, bx, by) * tx) * ty;
+            const q = Fl.k[i]; Fl.r[i] = Fl.r[i] * q + bil(C.r) * (1 - q); Fl.g[i] = Fl.g[i] * q + bil(C.g) * (1 - q); Fl.b[i] = Fl.b[i] * q + bil(C.b) * (1 - q); Fl.k[i] = 1; } }
+        return lv[0]; };
+      const S0 = fillSide(0), S1 = fillSide(1);
+      for (let i = 0; i < w * h; i++) if (hole[i] && Number.isNaN(side[i])) { const f = [out[i * 3], out[i * 3 + 1], out[i * 3 + 2]]; side[i] = dist(f, A) <= dist(f, Bc) ? -9 : 9; }
+      // bord lissé (pas de marches d'escalier) : moyenne locale du côté, dans les lettres seulement
+      for (let pass = 0; pass < 3; pass++) { const s2 = new Float32Array(side);
+        for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = y * w + x; if (!hole[i]) continue; let a = 0, n = 0;
+          for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) { const X = x + dx, Y = y + dy; if (X < 0 || Y < 0 || X >= w || Y >= h) continue; const j = Y * w + X; if (!hole[j]) continue; a += Math.max(-6, Math.min(6, side[j])); n++; }
+          s2[i] = a / n; }
+        side.set(s2); }
+      for (let i = 0; i < w * h; i++) { if (!hole[i]) continue; const s = side[i];
+        const t = Math.max(0, Math.min(1, 0.5 + s / 1.6)); // bord adouci sur ~1,5 pixel, comme l'original
+        out[i * 3] = S0.r[i] * (1 - t) + S1.r[i] * t; out[i * 3 + 1] = S0.g[i] * (1 - t) + S1.g[i] * t; out[i * 3 + 2] = S0.b[i] * (1 - t) + S1.b[i] * t; }
+    }
+  }
   return { X0, Y0, w, h, out };
 }
 function patchFrom(fp, m, nativeImage) {
