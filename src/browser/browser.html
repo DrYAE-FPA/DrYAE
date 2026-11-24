@@ -78,18 +78,58 @@ body.present .tabstrip,body.present .toolbar,body.present .bmbar,body.present .l
 .views{flex:1;position:relative}
 webview{position:absolute;inset:0;width:100%;height:100%;display:none;background:#fff}
 webview.on{display:flex}
-.start{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;padding-top:12vh;overflow:auto;background:var(--bg)}
+.start{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;padding-top:13vh;overflow:auto;background:var(--ntbg,var(--bg));background-size:cover;background-position:center}
 .start.on{display:flex}
-.start img{width:72px;height:72px;border-radius:18px;box-shadow:0 0 40px var(--accent-line)}
-.start h1{margin:14px 0 22px;font-size:26px;letter-spacing:.5px}
-.start .sbox{width:min(620px,90%);display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line2);border-radius:99px;padding:0 18px;height:48px}
-.start .sbox input{flex:1;background:none;border:0;outline:0;font-size:15px}
-.start .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:12px;width:min(760px,92%);margin-top:34px}
-.start .tile{display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 8px;border-radius:12px;background:var(--panel);border:1px solid var(--line);cursor:pointer;text-align:center;font-size:12px}
-.start .tile:hover{border-color:var(--accent)}
-.start .tile .ic{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:15px}
-.start .tile span{width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.start .priv{margin-top:10px;color:#c4b5fd}
+/* 1.7.2 : page d'accueil refaite (grand logo, barre de recherche claire, raccourcis ronds, widgets, panneau Personnaliser) */
+.start .brand{display:flex;align-items:center;gap:14px}
+.start .brand img{width:62px;height:62px;border-radius:16px;box-shadow:0 0 36px var(--accent-line)}
+.start .brand h1{margin:0;font-size:52px;font-weight:700;letter-spacing:-1px;color:var(--nttext,var(--text))}
+.start.nologo .brand{display:none}
+.start .sbox{width:min(720px,90%);display:flex;align-items:center;gap:12px;margin-top:32px;background:#f4f5f8;color:#1d2130;border:1px solid transparent;border-radius:28px;padding:0 10px 0 22px;height:56px;box-shadow:0 4px 18px #0005}
+.start .sbox svg{color:#5b6170}
+.start .sbox input{flex:1;background:none;border:0;outline:0;font-size:16px;color:#1d2130}
+.start .sbox input::placeholder{color:#6b7180}
+.start .sbox .eng{font-size:12px;color:#3a3f4c;background:#e3e5ea;border-radius:14px;padding:6px 10px;cursor:pointer}
+:root[data-mode=light] .start .sbox{background:#fff;border-color:var(--line2)}
+.start .tiles{display:flex;flex-wrap:wrap;justify-content:center;gap:10px 22px;width:min(880px,94%);margin-top:40px}
+.start .tile{display:flex;flex-direction:column;align-items:center;gap:8px;width:88px;padding:8px 2px;border-radius:12px;cursor:pointer;text-align:center;font-size:12.5px;color:var(--nttext,var(--text))}
+.start .tile:hover{background:#ffffff12}
+.start .tile .ic{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:var(--panel2);color:var(--text);font-weight:700;font-size:20px;overflow:hidden}
+.start .tile .ic img{width:30px;height:30px;border-radius:6px;box-shadow:none}
+.start .tile.add .ic{background:transparent;border:1.5px dashed var(--line2);color:var(--muted);font-size:26px;font-weight:400}
+.start .tile span{width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 3px #0008}
+.start .priv{margin-top:14px;color:#c4b5fd}
+.start .ntnews{margin-top:40px;width:min(580px,92%);background:var(--panel);border:1px solid var(--line2);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:14px;font-size:13px}
+.start .ntnews .nic{width:38px;height:38px;border-radius:10px;background:var(--accent);color:#fff;display:grid;place-items:center;flex:none}
+.start .ntnews .nt{flex:1;min-width:0}.start .ntnews .nt b{display:block}.start .ntnews .nt span{color:var(--muted)}
+.start .ntnews button{color:var(--muted);padding:4px 6px;border-radius:6px}.start .ntnews button:hover{background:var(--panel3);color:var(--text)}
+.start .ntwid{display:flex;gap:14px;margin-top:34px;width:min(760px,92%);flex-wrap:wrap}
+.start .ntwid .w{flex:1;min-width:220px;background:var(--panel);border:1px solid var(--line2);border-radius:16px;padding:14px 16px}
+.start .ntwid .w h4{margin:0 0 10px;font-size:12.5px;color:var(--muted);font-weight:600}
+.start .ntwid .tm{text-align:center}.start .ntwid .tm .t{font-size:30px;font-weight:600;margin:6px 0}
+.start .ntwid .tm .row{display:flex;gap:6px;justify-content:center}
+.start .ntwid .seg{display:inline-flex;border:1px solid var(--line2);border-radius:99px;overflow:hidden;margin-top:8px}.start .ntwid .seg button{padding:5px 12px;font-size:12px}.start .ntwid .seg button.on{background:var(--accent);color:#fff}
+.start .ntwid .todo label{display:flex;gap:8px;align-items:center;padding:4px 0;font-size:13px}.start .ntwid .todo label.done span{text-decoration:line-through;color:var(--muted)}
+.start .ntwid .todo input[type=text]{width:100%;margin-top:6px}
+.start .ntpedit{position:absolute;right:16px;bottom:16px;border-radius:99px!important;background:var(--accent)!important;color:#fff!important}
+.start .ntpanel{position:absolute;top:0;right:0;bottom:0;width:360px;max-width:92%;background:var(--panel);border-left:1px solid var(--line2);box-shadow:-10px 0 40px #0006;overflow:auto;padding:18px 18px 24px;display:none;z-index:5;font-size:13px}
+.start .ntpanel.on{display:block}
+.start .ntpanel h3{margin:0;font-size:16px;flex:1}
+.start .ntpanel h5{margin:18px 0 8px;font-size:13px}
+.start .ntpanel .sw{display:flex;gap:9px;flex-wrap:wrap}.start .ntpanel .sw button{width:38px;height:38px;border-radius:50%;border:2px solid transparent}.start .ntpanel .sw button.on{outline:2px solid var(--accent);outline-offset:2px}
+.start .ntpanel .seg{display:flex;border:1px solid var(--line2);border-radius:99px;overflow:hidden}.start .ntpanel .seg button{flex:1;padding:6px;font-size:12.5px}.start .ntpanel .seg button.on{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.start .ntpanel .more{display:flex;justify-content:space-between;align-items:center;width:100%;margin-top:10px;padding:9px 12px;border:1px solid var(--line2);border-radius:10px}
+.start .ntpanel .more:hover{border-color:var(--accent)}
+.start .ntpanel .bgs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}.start .ntpanel .bgs button{height:62px;border-radius:10px;border:2px solid transparent;background-size:cover;background-position:center;display:flex;align-items:flex-end;padding:4px 6px;font-size:11px;color:#fff;text-shadow:0 1px 2px #000}
+.start .ntpanel .bgs button.on{border-color:var(--accent)}.start .ntpanel .bgs .addimg{border:1.5px dashed var(--line2);color:var(--muted);text-shadow:none;align-items:center;justify-content:center}
+.start .ntpanel .tg{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:14px}
+.start .ntpanel .sub{margin:6px 0 0 4px;display:flex;flex-direction:column;gap:6px;color:var(--muted)}
+.start .ntpanel select{width:70px!important;flex:none;background:var(--panel2);border:1px solid var(--line2);border-radius:8px;padding:4px 8px}
+.start>*{flex:none}
+.start .ntpanel input.ntsw{appearance:none;-webkit-appearance:none;width:36px;height:20px;border-radius:10px;background:var(--line2);position:relative;cursor:pointer;flex:none;margin:0;transition:background .15s}
+.start .ntpanel input.ntsw::after{content:'';position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:#fff;transition:left .15s}
+.start .ntpanel input.ntsw:checked{background:var(--accent)}.start .ntpanel input.ntsw:checked::after{left:19px}
+.start .ntpanel .foot{margin-top:20px;color:var(--accent);cursor:pointer;display:inline-block}
 .panel{width:380px;border-left:1px solid var(--line);background:var(--panel);display:none;flex-direction:column;min-height:0}
 .panel.on{display:flex}
 .panel header{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line)}
@@ -193,9 +233,7 @@ webview.sideon{outline:2px solid var(--accent-line);outline-offset:-2px}
 .sidebody{flex:1;overflow:auto;padding:10px}.sidebody h4{margin:4px 0 8px}.sidebody details summary{cursor:pointer;padding:4px 0;font-weight:600}
 .sl{all:unset;box-sizing:border-box;display:flex;align-items:flex-start;gap:8px;width:100%;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:12.5px}.sl:hover{background:var(--panel3)}.sl img,.sl .fav{width:14px;height:14px;flex:none;margin-top:2px}.sl span{min-width:0;overflow:hidden;text-overflow:ellipsis}.slr{display:flex;align-items:center}
 .addr .ab{all:unset;display:flex;cursor:pointer;padding:3px;border-radius:6px;opacity:.75}.addr .ab:hover{opacity:1;background:var(--panel3)}.addr .ab svg{width:15px;height:15px}
-.start .ntpedit{position:absolute;right:16px;bottom:16px}
-.start.big .tiles{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}.start.big .tile .ic{width:52px;height:52px;font-size:20px}
-.start.small .tiles{grid-template-columns:repeat(auto-fill,minmax(84px,1fr))}.start.small .tile{padding:8px 4px}.start.small .tile .ic{width:26px;height:26px;font-size:12px}
+
 body.vtabs{display:grid;grid-template-columns:220px 1fr;grid-template-rows:auto auto auto auto auto 1fr}
 body.vtabs>*{grid-column:2}body.vtabs .stage{grid-row:6;min-height:0}
 body.vtabs .tabstrip{grid-column:1;grid-row:1/-1;flex-direction:column;align-items:stretch;overflow-y:auto;overflow-x:hidden;padding:8px 6px;gap:3px;border-right:1px solid var(--line)}
@@ -379,11 +417,13 @@ body.vtabs .tab{max-width:none;flex:none;border-radius:8px;border:1px solid var(
 <div class="stage">
   <div class="views" id="views">
     <div class="start" id="start">
-      <img src="../../assets/logo.png" alt="">
-      <h1>DrYAE</h1>
-      <div class="sbox"><svg><use href="#i-search"/></svg><input id="startQ" placeholder="Rechercher sur le web ou saisir une adresse"></div>
-      <div class="priv" id="privNote" style="display:none">Onglet privé : l'historique et les cookies ne sont pas conservés.</div>
+      <div class="brand"><img src="../../assets/logo.png" alt=""><h1 class="notr">DrYAE</h1></div>
+      <div class="sbox"><svg><use href="#i-search"/></svg><input id="startQ" placeholder="Rechercher sur le web ou saisir une adresse"><span class="eng notr" id="ntEng" title="Moteur de recherche"></span></div>
+      <div class="priv" id="privNote" style="display:none">Navigation privée : rien n'est gardé après la fermeture (historique, cookies, champs remplis).</div>
       <div class="tiles" id="tiles"></div>
+      <div class="ntnews" id="ntNews" style="display:none"></div>
+      <div class="ntwid" id="ntWid" style="display:none"></div>
+      <aside class="ntpanel" id="ntPanel" aria-label="Personnaliser la page d'accueil"></aside>
     </div>
     <div class="findbar" id="findbar"><input id="findQ" placeholder="Rechercher dans la page"><span class="hint" id="findN"></span><button class="icon-btn" id="findPrev"><svg><use href="#i-back"/></svg></button><button class="icon-btn" id="findNext"><svg><use href="#i-fwd"/></svg></button><button class="icon-btn" id="findX"><svg><use href="#i-x"/></svg></button></div>
   </div>

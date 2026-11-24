@@ -3,7 +3,7 @@
 // DrYAE prépare un signalement GitHub déjà rempli (versions, Windows, dernières erreurs du journal, sans mots de passe,
 // sans historique, sans adresse de page) ; l'utilisateur le relit dans son navigateur et clique lui-même sur « Envoyer ».
 // Une mauvaise traduction de scan peut aussi être signalée depuis la bulle (texte lu et traduction seulement, pas l'image).
-const { dialog, shell } = require('electron');
+const { dialog, shell, clipboard } = require('electron');
 const crypto = require('crypto');
 const LOG = require('./log');
 
@@ -40,7 +40,7 @@ async function ask(win) {
     type: 'question', buttons: [T('Oui, aider'), T('Non merci')], defaultId: 0, cancelId: 1, noLink: true,
     title: T('Aider à améliorer DrYAE ?'),
     message: T('Aider à améliorer DrYAE ?'),
-    detail: T('Quand DrYAE rencontre un problème, il peut préparer un signalement pour ses créateurs : versions, Windows et dernières erreurs, sans mots de passe, sans historique, sans adresses de pages. Rien n\'est envoyé tout seul : le signalement s\'ouvre sur GitHub, vous le relisez et c\'est vous qui cliquez sur « Envoyer ». Vous pourrez changer d\'avis dans Paramètres → Système.'),
+    detail: T('Quand DrYAE rencontre un problème, il peut préparer un signalement pour ses créateurs : versions, Windows et dernières erreurs, sans mots de passe, sans historique, sans adresses de pages. Rien n\'est envoyé tout seul : le signalement s\'ouvre sur GitHub, vous le relisez et c\'est vous qui cliquez sur « Envoyer ». Vous pourrez changer d\'avis dans Paramètres → Système.') + '\n\n' + T('Pour envoyer, il faut un compte GitHub (gratuit).'),
   };
   const r = await (win && !win.isDestroyed() ? dialog.showMessageBox(win, o) : dialog.showMessageBox(o)).catch(() => ({ response: 1 }));
   ctx.settings.set({ browser: { bugHelp: r.response === 0 } });
@@ -62,7 +62,7 @@ function onError(where, msg) {
     const r = await dialog.showMessageBox({
       type: 'warning', buttons: [T('Préparer le signalement'), T('Plus tard'), T('Ne plus proposer')], defaultId: 0, cancelId: 1, noLink: true,
       title: 'DrYAE', message: T('DrYAE a rencontré un problème'),
-      detail: T('Voulez-vous préparer un signalement ? Il s\'ouvrira sur GitHub : vous pourrez le relire, ajouter ce que vous faisiez, puis cliquer sur « Envoyer ». Rien ne part sans votre clic.'),
+      detail: T('Voulez-vous préparer un signalement ? Il s\'ouvrira sur GitHub : vous pourrez le relire, ajouter ce que vous faisiez, puis cliquer sur « Envoyer ». Rien ne part sans votre clic.') + '\n\n' + T('Pour envoyer, il faut un compte GitHub (gratuit). Le rapport est aussi copié : collez-le (Ctrl+V) si la page ne le montre pas.'),
     }).catch(() => ({ response: 1 }));
     if (r.response === 2) { ctx.settings.set({ browser: { bugHelp: false } }); return; }
     if (r.response !== 0) return;
@@ -71,9 +71,12 @@ function onError(where, msg) {
   }, 1500);
 }
 
-function open(title, what) {
-  const rep = LOG.report(ctx?.extra ? ctx.extra() : {});
-  const url = issueUrl('bug.yml', '[Erreur] ' + LOG.clean(title || 'Problème'), {
+function open(title, what, text) {
+  const rep = text || LOG.report(ctx?.extra ? ctx.extra() : {});
+  // 1.7.2 : modèle sans liste obligatoire (avant : « Où ? » à choisir, sinon GitHub refusait l'envoi) ;
+  // le rapport est aussi copié dans le presse-papiers (si la page GitHub le perd, Ctrl+V suffit)
+  try { clipboard.writeText(rep); } catch {}
+  const url = issueUrl('rapport.yml', '[Erreur] ' + LOG.clean(title || 'Problème'), {
     what: what || T('(Écrivez ici ce que vous faisiez quand le problème est arrivé.)'),
     version: ctx?.version || '', windows: require('os').release(), report: rep.replace(/\r/g, ''),
   });
@@ -84,9 +87,9 @@ function open(title, what) {
 // « Signaler cette traduction » (bulle d'un scan) : texte lu, traduction, langues — jamais l'image ni l'adresse de la page
 function translation(o = {}) {
   const t = s => LOG.clean(String(s || '')).slice(0, 1500);
-  const url = issueUrl('bug.yml', `[Traduction] ${t(o.text).replace(/\s+/g, ' ').slice(0, 60)}`, {
+  const url = issueUrl('traduction.yml', `[Traduction] ${t(o.text).replace(/\s+/g, ' ').slice(0, 60)}`, {
     what: `Mauvaise traduction / Wrong translation — Traducteur de scans (${o.from || '?'} → ${o.to || '?'})\n\nTexte lu / Text read :\n${t(o.text)}\n\nTraduction de DrYAE / DrYAE's translation :\n${t(o.tr)}\n\nTraduction attendue / Expected translation :\n${t(o.want) || '…'}`,
-    version: ctx?.version || '', windows: require('os').release(), report: '',
+    version: ctx?.version || '', windows: require('os').release(),
   });
   shell.openExternal(url);
   return url;

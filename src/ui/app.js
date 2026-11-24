@@ -44,6 +44,8 @@ function applyTheme() {
   const a = t.accent === 'system' ? (window.SYS_ACCENT || '#8b5cf6') : (t.accent || '#8b5cf6');
   const r = document.documentElement.style;
   r.setProperty('--accent', a); r.setProperty('--accent-soft', a + '22'); r.setProperty('--accent-line', a + '55');
+  // 1.7.2 : couleurs du thème choisi (thèmes de DrYAE ou de la boutique Chrome)
+  call('themeEff').then(t => { if (!t) return; for (const k of (window.__thVars || [])) r.removeProperty(k); window.__thVars = Object.keys(t.vars || {}); for (const [k, v] of Object.entries(t.vars || {})) r.setProperty(k, v); if (t.vars) { document.documentElement.dataset.mode = t.mode || 'dark'; if (t.accent) { r.setProperty('--accent', t.accent); r.setProperty('--accent-soft', t.accent + '22'); r.setProperty('--accent-line', t.accent + '55'); } } }).catch(() => {});
   themeIcon();
 }
 
@@ -1370,6 +1372,7 @@ $('#cbView').onclick = e => { const r = e.currentTarget.getBoundingClientRect();
 $('#cbMore').onclick = e => { const r = e.currentTarget.getBoundingClientRect(); showMenu(r.right - 240, r.bottom + 4, [{ label: 'Tout sélectionner', icon: 'check', fn: () => { selected = new Set(sorted().filter(match).map(d => d.id)); render(); } }, { label: 'Inverser la sélection', icon: 'check', fn: () => { selected = new Set(sorted().filter(match).map(d => d.id).filter(id => !selected.has(id))); render(); } }, { label: 'Aucun', icon: 'x', fn: () => { selected.clear(); render(); } }, '-', { label: 'Annuler (Ctrl+Z)', icon: 'redo', fn: undoRemove }, { label: 'Actualiser (F5)', icon: 'redo', fn: refreshView }, '-', { label: 'Raccourcis clavier (F1)', icon: 'kbd', fn: showShortcuts }]); };
 $('#cbPane').onclick = () => togglePane();
 // couleur d'accent de Windows
+D.on('theme-changed', async () => { try { S = await call('getSettings'); } catch {} applyTheme(); });
 call('accentColor').then(c => { window.SYS_ACCENT = c; if (S && S.theme && S.theme.accent === 'system') applyTheme(); }).catch(() => {});
 
 $('#lColor').addEventListener('input', e => { e.target.dataset.sys = ''; });

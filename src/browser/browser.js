@@ -18,6 +18,10 @@ function askBox(o) {
   return new Promise(res => {
     const m = $('#askDlg');
     $('#askH').textContent = o.title || ''; $('#askP').textContent = o.text || '';
+    // 1.7.2 : champs à remplir (nom et adresse d'un raccourci…)
+    let fx = $('#askFields'); if (!fx) { fx = document.createElement('div'); fx.id = 'askFields'; $('#askP').after(fx); }
+    fx.innerHTML = (o.fields || []).map(f => `<label style="display:block;margin-top:10px">${esc(f.label)}</label><input type="text" data-f="${esc(f.id)}" value="${esc(f.value || '')}" style="width:100%" spellcheck="false">`).join('');
+    fx.onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') $('#askF .primary')?.click(); };
     $('#askCk').style.display = o.check ? '' : 'none'; $('#askCt').textContent = o.check || ''; $('#askC').checked = !!o.checked;
     const btns = o.buttons || [{ v: 'ok', label: o.ok || 'OK', primary: true, danger: o.danger }];
     const bh = b => `<button class="btn ${b.primary ? 'primary' : ''} ${b.danger ? 'danger' : ''}" data-v="${b.v}">${esc(b.label)}</button>`, cancel = `<button class="btn" data-v="">${esc(o.cancel || 'Annuler')}</button>`;
@@ -25,11 +29,11 @@ function askBox(o) {
     const many = btns.length >= 3, main = btns.filter(b => b.primary);
     $('#askF').classList.toggle('ask', many);
     $('#askF').innerHTML = many ? `<div class="ask-row">${cancel}${btns.filter(b => !b.primary).map(bh).join('')}</div>${main.map(bh).join('')}` : cancel + btns.map(bh).join('');
-    const done = v => { m.classList.remove('on'); m.onkeydown = null; $('#askF').onclick = null; res(v ? { value: v, checked: $('#askC').checked } : null); };
+    const done = v => { m.classList.remove('on'); m.onkeydown = null; $('#askF').onclick = null; const vals = {}; fx.querySelectorAll('[data-f]').forEach(i => { vals[i.dataset.f] = i.value; }); res(v ? { value: v, checked: $('#askC').checked, ...vals } : null); };
     $('#askF').onclick = e => { const b = e.target.closest('[data-v]'); if (b) done(b.dataset.v); };
     m.onkeydown = e => { if (e.key === 'Escape') { e.stopPropagation(); done(''); } };
     m.classList.add('on');
-    setTimeout(() => $('#askF .primary')?.focus(), 30);
+    setTimeout(() => (fx.querySelector('input') || $('#askF .primary'))?.focus(), 30);
   });
 }
 // doublon détecté par le Gestionnaire : même fenêtre que dans le Gestionnaire
@@ -440,8 +444,9 @@ function mainMenu() {
     ] },
     { label: 'Téléchargements', icon: 'dl', key: 'Ctrl+J', hl: true, fn: openDownloads },
     { label: 'Favoris', icon: 'star', sub: bmMenu },
-    { label: 'Extensions', icon: 'puzzle', adv: true, sub: () => [
+    { label: 'Extensions et thèmes', icon: 'puzzle', adv: true, sub: () => [
       { label: 'Gérer les extensions', icon: 'puzzle', key: 'Ctrl+Maj+X', fn: () => openPage('extensions') },
+      { label: 'Thèmes', icon: 'stars', fn: () => openPage('extensions', 'themes') },
       { label: 'Boutique Chrome Web Store', icon: 'store', fn: () => newTab('https://chromewebstore.google.com/') },
       '-', { title: 'Extensions intégrées' },
       ...MODS.filter(([id]) => CFG.mods?.[id]?.installed !== false).map(([id, l, icon]) => ({ label: l, icon, check: modOn(id), fn: () => setModule(id, { enabled: !modOn(id) }) })),
@@ -524,8 +529,8 @@ function askName() {
   });
 }
 async function reportProblem() {
-  const r = await askBox({ title: 'Signaler un problème', text: T("DrYAE va créer un petit rapport sur ton Bureau (versions, Windows, dernières erreurs — sans mots de passe, sans historique, sans adresses complètes) et ouvrir la page des signalements sur GitHub. Décris ce qui s'est passé et joins le fichier. Rien n'est envoyé sans toi."), ok: 'Créer le rapport' });
-  if (r) { await B.call('br:report'); toast('Rapport créé sur le Bureau'); }
+  const r = await askBox({ title: 'Signaler un problème', text: T("DrYAE va préparer un signalement sur GitHub, déjà rempli avec un petit rapport (versions, Windows, dernières erreurs — sans mots de passe, sans historique, sans adresses complètes). Le rapport est aussi copié et gardé sur ton Bureau. Écris ce qui s'est passé, puis envoie : rien ne part sans toi. Il faut un compte GitHub (gratuit)."), ok: 'Préparer le signalement' });
+  if (r) { await B.call('br:report'); toast('Signalement préparé sur GitHub (rapport aussi copié et gardé sur le Bureau)'); }
 }
 async function setModule(id, patch) { CFG = { ...CFG, ...(await B.call('br:setModule', id, patch)) }; drawMods(); updToolbar(); if (['adblock', 'capture', 'pip', 'translate', 'lights', 'scan'].includes(id) && patch.enabled !== undefined) toast(patch.enabled ? 'Extension activée (actualisez la page)' : 'Extension désactivée'); }
 $('#bMenu').onclick = e => { const r = e.currentTarget.getBoundingClientRect(); menu(r.right - 300, r.bottom + 4, mainMenu(), true); };
@@ -910,6 +915,8 @@ function applyTheme(t) {
   let mode = t.mode || 'dark'; if (mode === 'system') mode = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
   document.documentElement.dataset.mode = mode;
   if (t.accent) { const r = document.documentElement.style; r.setProperty('--accent', t.accent); r.setProperty('--accent-soft', t.accent + '22'); r.setProperty('--accent-line', t.accent + '55'); }
+  // 1.7.2 : couleurs du thème choisi (thèmes de DrYAE ou de la boutique Chrome)
+  { const r = document.documentElement.style; for (const k of (window.__thVars || [])) r.removeProperty(k); window.__thVars = Object.keys(t.vars || {}); for (const [k, v] of Object.entries(t.vars || {})) r.setProperty(k, v); }
 }
 // vérification anti-robot bloquée : proposer Chrome
 setInterval(() => {

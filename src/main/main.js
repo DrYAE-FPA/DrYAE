@@ -248,7 +248,7 @@ app.whenReady().then(async () => {
   setTimeout(() => BR.ask(win && !win.isDestroyed() && win.isVisible() ? win : (BrowserWindow.getFocusedWindow() || null)).catch(() => {}), 6000);
   updater = new Updater({ send: sendUpd, notify: api.notify, T, beforeInstall: () => { browser?.saveStoreSync(); manager?.saveSync(); settings?.save?.(); backupData(); }, auto: () => settings.get().autoUpdateCheck !== false, prefs: { get: () => settings.get().updSkip || null, set: v => settings.set({ updSkip: v }) } });
   updater.init();
-  settings.on('change', (_d, patch) => { if (patch.theme) browser.sendTheme(); if (patch.a11y) applyA11y(); });
+  settings.on('change', (_d, patch) => { if (patch.theme) { browser.sendTheme(); try { win?.webContents.send('theme-changed'); } catch {} } if (patch.a11y) applyA11y(); });
   require('electron').nativeTheme.on('updated', () => applyA11y());
   applyA11y();
 
@@ -345,7 +345,8 @@ async function report() {
   await fsp.mkdir(path.dirname(f), { recursive: true }).catch(() => {});
   await fsp.writeFile(f, '\ufeff' + txt, 'utf8');
   shell.showItemInFolder(f);
-  const u = updater?.info(); if (u?.repoUrl) shell.openExternal(u.repoUrl + '/issues/new?template=bug.yml');
+  // 1.7.2 : signalement GitHub déjà rempli avec le rapport (aussi copié dans le presse-papiers) ; le fichier reste sur le Bureau
+  try { require('./bugreport').open(T('Problème signalé depuis DrYAE'), '', txt.replace(/^\ufeff/, '')); } catch { const u = updater?.info(); if (u?.repoUrl) shell.openExternal(u.repoUrl + '/issues/new?template=rapport.yml'); }
   return f;
 }
 const IPCF = {}; // fonctions IPC appelables aussi depuis le navigateur
@@ -487,6 +488,7 @@ function setLang(lang) {
 }
 H('setLang', setLang);
 H('upd:info', () => updater.info());
+H('themeEff', () => browser?.theme?.() || null);
 H('upd:check', () => updater.check());
 H('upd:install', () => updater.install());
 H('upd:versions', () => updater.versions().catch(() => []));

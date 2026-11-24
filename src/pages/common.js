@@ -99,6 +99,8 @@ function applyTheme(t = {}) {
   let mode = t.mode || 'dark'; if (mode === 'system') mode = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
   document.documentElement.dataset.mode = mode;
   if (t.accent) { const r = document.documentElement.style; r.setProperty('--accent', t.accent); r.setProperty('--accent-soft', t.accent + '22'); r.setProperty('--accent-line', t.accent + '55'); }
+  // 1.7.2 : couleurs du thème choisi (thèmes de DrYAE ou de la boutique Chrome)
+  { const r = document.documentElement.style; for (const k of (window.__thVars || [])) r.removeProperty(k); window.__thVars = Object.keys(t.vars || {}); for (const [k, v] of Object.entries(t.vars || {})) r.setProperty(k, v); }
 }
 D.call('theme').then(applyTheme).catch(() => {});
 D.on('theme', applyTheme);

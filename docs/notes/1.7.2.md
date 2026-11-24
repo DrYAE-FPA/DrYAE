@@ -4,7 +4,7 @@
 
 ### 🇫🇷 Français
 
-Un traducteur de scans entièrement sur votre PC, plus rapide et plus juste : DrYAE ne se fige plus pendant la lecture des bulles, lit mieux les pages difficiles, traduit dans un français plus naturel et écrit le texte proprement dans les bulles, à l'écran comme dans les fichiers enregistrés. Le bouton « Télécharger cette vidéo » devient aussi plus discret.
+Un traducteur de scans entièrement sur votre PC, plus rapide et plus juste : DrYAE ne se fige plus pendant la lecture des bulles, lit mieux les pages difficiles, traduit dans un français plus naturel et écrit le texte proprement dans les bulles, à l'écran comme dans les fichiers enregistrés. Le navigateur reçoit aussi une nouvelle page d'accueil, des thèmes, et le bouton « Télécharger cette vidéo » devient plus discret.
 
 **Traducteur de scans — traduction**
 - **100 % sur votre PC** : les scans sont toujours traduits sur l'ordinateur (rien n'est envoyé), même si un autre traducteur est choisi pour les pages web. Un petit cadenas 🔒 le rappelle dans la barre du traducteur.
@@ -41,8 +41,17 @@ Un traducteur de scans entièrement sur votre PC, plus rapide et plus juste : Dr
 **Aider à améliorer DrYAE (avec votre accord)**
 - **Revenir à une version précédente** : en cas de problème après une mise à jour, Paramètres → À propos de DrYAE → « Revenir à une version précédente… », choisissez la version : elle est téléchargée puis installée au redémarrage, avec vos réglages et vos données. La version quittée n'est plus proposée (sauf si elle est republiée).
 - À la première ouverture, DrYAE demande si vous voulez aider. Si vous acceptez, quand un problème arrive, DrYAE prépare un signalement sur GitHub (versions, Windows, dernières erreurs — sans mots de passe, sans historique, sans adresses de pages). **Rien n'est envoyé tout seul** : vous le relisez et c'est vous qui cliquez sur « Envoyer ». Réglage dans Paramètres → Système.
+- **Signalements plus simples** : plus de choix obligatoire qui bloquait l'envoi ; le rapport est aussi copié (Ctrl+V suffit si la page GitHub ne l'affiche pas) et gardé sur le Bureau. Il faut un compte GitHub (gratuit) pour envoyer.
 - **« Signaler cette traduction »** dans la fenêtre « Corriger la bulle » : un signalement prérempli avec le texte lu et la traduction (jamais l'image ni l'adresse de la page).
 - **Lexique plus discret** : « Ajouter au lexique » est maintenant un petit lien. Si le mot ajouté n'est qu'un mot mal lu (« MANIA » → « MANA »), DrYAE conseille de corriger plutôt le « Texte lu ».
+
+**Nouvelle page d'accueil et thèmes**
+- **Page d'accueil refaite**, comme un navigateur habituel : logo, grande barre de recherche (avec le moteur choisi), une ligne de raccourcis ronds avec l'icône des sites et « + Ajouter ». Clic droit sur un raccourci : ouvrir dans un nouvel onglet, modifier, retirer ; glissez-les pour les ranger. Vos favoris deviennent vos premiers raccourcis.
+- **« Personnaliser »** (en bas à droite) ouvre un panneau : clair, sombre ou comme l'appareil, couleurs, fond d'écran (uni, dégradés ou votre image), raccourcis et nombre de lignes, sites les plus visités (désactivés par défaut), widgets, carte des nouveautés, logo.
+- **Widgets** (au choix) : un minuteur (concentration / pause) et une liste de tâches.
+- **Carte des nouveautés** après une mise à jour, qu'on peut fermer.
+- **Navigation privée** : la page d'accueil le rappelle, sans raccourcis ajoutés ni sites visités.
+- **Thèmes** : le menu « Extensions » devient « Extensions et thèmes ». La vue Thèmes propose 8 thèmes de DrYAE (Aube, Braise, Prune, Océan, Forêt, Lagon, Graphite…) et les thèmes installés depuis le Chrome Web Store (« Explorer les thèmes ») : ils colorent tout DrYAE et le fond de la page d'accueil. « Revenir au thème par défaut » en un clic.
 
 **Navigateur**
 - **Au démarrage, la page d'accueil** : DrYAE n'ouvre plus vos anciens onglets après « Quitter ». Pour les retrouver, choisissez « Reprendre là où je m'étais arrêté » dans Paramètres → Au démarrage. Si vous l'aviez choisi vous-même, rien ne change. La taille et la place de la fenêtre sont toujours gardées.
@@ -53,7 +62,7 @@ Ne téléchargez que ce que vous avez le droit de copier.
 
 ### 🇬🇧 English
 
-An image text translator that runs entirely on your PC, faster and more accurate: DrYAE no longer freezes while reading speech bubbles, reads difficult pages better, translates into more natural French, and writes the text neatly in the bubbles, on screen and in saved files alike. The "Download this video" button also becomes more discreet.
+An image text translator that runs entirely on your PC, faster and more accurate: DrYAE no longer freezes while reading speech bubbles, reads difficult pages better, translates into more natural French, and writes the text neatly in the bubbles, on screen and in saved files alike. The browser also gets a new home page and themes, and the "Download this video" button becomes more discreet.
 
 **Image text translator — translation**
 - **100% on your PC**: scans are always translated on the computer (nothing is sent), even if another translator is chosen for web pages. A small padlock 🔒 in the translator bar says so.
@@ -90,8 +99,17 @@ An image text translator that runs entirely on your PC, faster and more accurate
 **Help improve DrYAE (with your consent)**
 - **Go back to a previous version**: if something goes wrong after an update, Settings → About DrYAE → "Go back to a previous version…", choose the version: it is downloaded, then installed when DrYAE restarts, with your settings and data. The version you leave is no longer offered (unless it is published again).
 - The first time it opens, DrYAE asks whether you want to help. If you agree, when a problem happens DrYAE prepares a report on GitHub (versions, Windows, latest errors — no passwords, no history, no page addresses). **Nothing is sent on its own**: you read it and you click "Submit" yourself. Setting in Settings → System.
+- **Simpler reports**: no more required choice that blocked sending; the report is also copied (just press Ctrl+V if the GitHub page doesn't show it) and kept on the Desktop. A (free) GitHub account is needed to send it.
 - **"Report this translation"** in the "Fix the bubble" window: a prefilled report with the text read and the translation (never the image or the page address).
 - **Quieter glossary**: "Add to glossary" is now a small link. If the word added is just a misread word ("MANIA" → "MANA"), DrYAE suggests correcting the "Text read" instead.
+
+**New home page and themes**
+- **Home page redone**, like a usual browser: logo, big search bar (with the chosen engine), one row of round shortcuts with site icons and "+ Add". Right-click a shortcut: open in a new tab, edit, remove; drag them to reorder. Your bookmarks become your first shortcuts.
+- **"Customize"** (bottom right) opens a panel: light, dark or same as the device, colours, wallpaper (plain, gradients or your own image), shortcuts and number of rows, most visited sites (off by default), widgets, what's new card, logo.
+- **Widgets** (optional): a timer (focus / break) and a task list.
+- **What's new card** after an update, which can be closed.
+- **Private browsing**: the home page says so, with no added shortcuts or visited sites.
+- **Themes**: the "Extensions" menu becomes "Extensions and themes". The Themes view offers 8 DrYAE themes and themes installed from the Chrome Web Store ("Explore themes"): they colour all of DrYAE and the home page background. "Back to the default theme" in one click.
 
 **Browser**
 - **The home page at startup**: DrYAE no longer reopens your old tabs after "Quit". To get them back, choose "Continue where I left off" in Settings → On startup. If you had chosen it yourself, nothing changes. The window's size and position are still remembered.

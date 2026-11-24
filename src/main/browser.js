@@ -180,7 +180,20 @@ class WebBrowser {
   theme() {
     const t = { ...(this.settings.get().theme || {}) };
     if (!t.accent || t.accent === 'system') { let c = null; try { c = require('electron').systemPreferences.getAccentColor?.(); } catch {} t.accent = c ? '#' + c.slice(0, 6) : '#8b5cf6'; }
+    // 1.7.2 : thème choisi (thèmes de DrYAE ou de la boutique Chrome) : couleurs de DrYAE et fond de la page d'accueil
+    const x = t.custom && t.custom !== 'default' ? this.themeList().find(a => a.id === t.custom) : null;
+    if (x && x.theme) {
+      t.vars = x.theme.vars; t.mode = x.theme.mode || t.mode; if (x.theme.accent) t.accent = x.theme.accent;
+      t.ntp = { color: x.theme.ntp || '', text: x.theme.ntpText || '', image: x.theme.ntpImage ? x.id : '' };
+    }
     return t;
+  }
+  themesInfo() { const T = this.settings.get().theme || {}; return { current: T.custom || 'default', mode: T.mode || 'dark', list: this.themeList().map(({ id, name, desc, kind, preview, theme }) => ({ id, name, desc, kind: kind || 'dryae', preview, mode: theme?.mode || '' })) }; }
+  // thèmes proposés : ceux de DrYAE puis ceux installés depuis la boutique Chrome (relus au plus toutes les 5 s)
+  themeList() {
+    const TH = require('./themes');
+    if (!this._thl || Date.now() - this._thl.t > 5000) this._thl = { t: Date.now(), l: TH.installed(this.extDir || '') };
+    return [...TH.BUILTIN, ...this._thl.l];
   }
   // accessibilité : taille du texte de la barre du navigateur, styles des fenêtres DrYAE et des pages
   applyA11y(e) {
@@ -349,7 +362,8 @@ class WebBrowser {
         popup: !!((mf.action || mf.browser_action || {}).default_popup), pinned: !(this.B().extUnpinned || []).includes(x.id),
         permissions: [...(mf.permissions || []), ...(mf.host_permissions || [])].filter(p => typeof p === 'string'), local: !!(x.path && path.basename(x.path).startsWith('local-')), mv: mf.manifest_version };
     };
-    const on = X.getAllExtensions().map(desc);
+    // 1.7.2 : les thèmes de la boutique Chrome sont dans « Thèmes », pas dans la liste des extensions
+    const on = X.getAllExtensions().filter(x => !(x.manifest && x.manifest.theme)).map(desc);
     const off = (this.store.extDisabled || []).filter(d => !on.some(x => x.id === d.id)).map(d => {
       let mf = {}; try { mf = JSON.parse(fs.readFileSync(path.join(d.path, 'manifest.json'), 'utf8')); } catch {}
       const x = { id: d.id, name: mf.name || d.name || d.id, version: mf.version || '', manifest: mf, path: d.path };
@@ -1266,6 +1280,10 @@ class WebBrowser {
     const P = pages.on;
     P('cfg', () => this.cfg());
     P('theme', () => this.theme());
+    // 1.7.2 : thèmes (page « Extensions et thèmes », panneau « Personnaliser » de la page d'accueil)
+    P('themes', () => this.themesInfo());
+    P('themeSet', id => { const t = { ...(this.settings.get().theme || {}) }; t.custom = id && id !== 'default' ? String(id) : ''; this.settings.set({ theme: t }); this._thl = null; this.sendTheme(); this.pushCfg(); return true; });
+    P('themeRemove', async id => { const x = this.themeList().find(a => a.id === id && a.kind === 'chrome'); if (!x) return false; if ((this.settings.get().theme || {}).custom === id) { const t = { ...(this.settings.get().theme || {}) }; t.custom = ''; this.settings.set({ theme: t }); } try { const ses = session.fromPartition(PART); const X = ses.extensions || ses; try { X.removeExtension(x.extId); } catch {} } catch {} await fsp.rm(path.join(this.extDir, x.extId), { recursive: true, force: true }).catch(() => {}); this._thl = null; this.sendTheme(); this.pushCfg(); return true; });
     P('a11y', () => this.main.a11y?.() || {});
     P('safeInfo', () => SAFE.info());
     P('report', () => this.main.report?.());
@@ -1702,6 +1720,11 @@ class WebBrowser {
     ipcMain.handle('br:ocrLangs', () => ({ langs: M.OCR_LANGS, have: M.ocrDownloaded() }));
     // installation par lien de la boutique ou identifiant (si la page de la boutique ne s'affiche pas)
     ipcMain.handle('br:extInstall', (_e, v) => this.extInstall(v));
+    // 1.7.2 : image de page d'accueil du thème choisi (demandée à part : elle peut être grosse)
+    ipcMain.handle('br:themeImage', () => { const t = this.theme(); const x = t.ntp?.image ? this.themeList().find(a => a.id === t.ntp.image) : null; return x ? require('./themes').dataUrl(x.theme.ntpImage) : ''; });
+    ipcMain.handle('br:themes', () => this.themesInfo());
+    ipcMain.handle('br:setRoot', (_e, patch = {}) => { if (patch.theme) this.settings.set({ theme: { ...(this.settings.get().theme || {}), mode: ['light', 'dark', 'system'].includes(patch.theme.mode) ? patch.theme.mode : 'dark' } }); this.sendTheme(); return this.cfg(); });
+    ipcMain.handle('br:themeSet', (_e, id) => { const t = { ...(this.settings.get().theme || {}) }; t.custom = id && id !== 'default' ? String(id) : ''; this.settings.set({ theme: t }); this._thl = null; this.sendTheme(); this.pushCfg(); return this.themesInfo(); });
     ipcMain.handle('br:extRemove', async (_e, id) => { await this.extRemove(id); this.wc?.send('ext-changed'); return this.extList(); });
     ipcMain.handle('br:extLoadDir', () => this.extLoadDir());
     ipcMain.handle('br:whitelist', (_e, { host, add }) => {

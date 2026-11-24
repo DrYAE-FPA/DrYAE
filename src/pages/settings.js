@@ -6,7 +6,7 @@ const SECS = [
   ['startup', 'power', 'Au démarrage'], ['look', 'palette', 'Apparence'], ['a11y', 'eye', 'Accessibilité'], ['perf', 'power', 'Onglets et performances'], ['work', 'folder', 'Travail et études'], ['keys', 'kbd', 'Raccourcis clavier'], ['search', 'search', 'Moteur de recherche'], ['autofill', 'key', 'Saisie automatique et mots de passe'],
   ['privacy', 'shield', 'Confidentialité et sécurité'], ['downloads', 'dl', 'Téléchargements'], ['langs', 'lang', 'Langues'],
   ['-', '', 'Extensions intégrées'], ['adblock', 'shield', 'Bloqueur de publicités'], ['translate', 'translate', 'Traducteur'], ['scan', 'scan', 'Traducteur de scans'], ['lexique', 'scan', 'Lexique des scans'], ['lights', 'bulb', 'Lumières tamisées'], ['pip', 'pip', "Image dans l'image"],
-  ['-', '', ''], ['system', 'sys', 'Système'], ['reset', 'reload', 'Réinitialiser'], ['extensions', 'puzzle', 'Extensions'], ['about', 'info', 'À propos de DrYAE'],
+  ['-', '', ''], ['system', 'sys', 'Système'], ['reset', 'reload', 'Réinitialiser'], ['extensions', 'puzzle', 'Extensions et thèmes'], ['about', 'info', 'À propos de DrYAE'],
 ];
 $('#nav').innerHTML = SECS.map(([id, i, l]) => id === '-' ? (l ? `<h5>${esc(TR(l))}</h5>` : '<hr>') : `<button data-s="${id}">${ic(i)}<span>${esc(TR(l))}</span></button>`).join('');
 $('#nav').onclick = e => { const b = e.target.closest('[data-s]'); if (!b) return; if (b.dataset.s === 'extensions') return D.call('openPage', 'extensions'); show(b.dataset.s); };

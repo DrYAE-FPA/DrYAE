@@ -75,7 +75,7 @@ const close = app => Promise.race([app.close(), new Promise(r => setTimeout(r, 4
     const long = BR.issueUrl('bug.yml', 'x', { what: 'a', report: Array.from({ length: 3000 }, (_, i) => 'ligne ' + i).join('\n') });
     return { tr, longLen: long.length, longOk: /report=/.test(long), hook: typeof LOG.onError, opened: opened.length, boxes };
   }, ROOT);
-  ok('signalement de traduction : GitHub prérempli (texte lu et traduction, pas d\'adresse de page)', /issues\/new\?template=bug\.yml/.test(br.tr) && /what=/.test(br.tr) && decodeURIComponent(br.tr).includes('WHERE ARE YOU GOING?') && !/https?%3A/.test(br.tr.split('?')[1]), br.tr.slice(0, 160));
+  ok('signalement de traduction : GitHub prérempli (texte lu et traduction, pas d\'adresse de page)', /issues\/new\?template=traduction\.yml/.test(br.tr) && /what=/.test(br.tr) && decodeURIComponent(br.tr).includes('WHERE ARE YOU GOING?') && !/https?%3A/.test(br.tr.split('?')[1]), br.tr.slice(0, 160));
   ok('signalement : un long journal est raccourci (adresse acceptée par GitHub)', br.longLen <= 7000 && br.longOk, br.longLen);
   ok('erreurs du journal reliées au signalement', br.hook === 'function');
   const pre = fs.readFileSync(ROOT + '/src/browser/page-preload.js', 'utf8');

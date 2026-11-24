@@ -1,0 +1,21 @@
+name: Rapport automatique / Automatic report
+description: Préparé par DrYAE après une erreur — Prepared by DrYAE after an error
+labels: [bug, rapport]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ce signalement a été préparé par DrYAE. Relisez-le, ajoutez ce que vous faisiez, puis cliquez sur « Create » / « Submit new issue ».
+        This report was prepared by DrYAE. Read it, add what you were doing, then click "Create".
+  - type: textarea
+    id: what
+    attributes: { label: "Que faisiez-vous ? / What were you doing?" }
+  - type: input
+    id: version
+    attributes: { label: "Version de DrYAE / DrYAE version" }
+  - type: input
+    id: windows
+    attributes: { label: "Version de Windows / Windows version" }
+  - type: textarea
+    id: report
+    attributes: { label: "Rapport / Report", description: "Sans mots de passe, sans historique, sans adresses de pages. — No passwords, no history, no page addresses.", render: text }

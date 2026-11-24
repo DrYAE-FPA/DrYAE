@@ -1,20 +1,22 @@
-/* dryae://extensions — extensions intégrées et extensions Chrome */
-let MODS = [], EXT = [], q = '', view = 'list', dev = false, details = '';
-shell('Extensions', null, 'Rechercher dans les extensions');
+/* dryae://extensions — extensions intégrées, extensions Chrome et thèmes */
+let MODS = [], EXT = [], q = '', view = /themes/.test(location.hash) ? 'themes' : 'list', dev = false, details = '', TH = { list: [], current: 'default', mode: 'dark' };
+shell('Extensions et thèmes', null, 'Rechercher dans les extensions');
 try { dev = localStorage.getItem('dev') === '1'; } catch {}
 const search = $('#q');
 function drawNav() {
   $('#nav').innerHTML = `<button data-v="list" class="${view === 'list' ? 'on' : ''}">${ic('puzzle')}<span>${esc(TR('Mes extensions'))}</span><span class="count">${MODS.filter(m => m.installed !== false).length + EXT.length}</span></button>
+    <button data-v="themes" class="${view === 'themes' ? 'on' : ''}">${ic('palette')}<span>${esc(TR('Thèmes'))}</span></button>
     <button data-v="keys" class="${view === 'keys' ? 'on' : ''}">${ic('kbd')}<span>${esc(TR('Raccourcis clavier'))}</span></button>
     <hr><button data-v="store">${ic('store')}<span>${esc(TR('Boutique Chrome Web Store'))}</span></button>
     <div class="navfoot">${esc(TR('Les extensions intégrées font partie de DrYAE : elles se désactivent, se masquent ou se retirent ici. Les autres viennent de la boutique Chrome Web Store ou d\'un dossier.'))}</div>`;
 }
 $('#nav').onclick = e => { const b = e.target.closest('[data-v]'); if (!b) return; if (b.dataset.v === 'store') return D.call('open', 'https://chromewebstore.google.com/', {}); view = b.dataset.v; drawNav(); draw(); };
 search.oninput = () => { q = search.value.trim().toLowerCase(); draw(); };
-async function load() { MODS = await call('modules'); EXT = await call('extList'); drawNav(); draw(); }
+async function load() { MODS = await call('modules'); EXT = await call('extList'); TH = await call('themes').catch(() => TH); drawNav(); draw(); }
+addEventListener('hashchange', () => { if (/themes/.test(location.hash)) { view = 'themes'; drawNav(); draw(); } });
 D.on('cfg', async () => { MODS = await call('modules'); draw(); });
 const match = (...s) => !q || s.join(' ').toLowerCase().includes(q);
-function draw() { if (view === 'keys') return drawKeys(); drawList(); }
+function draw() { if (view === 'keys') return drawKeys(); if (view === 'themes') return drawThemes(); drawList(); }
 function drawList() {
   const inst = MODS.filter(m => m.installed !== false && match(TR(m.name), TR(m.desc)));
   const gone = MODS.filter(m => m.installed === false && match(TR(m.name), TR(m.desc)));
@@ -59,6 +61,33 @@ function drawList() {
     if ((v = g('xopt'))) D.call('openExtOptions', v);
     if ((v = g('xhome'))) D.call('open', v, {});
     if ((v = g('xrm'))) { const x = EXT.find(y => y.id === v); if (await confirmBox(TRF('Supprimer l\'extension « {0} » ?', x.name), 'Supprimer')) { EXT = await call('extRemove', v); draw(); } }
+  };
+}
+// 1.7.2 : thèmes : clair / sombre / appareil, thèmes de DrYAE,
+// thèmes installés depuis la boutique Chrome
+function drawThemes() {
+  const prev = (t, big) => { const [a, b] = t.preview || ['#13161d', '#8b5cf6']; return `<div style="height:${big ? 74 : 58}px;border-radius:10px 10px 0 0;background:${esc(a)};position:relative;overflow:hidden"><div style="position:absolute;left:10px;top:9px;width:38%;height:14px;border-radius:7px;border:1.5px solid ${esc(b)};background:${esc(a)}"></div><div style="position:absolute;left:46%;top:15px;width:22%;height:2px;background:#fff8"></div><div style="position:absolute;left:0;right:0;bottom:0;height:${big ? 34 : 26}px;background:#0003;display:flex;align-items:center;gap:8px;padding:0 10px"><i style="width:8px;height:8px;border-radius:50%;border:1.5px solid #fffa"></i><i style="width:8px;height:8px;border-radius:50%;border:1.5px solid #fffa"></i><i style="flex:1;height:12px;border-radius:6px;border:1.5px solid #fff6"></i></div></div>`; };
+  const cur = TH.list.find(t => t.id === TH.current) || TH.list[0];
+  const card = (t, act) => `<div class="pcard" style="margin:0;padding:0;overflow:hidden">${prev(t)}<div class="prow" style="border:0"><div class="tx"><b class="${t.kind === 'chrome' ? 'notr' : ''}">${esc(t.kind === 'chrome' ? t.name : TR(t.name))}</b><span class="${t.kind === 'chrome' ? 'notr' : ''}">${esc(t.kind === 'chrome' ? (t.desc || TR('Thème de la boutique Chrome')) : TR(t.desc || ''))}</span></div>${act}</div></div>`;
+  const mine = TH.list.filter(t => t.kind !== 'chrome' && match(TR(t.name))), store = TH.list.filter(t => t.kind === 'chrome' && match(t.name));
+  const seg = ['light', 'dark', 'system'].map(m => `<button class="btn sm ${TH.mode === m ? 'primary' : ''}" data-mode="${m}" style="flex:1">${esc(TR({ light: 'Clair', dark: 'Sombre', system: 'Appareil' }[m]))}</button>`).join('');
+  $('#wrap').innerHTML = `<div class="phead"><h2>${esc(TR('Gestion de vos thèmes'))}</h2><p>${esc(TR('Les couleurs de DrYAE et le fond de la page d\'accueil.'))}</p></div>
+    <div style="display:flex;gap:6px;max-width:720px">${seg}</div>
+    ${TH.current !== 'default' && cur && cur.mode ? `<p class="hint">${esc(TR('Le thème choisi impose ses propres couleurs (clair ou sombre).'))}</p>` : ''}
+    <div class="psec">${esc(TR('Activé'))}</div>
+    <div style="max-width:720px">${cur ? `<div class="pcard" style="margin:0;padding:0;overflow:hidden">${prev(cur, true)}<div class="prow" style="border:0"><div class="tx"><b>${esc(cur.kind === 'chrome' ? cur.name : TR(cur.name))}</b></div>${cur.id !== 'default' ? `<button class="btn sm" data-th="default">${esc(TR('Revenir au thème par défaut'))}</button>` : ''}</div></div>` : ''}</div>
+    <div class="psec">${esc(TR('Thèmes de DrYAE'))}</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;max-width:980px">${mine.map(t => card(t, t.id === TH.current ? `<span class="tag">${esc(TR('Activé'))}</span>` : `<button class="btn sm" data-th="${esc(t.id)}">${esc(TR('Activer'))}</button>`)).join('')}</div>
+    <div class="psec">${esc(TR('Thèmes enregistrés'))}</div>
+    ${store.length ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;max-width:980px">${store.map(t => card(t, `${t.id === TH.current ? `<span class="tag">${esc(TR('Activé'))}</span>` : `<button class="btn sm" data-th="${esc(t.id)}">${esc(TR('Activer'))}</button>`}<button class="btn sm" data-thrm="${esc(t.id)}" title="${esc(TR('Supprimer'))}">${ic('x')}</button>`)).join('')}</div>` : `<p class="hint">${esc(TR('Aucun thème de la boutique Chrome pour l\'instant.'))}</p>`}
+    <div class="pcard" style="margin-top:18px;max-width:720px"><div class="prow" style="border:0"><div class="tx"><b>${esc(TR('Découvrez de nouveaux styles'))}</b><span>${esc(TR('Choisissez un thème dans la boutique Chrome Web Store : cliquez sur « Ajouter à Chrome », il apparaîtra ici.'))}</span></div><button class="btn sm primary" id="thStore">${ic('store')}${esc(TR('Explorer les thèmes'))}</button></div></div>`;
+  $('#thStore').onclick = () => D.call('open', 'https://chromewebstore.google.com/category/themes', {});
+  $('#wrap').onclick = async e => {
+    const g = a => e.target.closest('[data-' + a + ']')?.dataset[a];
+    let v;
+    if ((v = g('mode'))) { const c = await call('cfg'); await call('setRoot', { theme: { ...(c.rawTheme || {}), mode: v } }); TH = await call('themes'); draw(); }
+    if ((v = g('th'))) { await call('themeSet', v); TH = await call('themes'); draw(); toast('Thème appliqué'); }
+    if ((v = g('thrm'))) { const t = TH.list.find(x => x.id === v); if (t && await confirmBox(TRF('Supprimer le thème « {0} » ?', t.name), 'Supprimer')) { await call('themeRemove', v); TH = await call('themes'); draw(); } }
   };
 }
 function drawKeys() {
