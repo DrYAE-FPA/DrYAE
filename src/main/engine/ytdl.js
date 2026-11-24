@@ -63,11 +63,32 @@ class YtdlHub {
       p.stderr.on('data', d => { err += d; if (err.length > 1e5) err = err.slice(-5e4); });
       const t = opts.timeout ? setTimeout(() => killTree(p), opts.timeout) : null;
       p.on('error', reject);
-      p.on('close', code => { clearTimeout(t); code === 0 ? resolve(out) : reject(new Error(cleanErr(err) || `yt-dlp a échoué (${code})`)); });
+      p.on('close', code => { clearTimeout(t); if (code === 0) return resolve(out); const e = new Error(cleanErr(err) || `yt-dlp a échoué (${code})`); e.raw = err; reject(e); });
     });
   }
   // Infos avant ajout : titre, durée, qualités disponibles, ou liste d'une playlist
+  // 1.7.2 : YouTube change souvent sa façon d'envoyer les vidéos ; une erreur typique d'un yt-dlp trop ancien
+  // (« Requested format is not available », seulement des images, 403…) le met à jour tout seul, puis on réessaie une fois
+  isStale(raw) { return STALE.test(String(raw || '')); }
+  async autoUpdate() {
+    if (this._upd) return this._upd;
+    const last = this.ctx.settings.get().ytdl?.autoTried || 0;
+    if (Date.now() - last < 6 * 3600e3) return false; // au plus une fois toutes les 6 h
+    this._upd = (async () => {
+      try {
+        this.ctx.settings.set({ ytdl: { ...(this.ctx.settings.get().ytdl || {}), autoTried: Date.now() } });
+        const r = await this.update();
+        return /Updated yt-dlp to/i.test(r);
+      } catch (e) { console.error('yt-dlp auto', e.message); return false; }
+      finally { setTimeout(() => { this._upd = null; }, 0); }
+    })();
+    return this._upd;
+  }
   async inspect(url, headers, cookieFile) {
+    try { return await this._inspect(url, headers, cookieFile); }
+    catch (e) { if (this.isStale(e.raw) && await this.autoUpdate()) return this._inspect(url, headers, cookieFile); throw e; }
+  }
+  async _inspect(url, headers, cookieFile) {
     if (!this.available()) throw new Error('yt-dlp est introuvable');
     const args = [...this.baseArgs({ url, headers }), '-J', '--flat-playlist'];
     if (cookieFile) args.push('--cookies', cookieFile);
@@ -97,11 +118,13 @@ class YtdlHub {
   async update() {
     if (!fs.existsSync(this.exe)) fs.copyFileSync(this.bundled, this.exe);
     const out = await this.run(['-U'], { timeout: 180000 });
-    this.ctx.settings.set({ ytdl: { updated: Date.now() } });
+    this.ctx.settings.set({ ytdl: { ...(this.ctx.settings.get().ytdl || {}), updated: Date.now() } });
     return (out.match(/(Updated yt-dlp to|yt-dlp is up to date)[^\n]*/) || [out.trim().split('\n').pop()])[0];
   }
   async version() { try { return (await this.run(['--version'], { timeout: 20000 })).trim(); } catch { return '?'; } }
 }
+
+const STALE = /Requested format is not available|Only images are available|nsig extraction failed|n challenge solving failed|Signature extraction failed|Unable to extract (?:nsig|signature)|content is not available on this app|HTTP Error 403/i;
 
 function cleanErr(s) {
   const l = String(s).split(/\r?\n/).filter(x => /ERROR/.test(x)).pop() || String(s).trim().split(/\r?\n/).pop() || '';
@@ -184,8 +207,10 @@ class YtdlDownload extends Item {
       const ck = await this.ctx.cookieFileFor?.(this.url);
       if (ck) args.push('--cookies', ck);
       args.push(this.url);
-      this.doneBytes = 0; this.cur = { done: 0, total: 0 }; this.phase = 'vidéo';
       let finalFile = null, lastTotal = 0, err = '';
+      for (let attempt = 0; ; attempt++) {
+      this.doneBytes = 0; this.cur = { done: 0, total: 0 }; this.phase = 'vidéo'; lastTotal = 0; err = '';
+      try {
       await new Promise((resolve, reject) => {
         const p = spawn(hub.bin(), args, { windowsHide: true, env: ytEnv() });
         this.proc = p;
@@ -210,8 +235,18 @@ class YtdlDownload extends Item {
         p.stdout.on('data', d => { buf += d; let i; while ((i = buf.indexOf('\n')) >= 0) { onLine(buf.slice(0, i).replace(/\r$/, '')); buf = buf.slice(i + 1); } });
         p.stderr.on('data', d => { err += d; if (err.length > 1e5) err = err.slice(-5e4); });
         p.on('error', reject);
-        p.on('close', code => { this.proc = null; if (buf) onLine(buf); code === 0 ? resolve() : reject(new Error(cleanErr(err) || `yt-dlp a échoué (${code})`)); });
+        p.on('close', code => { this.proc = null; if (buf) onLine(buf); if (code === 0) return resolve(); const e = new Error(cleanErr(err) || `yt-dlp a échoué (${code})`); e.raw = err; reject(e); });
       });
+      break;
+      } catch (e) {
+        // yt-dlp trop ancien pour ce site : mis à jour tout seul, puis nouvel essai (une fois)
+        if (attempt === 0 && this.status === 'running' && hub.isStale(e.raw)) {
+          this.phase = 'mise à jour de yt-dlp'; this.changed();
+          if (await hub.autoUpdate() && this.status === 'running') continue;
+        }
+        throw e;
+      }
+      }
       if (!['running', 'merging'].includes(this.status)) return;
       if (!(finalFile && fs.existsSync(finalFile))) {
         // repli : le fichier le plus récent du dossier qui porte le nom prévu
