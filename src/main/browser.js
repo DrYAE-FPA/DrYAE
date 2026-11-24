@@ -2248,7 +2248,7 @@ class WebBrowser {
       const HON = t => (pageLang === 'en' && !/^ja/.test(String(to)) ? M.honorifics(t) : t);
       const prot = groups.map(g => M.protect(HON(SQ(g.text, /^(en|fr)$/.test(pageLang) ? pageLang : '')), pageLang, [...never, ...learnedNames.filter(n => !never.some(x => x.toUpperCase() === n)), ...(g.layout === 'lines' ? (() => { try { return require('./scan-fix').linkTerms(g.text); } catch { return []; } })() : [])], gl));
       // 1.7.2 : « & » entre deux mots anglais = « and » (le traducteur le comprenait mal : « THEIR WORK & STOP READING »)
-      const mt = () => groups.map((g, i) => { const f = M.forMT(prot[i].t, g.caps, pageLang); return pageLang === 'en' ? f.replace(/(\p{L})\s+&\s+(\p{L})/gu, '$1 and $2') : f; });
+      const mt = () => groups.map((g, i) => { const f = M.forMT(prot[i].t, g.caps, pageLang); return pageLang === 'en' ? f.replace(/(\p{L})\s+&\s+(\p{L})/gu, '$1 and $2').replace(/\bfan-worked\b/gi, m => m === m.toUpperCase() ? 'FAN-MADE' : 'fan-made') : f; });
       // 1.7.2 : la traduction IA (Gemini) est retirée : jamais de bons résultats
       let tr = null; const ai = '', aiWhy = '';
       if (!tr) {

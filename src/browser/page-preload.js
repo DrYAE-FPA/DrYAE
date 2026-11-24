@@ -1172,7 +1172,8 @@ function pageFeatures() {
           });
           ctx.restore();
         }
-        try { const bl = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.92)); if (!bl) throw 0; out.push(new Uint8Array(await bl.arrayBuffer())); }
+        // 1.7.2 : qualité JPEG 0,97 (avant 0,92 : le dessin perdait un peu de netteté à chaque enregistrement)
+        try { const bl = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.97)); if (!bl) throw 0; out.push(new Uint8Array(await bl.arrayBuffer())); }
         catch { ok = false; }
         c.width = c.height = 0;
       }

@@ -34,52 +34,127 @@ function colors(bm, W, H, b) {
 // fond reconstruit sous une ligne (PNG en « data: »), colonne par colonne : du haut vers le bas de la ligne.
 // Pour chaque colonne, on prend au-dessus et au-dessous le premier pixel qui n'est pas de l'encre (une ligne voisine
 // très proche ne laisse donc pas de traînée), sinon la couleur du fond de la ligne.
-function patch(bm, W, H, b, nativeImage) {
-  // zone sûre (cadre lu, sans toucher les lignes voisines) + au-dessus et au-dessous, seulement les lettres de cette
-  // ligne (jambages, accents : pixels d'encre reliés au cœur de la ligne), le reste de l'image reste visible
+function lineMask(bm, W, H, b) {
+  // 1.7.2 (demande de l'utilisateur : « l'image ne doit pas perdre sa qualité ») : seules les lettres sont effacées.
+  // Pixels d'encre de la ligne (dans le cadre lu, ou reliés au cœur de la ligne pour les jambages et accents), un peu
+  // élargis pour l'anticrénelage ; chacun est reconstruit à partir des pixels voisins qui ne sont pas des lettres,
+  // de l'extérieur vers l'intérieur. Partout ailleurs, l'image d'origine reste telle quelle (pixels transparents).
   const hh = b.y1 - b.y0, pv = Math.max(3, Math.round(hh * 0.14)), pu = Math.round(Math.min(pv, b.padUp ?? pv)), pd = Math.round(Math.min(pv, b.padDn ?? pv));
-  const ext = Math.max(4, Math.round(hh * 0.4));
-  const x0 = Math.max(0, Math.floor(b.x0 - 3)), x1 = Math.min(W - 1, Math.ceil(b.x1 + 3)), y0 = Math.max(0, Math.floor(b.y0 - ext)), y1 = Math.min(H - 1, Math.ceil(b.y1 + ext));
-  const w = x1 - x0 + 1, h = y1 - y0 + 1; if (w < 2 || h < 2) return '';
-  const sy0 = Math.floor(b.y0 - pu), sy1 = Math.ceil(b.y1 + pd);
+  const ext = Math.max(4, Math.round(hh * 0.4)), R = Math.max(3, Math.round(hh * 0.15)); // assez large pour le contour clair des lettres (lettrage avec bord blanc)
+  const x0 = Math.max(0, Math.floor(b.x0 - 3 - R)), x1 = Math.min(W - 1, Math.ceil(b.x1 + 3 + R)), y0 = Math.max(0, Math.floor(b.y0 - ext)), y1 = Math.min(H - 1, Math.ceil(b.y1 + ext));
+  const w = x1 - x0 + 1, h = y1 - y0 + 1; if (w < 2 || h < 2) return null;
+  const sy0 = Math.floor(b.y0 - pu) - y0, sy1 = Math.ceil(b.y1 + pd) - y0, sx0 = Math.floor(b.x0 - 3) - x0, sx1 = Math.ceil(b.x1 + 3) - x0;
+  // jamais sur la ligne voisine : on s'arrête juste avant elle
+  // (cadres lus qui se chevauchent : on peut aller un peu au-delà, jusqu'au cœur de la ligne voisine, en suivant les lettres)
+  const gy0 = Math.floor(b.y0 - Math.max(0, Math.min(ext, (b.gapUp ?? 99) + hh * 0.25))) - y0, gy1 = Math.ceil(b.y1 + Math.max(0, Math.min(ext, (b.gapDn ?? 99) + hh * 0.25))) - y0;
   const ink = b.ink || [0, 0, 0], bg = b.bg || [255, 255, 255], far = Math.max(90, dist(bg, ink) * 0.55);
-  // pixels d'encre de la zone, puis ceux reliés au cœur de la ligne
-  const isInk = new Uint8Array(w * h), mine = new Uint8Array(w * h), st = [];
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (dist(px(bm, W, H, x0 + x, y0 + y), ink) < far) isInk[y * w + x] = 1;
-  const c0 = Math.max(0, Math.round(b.y0 + hh * 0.15) - y0), c1 = Math.min(h - 1, Math.round(b.y1 - hh * 0.15) - y0);
-  for (let y = c0; y <= c1; y++) for (let x = 0; x < w; x++) { const i = y * w + x; if (isInk[i] && !mine[i]) { mine[i] = 1; st.push(i); } }
-  while (st.length) { const i = st.pop(), x = i % w, y = (i / w) | 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const X = x + dx, Y = y + dy; if (X < 0 || Y < 0 || X >= w || Y >= h) continue; const j = Y * w + X; if (isInk[j] && !mine[j]) { mine[j] = 1; st.push(j); } } }
-  const pick = (x, y, dy) => { for (let k = 0; k < 14; k++) { const yy = y + dy * k; if (yy < 0 || yy >= H) break; const c = px(bm, W, H, x, yy); if (dist(c, ink) > far) return c; } return bg; };
-  const top = [], bot = [];
-  for (let x = x0; x <= x1; x++) { top.push(pick(x, sy0 - 1, -1)); bot.push(pick(x, sy1 + 1, 1)); }
-  const sm = arr => arr.map((_, i) => [0, 1, 2].map(k => median(arr.slice(Math.max(0, i - 4), i + 5).map(c => c[k]))));
-  const T = sm(top), B = sm(bot);
-  const buf = Buffer.alloc(w * h * 4);
-  for (let y = 0; y < h; y++) {
-    const Y = y0 + y, t = Math.max(0, Math.min(1, (Y - sy0) / Math.max(1, sy1 - sy0))), safe = Y >= sy0 && Y <= sy1;
-    for (let x = 0; x < w; x++) {
-      const i = (y * w + x) * 4;
-      // hors de la zone sûre : seulement les lettres de la ligne, un peu élargies
-      let on = safe;
-      if (!on) for (let dy = -2; dy <= 2 && !on; dy++) for (let dx = -2; dx <= 2 && !on; dx++) { const X = x + dx, YY = y + dy; if (X >= 0 && YY >= 0 && X < w && YY < h && mine[YY * w + X]) on = true; }
-      if (!on) continue;
-      // au-dessus et au-dessous de la zone sûre : couleur du fond juste à côté (au-dessus ou au-dessous)
-      const a = T[x], c = B[x];
-      const m = Y < sy0 ? a : Y > sy1 ? c : dist(a, c) < 40 ? [(a[0] + c[0]) / 2, (a[1] + c[1]) / 2, (a[2] + c[2]) / 2] : [a[0] + (c[0] - a[0]) * t, a[1] + (c[1] - a[1]) * t, a[2] + (c[2] - a[2]) * t];
-      buf[i] = m[2]; buf[i + 1] = m[1]; buf[i + 2] = m[0]; buf[i + 3] = 255;
-    }
+  const col = new Float32Array(w * h * 3);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const c = px(bm, W, H, x0 + x, y0 + y), i = (y * w + x) * 3; col[i] = c[0]; col[i + 1] = c[1]; col[i + 2] = c[2]; }
+  // fond attendu sous la ligne, colonne par colonne (premier pixel au-dessus et au-dessous qui n'est pas de l'encre)
+  const pick = (x, yy, dy) => { for (let k = 0; k < 16; k++) { const Y = yy + dy * k; if (Y < 0 || Y >= H) break; const c = px(bm, W, H, x0 + x, Y); if (dist(c, ink) > far) return c; } return bg; };
+  const sm = arr => arr.map((_, i) => [0, 1, 2].map(k => median(arr.slice(Math.max(0, i - 3), i + 4).map(c => c[k]))));
+  // un peu à l'écart de la ligne (le contour clair des lettres ne compte pas comme fond), médiane de plusieurs pixels
+  const off = R + 2;
+  const pickM = (x, yy, dy) => { const v = []; for (let k = 0; k < 7; k++) { const c = pick(x, yy + dy * (off + k), dy); v.push(c); } return [0, 1, 2].map(j => median(v.map(c => c[j]))); };
+  const T = [], Bo = []; for (let x = 0; x < w; x++) { T.push(pickM(x, y0 + Math.max(0, sy0) - 1, -1)); Bo.push(pickM(x, y0 + Math.min(h - 1, sy1) + 1, 1)); }
+  const TT = sm(T), BB = sm(Bo);
+  // couleurs du fond de la zone : les plus fréquentes, hors encre (le bord adouci des lettres, rare, n'en fait pas partie)
+  const qk = (r, g, bl) => (r >> 4) << 8 | (g >> 4) << 4 | (bl >> 4);
+  const hist = new Map(); let tot = 0;
+  for (let i = 0; i < w * h; i++) { const r = col[i * 3], g = col[i * 3 + 1], bl = col[i * 3 + 2]; if (Math.abs(r - ink[0]) + Math.abs(g - ink[1]) + Math.abs(bl - ink[2]) < far * 1.4) continue; const k = qk(r, g, bl); hist.set(k, (hist.get(k) || 0) + 1); tot++; }
+  const pal = new Set(); for (const [k, n] of hist) if (n >= Math.max(20, tot * 0.02)) pal.add(k);
+  const inPal = (r, g, bl) => { const R0 = r >> 4, G0 = g >> 4, B0 = bl >> 4; for (let dr = -1; dr <= 1; dr++) for (let dg = -1; dg <= 1; dg++) for (let db = -1; db <= 1; db++) if (pal.has((R0 + dr) << 8 | (G0 + dg) << 4 | (B0 + db))) return true; return false; };
+  // pixel de lettre : couleur de l'encre, ou couleur qui n'est pas une couleur du fond (bord adouci, contour)
+  const isText = i => { const r = col[i * 3], g = col[i * 3 + 1], bl = col[i * 3 + 2]; return Math.abs(r - ink[0]) + Math.abs(g - ink[1]) + Math.abs(bl - ink[2]) < far || (pal.size > 0 && !inPal(r, g, bl)); };
+  // lettres : dans le cadre sûr + ce qui y est relié (jambages, accents)
+  const mine = new Uint8Array(w * h), st = [];
+  for (let y = Math.max(0, sy0); y <= Math.min(h - 1, sy1); y++) for (let x = Math.max(0, sx0); x <= Math.min(w - 1, sx1); x++) { const i = y * w + x; if (isText(i)) { mine[i] = 1; st.push(i); } }
+  while (st.length) { const i = st.pop(), x = i % w, y = (i / w) | 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const X = x + dx, Y = y + dy; if (X < 0 || Y < 0 || X >= w || Y >= h) continue; const j = Y * w + X; if (!mine[j] && (Y < sy0 || Y > sy1) && Y >= gy0 && Y <= gy1 && isText(j)) { mine[j] = 1; st.push(j); } } }
+  // élargies de R pixels (bord adouci des lettres)
+  const mask = new Uint8Array(w * h);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { if (!mine[y * w + x]) continue; for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) { const X = x + dx, Y = y + dy; if (X >= 0 && Y >= Math.max(0, Math.min(sy0, gy0)) && X < w && Y < h && Y <= Math.max(sy1, gy1) && dx * dx + dy * dy <= R * R + 1) mask[Y * w + X] = 1; } }
+  return { x0, y0, w, h, mask };
+}
+
+// fond de toute la page reconstruit d'un coup sous l'ensemble des lettres (les lignes serrées ne laissent presque pas
+// de fond entre elles : chaque ligne seule n'aurait rien pour se refaire). Remplissage « du grossier au fin » à partir
+// de tout le fond visible autour, puis chaque pixel refait est ramené à la couleur du fond la plus proche (bord net
+// de la silhouette, pas de couleur inventée). Hors des lettres, rien ne change.
+function fillPage(bm, W, H, ms) {
+  let X0 = W, Y0 = H, X1 = 0, Y1 = 0;
+  for (const m of ms) if (m) { X0 = Math.min(X0, m.x0); Y0 = Math.min(Y0, m.y0); X1 = Math.max(X1, m.x0 + m.w - 1); Y1 = Math.max(Y1, m.y0 + m.h - 1); }
+  if (X1 < X0) return null;
+  const M = 48; X0 = Math.max(0, X0 - M); Y0 = Math.max(0, Y0 - M); X1 = Math.min(W - 1, X1 + M); Y1 = Math.min(H - 1, Y1 + M);
+  const w = X1 - X0 + 1, h = Y1 - Y0 + 1, hole = new Uint8Array(w * h);
+  for (const m of ms) if (m) for (let y = 0; y < m.h; y++) for (let x = 0; x < m.w; x++) if (m.mask[y * m.w + x]) hole[(m.y0 + y - Y0) * w + (m.x0 + x - X0)] = 1;
+  // marge de sécurité de 2 pixels : le bord adouci des lettres ne sert jamais de fond
+  const bad = new Uint8Array(hole);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (hole[y * w + x]) for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) { const X = x + dx, Y = y + dy; if (X >= 0 && Y >= 0 && X < w && Y < h) bad[Y * w + X] = 1; }
+  // niveau 0
+  let L = { w, h, r: new Float32Array(w * h), g: new Float32Array(w * h), b: new Float32Array(w * h), k: new Float32Array(w * h) };
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = y * w + x, j = ((Y0 + y) * W + X0 + x) * 4; if (bad[i]) continue; L.r[i] = bm[j + 2]; L.g[i] = bm[j + 1]; L.b[i] = bm[j]; L.k[i] = 1; }
+  const levels = [L];
+  while (L.w > 2 || L.h > 2) {
+    const nw = Math.ceil(L.w / 2), nh = Math.ceil(L.h / 2), N = { w: nw, h: nh, r: new Float32Array(nw * nh), g: new Float32Array(nw * nh), b: new Float32Array(nw * nh), k: new Float32Array(nw * nh) };
+    for (let y = 0; y < nh; y++) for (let x = 0; x < nw; x++) { let r = 0, g = 0, b = 0, k = 0; for (let dy = 0; dy < 2; dy++) for (let dx = 0; dx < 2; dx++) { const X = 2 * x + dx, Y = 2 * y + dy; if (X >= L.w || Y >= L.h) continue; const i = Y * L.w + X, kk = L.k[i]; r += L.r[i] * kk; g += L.g[i] * kk; b += L.b[i] * kk; k += kk; }
+      const i = y * nw + x; if (k > 0) { N.r[i] = r / k; N.g[i] = g / k; N.b[i] = b / k; } N.k[i] = Math.min(1, k); }
+    levels.push(N); L = N; if (levels.length > 14) break;
   }
-  try { return { x0, y0, x1: x1 + 1, y1: y1 + 1, src: 'data:image/png;base64,' + nativeImage.createFromBitmap(buf, { width: w, height: h }).toPNG().toString('base64') }; } catch { return null; }
+  for (let l = levels.length - 2; l >= 0; l--) {
+    const F = levels[l], C = levels[l + 1];
+    for (let y = 0; y < F.h; y++) for (let x = 0; x < F.w; x++) { const i = y * F.w + x; if (F.k[i] >= 1) continue;
+      // couleur du niveau grossier, interpolée
+      const fx = Math.max(0, Math.min(C.w - 1, (x - 0.5) / 2)), fy = Math.max(0, Math.min(C.h - 1, (y - 0.5) / 2)), ax = Math.floor(fx), ay = Math.floor(fy), bx = Math.min(C.w - 1, ax + 1), by = Math.min(C.h - 1, ay + 1), tx = fx - ax, ty = fy - ay;
+      const at = (A, X, Y) => A[Y * C.w + X], bil = A => (at(A, ax, ay) * (1 - tx) + at(A, bx, ay) * tx) * (1 - ty) + (at(A, ax, by) * (1 - tx) + at(A, bx, by) * tx) * ty;
+      const k = F.k[i]; F.r[i] = F.r[i] * k + bil(C.r) * (1 - k); F.g[i] = F.g[i] * k + bil(C.g) * (1 - k); F.b[i] = F.b[i] * k + bil(C.b) * (1 - k); F.k[i] = 1; }
+  }
+  const F = levels[0];
+  // couleurs du fond autour des lettres (les plus fréquentes, juste à côté des trous)
+  const hist = new Map(); let tot = 0;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = y * w + x; if (bad[i]) continue; let near = false; for (let d = 3; d <= 12 && !near; d += 3) for (const [dx, dy] of [[d, 0], [-d, 0], [0, d], [0, -d]]) { const X = x + dx, Y = y + dy; if (X >= 0 && Y >= 0 && X < w && Y < h && hole[Y * w + X]) { near = true; break; } } if (!near) continue;
+    const j = ((Y0 + y) * W + X0 + x) * 4, k = (bm[j + 2] >> 4) << 8 | (bm[j + 1] >> 4) << 4 | (bm[j] >> 4), e = hist.get(k) || { n: 0, r: 0, g: 0, b: 0 }; e.n++; e.r += bm[j + 2]; e.g += bm[j + 1]; e.b += bm[j]; hist.set(k, e); tot++; }
+  const pal = [];
+  for (const [, e] of [...hist.entries()].sort((a, b) => b[1].n - a[1].n)) { if (e.n < tot * 0.03) break; const c = [e.r / e.n, e.g / e.n, e.b / e.n]; const m = pal.find(p => dist(p.c, c) < 30); if (m) { m.c = m.c.map((v, q) => (v * m.n + c[q] * e.n) / (m.n + e.n)); m.n += e.n; } else pal.push({ c, n: e.n }); if (pal.length >= 6) break; }
+  const out = new Uint8ClampedArray(w * h * 3);
+  for (let i = 0; i < w * h; i++) { if (!hole[i]) continue; const f = [F.r[i], F.g[i], F.b[i]];
+    let best = null, bd = 1e9; for (const p of pal) { const d = dist(p.c, f); if (d < bd) { bd = d; best = p.c; } }
+    // proche d'une couleur du fond : on garde la nuance douce du remplissage ; entre deux couleurs : la plus proche (bord net)
+    const c = best && bd > 24 ? best : f; out[i * 3] = c[0]; out[i * 3 + 1] = c[1]; out[i * 3 + 2] = c[2]; }
+  return { X0, Y0, w, h, out };
+}
+function patchFrom(fp, m, nativeImage) {
+  if (!fp || !m) return null;
+  const buf = Buffer.alloc(m.w * m.h * 4);
+  for (let y = 0; y < m.h; y++) for (let x = 0; x < m.w; x++) { const i = y * m.w + x; if (!m.mask[i]) continue; const k = ((m.y0 + y - fp.Y0) * fp.w + (m.x0 + x - fp.X0)) * 3, o = i * 4; buf[o] = fp.out[k + 2]; buf[o + 1] = fp.out[k + 1]; buf[o + 2] = fp.out[k]; buf[o + 3] = 255; }
+  try { return { x0: m.x0, y0: m.y0, x1: m.x0 + m.w, y1: m.y0 + m.h, src: 'data:image/png;base64,' + nativeImage.createFromBitmap(buf, { width: m.w, height: m.h }).toPNG().toString('base64') }; } catch { return null; }
 }
 // lettres de la ligne pas lues (« & » au début d'une ligne) : la ligne est élargie jusqu'à elles
 function widen(bm, W, H, L, P) {
   const inkAt = (x) => { let n = 0; for (let y = L.y0 + 2; y < L.y1 - 1; y += 2) if (dist(px(bm, W, H, x, y), L.ink) < 120) n++; return n; };
-  let x = Math.floor(L.x0) - 2, last = L.x0, lim = Math.max(0, Math.min(P.x0, L.x0) - L.h * 0.5);
-  for (; x >= lim; x--) if (inkAt(x) >= 2) last = x; else if (last - x > L.h * 0.8) break;
+  let x = Math.floor(L.x0) - 2, last = L.x0, lim = Math.max(0, Math.min(P.x0, L.x0) - L.h * 0.5), first = null, top = 0;
+  for (; x >= lim; x--) { const n = inkAt(x); if (n >= 2) { last = x; if (first === null) first = x; top = Math.max(top, n); } else if (last - x > L.h * 0.8) break; }
+  // un seul signe pas lu au début de la ligne, haut comme une lettre et séparé du mot suivant : c'est presque toujours « & »
+  if (first !== null) { const gw = first - last, gap = L.x0 - first, half = (L.y1 - L.y0 - 3) / 2; L.lead = gw >= L.h * 0.4 && gw <= L.h * 1.1 && gap >= L.h * 0.12 && top >= half * 0.5; }
   L.x0 = Math.min(L.x0, Math.max(0, last - 3));
   x = Math.ceil(L.x1) + 2; last = L.x1; lim = Math.min(W - 1, Math.max(P.x1, L.x1) + L.h * 0.5);
-  for (; x <= lim; x++) if (inkAt(x) >= 2) last = x; else if (x - last > L.h * 0.8) break;
+  first = null; top = 0;
+  for (; x <= lim; x++) { const n = inkAt(x); if (n >= 2) { last = x; if (first === null) first = x; top = Math.max(top, n); } else if (x - last > L.h * 0.8) break; }
+  if (first !== null) { const gw = last - first, gap = first - L.x1, half = (L.y1 - L.y0 - 3) / 2; L.trail = gw >= L.h * 0.4 && gw <= L.h * 1.1 && gap >= L.h * 0.12 && top >= half * 0.5; }
   L.x1 = Math.max(L.x1, Math.min(W - 1, last + 3));
+}
+
+// signe pas lu entre deux morceaux d'une ligne (« THEIR WORK & STOP ») : « & » remis dans le texte
+function midGlyphs(bm, W, H, L) {
+  if (!L.items || L.items.length < 2) return;
+  const inkAt = (x) => { let n = 0; for (let y = L.y0 + 2; y < L.y1 - 1; y += 2) if (dist(px(bm, W, H, x, y), L.ink) < 120) n++; return n; };
+  const half = (L.y1 - L.y0 - 3) / 2, out = [L.items[0].text];
+  for (let k = 1; k < L.items.length; k++) {
+    const a = L.items[k - 1], b = L.items[k]; let first = null, last = null, top = 0;
+    for (let x = Math.ceil(a.x1) + 1; x < Math.floor(b.x0) - 1; x++) { const n = inkAt(x); if (n >= 2) { if (first === null) first = x; last = x; top = Math.max(top, n); } }
+    if (first !== null && !/&$/.test(a.text) && !/^&/.test(b.text)) { const gw = last - first; if (gw >= L.h * 0.4 && gw <= L.h * 1.1 && first - a.x1 >= L.h * 0.12 && b.x0 - last >= L.h * 0.12 && top >= half * 0.5) out.push('&'); }
+    out.push(b.text);
+  }
+  L.text = out.join(' ').replace(/\s+/g, ' ').trim();
 }
 
 // page de texte ? beaucoup de morceaux hors bulles, et peu de bulles
@@ -141,7 +216,7 @@ function relayout(groups, bmp, nativeImage) {
     for (const M of lines) { if (M === L || Math.min(M.x1, L.x1) - Math.max(M.x0, L.x0) <= 0) continue; const mc = (M.y0 + M.y1) / 2, lc = (L.y0 + L.y1) / 2; if (mc < lc - L.h * 0.5) up = Math.min(up, L.y0 - M.y1); else if (mc > lc + L.h * 0.5) dn = Math.min(dn, M.y0 - L.y1); }
     // lignes qui se touchent (cadre lu un peu trop grand) : l'effacement s'arrête avant la ligne voisine
     const pad = g => g <= 2 ? g - 3 : Math.floor(g / 2) - 1;
-    L.padUp = Math.max(-L.h * 0.35, pad(up)); L.padDn = Math.max(-L.h * 0.35, pad(dn));
+    L.padUp = Math.max(-L.h * 0.35, pad(up)); L.padDn = Math.max(-L.h * 0.35, pad(dn)); L.gapUp = up; L.gapDn = dn;
   }
   // 2. paragraphes : lignes qui se suivent, même taille, même encre, alignées, peu d'espace entre elles
   const paras = [];
@@ -158,11 +233,18 @@ function relayout(groups, bmp, nativeImage) {
     else paras.push({ lines: [L], x0: L.x0, y0: L.y0, x1: L.x1, y1: L.y1 });
   }
   // 3. un groupe par paragraphe, avec ses emplacements de lignes (fond reconstruit, encre, hauteur)
+  for (const P of paras) P.lines.forEach((l, i) => {
+    midGlyphs(bm, W, H, l); widen(bm, W, H, l, P); l.m = lineMask(bm, W, H, l);
+    if (l.lead && i > 0 && !/^[&+]/.test(l.text)) l.text = '& ' + l.text;
+    if (l.trail && i < P.lines.length - 1 && !/[&+.!?,:;]$/.test(l.text)) l.text += ' &';
+    // phrase en minuscules coupée en lignes : petit mot de liaison avec une majuscule en début de ligne (« … fournies Par les »)
+    if (i > 0 && !/[.!?:]$/.test(P.lines[i - 1].text) && /\p{Ll}/u.test(P.lines[i - 1].text)) l.text = l.text.replace(/^(By|During|With|And|For|The|Of|To|In|On|From|Or|At|As|While|When)\b(?=\s+\p{Ll}|\s+\/)/u, w => w.toLowerCase());
+  });
+  const fp = fillPage(bm, W, H, paras.flatMap(P => P.lines.map(l => l.m)));
   const made = paras.map(P => {
     const parts = P.lines.map(l => l.text);
     const slots = P.lines.map(l => {
-      widen(bm, W, H, l, P);
-      const p = patch(bm, W, H, l, nativeImage);
+      const p = patchFrom(fp, l.m, nativeImage);
       return { x0: Math.round(l.x0), y0: Math.round(l.y0), x1: Math.round(l.x1), y1: Math.round(l.y1), h: Math.round(l.h), bg: hex(l.bg), ink: hex(l.ink), ...(p ? { patch: p } : {}) };
     });
     const cs = P.lines.map(l => (l.x0 + l.x1) / 2), x0s = P.lines.map(l => l.x0);
