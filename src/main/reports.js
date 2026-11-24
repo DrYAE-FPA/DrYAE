@@ -210,11 +210,11 @@ class Reports extends EventEmitter {
       if (i.comments > (x.nComments || 0)) {
         try {
           const cs = await this.api(`/issues/${i.number}/comments?per_page=100`);
-          const rep = cs.filter(c => c.user?.login !== x.author).map(c => ({ who: c.user?.login || '', at: Date.parse(c.created_at) || 0, body: String(c.body || '').slice(0, 4000) }));
+          const rep = cs.filter(c => c.user?.login !== x.author || c.user?.login === REPO.split('/')[0]).map(c => ({ who: c.user?.login || '', at: Date.parse(c.created_at) || 0, body: String(c.body || '').slice(0, 4000) }));
           const before = (x.replies || []).length;
           x.replies = rep; x.nComments = cs.length;
           if (rep.length > before) { x.unread = true; changed++; }
-          const fx = rep.map(r => r.body.match(/corrig[ée]+\s+dans\s+(?:la\s+(?:version\s+)?)?(\d+\.\d+\.\d+)/i)).filter(Boolean).pop();
+          const fx = cs.map(c => String(c.body || '').match(/corrig[ée]+\s+dans\s+(?:la\s+(?:version\s+)?)?(\d+\.\d+\.\d+)/i)).filter(Boolean).pop();
           if (fx && !x.fixedIn) x.fixedIn = fx[1];
         } catch {}
       }

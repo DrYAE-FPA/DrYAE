@@ -85,6 +85,15 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
   });
   ok('signalement fermé : « Corrigé dans la 1.7.3 » (mise à jour à venir)', t2.st === 'fixed' && t2.fixedIn === '1.7.3' && t2.here === false, t2);
 
+  // 4 bis) le créateur de DrYAE répond depuis le même compte que le signalement : la réponse et la version comptent
+  const t3 = await M(async R => {
+    const x = await R.add({ kind: 'bug', title: 'meme compte', msg: 'm', sig: 'own1' }); await R.send(x.id);
+    global.__gh.issues.unshift({ number: 60, title: `[${x.code}] [Autre] meme compte`, html_url: 'u', user: { login: 'DrYAE-FPA' }, comments: 1, state: 'closed', state_reason: 'completed', labels: [], body: '' });
+    global.__gh.comments['60'] = [{ user: { login: 'DrYAE-FPA' }, created_at: new Date().toISOString(), body: 'Corrigé dans la 1.7.2 (mise à jour du 24 novembre 2026).' }];
+    R._iss = null; await R.check(true); const y = R.get(x.id); return { st: y.state, fixedIn: y.fixedIn, here: R.view().list.find(z => z.id === x.id).fixedHere };
+  });
+  ok('réponse du créateur depuis le même compte : « Corrigé dans la 1.7.2 » (déjà installée)', t3.st === 'fixed' && t3.fixedIn === '1.7.2' && t3.here === true, t3);
+
   // 5) doublon : la même erreur déjà signalée par quelqu'un d'autre
   const d = await M(async R => {
     const x = await R.add({ kind: 'bug', title: 'dup', msg: 'm', sig: 'abcabcabcabc' });
