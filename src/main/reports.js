@@ -12,7 +12,9 @@ const { EventEmitter } = require('events');
 const LOG = require('./log');
 
 const REPO = 'DrYAE-FPA/DrYAE';
-const MAX = 100, KEEP_DAYS = 60, MAX_URL = 7000;
+// adresse courte : avec les cookies d'un compte GitHub connecté, une adresse trop longue fait échouer la page
+// (« Whoops, something went wrong! ») ; le rapport complet est alors copié pour être collé avec Ctrl+V
+const MAX = 100, KEEP_DAYS = 60, MAX_URL = 2800;
 const SECTIONS = ['downloads', 'browser', 'torrents', 'scans', 'player', 'updates', 'other'];
 const SECTION_FR = { downloads: 'Téléchargements', browser: 'Navigateur', torrents: 'Torrents', scans: 'Traducteur de scans', player: 'Lecteur vidéo', updates: 'Mises à jour', other: 'Autre' };
 const KINDS = { bug: 'Bug', translation: 'Mauvaise traduction', idea: 'Idée' };
@@ -139,33 +141,44 @@ class Reports extends EventEmitter {
     ].filter(Boolean);
     return lines.join('\n') + '\n\n' + String(x.report || '').replace(/\r/g, '');
   }
-  url(x) {
+  url(x) { return this.build(x).url; }
+  build(x) {
+    const T = this.T || (s => s);
     const tpl = x.kind === 'translation' ? 'traduction.yml' : 'rapport.yml';
-    const title = `[${x.code}] [${SECTION_FR[x.section]}] ${LOG.clean(x.title || KINDS[x.kind])}`.slice(0, 200);
+    const title = `[${x.code}] [${SECTION_FR[x.section]}] ${LOG.clean(x.title || KINDS[x.kind])}`.slice(0, 160);
     const base = `https://github.com/${REPO}/issues/new?template=${tpl}&title=${encodeURIComponent(title)}`;
-    const what = (String(x.msg || '').trim() || '…') + this.frMsg(x) + (x.shotOn && x.shot ? '\n\n' + (this.T || (s => s))('(Capture : collez-la ici avec Ctrl+V)') : '');
-    const f = { what, version: this.version || '', windows: require('os').release() };
-    let rep = this.body(x);
-    const mk = r => { let u = base; for (const [k, v] of Object.entries(tpl === 'traduction.yml' ? { ...f, what: what + '\n\n' + r } : { ...f, report: r })) u += `&${k}=${encodeURIComponent(String(v || ''))}`; return u; };
-    let u = mk(rep);
-    if (u.length <= MAX_URL) return u;
-    const L = rep.split('\n');
-    while (L.length > 12 && u.length > MAX_URL) { L.splice(12, 1); u = mk(L.join('\n')); }
-    return u.length <= MAX_URL ? u : mk(this.body({ ...x, report: '' }));
+    const what0 = (String(x.msg || '').trim() || '…') + this.frMsg(x);
+    const full = this.body(x);
+    const mk = (r, cut, w = what0) => {
+      const note = cut ? '\n\n' + T('(Rapport raccourci : le rapport complet est copié, collez-le ici avec Ctrl+V)') : '';
+      const what = w + (x.shotOn && x.shot ? '\n\n' + T('(Capture : collez-la ici avec Ctrl+V)') : '');
+      const f = { what: tpl === 'traduction.yml' ? what + '\n\n' + r + note : what, version: this.version || '', windows: require('os').release(), ...(tpl === 'traduction.yml' ? {} : { report: r + note }) };
+      let u = base; for (const [k, v] of Object.entries(f)) u += `&${k}=${encodeURIComponent(String(v || ''))}`; return u;
+    };
+    let u = mk(full, false);
+    if (u.length <= MAX_URL) return { url: u, cut: false, full };
+    // trop long : on garde le début (code, section, versions) et les dernières lignes du journal
+    const L = full.split('\n'); const head = L.slice(0, 14); let tail = L.slice(14);
+    while (tail.length && (u = mk(head.concat(['…'], tail).join('\n'), true)).length > MAX_URL) tail = tail.slice(Math.max(1, Math.ceil(tail.length / 6)));
+    if (u.length > MAX_URL) u = mk(head.join('\n'), true);
+    if (u.length > MAX_URL) u = mk(head.slice(0, 7).join('\n'), true, what0.slice(0, 1200));
+    return { url: u, cut: true, full };
   }
   async send(id, opts = {}) {
     const x = this.get(id); if (!x) return { ok: false };
     if (this.online && !this.online()) { x.state = 'queued'; x.queuedAt = Date.now(); this.saveSoon(); return { ok: true, queued: true }; }
-    const u = this.url(x);
-    // presse-papiers : la capture (à coller dans la page GitHub), sinon le rapport complet
-    try { const { clipboard, nativeImage } = require('electron'); if (x.shotOn && x.shot) clipboard.writeImage(nativeImage.createFromPath(path.join(this.imgDir, x.shot))); else clipboard.writeText(this.body(x)); } catch {}
+    const B = this.build(x), u = B.url;
+    // presse-papiers : le rapport complet s'il a été raccourci, sinon la capture (à coller dans la page GitHub)
+    try { const { clipboard, nativeImage } = require('electron'); if (!B.cut && x.shotOn && x.shot) clipboard.writeImage(nativeImage.createFromPath(path.join(this.imgDir, x.shot))); else clipboard.writeText(B.full); } catch {}
+    x.cut = B.cut;
     await this.open(u, opts);
     x.state = x.issue ? x.state : 'sent'; x.sentAt = Date.now(); x.seen = true; x.notFound = false;
     this.saveSoon();
     // GitHub met un moment à créer le signalement : on regarde dans quelques minutes
     clearTimeout(this._ck); this._ck = setTimeout(() => this.check(true).catch(() => {}), 4 * 60e3); this._ck.unref?.();
-    return { ok: true, url: u };
+    return { ok: true, url: u, cut: B.cut, shot: !!(x.shotOn && x.shot) };
   }
+  copyShot(id) { const x = this.get(id); if (!x?.shot) return false; try { const { clipboard, nativeImage } = require('electron'); clipboard.writeImage(nativeImage.createFromPath(path.join(this.imgDir, x.shot))); return true; } catch { return false; } }
   async sendQueued() { const q = this.list.filter(x => x.state === 'queued'); for (const x of q) await this.send(x.id); return q.length; }
 
   // ---------- suivi sur GitHub (lecture publique, sans compte) ----------

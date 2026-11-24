@@ -8,7 +8,7 @@ const crypto = require('crypto');
 const LOG = require('./log');
 
 const REPO = 'https://github.com/DrYAE-FPA/DrYAE';
-const MAX_URL = 7000; // au-delà, GitHub refuse l'adresse : le journal est raccourci
+const MAX_URL = 2800; // au-delà, GitHub refuse l'adresse : le journal est raccourci
 let ctx = null, asked = false, shownAt = 0;
 const seen = new Set();
 

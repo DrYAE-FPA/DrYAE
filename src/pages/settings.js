@@ -550,6 +550,7 @@ function repItem(x) {
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
       ${edit ? `<button class="btn sm primary" data-rsend="${x.id}">${ic('check')}${esc(TR('Valider et envoyer'))}</button>` : ''}
       ${x.state === 'sent' && !x.issue ? `<button class="btn sm" data-rsend="${x.id}">${esc(TR('Rouvrir la page GitHub'))}</button>` : ''}
+      ${x.shot && x.shotOn && !edit ? `<button class="btn sm" data-rcshot="${x.id}">${esc(TR('Copier la capture'))}</button>` : ''}
       ${x.url ? `<button class="btn sm" data-rurl data-url="${esc(x.url)}">${esc(TR('Voir sur GitHub'))}</button>` : ''}
       ${x.issue ? `<button class="btn sm" data-rcom="${x.id}">${esc(TR(x.replies?.length ? 'Répondre' : 'Ajouter un commentaire'))}</button>` : ''}
       <button class="btn sm danger" data-rdel="${x.id}">${ic('trash')}${esc(TR('Supprimer'))}</button></div>
@@ -584,6 +585,7 @@ function repDraw() {
     if (t.closest('[data-rsel]')) { const id = t.closest('[data-rsel]').dataset.rsel; t.checked ? repSel.add(id) : repSel.delete(id); return repDraw(); }
     const tg = t.closest('[data-rtog]'); if (tg) { const id = tg.dataset.rtog; repOpen = repOpen === id ? '' : id; const x = it(id); if (x?.unread && repOpen) { await call('repUpdate', id, { seen: true }); x.unread = false; } repDraw(); return; }
     const ph = t.closest('[data-rph]'); if (ph) { const ta = ph.closest('[data-rid]').querySelector('[data-rk="msg"]'); ta.value = (ta.value.trim() ? ta.value.trim() + '\n' : '') + TR(ph.dataset.rph); repSave(ph.closest('[data-rid]').dataset.rid, { msg: ta.value }); if (!ph.closest('[data-rid]').querySelector('[data-rk="title"]').value) { const ti = ph.closest('[data-rid]').querySelector('[data-rk="title"]'); ti.value = TR(ph.dataset.rph).replace(/\.$/, ''); repSave(ph.closest('[data-rid]').dataset.rid, { title: ti.value }); } return; }
+    const cs = t.closest('[data-rcshot]'); if (cs) { if (await call('repCopyShot', cs.dataset.rcshot)) toast('Capture copiée : collez-la avec Ctrl+V dans la page GitHub'); return; }
     const sd = t.closest('[data-rsend]'); if (sd) return repSend(sd.dataset.rsend);
     const dl = t.closest('[data-rdel]'); if (dl) { if (await confirmBox(TR('Supprimer ce signalement de ce PC ?'), 'Supprimer')) { await call('repRemove', dl.dataset.rdel); repSel.delete(dl.dataset.rdel); REP = await call('repView'); repDraw(); } return; }
     const cm = t.closest('[data-rcom]'); if (cm) { const txt = await dialog({ title: 'Répondre sur GitHub', html: `<textarea id="rcTxt" style="width:100%;min-height:110px;font:inherit"></textarea><p class="hint">${esc(TR('La page GitHub s\'ouvre et votre texte est copié : collez-le avec Ctrl+V puis cliquez sur « Comment ».'))}</p>`, ok: 'Ouvrir GitHub', read: d => d.querySelector('#rcTxt').value }); if (txt !== null) await call('repComment', cm.dataset.rcom, 0, txt); return; }
@@ -616,7 +618,7 @@ async function repSend(id, quiet) {
   }
   const res = await call('repSend', id).catch(() => null);
   if (res?.queued) toast('Pas d\'internet : il partira quand la connexion reviendra');
-  else if (res?.ok && !quiet) toast(x.shotOn && x.shot ? 'Page GitHub ouverte : la capture est copiée, collez-la avec Ctrl+V puis cliquez sur « Create »' : 'Page GitHub ouverte : relisez puis cliquez sur « Create »');
+  else if (res?.ok && !quiet) toast(res.cut ? (res.shot ? 'Page GitHub ouverte : le rapport complet est copié, collez-le avec Ctrl+V. Pour la capture : « Copier la capture » ici, puis Ctrl+V. Enfin, « Create ».' : 'Page GitHub ouverte : le rapport complet est copié, collez-le avec Ctrl+V dans la case « Rapport », puis cliquez sur « Create »') : res.shot ? 'Page GitHub ouverte : la capture est copiée, collez-la avec Ctrl+V puis cliquez sur « Create »' : 'Page GitHub ouverte : relisez puis cliquez sur « Create »');
   REP = await call('repView'); repDraw();
 }
 document.addEventListener('click', e => { const g = e.target.closest('[data-goto]'); if (g) { e.preventDefault(); show(g.dataset.goto); } });

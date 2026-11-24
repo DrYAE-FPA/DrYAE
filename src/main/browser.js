@@ -698,18 +698,22 @@ class WebBrowser {
     const name = sanitize(item.getFilename());
     const mime = item.getMimeType();
     const page = wc && !wc.isDestroyed() ? wc.getURL() : '';
+    // 1.7.2 : tout est lu tout de suite. Après e.preventDefault(), l'objet du téléchargement est détruit pendant l'attente
+    // des cookies (beaucoup de cookies, comme sur une messagerie) : le lire ensuite faisait échouer le téléchargement
+    let size = -1; try { size = item.getTotalBytes() || -1; } catch {}
     if (this._bypass?.has(url)) { this._bypass.delete(url); return this.nativeDownload(item, name, true); }
     if (/^https?:/i.test(url) && this.modOn('capture')) {
       e.preventDefault(); // on reprend le téléchargement dans DrYAE
       (this._fromBr || (this._fromBr = new Map())).set(url, { url, ses, t: Date.now() });
       const cookie = await this.cookieHeader(ses, url);
       if (mime === 'application/x-bittorrent' || /\.torrent$/i.test(name)) return this.onTorrent(url, { cookie, page });
-      return this.quickFile({ url, name, page, size: item.getTotalBytes() || -1, mime, incognito: ses === session.fromPartition(PART_PRIV), headers: { Cookie: cookie, 'User-Agent': this.ua(), Referer: page } });
+      return this.quickFile({ url, name, page, size, mime, incognito: ses === session.fromPartition(PART_PRIV), headers: { Cookie: cookie, 'User-Agent': this.ua(), Referer: page } });
     }
     if (/^https?:/i.test(url)) return this.nativeDownload(item, name);
     // blob: / data: → enregistrement direct par le navigateur
     const S = this.settings.get();
-    await fsp.mkdir(S.dir, { recursive: true });
+    // le chemin doit être donné tout de suite (sinon Windows ouvre la fenêtre « Enregistrer sous »)
+    try { fs.mkdirSync(S.dir, { recursive: true }); } catch {}
     const target = uniquePath(S.dir, name || 'fichier');
     item.setSavePath(target);
     item.once('done', (_e, state) => { if (state === 'completed') this.main.notify('Fichier enregistré', path.basename(target)); });
@@ -1451,6 +1455,7 @@ class WebBrowser {
     P('repDup', id => RP()?.dup(id));
     P('repComment', (id, n, t) => RP()?.comment(id, n, t));
     P('repShot', id => RP()?.shotData(id));
+    P('repCopyShot', id => RP()?.copyShot(id));
     P('repReport', id => RP()?.reportOf(id));
     P('repHelp', on => { this.settings.set({ browser: { bugHelp: !!on } }); return !!on; });
     P('updateRollback', v => this.main.updateRollback?.(v));

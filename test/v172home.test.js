@@ -96,7 +96,7 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR
   }, ROOT);
   const u0 = new URL(br.u[0] || 'http://x'), u1 = new URL(br.u[1] || 'http://x');
   ok('signalement : modèle « rapport.yml » prérempli (que faisiez-vous, version, Windows, rapport)', u0.searchParams.get('template') === 'rapport.yml' && ['what', 'version', 'windows', 'report'].every(k => u0.searchParams.has(k)), u0.search.slice(0, 120));
-  ok('adresse jamais trop longue pour GitHub (rapport raccourci)', br.u[0].length <= 7000 && u0.searchParams.get('report').length > 100, br.u[0].length);
+  ok('adresse courte pour GitHub (rapport raccourci, complet dans le presse-papiers)', br.u[0].length <= 2800 && u0.searchParams.get('report').length > 100, br.u[0].length);
   ok('rapport complet copié dans le presse-papiers', br.clip > 10000, br.clip);
   ok('signalement de traduction : modèle « traduction.yml »', u1.searchParams.get('template') === 'traduction.yml' && /BONJOUR/.test(u1.searchParams.get('what')));
   const yml = fs.readFileSync(ROOT + '/.github/ISSUE_TEMPLATE/rapport.yml', 'utf8') + fs.readFileSync(ROOT + '/.github/ISSUE_TEMPLATE/traduction.yml', 'utf8');

@@ -120,6 +120,24 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
   }, ROOT);
   ok('téléchargement refusé à DrYAE : relancé une seule fois par le navigateur', nf.a === true && nf.b === false && nf.calls.length === 1 && nf.bypass.length === 1, nf);
 
+  // 8 bis) pièce jointe de messagerie : l'objet du téléchargement est détruit pendant l'attente des cookies
+  const ic = await app.evaluate(async (_el, root) => {
+    const { WebBrowser } = process.mainModule.require(root + '/src/main/browser.js');
+    let dead = false, got = null;
+    const item = { getURL: () => 'https://mail.exemple.test/att?id=2', getFilename: () => 'piece.pdf', getMimeType: () => 'application/pdf', getTotalBytes: () => { if (dead) throw new Error('DownloadItem used after being destroyed'); return 12345; } };
+    const fake = { modOn: () => true, cookieHeader: async () => { dead = true; return 'SID=1'; }, quickFile: o => { got = o; }, ua: () => 'ua' };
+    let err = null; try { await WebBrowser.prototype.interceptDownload.call(fake, { preventDefault() {} }, item, null, {}); } catch (e) { err = e.message; }
+    return { err, got: got && { size: got.size, name: got.name, cookie: got.headers.Cookie } };
+  }, ROOT);
+  ok('pièce jointe : plus d\'erreur « DownloadItem used after being destroyed », le téléchargement part', !ic.err && ic.got && ic.got.size === 12345 && ic.got.cookie === 'SID=1', ic);
+  // 8 ter) adresse GitHub courte (sinon « Whoops, something went wrong! » avec un compte connecté) ; rapport complet copié
+  const lg = await M(async R => {
+    const long = Array.from({ length: 500 }, (_, i) => 'ligne ' + i + ' ' + 'y'.repeat(50)).join('\n');
+    const x = await R.add({ kind: 'bug', title: 'promesse: Error: essai long', msg: 'message', report: long, sig: 'long1' });
+    const b = R.build(R.get(x.id)); return { len: b.url.length, cut: b.cut, last: decodeURIComponent(b.url).includes('ligne 499'), sig: decodeURIComponent(b.url).includes('Signature : long1'), note: /Ctrl\+V/.test(decodeURIComponent(b.url)) };
+  });
+  ok('adresse GitHub courte (≤ 2800), garde la signature et les dernières lignes, rapport complet copié', lg.len <= 2800 && lg.cut && lg.last && lg.sig && lg.note, lg);
+
   // 9) page : liste, états, tout effacer
   const p3 = await PG(() => new Promise(r => setTimeout(() => r({ items: document.querySelectorAll('#repBox [data-rid]').length, tags: [...document.querySelectorAll('#repBox .tag')].map(t => t.textContent) }), 1200)));
   ok('page Signalements : la liste avec les états (Corrigé, À envoyer…)', p3.items >= 5 && p3.tags.some(t => /Corrigé/.test(t)) && p3.tags.some(t => /À envoyer/.test(t)), p3);

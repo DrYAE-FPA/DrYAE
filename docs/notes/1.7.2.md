@@ -43,7 +43,7 @@ Un traducteur de scans entièrement sur votre PC, plus rapide et plus juste : Dr
 - **Nouveau : Signalements** (menu ☰ → Signalements, ou **Alt+Maj+I**). Les problèmes rencontrés par DrYAE (erreurs, téléchargements qui échouent) et les traductions de scans signalées sont gardés sur votre PC, **même sans internet**, avec la date. L'icône du menu devient **rouge** quand un problème attend d'être envoyé.
   - Des **phrases prêtes** pour écrire vite (« Le téléchargement ne démarre pas », « Un mot est resté en anglais »…), la **section** (Téléchargements, Navigateur, Torrents, Traducteur de scans…) et le type (bug, mauvaise traduction, idée).
   - Vous choisissez de joindre ou non **l'adresse de la page** et **une capture d'écran**, et vous voyez tout le rapport technique avant l'envoi (sans mots de passe ni historique).
-  - **Valider et envoyer** ouvre la page GitHub déjà remplie ; hors connexion, le signalement attend et DrYAE propose de l'envoyer au retour d'internet. **Rien ne part tout seul.**
+  - **Valider et envoyer** ouvre la page GitHub déjà remplie (si le rapport est long, il est raccourci et le rapport complet est copié : Ctrl+V) ; hors connexion, le signalement attend et DrYAE propose de l'envoyer au retour d'internet. **Rien ne part tout seul.**
   - **Suivi** : DrYAE retrouve vos signalements sur GitHub et affiche leur état, les **réponses** et « **Corrigé dans la version…** ». Si le même problème est déjà signalé, il propose d'**ajouter votre cas**.
   - Le bouton « Signaler un problème » du gestionnaire utilise la même page (plus besoin de joindre un fichier).
 - **« Signaler cette traduction »** dans la fenêtre « Corriger la bulle » : gardé dans Signalements avec le texte lu et la traduction (jamais l'image ni l'adresse de la page).
@@ -60,7 +60,7 @@ Un traducteur de scans entièrement sur votre PC, plus rapide et plus juste : Dr
 **Navigateur**
 - **Au démarrage, la page d'accueil** : DrYAE n'ouvre plus vos anciens onglets après « Quitter ». Pour les retrouver, choisissez « Reprendre là où je m'étais arrêté » dans Paramètres → Au démarrage. Si vous l'aviez choisi vous-même, rien ne change. La taille et la place de la fenêtre sont toujours gardées.
 - **Bouton « Télécharger cette vidéo » transparent** sur tous les sites ; il s'affiche en entier au survol.
-- **Pièces jointes de messagerie** (Gmail…) : quand DrYAE ne peut pas reprendre un téléchargement qui demande la session du site, le navigateur le termine lui-même, dans votre dossier de téléchargements.
+- **Pièces jointes de messagerie** (Gmail…) : le téléchargement ne démarrait pas sur les sites qui gardent beaucoup de cookies ; c'est corrigé. Et si DrYAE ne peut pas reprendre un téléchargement qui demande la session du site, le navigateur le termine lui-même, dans votre dossier de téléchargements.
 - **Réseaux sociaux (X / Twitter…)** : le bouton ne passe plus sous la barre du haut du site, et télécharge la vidéo de la publication (avant : l'adresse du fil d'actualité partait au téléchargement).
 
 Ne téléchargez que ce que vous avez le droit de copier.
@@ -106,7 +106,7 @@ An image text translator that runs entirely on your PC, faster and more accurate
 - **New: Reports** (☰ menu → Reports, or **Alt+Shift+I**). Problems DrYAE runs into (errors, failed downloads) and reported scan translations are kept on your PC, **even without internet**, with the date. The menu icon turns **red** when a problem is waiting to be sent.
   - **Ready-made sentences** to write quickly ("The download doesn't start", "A word stayed in English"…), the **section** (Downloads, Browser, Torrents, Image text translator…) and the type (bug, wrong translation, idea).
   - You choose whether to attach **the page address** and **a screenshot**, and you see the whole technical report before sending (no passwords or history).
-  - **Confirm and send** opens the pre-filled GitHub page; offline, the report waits and DrYAE offers to send it when the internet is back. **Nothing is sent on its own.**
+  - **Confirm and send** opens the pre-filled GitHub page (a long report is shortened and the full report is copied: Ctrl+V); offline, the report waits and DrYAE offers to send it when the internet is back. **Nothing is sent on its own.**
   - **Follow-up**: DrYAE finds your reports on GitHub and shows their status, the **replies** and "**Fixed in version…**". If the same problem is already reported, it offers to **add your case**.
   - The manager's "Report a problem" button uses the same page (no need to attach a file anymore).
 - **"Report this translation"** in the "Fix the bubble" window: kept in Reports with the text read and the translation (never the image or the page address).
@@ -123,7 +123,7 @@ An image text translator that runs entirely on your PC, faster and more accurate
 **Browser**
 - **The home page at startup**: DrYAE no longer reopens your old tabs after "Quit". To get them back, choose "Continue where I left off" in Settings → On startup. If you had chosen it yourself, nothing changes. The window's size and position are still remembered.
 - **Transparent "Download this video" button** on every site; it shows fully when you hover over it.
-- **Email attachments** (Gmail…): when DrYAE can't take over a download that needs the site's session, the browser finishes it itself, in your downloads folder.
+- **Email attachments** (Gmail…): the download didn't start on sites that keep many cookies; this is fixed. And if DrYAE can't take over a download that needs the site's session, the browser finishes it itself, in your downloads folder.
 - **Social networks (X / Twitter…)**: the button no longer goes under the site's top bar, and it downloads the video of the post (before: the address of the news feed was sent to the download).
 
 Only download what you have the right to copy.
