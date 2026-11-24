@@ -16,7 +16,7 @@ Un traducteur de scans entièrement sur votre PC, plus rapide et plus juste : Dr
 - **Plus de mots anglais oubliés** dans la traduction (« Au taux THIS », « YOUR sens ») : les petits mots courants (THIS, THAT, WHAT, YOUR…) sont toujours traduits, même s'ils avaient été ajoutés par erreur au lexique ou à « Ne jamais traduire ».
 - **« MANA »** n'est plus lu « MANIA » (« manie ») ni « MANG » dans le lettrage des BD.
 - **Mots coupés en fin de ligne ou écrits à la verticale** recollés même quand le tiret est mal lu (« SPIRI2 TUAL » → SPIRITUAL, « TENTA- CLE » → TENTACLE, « DETONA-TION » → DETONATION, « MANIPU= ELATION » ou « MANIPU ELATION » → MANIPULATION, « EXCI » + « TATION » lus à part → EXCITATION) ; « SOME'MANA » → SOME MANA.
-- **Mots anglais restés dans la traduction** (« THIS La forme est plus dure ») : DrYAE s'en aperçoit et retraduit la bulle autrement (phrase par phrase), puis garde la meilleure version.
+- **Mots anglais restés dans la traduction** (« THIS La forme est plus dure », « WHAT est arrivé », « TE DIDN'T SUPERVISION ») : les petits mots courants ne sont plus jamais pris pour des noms de personnages ; DrYAE repère un mot anglais resté et retraduit la bulle autrement (phrase par phrase), puis garde la meilleure version. Les pages déjà traduites avec ce défaut sont retraduites (vos corrections faites à la main sont gardées).
 - « ILL END IT HERE » est lu « I'LL END IT HERE ».
 
 **Traducteur de scans — lecture des bulles**
@@ -81,7 +81,7 @@ An image text translator that runs entirely on your PC, faster and more accurate
 - **No more English words left behind** in the translation: common little words (THIS, THAT, WHAT, YOUR…) are always translated, even if they had been added by mistake to the glossary or to "Never translate".
 - **"MANA"** is no longer read as "MANIA" or "MANG" in comic lettering.
 - **Words split at the end of a line or written vertically** are joined back even when the hyphen is misread ("SPIRI2 TUAL" → SPIRITUAL, "TENTA- CLE" → TENTACLE, "DETONA-TION" → DETONATION, "MANIPU= ELATION" or "MANIPU ELATION" → MANIPULATION, "EXCI" + "TATION" read apart → EXCITATION); "SOME'MANA" → SOME MANA.
-- **English words left in the translation** ("THIS La forme est plus dure"): DrYAE notices and translates the bubble again another way (sentence by sentence), then keeps the best version.
+- **English words left in the translation** ("THIS La forme est plus dure", "WHAT est arrivé", "TE DIDN'T SUPERVISION"): common little words are never taken for character names anymore; DrYAE spots an English word left over and translates the bubble again another way (sentence by sentence), then keeps the best version. Pages already translated with this problem are translated again (your manual corrections are kept).
 - "ILL END IT HERE" is read as "I'LL END IT HERE".
 
 **Image text translator — reading the bubbles**

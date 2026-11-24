@@ -1241,6 +1241,8 @@ class WebBrowser {
     if (this._sn) return this._sn;
     const file = path.join(this.userDir, 'scan-names.json'); let o = {};
     try { o = JSON.parse(fs.readFileSync(file, 'utf8')) || {}; } catch {}
+    // 1.7.2 : noms appris par erreur (mots anglais courants : WHAT, THERE, YOUR, DIDN…) retirés : ils n'étaient plus traduits
+    try { const SF = require('./scan-fix'); let n = 0; for (const h of Object.keys(o)) for (const k of Object.keys(o[h] || {})) if (SF.badName(k) || SCAN_COMMON.test(k)) { delete o[h][k]; n++; } if (n) setTimeout(() => fsp.writeFile(file, JSON.stringify(o)).catch(() => {}), 500); } catch {}
     const save = () => { clearTimeout(this._snT); this._snT = setTimeout(() => fsp.writeFile(file, JSON.stringify(o)).catch(() => {}), 2000); };
     this._sn = { get: h => o[h] || (o[h] = {}), save };
     return this._sn;
@@ -2043,6 +2045,7 @@ class WebBrowser {
       const c = this.scanCache().get(key); if (!c || !c.blocks[i]) return false;
       if (typeof patch.text === 'string') c.blocks[i].text = patch.text.slice(0, 2000);
       if (typeof patch.tr === 'string') c.blocks[i].tr = patch.tr.slice(0, 2000);
+      c.blocks[i].edited = true;
       this.scanCache().set(key, c, true); return true;
     });
     // retraduire une bulle : avec le lexique et les mots « jamais traduits » (1.7.0 refaite)
@@ -2127,7 +2130,9 @@ class WebBrowser {
       // 1.7.2 : 12 images au lieu de 20, et l'image décodée n'est gardée que si le fichier d'origine manque (moins de mémoire)
       { const R = this._scanImgs || (this._scanImgs = new Map()); R.delete(ckey); const fb = buf && scale !== 0 ? buf : null; R.set(ckey, { buf: fb, img: fb ? null : img, page: o.page || '' }); while (R.size > 12) R.delete(R.keys().next().value); }
       // 1.7.2 : traductions gardées d'avant la correction des codes « <0xC3><0x87> » : nettoyées à la lecture
-      if (!o.fresh) { const c = this.scanCache().get(ckey); if (c) return { ...c, blocks: (c.blocks || []).map(b => b && /<0x[0-9a-f]{2}>/i.test(b.tr || '') ? { ...b, tr: require('./local-mt').bytesFix(b.tr) } : b), key: ckey, cached: true }; }
+      // 1.7.2 : traduction gardée d'avant la correction des mots anglais restés (WHAT, THERE, YOUR…) : refaite
+      const stale = c => { if (c.v >= 2) return false; try { const SF = require('./scan-fix'); return (c.blocks || []).some(b => b && !b.edited && b.tr && b.tr !== b.text && SF.leftoverEn(b.text, b.tr).length); } catch { return false; } };
+      if (!o.fresh) { const c = this.scanCache().get(ckey); if (c && !stale(c)) return { ...c, blocks: (c.blocks || []).map(b => b && /<0x[0-9a-f]{2}>/i.test(b.tr || '') ? { ...b, tr: require('./local-mt').bytesFix(b.tr) } : b), key: ckey, cached: true }; }
       const modelFor = MODEL_OF_SRC[src];
       let groups, w, needModel = '';
       if (modelFor && PO.installed().includes(modelFor)) {
@@ -2211,7 +2216,7 @@ class WebBrowser {
       try {
         const SF = require('./scan-fix'); const host = (() => { try { return new URL(o.page).hostname; } catch { return ''; } })();
         // 1.7.1 : aussi pour les BD et mangas en français (« TIFAlNE » → TIFAINE quand TIFAINE a déjà été bien lu souvent)
-        if (host && (pageLang === 'en' || pageLang === 'fr')) { const NM = this.scanNames(); const names = NM.get(host); try { learnedNames = Object.keys(names || {}).filter(k => names[k] >= 4 && k.length >= 4); } catch {} groups = groups.map(g => ({ ...g, text: SF.fixNames(g.text, names, pageLang) })); SF.learnNames(groups.map(g => g.text), names, pageLang); NM.save(); }
+        if (host && (pageLang === 'en' || pageLang === 'fr')) { const NM = this.scanNames(); const names = NM.get(host); try { learnedNames = Object.keys(names || {}).filter(k => names[k] >= 4 && k.length >= 4 && !SF.badName(k) && !SCAN_COMMON.test(k)); } catch {} groups = groups.map(g => ({ ...g, text: SF.fixNames(g.text, names, pageLang) })); SF.learnNames(groups.map(g => g.text), names, pageLang); NM.save(); }
       } catch {}
       // cris et onomatopées (AHHH, HEHE, FUFU, HMM…) : gardés tels quels, pas traduits
       const keep = groups.map(g => M.interjection(g.text));
@@ -2276,6 +2281,7 @@ class WebBrowser {
       const skey = ai && ai !== 'ok' ? ckey.replace(/\|ai$/, '|' + ((this.scanTr()).provider || 'google')) : ckey;
       // 1.7.2 : jamais de codes « <0x..> » dans une bulle, quel que soit le chemin de la traduction
       for (const b of res.blocks || []) if (b && /<0x[0-9a-f]{2}>/i.test(b.tr || '')) b.tr = require('./local-mt').bytesFix(b.tr);
+      res.v = 2;
       if (scale !== 0 && ai !== 'error') this.scanCache().set(skey, res, true);
       return { ...res, key: skey };
     });

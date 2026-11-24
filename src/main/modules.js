@@ -127,7 +127,7 @@ function forMT(s, caps, lang) {
   // mots inconnus du dictionaire anglais (noms des personnages, des lieux) : gardés avec une majuscule,
   // pour que le traducteur ne les traduise pas comme des mots ordinaires
   if (lang === 'fr') try { t = require('./scan-fix').frAccent(t); } catch {}
-  if (lang === 'en') try { const SF = require('./scan-fix'); SF.load(); t = t.replace(/\b\p{Ll}[\p{L}]{2,}\b/gu, w => SF.isName(w) ? w[0].toUpperCase() + w.slice(1) : w); } catch {}
+  if (lang === 'en') try { const SF = require('./scan-fix'); SF.load(); t = t.replace(/\b\p{Ll}[\p{L}]{2,}\b(?!['’]\p{L})/gu, w => SF.isName(w) && !SF.badName(w, 'en-only') ? w[0].toUpperCase() + w.slice(1) : w); } catch {}
   return t;
 }
 

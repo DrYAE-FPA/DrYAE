@@ -266,7 +266,11 @@ function dist(a, b) {
   return prev[n];
 }
 // 1.7.1 : page en français : un nom n'est ni un mot anglais ni un mot français (TIFAINE, BLUTCH, KAKU)
-const nameWords = (t, lang) => (String(t).match(/[\p{L}]{4,}/gu) || []).filter(w => { const l = w.toLowerCase(); load(); return /^[a-z]+$/.test(l) && !known(l) && !APOS.has(l) && !SPECIAL[l] && (lang !== 'fr' || !frKnown(l)); });
+// 1.7.2 (signalement de l'utilisateur : « WHAT », « THERE », « YOUR », « DIDN'T » restés en anglais) : jamais un mot
+// anglais ou français connu, ni le début d'une forme courte (« DIDN » de DIDN'T), ni un petit mot courant
+const STEMS = new Set('didn couldn wouldn shouldn isn aren wasn weren doesn hasn haven hadn mustn needn mightn ain don won can shan'.split(' '));
+const badName = (w, lang) => { load(); const l = String(w).toLowerCase(); return !/^[a-z]{4,}$/.test(l) || known(l) || APOS.has(l) || !!SPECIAL[l] || STEMS.has(l) || frKnown(l) && lang !== 'en-only'; };
+const nameWords = (t, lang) => [...String(t).matchAll(/[\p{L}]{4,}(?!['’]\p{L})/gu)].map(m => m[0]).filter(w => !badName(w, lang));
 // retient les noms vus sur cette page (une fois par page), garde les 400 plus fréquents
 function learnNames(texts, names, lang) {
   const seen = new Set(texts.flatMap(t => nameWords(t, lang)).map(w => w.toUpperCase()));
@@ -289,7 +293,7 @@ function fixNames(text, names, lang) {
 }
 // 1.7.1 : signes de crédits dans un bloc de texte (rôle + pseudonyme, ou mot propre aux crédits)
 const creditsHint = t => (String(t).match(ROLE_PAIR) || []).length + (String(t).match(CREDITS_WORDS) || []).length;
-module.exports = { learnNames, fixNames, plausible, ROMAJI, isName, load, correct, fixParts, fixWords, englishRatio, isCreditsPage, creditsHint, fixEllipsis };
+module.exports = { badName, learnNames, fixNames, plausible, ROMAJI, isName, load, correct, fixParts, fixWords, englishRatio, isCreditsPage, creditsHint, fixEllipsis };
 
 // ponctuation « pleine largeur » (！？，) lue par le modèle multilingue dans un texte latin
 function halfwidth(s) { return String(s).replace(/[！-～]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xfee0)).replace(/　/g, ' '); }
