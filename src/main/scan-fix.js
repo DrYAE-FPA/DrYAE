@@ -781,3 +781,18 @@ function joinGroups(groups) {
   return r;
 }
 module.exports.joinGroups = joinGroups;
+
+// 1.7.2 : paragraphe d'une page de texte (« mise en page fidèle ») : traduit, sauf s'il est surtout fait de pseudonymes,
+// d'adresses et de rôles (liste de crédits) ; les adresses et pseudonymes d'un paragraphe traduit restent tels quels
+const LINK_TERM = /(?:https?:\/\/\S+(?:\s+\S+\.)?(?:\s*\S+)?|www\.\S+|@[\w.-]+(?:#\d{3,5})?|\w+#\d{3,5}|\(![\w]+\)|\/a\/\w*|[\w-]+\.(?:moe|com|net|org|io|gg|fr|xyz|site)\b\S*)/gi;
+function linesRule(text) {
+  const t = String(text || '');
+  if (NOTE_RE.test(t)) return 'note';
+  const words = (t.match(/[\p{L}\d]+/gu) || []).length || 1;
+  const links = (t.match(LINK_TERM) || []).length, roles = (t.match(ROLE_PAIR) || []).length + (t.match(/\b(?:KR|JP|EN|CN)\s*-?\s*>\s*(?:EN|FR)\b/gi) || []).length + (t.match(/\s-\s/g) || []).length
+    + (t.match(/\b(?:raws?|providers?|trans|typeset(?:ter|ting)?|clean(?:er|ing)?|proofread(?:er|ing)?|translators?|anons?|redraw(?:er)?s?|qc|uploaders?)\b/gi) || []).length;
+  return (links * 3 + roles * 2) / words >= 0.45 ? 'keep' : null;
+}
+const linkTerms = text => [...new Set((String(text || '').match(LINK_TERM) || []).map(s => s.trim()).filter(s => s.length >= 3))];
+module.exports.linesRule = linesRule;
+module.exports.linkTerms = linkTerms;

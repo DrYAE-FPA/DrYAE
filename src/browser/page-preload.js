@@ -1116,6 +1116,9 @@ function pageFeatures() {
       }
       cuts.push(H);
       if (tr) done++;
+      // 1.7.2 : fonds reconstruits des pages de texte (« mise en page fidèle ») chargés avant le dessin
+      const pimg = new Map();
+      if (tr) for (const b of it.blocks) for (const sl of (b.layout === 'lines' && b.slots) || []) if (sl.patch && !pimg.has(sl.patch.src)) { const im = new Image(); im.src = sl.patch.src; try { await im.decode(); pimg.set(sl.patch.src, im); } catch {} }
       let ok = true;
       for (let p = 0; p + 1 < cuts.length; p++) {
         const sy = cuts[p], sh = cuts[p + 1] - sy;
@@ -1125,6 +1128,17 @@ function pageFeatures() {
           ctx.save(); ctx.translate(0, -sy);
           it.blocks.forEach((b, i) => {
             const t0 = b.tr || ''; if (b.skip || !t0 || t0 === b.text) return;
+            if (b.layout === 'lines' && Array.isArray(b.slots) && b.slots.length) {
+              for (const sl of b.slots) { const q = sl.patch; const im = q && pimg.get(q.src); if (im) ctx.drawImage(im, q.x0 * kx, q.y0 * kx, (q.x1 - q.x0) * kx, (q.y1 - q.y0) * kx); }
+              const L = Math.min(...b.slots.map(q => q.x0)), R = Math.max(...b.slots.map(q => q.x1));
+              for (const o of flowSlots(b.caps ? t0.toUpperCase() : t0, b.slots, kx, b.align)) {
+                if (!o.text) continue;
+                ctx.font = `700 ${o.fs}px ${LFONT}`; ctx.fillStyle = o.s.ink; ctx.textBaseline = 'middle';
+                const yy = (o.s.y0 + o.s.h / 2) * kx;
+                if (b.align === 'center') { ctx.textAlign = 'center'; ctx.fillText(o.text, (L + R) / 2 * kx, yy); } else { ctx.textAlign = 'left'; ctx.fillText(o.text, o.s.x0 * kx, yy); }
+              }
+              return;
+            }
             const [X0, Y0, X1, Y1] = Z[i]; if (Y1 * kx < sy - 10 || Y0 * kx > sy + sh + 10) return;
             const bg = b.bg || '#fff', pad = 4 * kx;
             // gomme : sur le texte d'origine seulement (comme à l'écran)
@@ -1269,11 +1283,64 @@ function pageFeatures() {
   }
   // couleur du texte lisible sur le fond de la bulle
   const inkOn = bg => { const m = /(\d+),\s*(\d+),\s*(\d+)/.exec(bg || ''); if (!m) return '#111'; return (+m[1] * 0.3 + +m[2] * 0.59 + +m[3] * 0.11) > 140 ? '#111' : '#fff'; };
+  // 1.7.2 : « mise en page fidèle » d'une page de texte : la traduction est écrite ligne après ligne dans les
+  // emplacements des lignes d'origine (même place, même hauteur, même couleur), le texte d'origine effacé par le fond
+  // reconstruit. La taille baisse un peu pour toutes les lignes à la fois si la traduction est plus longue.
+  const LFONT = '"Arial","Segoe UI",sans-serif';
+  let lctx = null;
+  const lmeasure = (t, fs) => { lctx = lctx || document.createElement('canvas').getContext('2d'); lctx.font = `700 ${fs}px ${LFONT}`; return lctx.measureText(t).width; };
+  function flowSlots(text, slots, k, align) {
+    const words = String(text || '').split(/\s+/).filter(Boolean);
+    const L = Math.min(...slots.map(s => s.x0)), R = Math.max(...slots.map(s => s.x1));
+    const maxW = s => (align === 'center' ? R - L : R - s.x0) * k;
+    let best = null;
+    for (let sc = 1; sc >= 0.44; sc -= 0.04) {
+      const out = []; let wi = 0, over = false;
+      for (const s of slots) {
+        const fs = Math.max(6, s.h * k * 0.86 * sc); let line = '';
+        while (wi < words.length) { const t = line ? line + ' ' + words[wi] : words[wi]; if (lmeasure(t, fs) <= maxW(s)) { line = t; wi++; } else { if (!line) { line = t; wi++; over = true; } break; } }
+        out.push({ s, text: line, fs });
+      }
+      best = { out, rest: words.slice(wi) };
+      if (wi >= words.length && !over) return out;
+    }
+    // trop long même petit : le reste va sur la dernière ligne
+    if (best.rest.length) { const o = best.out[best.out.length - 1]; o.text = (o.text + ' ' + best.rest.join(' ')).trim(); }
+    return best.out;
+  }
+  function drawLinesDom(d, b, k, orig) {
+    d.textContent = ''; d._lk = k; d._lt = b.tr; d._lo = orig;
+    if (orig) return;
+    for (const s of b.slots) {
+      const p = s.patch; if (!p) continue;
+      const im = document.createElement('img'); im.src = p.src; im.alt = '';
+      im.style.cssText = `position:absolute;pointer-events:none;left:${(p.x0 - b.x0) * k}px;top:${(p.y0 - b.y0) * k}px;width:${(p.x1 - p.x0) * k}px;height:${(p.y1 - p.y0) * k}px`;
+      d.appendChild(im);
+    }
+    const L = Math.min(...b.slots.map(s => s.x0)), R = Math.max(...b.slots.map(s => s.x1));
+    for (const o of flowSlots(b.caps ? String(b.tr).toUpperCase() : b.tr, b.slots, k, b.align)) {
+      if (!o.text) continue;
+      const sp = document.createElement('div'); sp.textContent = o.text;
+      const left = (b.align === 'center' ? L : o.s.x0) - b.x0, width = (b.align === 'center' ? R - L : R - o.s.x0);
+      sp.style.cssText = `position:absolute;pointer-events:none;white-space:nowrap;left:${left * k}px;top:${(o.s.y0 - b.y0) * k}px;width:${width * k}px;height:${o.s.h * k}px;line-height:${o.s.h * k}px;font:700 ${o.fs}px ${LFONT};color:${o.s.ink};text-align:${b.align === 'center' ? 'center' : 'left'}`;
+      d.appendChild(sp);
+    }
+  }
   function drawScan(it) {
     const box = el('<div style="position:fixed;pointer-events:none;overflow:hidden"></div>', scan.layer);
     it.blocks.forEach((b, i) => {
       // 1.7.1 : case d'un tableau ou d'une liste de noms : laissée telle quelle sur l'image (ni gomme ni traduction)
       if (b.skip) return;
+      if (b.layout === 'lines' && Array.isArray(b.slots) && b.slots.length) {
+        // texte gardé tel quel (crédits, adresses) : l'original reste visible, rien n'est posé dessus
+        if (!b.tr || b.tr === b.text) return;
+        const d = document.createElement('div'); d._b = b; d._lines = true;
+        d.title = b.text + '\n' + pt('Clic : original / traduction · clic droit : corriger');
+        d.style.cssText = 'position:absolute;pointer-events:auto;overflow:visible';
+        d.onclick = e => { if (e.detail > 1) return; d._orig = !d._orig; d._lk = 0; };
+        d.oncontextmenu = e => { e.preventDefault(); e.stopPropagation(); editBubble(it, i, d); };
+        box.appendChild(d); return;
+      }
       const d = document.createElement('div');
       d.title = b.text + '\n' + pt('Clic : original / traduction · clic droit : corriger');
       d.textContent = scan.orig ? b.text : (b.tr || b.text);
@@ -1410,6 +1477,12 @@ function pageFeatures() {
     const Z = scanZones(it);
     for (const d of it.box.children) {
       const b = d._b; if (!b) continue; const pad = 4;
+      if (d._lines) {
+        Object.assign(d.style, { left: (b.x0 * k) + 'px', top: (b.y0 * k) + 'px', width: ((b.x1 - b.x0) * k) + 'px', height: ((b.y1 - b.y0) * k) + 'px' });
+        const orig = !!(scan.orig || d._orig);
+        if (d._lk !== k || d._lt !== b.tr || d._lo !== orig || (!orig && !d.querySelector('div'))) drawLinesDom(d, b, k, orig);
+        continue;
+      }
       if (d._e) Object.assign(d._e.style, { left: (b.x0 * k - 3) + 'px', top: (b.y0 * k - 3) + 'px', width: ((b.x1 - b.x0) * k + 6) + 'px', height: ((b.y1 - b.y0) * k + 6) + 'px' });
       if (d._es) for (const e2 of d._es) { const q = e2._q; Object.assign(e2.style, { left: (q[0] * k - 3) + 'px', top: (q[1] * k - 3) + 'px', width: ((q[2] - q[0]) * k + 6) + 'px', height: ((q[3] - q[1]) * k + 6) + 'px' }); }
       // zone de dessin : le texte d'origine, agrandie dans la bulle repérée (même règle que pour l'enregistrement)

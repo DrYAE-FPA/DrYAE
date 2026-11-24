@@ -2186,6 +2186,9 @@ class WebBrowser {
         groups = await M.readImage(img.toPNG(), src + (S.withEng && !/^eng/.test(src) ? '+eng' : ''));
       }
       if (!groups.length) return { blocks: [], w, needModel, unreadable: (groups.unread || 0) >= 3 && !groups.model };
+      // 1.7.2 : page de texte (crédits, message hors bulles sur un fond de deux couleurs) : lignes reconstituées dans
+      // l'ordre, paragraphes traduits en entier, chaque ligne réécrite à sa place, à sa taille et dans sa couleur
+      try { const isz = img.getSize(); if (isz.width === w && scale !== 0) { const before = groups; groups = require('./textpage').relayout(groups, { width: isz.width, height: isz.height, data: img.toBitmap() }, nativeImage); if (groups !== before && groups.lang === 'en') { const SFp = require('./scan-fix'); groups = groups.map(g => g.layout === 'lines' ? { ...g, text: SFp.fixParts(g.parts) } : g); } } } catch (e) { LOGW('ocr', 'mise en page', e.message); }
       // 1.7.0 : page en anglais ou en français lue sans le modèle « langues latines » : DrYAE propose de le télécharger
       if (!needModel && (groups.lang === 'en' || groups.lang === 'fr') && !require('./paddle-ocr').installed().includes('latin')) needModel = 'latin';
       const usedModel = groups.model || '', quality = groups.quality ?? 1, odd = groups.odd || 0, pageLang = groups.lang || '', credPage = !!groups.credits;
@@ -2200,6 +2203,8 @@ class WebBrowser {
       const COMMON = SCAN_COMMON;
       const gl = (S.glossary || []).filter(x => x && x.s && x.t && !x.n && !COMMON.test(String(x.s).trim())), never = (S.glossary || []).filter(x => x && x.n && x.s && !COMMON.test(String(x.s).trim())).map(x => x.s);
       // 1.7.1 : mots entiers seulement (pour l'IA) ; pour la traduction habituelle, le lexique passe par protect()
+      // 1.7.2 : mots du monde des scans vers le français : « SCAN » reste « SCAN » (pas « ANALYSE »), « SCANLATION » → SCANTRAD
+      if (/^fr/.test(String(o.to || S.target || target()))) { for (const x of [{ s: 'scanlations', t: 'scantrads' }, { s: 'scanlation', t: 'scantrad' }, { s: 'this scan', t: 'ce scan' }, { s: 'these scans', t: 'ces scans' }]) if (!gl.some(y => y.s.toLowerCase() === x.s)) gl.push(x); for (const n of ['scans', 'scan']) if (!never.some(y => y.toLowerCase() === n)) never.push(n); }
       const prep = t => M.glossApply(t, gl);
       let to = o.to || S.target || target();
       // texte lu remis en forme (majuscules, points de suspension) ; pour la traduction, en minuscules « normales »
@@ -2229,7 +2234,8 @@ class WebBrowser {
       try {
         const SFc = require('./scan-fix');
         groups.forEach((g, i) => {
-          const r = SFc.outsideRule(g.text, { credPage, bubble: !!g.bubble });
+          // 1.7.2 : paragraphe d'une page de texte : traduit sauf liste de crédits (avant : un seul mot « SCANLATION » ou « credit » le gardait en anglais)
+          const r = g.layout === 'lines' ? SFc.linesRule(g.text) : SFc.outsideRule(g.text, { credPage, bubble: !!g.bubble });
           if (r === 'note') { keep[i] = false; table[i] = null; } else if (r === 'keep') keep[i] = true;
         });
       } catch {}
@@ -2240,8 +2246,9 @@ class WebBrowser {
       // 1.7.2 : noms des personnages appris sur ce site (vus souvent, absents du dictionnaire) : jamais traduits
       // 1.7.2 : honorifiques japonais traduits (-SAN, -KUN… retirés ; ONII-CHAN → grand frère ; SENSEI → professeur)
       const HON = t => (pageLang === 'en' && !/^ja/.test(String(to)) ? M.honorifics(t) : t);
-      const prot = groups.map(g => M.protect(HON(SQ(g.text, /^(en|fr)$/.test(pageLang) ? pageLang : '')), pageLang, [...never, ...learnedNames.filter(n => !never.some(x => x.toUpperCase() === n))], gl));
-      const mt = () => groups.map((g, i) => M.forMT(prot[i].t, g.caps, pageLang));
+      const prot = groups.map(g => M.protect(HON(SQ(g.text, /^(en|fr)$/.test(pageLang) ? pageLang : '')), pageLang, [...never, ...learnedNames.filter(n => !never.some(x => x.toUpperCase() === n)), ...(g.layout === 'lines' ? (() => { try { return require('./scan-fix').linkTerms(g.text); } catch { return []; } })() : [])], gl));
+      // 1.7.2 : « & » entre deux mots anglais = « and » (le traducteur le comprenait mal : « THEIR WORK & STOP READING »)
+      const mt = () => groups.map((g, i) => { const f = M.forMT(prot[i].t, g.caps, pageLang); return pageLang === 'en' ? f.replace(/(\p{L})\s+&\s+(\p{L})/gu, '$1 and $2') : f; });
       // 1.7.2 : la traduction IA (Gemini) est retirée : jamais de bons résultats
       let tr = null; const ai = '', aiWhy = '';
       if (!tr) {
@@ -2274,9 +2281,9 @@ class WebBrowser {
           }
         } catch {}
       }
-      const res = { blocks: groups.map((g, i) => ({ x0: g.x0, y0: g.y0, x1: g.x1, y1: g.y1, text: g.text, tr: keep[i] ? g.text : ai === 'ok' ? (tr.texts[i] || '') : M.unprotect(tr.texts[i] || '', prot[i].keep), vertical: g.vertical, bg: g.bg || '', bubble: g.bubble || null, caps: !!g.caps, lh: g.lh || 0, n: g.n || 1, ...(Array.isArray(g.boxes) && g.boxes.length > 1 ? { boxes: g.boxes } : {}), ...(table[i] ? { skip: true } : {}), ...(g.prose ? { prose: true } : {}) })), w, captured: scale === 0, from: tr.from, to, needModel, model: usedModel, ai, aiWhy };
+      const res = { blocks: groups.map((g, i) => ({ x0: g.x0, y0: g.y0, x1: g.x1, y1: g.y1, text: g.text, tr: keep[i] ? g.text : ai === 'ok' ? (tr.texts[i] || '') : M.unprotect(tr.texts[i] || '', prot[i].keep), vertical: g.vertical, bg: g.bg || '', bubble: g.bubble || null, caps: !!g.caps, lh: g.lh || 0, n: g.n || 1, ...(Array.isArray(g.boxes) && g.boxes.length > 1 ? { boxes: g.boxes } : {}), ...(table[i] ? { skip: true } : {}), ...(g.prose ? { prose: true } : {}), ...(g.layout === 'lines' ? { layout: 'lines', slots: g.slots, align: g.align } : {}) })), w, captured: scale === 0, from: tr.from, to, needModel, model: usedModel, ai, aiWhy };
       // 1.7.2 : « Tutoyer dans les scans » (activé par défaut) : vers le français, « vous » devient « tu » quand l'anglais parle à une seule personne
-      if (String(to).split('-')[0] === 'fr' && S.tutoie !== false) { try { const TU = require('./tutoie'); res.blocks.forEach(b => { if (b.tr && b.tr !== b.text) b.tr = TU.toTu(b.tr, b.text); }); } catch {} }
+      if (String(to).split('-')[0] === 'fr' && S.tutoie !== false) { try { const TU = require('./tutoie'); res.blocks.forEach(b => { if (b.tr && b.tr !== b.text && b.layout !== 'lines') b.tr = TU.toTu(b.tr, b.text); }); } catch {} }
       // traduction habituelle après un échec de l'IA : gardée sous la clé du traducteur habituel (l'IA reprendra demain)
       const skey = ai && ai !== 'ok' ? ckey.replace(/\|ai$/, '|' + ((this.scanTr()).provider || 'google')) : ckey;
       // 1.7.2 : jamais de codes « <0x..> » dans une bulle, quel que soit le chemin de la traduction
