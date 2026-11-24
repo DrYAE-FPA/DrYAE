@@ -52,6 +52,9 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
   ok('dossier impossible à créer → message clair', ['perm', 'nodir'].includes(e6?.errKind), { k: e6?.errKind, e: e6?.error });
   ok('dossier introuvable → message clair', ['nodir', 'perm'].includes(e7?.errKind), { k: e7?.errKind, e: e7?.error });
   const ui = await w.evaluate(() => document.title); ok('interface toujours réactive', !!ui);
-  const rep = await call('report'); ok('rapport créé (sans adresse complète)', fs.existsSync(rep) && !fs.readFileSync(rep, 'utf8').includes('/f/essai.bin'), rep);
+  // 1.7.2 : « Signaler un problème » crée un signalement dans Paramètres → Signalements (plus de fichier sur le Bureau)
+  const rid = await call('report'); await wait(500);
+  const rtxt = await app.evaluate(async (_e, [root, id]) => { const R = process.mainModule.require(root + '/src/main/reports.js').Reports.last; return R?.get(id)?.report || ''; }, [ROOT, rid]);
+  ok('rapport créé (sans adresse complète)', rtxt.length > 50 && !rtxt.includes('/f/essai.bin'), rid);
   await Promise.race([app.close(), wait(5000)]); srv.close(); process.exit(0);
 })().catch(e => { console.error(e); process.exit(1); });

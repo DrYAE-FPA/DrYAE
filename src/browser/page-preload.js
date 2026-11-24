@@ -1315,7 +1315,7 @@ function pageFeatures() {
     ed.querySelector('.gl').onclick = e => { e.preventDefault(); openGl(false); };
     ed.querySelector('.rp').onclick = async () => {
       const ok = await ipcRenderer.invoke('scan:report', { text: ed.querySelector('.o').value, tr: ed.querySelector('.t').value, from: it.from || '', to: it.to || '' }).catch(() => false);
-      hint(ok ? pt('Signalement préparé sur GitHub : relisez-le, écrivez la bonne traduction, puis cliquez sur « Envoyer »') : pt('Impossible de préparer le signalement'), 6000);
+      hint(ok === 'kept' ? pt('Gardé dans Signalements (menu ☰) : vous pourrez l\'envoyer quand vous voudrez') : ok ? pt('Signalement préparé sur GitHub : relisez-le, écrivez la bonne traduction, puis cliquez sur « Envoyer »') : pt('Impossible de préparer le signalement'), 6000);
     };
     ed.querySelector('.nv').onclick = () => openGl(true);
     ed.querySelector('.kp').onclick = async () => {

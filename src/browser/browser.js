@@ -489,6 +489,7 @@ function mainMenu() {
       { label: 'Outils de développement', icon: 'code', key: 'F12', fn: () => cur?.wcId && B.call('br:devtools', cur.wcId) },
     ] },
     '-',
+    { label: 'Signalements', icon: 'bug', key: 'Alt+Maj+I', rep: true, fn: () => openReports() },
     { label: 'Aide', icon: 'help', sub: () => [
       { label: "Mode d'emploi", icon: 'help', key: 'F1', fn: () => openPage('guide') },
       { label: 'Raccourcis clavier', icon: 'kbd', fn: showShortcuts },
@@ -528,10 +529,12 @@ function askName() {
     setTimeout(() => { const p = $('#askP'); if (!p.querySelector('#askNm')) { const i = document.createElement('input'); i.id = 'askNm'; i.type = 'text'; i.style.cssText = 'width:100%;margin-top:8px'; p.appendChild(i); } $('#askNm').focus(); }, 40);
   });
 }
-async function reportProblem() {
-  const r = await askBox({ title: 'Signaler un problème', text: T("DrYAE va préparer un signalement sur GitHub, déjà rempli avec un petit rapport (versions, Windows, dernières erreurs — sans mots de passe, sans historique, sans adresses complètes). Le rapport est aussi copié et gardé sur ton Bureau. Écris ce qui s'est passé, puis envoie : rien ne part sans toi. Il faut un compte GitHub (gratuit)."), ok: 'Préparer le signalement' });
-  if (r) { await B.call('br:report'); toast('Signalement préparé sur GitHub (rapport aussi copié et gardé sur le Bureau)'); }
-}
+// 1.7.2 : « Signaler un problème… » et Alt+Maj+I : nouveau signalement dans Paramètres → Signalements
+// (la capture et l'adresse de l'onglet sont prises avant d'ouvrir la page ; l'utilisateur choisit s'il les joint)
+function reportProblem() { B.call('br:repNew'); }
+function openReports() { openPage('settings', 'reports'); }
+function drawRepDot() { const r = CFG.reports || {}; const m = $('#bMenu'); if (!m) return; m.classList.toggle('repdot', !!r.pending); m.classList.toggle('ansdot', !r.pending && !!r.answers); }
+B.on('reports', c => { CFG.reports = c; drawRepDot(); });
 async function setModule(id, patch) { CFG = { ...CFG, ...(await B.call('br:setModule', id, patch)) }; drawMods(); updToolbar(); if (['adblock', 'capture', 'pip', 'translate', 'lights', 'scan'].includes(id) && patch.enabled !== undefined) toast(patch.enabled ? 'Extension activée (actualisez la page)' : 'Extension désactivée'); }
 $('#bMenu').onclick = e => { const r = e.currentTarget.getBoundingClientRect(); menu(r.right - 300, r.bottom + 4, mainMenu(), true); };
 function zoom(d) { if (!cur.wv) return; cur.zoom = d === 0 ? 0 : Math.max(-5, Math.min(6, cur.zoom + d)); cur.wv.setZoomLevel(cur.zoom); updToolbar(); const z = $('#menu .mzoom b'); if (z) z.textContent = (cur.zoom ? Math.round(Math.pow(1.2, cur.zoom) * 100) : 100) + ' %'; }
@@ -553,7 +556,8 @@ function menu(x, y, entries, wide, back) {
     if (e.title) return `<div class="mtitle">${esc(T(e.title))}</div>`;
     if (e.zoom) return `<div class="mzoom"><span>${esc(T('Zoom'))}</span><button data-z="-1" title="Ctrl −">−</button><b>${e.pct} %</b><button data-z="1" title="Ctrl +">+</button><button data-z="fs" title="F11">${ic('expand')}</button></div>`;
     const lead = e.check !== undefined ? `<span class="mck">${e.check ? ic('check') : ''}</span>${ic(e.icon || 'list')}` : e.img ? `<img class="mfav" src="${esc(e.img)}" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'mfavx'}))" alt="">` : ic(e.icon || 'list');
-    return `<button data-i="${i}" role="menuitem" ${e.hl ? 'class="mhl"' : ''} ${e.disabled ? 'disabled' : ''}>${lead}<span class="ml">${esc(e.label)}</span>${e.key ? `<kbd>${esc(T(e.key))}</kbd>` : ''}${e.sub ? `<span class="mar">${ic('fwd')}</span>` : ''}</button>`;
+    const rp = e.rep && CFG.reports ? CFG.reports : null, rb = rp && (rp.pending ? `<span class="mbadge" title="${esc(T('Problèmes pas encore envoyés'))}">${rp.pending}</span>` : rp.answers ? `<span class="mbadge ans" title="${esc(T('Nouvelle réponse'))}">${rp.answers}</span>` : '');
+    return `<button data-i="${i}" role="menuitem" class="${e.hl ? 'mhl' : ''} ${rp && rp.pending ? 'mrep' : ''}" ${e.disabled ? 'disabled' : ''}>${lead}<span class="ml">${esc(e.label)}</span>${rb || ''}${e.key ? `<kbd>${esc(T(e.key))}</kbd>` : ''}${e.sub ? `<span class="mar">${ic('fwd')}</span>` : ''}</button>`;
   }).join('');
   m.classList.add('on');
   const r = m.getBoundingClientRect();
@@ -812,7 +816,7 @@ const KEY_ACTIONS = () => ({
   bookmark: starClick, bookmarks: () => openPage('bookmarks'), bar: toggleBar, history: () => openPage('history'), downloads: openDownloads, extensions: () => openPage('extensions'), settings: () => openPage('settings'),
   zoomIn: () => zoom(1), zoomOut: () => zoom(-1), zoomReset: () => zoom(0), fullscreen: () => B.call('br:fullscreen'), print: () => cur?.wcId && B.call('br:print', cur.wcId), mute: toggleMute,
   reader: () => readerMode(), speak: () => readAloud(), translate: () => modOn('translate') && pageCmd('translate-selection'), scanZone: () => modOn('scan') && pageCmd('scan-region'), lights: () => modOn('lights') && pageCmd('lights'),
-  side: () => window.TABSX?.toggleSide(), newWindow: () => B.call('br:newWindow', ''), palette: () => window.WORK?.palette(), focus: () => window.WORK?.focusDialog(), present: () => window.WORK?.present(), spaces: () => window.TABSX?.toggleSide('ws'), cols: () => window.TABSX?.toggleSide('col'), cite: () => window.WORK?.cite(), shot: () => window.TABSX?.fullShot(), offline: () => window.TABSX?.saveOffline(), qr: () => window.TABSX?.showQrPop(), tasks: () => openPage('tasks'), manager: () => B.call('br:openMain'),
+  side: () => window.TABSX?.toggleSide(), newWindow: () => B.call('br:newWindow', ''), palette: () => window.WORK?.palette(), focus: () => window.WORK?.focusDialog(), present: () => window.WORK?.present(), spaces: () => window.TABSX?.toggleSide('ws'), cols: () => window.TABSX?.toggleSide('col'), cite: () => window.WORK?.cite(), shot: () => window.TABSX?.fullShot(), offline: () => window.TABSX?.saveOffline(), qr: () => window.TABSX?.showQrPop(), tasks: () => openPage('tasks'), manager: () => B.call('br:openMain'), reports: () => reportProblem(),
 });
 function customKey(k, ctrl, shift, alt) {
   const map = Object.fromEntries((CFG.keyList || []).map(x => [x.id, x.c])); if (!Object.keys(map).length) return false;
@@ -875,6 +879,7 @@ function onKey(k, ctrl, shift, alt) {
     return false;
   }
   if (alt) {
+    if (shift && k === 'i') return go(reportProblem);
     if (k === 'arrowleft') return go(() => $('#bBack').click());
     if (k === 'arrowright') return go(() => $('#bFwd').click());
     if (k === 'home') return go(() => showStart(cur));
@@ -1651,7 +1656,7 @@ B.on('open-page', async ({ url }) => {
   else newTab(url);
 });
 B.on('nav-tab', ({ wcId, url }) => { const t = tabByWc(wcId); if (t) navigate(t, url); });
-B.on('cfg', c => { CFG = { ...CFG, ...c }; applyTheme(CFG.theme || {}); drawBmBar(); drawMods(); drawNdBtn(); updToolbar(); drawUaBtn(); });
+B.on('cfg', c => { CFG = { ...CFG, ...c }; applyTheme(CFG.theme || {}); drawBmBar(); drawMods(); drawNdBtn(); updToolbar(); drawUaBtn(); drawRepDot(); });
 // 1.7.0 refaite : icône « téléphone » dans la barre d'adresse quand les sites voient un téléphone ; un clic revient au mode ordinateur
 async function setUaMode(m) { CFG = { ...CFG, ...(await B.call('br:setSettings', { ua: m })) }; drawUaBtn(); cur?.wv?.reload(); toast(m === 'mobile' ? 'Mode téléphone : les sites vous voient comme un téléphone' : 'Mode ordinateur'); }
 function drawUaBtn() { const b = $('#bMobile'); if (b) b.style.display = CFG.ua === 'mobile' ? '' : 'none'; }

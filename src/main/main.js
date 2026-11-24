@@ -244,7 +244,23 @@ app.whenReady().then(async () => {
   startExtensionServer();
   // 1.7.2 : aider à améliorer DrYAE (avec l'accord de l'utilisateur, question posée une seule fois)
   const BR = require('./bugreport');
-  BR.init({ settings, T, version: app.getVersion(), extra: () => ({ Langue: settings.get().lang, 'Démarrage sur': settings.get().startView }) });
+  // 1.7.2 : centre des signalements (boîte gardée sur le PC, envoi validé par l'utilisateur, suivi des réponses)
+  const RP = new (require('./reports').Reports)({ dir: app.getPath('userData'), settings, T, version: app.getVersion(), online: () => require('electron').net.isOnline(), open: async u => { if (browser?.wc) { browser.open(u); } else shell.openExternal(u); } });
+  api.reports = RP;
+  const repPush = () => { const c = RP.counts(); browser?.uiAll?.().forEach(w => w.send('reports', c)); try { win?.webContents.send('reports', c); } catch {} try { require('./pages').broadcast('reports', c); } catch {} };
+  RP.on('changed', () => { clearTimeout(repPush._t); repPush._t = setTimeout(repPush, 200); });
+  const openReports = id => { if (!win) createWindow(); browser.open(); browser.openReports(id); };
+  api.openReports = openReports;
+  BR.init({ settings, T, version: app.getVersion(), reports: RP, openReports, here: () => browser?.reportHere?.() || Promise.resolve({}), notice: (t, b) => api.notify(t, b, () => openReports()), extra: () => ({ Langue: settings.get().lang, 'Démarrage sur': settings.get().startView }) });
+  // connexion revenue : proposer d'envoyer ce qui attendait (jamais tout seul) ; une vérification des réponses par jour
+  let wasOnline = true;
+  setInterval(() => {
+    const on = require('electron').net.isOnline();
+    if (on && !wasOnline && RP.list.some(x => x.state === 'queued')) { const n = RP.list.filter(x => x.state === 'queued').length; api.notify(T('Internet est revenu'), T('{0} signalement(s) prêt(s) à envoyer — cliquez pour les voir.').replace('{0}', n), () => openReports()); }
+    wasOnline = on;
+  }, 30e3).unref?.();
+  setTimeout(() => RP.check(false).catch(() => {}), 90e3).unref?.();
+  setInterval(() => RP.check(false).catch(() => {}), 3600e3).unref?.();
   setTimeout(() => BR.ask(win && !win.isDestroyed() && win.isVisible() ? win : (BrowserWindow.getFocusedWindow() || null)).catch(() => {}), 6000);
   updater = new Updater({ send: sendUpd, notify: api.notify, T, beforeInstall: () => { browser?.saveStoreSync(); manager?.saveSync(); settings?.save?.(); backupData(); }, auto: () => settings.get().autoUpdateCheck !== false, prefs: { get: () => settings.get().updSkip || null, set: v => settings.set({ updSkip: v }) } });
   updater.init();
@@ -273,7 +289,17 @@ app.whenReady().then(async () => {
       d._notified = true;
       api.notify('Téléchargement terminé', d.name, () => { api.showMain(); });
       send('sound', 'done');
-    } else if (d.status === 'error') LOG.write('téléchargement', d.type, `${d.errorCode || ''} ${d.error} (${d.host || ''})`);
+    } else if (d.status === 'error') {
+      LOG.write('téléchargement', d.type, `${d.errorCode || ''} ${d.error} (${d.host || ''})`);
+      // 1.7.2 : lien qui demande la session du site (pièce jointe de messagerie…) : relancé une fois par le navigateur
+      const k = d.view().errKind;
+      if (['auth', 'denied', 'webpage', 'gone', 'other'].includes(k) && browser?.nativeFallback?.(d)) send('toast', T('Le navigateur reprend ce téléchargement lui-même.'));
+      // gardé dans Signalements (sauf coupures d'Internet et pannes passagères du site, réessayées toutes seules)
+      else if (!require('./errors').AUTO.has(k) && settings.get().browser?.bugHelp === true) {
+        const host = d.host || (() => { try { return new URL(d.url).host; } catch { return ''; } })();
+        require('./bugreport').detected({ sig: require('./reports').sigOf('dl|' + host + '|' + k + '|' + (d.errorCode || '')), section: d.type === 'torrent' ? 'torrents' : 'downloads', where: 'téléchargement', title: `Téléchargement échoué (${host || d.type}) : ${d.errorCode || k}`, msg: T(d.type === 'torrent' ? 'Le torrent ne démarre pas.' : 'Le téléchargement ne démarre pas.'), site: host, page: d.page || d.headers?.Referer || '', shot: null }).catch(() => {});
+      }
+    }
     if (d.status === 'error' && !d._retryAt) { const v = d.view(); if (!require('./errors').AUTO.has(v.errKind) || !manager.online()) api.notify('Échec du téléchargement', `${d.name || d.url}\n${T(v.errText || d.error)}`); }
     else if (d.status === 'seeding') api.notify('Torrent terminé', `${d.name} — partage en cours`);
   });
@@ -338,6 +364,15 @@ function applyA11y() {
   send('a11y', e); browser?.applyA11y?.(e);
 }
 async function report() {
+  if (api.openReports) {
+    const here = await browser?.reportHere?.().catch(() => ({})) || {};
+    const S = settings.get();
+    const x = await api.reports.add({ kind: 'bug', section: 'other', report: LOG.report({ Langue: S.lang, 'Démarrage sur': S.startView, 'Téléchargements': manager.list.length + ' (' + manager.list.filter(d => d.status === 'error').length + ' en erreur)', 'Erreurs en cours': manager.list.filter(d => d.status === 'error').slice(0, 15).map(d => `${d.type} ${d.errorCode || ''} ${d.error}`) }), page: here.page || '', shot: here.shot || null, sig: require('crypto').randomBytes(6).toString('hex') });
+    api.openReports(x.id); return x.id;
+  }
+  return reportOld();
+}
+async function reportOld() {
   const S = settings.get();
   const txt = LOG.report({ Langue: S.lang, 'Démarrage sur': S.startView, Proxy: S.proxy?.enabled ? 'oui' : 'non', 'Téléchargements': manager.list.length + ' (' + manager.list.filter(d => d.status === 'error').length + ' en erreur)', 'Erreurs en cours': manager.list.filter(d => d.status === 'error').slice(0, 15).map(d => `${d.type} ${d.errorCode || ''} ${d.error}`), 'Moteur torrent': manager.torrents.proc ? 'lancé' : 'arrêté', Extensions: (browser?.extList?.() || []).length });
   const d = new Date(), pad = n => String(n).padStart(2, '0');
@@ -495,6 +530,8 @@ H('upd:versions', () => updater.versions().catch(() => []));
 H('upd:rollback', (_e, v) => updater.rollback(v));
 // « Signaler un problème » : rapport texte sur le Bureau (rien n'est envoyé), puis la page GitHub des signalements
 H('report', async () => report());
+H('openReports', (_e, id) => api.openReports?.(id));
+H('repCounts', () => api.reports?.counts?.() || null);
 H('a11y', () => a11yEff());
 // ---- profils ----
 const PROFILES_FILE = path.join(BASE_DIR, 'profiles.json');

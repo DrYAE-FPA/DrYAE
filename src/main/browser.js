@@ -252,7 +252,7 @@ class WebBrowser {
   // 1.7.2 : le Traducteur de scans traduit toujours sur le PC (modèles libres de Firefox) : aucun texte des bulles n'est
   // envoyé sur Internet, même si le traducteur des pages web utilise un service en ligne
   scanTr() { const t = this.B().translate || {}; return process.env.DRYAE_SCAN_TR === 'settings' ? t : { ...t, provider: 'local' }; } // (variable : tests automatiques seulement)
-  cfg() { return { ...this.B(), theme: this.theme(), rawTheme: this.settings.get().theme || {}, restoreSession: this.settings.get().restoreSession, searchUrl: SEARCH[this.B().search] || SEARCH.google, ua: this.B().ua, partitions: { normal: PART, incognito: PART_PRIV }, mods: Object.fromEntries(M.MODULES.map(m => [m.id, { ...M.MOD_DEFAULT, ...(this.B().modules || {})[m.id], on: this.modOn(m.id) }])), lang: this.settings.get().lang, a11y: this.main.a11y?.() || {}, a11yRaw: this.settings.get().a11y || {}, root: { autoUpdateCheck: this.settings.get().autoUpdateCheck !== false, fetchTrackers: (this.settings.get().torrent || {}).fetchTrackers !== false, trackersUrl: (this.settings.get().torrent || {}).trackersUrl || '' } }; }
+  cfg() { return { ...this.B(), theme: this.theme(), rawTheme: this.settings.get().theme || {}, restoreSession: this.settings.get().restoreSession, searchUrl: SEARCH[this.B().search] || SEARCH.google, ua: this.B().ua, partitions: { normal: PART, incognito: PART_PRIV }, mods: Object.fromEntries(M.MODULES.map(m => [m.id, { ...M.MOD_DEFAULT, ...(this.B().modules || {})[m.id], on: this.modOn(m.id) }])), lang: this.settings.get().lang, reports: this.main.reports?.counts?.() || null, a11y: this.main.a11y?.() || {}, a11yRaw: this.settings.get().a11y || {}, root: { autoUpdateCheck: this.settings.get().autoUpdateCheck !== false, fetchTrackers: (this.settings.get().torrent || {}).fetchTrackers !== false, trackersUrl: (this.settings.get().torrent || {}).trackersUrl || '' } }; }
   pushCfg() { clearTimeout(this._pc); this._pc = setTimeout(() => { const c = this.cfg(); this.uiAll().forEach(w => w.send('cfg', c)); pages.broadcast('cfg', c); }, 50); }
 
   // ---------- extensions Chrome (Chrome Web Store + dossiers) ----------
@@ -389,6 +389,25 @@ class WebBrowser {
   pageTitle(page) {
     if (!page) return '';
     try { const w = webContents.getAllWebContents().find(x => !x.isDestroyed() && x.getURL() === page); return w ? w.getTitle() : ''; } catch { return ''; }
+  }
+  // 1.7.2 : signalements — page et capture de l'onglet actif (jamais en navigation privée ni pour une page interne)
+  async reportHere() {
+    let wc = null; try { wc = this.curWcId ? webContents.fromId(this.curWcId) : null; } catch {}
+    if (!wc || wc.isDestroyed() || !this.visible?.()) return {};
+    if (wc.session === session.fromPartition(PART_PRIV)) return {};
+    const url = wc.getURL() || '';
+    if (!/^https?:/i.test(url)) return {};
+    let shot = null;
+    try { let img = await wc.capturePage(); const sz = img.getSize(); if (sz.width > 1280) img = img.resize({ width: 1280 }); if (!img.isEmpty()) shot = img.toJPEG(72); } catch {}
+    return { page: url, shot };
+  }
+  openReports(id) { this._repFocus = id || ''; this.openPage('settings', 'reports'); }
+  // 1.7.2 : un téléchargement repris par DrYAE qui échoue (lien qui demande la session du site, comme une pièce jointe
+  // de messagerie) est relancé une fois par le navigateur lui-même, avec ses cookies et ses redirections
+  nativeFallback(d) {
+    const f = this._fromBr?.get(d.url); if (!f || f.done || Date.now() - f.t > 30 * 60e3) return false;
+    f.done = true;
+    try { this._bypass = this._bypass || new Set(); this._bypass.add(f.url); f.ses.downloadURL(f.url); LOGW('téléchargement', 'relancé par le navigateur', hostOf(f.url)); return true; } catch { return false; }
   }
   quickFile(o) {
     if (!o.pageTitle) o.pageTitle = this.pageTitle(o.page);
@@ -679,8 +698,10 @@ class WebBrowser {
     const name = sanitize(item.getFilename());
     const mime = item.getMimeType();
     const page = wc && !wc.isDestroyed() ? wc.getURL() : '';
+    if (this._bypass?.has(url)) { this._bypass.delete(url); return this.nativeDownload(item, name, true); }
     if (/^https?:/i.test(url) && this.modOn('capture')) {
       e.preventDefault(); // on reprend le téléchargement dans DrYAE
+      (this._fromBr || (this._fromBr = new Map())).set(url, { url, ses, t: Date.now() });
       const cookie = await this.cookieHeader(ses, url);
       if (mime === 'application/x-bittorrent' || /\.torrent$/i.test(name)) return this.onTorrent(url, { cookie, page });
       return this.quickFile({ url, name, page, size: item.getTotalBytes() || -1, mime, incognito: ses === session.fromPartition(PART_PRIV), headers: { Cookie: cookie, 'User-Agent': this.ua(), Referer: page } });
@@ -694,10 +715,10 @@ class WebBrowser {
     item.once('done', (_e, state) => { if (state === 'completed') this.main.notify('Fichier enregistré', path.basename(target)); });
   }
   // téléchargement ordinaire, fait par le navigateur (extension « Téléchargements par DrYAE » désactivée)
-  nativeDownload(item, name) {
+  nativeDownload(item, name, viaDryae) {
     const N = this.B().nativeDl || {};
-    if (!N.ask) {
-      const dir = N.dir || app.getPath('downloads');
+    if (!N.ask || viaDryae) {
+      const dir = (viaDryae ? this.settings.get().dir : N.dir) || app.getPath('downloads');
       try { fs.mkdirSync(dir, { recursive: true }); } catch {}
       item.setSavePath(uniquePath(dir, name || 'fichier'));
     }
@@ -835,7 +856,7 @@ class WebBrowser {
       const fkey = /^f(1|3|5|6|11|12)$/.test(k) || (/^f[89]$/.test(k) && !i.alt);
       const plain = ['t', 'n', 'w', 'p', 'l', 'k', 'e', 'f', 'g', 'j', 'h', 'd', 'r', 's', 'u', 'm', 'tab', 'pageup', 'pagedown', 'f4', 'f5', '+', '=', '-', '0', '/'];
       const withShift = ['t', 'n', 'p', 'o', 'a', 'x', 'y', 'i', 'q', 'r', 'g', 'b', 'd', 'e', 's', 'l', 'u', 'delete', 'tab', 'pageup', 'pagedown'];
-      const hit = fkey || (i.shift && !c && !i.alt && k === 'escape') || (i.alt && !c && ['arrowleft', 'arrowright', 'home', 'd', 'f', 'e'].includes(k)) || (c && (i.shift ? withShift.includes(k) : (plain.includes(k) || /^[1-9]$/.test(k))));
+      const hit = fkey || (i.shift && !c && !i.alt && k === 'escape') || (i.alt && i.shift && !c && k === 'i') || (i.alt && !c && ['arrowleft', 'arrowright', 'home', 'd', 'f', 'e'].includes(k)) || (c && (i.shift ? withShift.includes(k) : (plain.includes(k) || /^[1-9]$/.test(k))));
       // raccourcis personnalisés : transmis aussi au navigateur
       const combo = [c && 'ctrl', i.alt && 'alt', i.shift && 'maj', k].filter(Boolean).join('+');
       const custom = (this.B().keyList || []).some(x => String(x.c).toLowerCase().replace(/\s/g, '') === combo);
@@ -1416,6 +1437,22 @@ class WebBrowser {
     P('updateCheck', () => this.main.updateCheck?.());
     P('updateInstall', () => this.main.updateInstall?.());
     P('updateVersions', () => this.main.updateVersions?.());
+    // 1.7.2 : centre des signalements (Paramètres → Signalements)
+    const RP = () => this.main.reports;
+    P('repView', () => { const R = RP(); if (!R) return null; const v = R.view(); v.focus = this._repFocus || ''; this._repFocus = ''; v.help = this.settings.get().browser?.bugHelp === true; return v; });
+    P('repSeen', () => { RP()?.seenAll(); return true; });
+    P('repUpdate', (id, p) => RP()?.update(id, p || {}) || null);
+    P('repRemove', id => RP()?.remove(id));
+    P('repClear', () => { RP()?.clear(); return true; });
+    P('repNew', async o => { const x = await RP()?.add({ kind: 'bug', section: 'other', ...(o || {}), report: require('./log').report({ Langue: this.settings.get().lang }), sig: require('crypto').randomBytes(6).toString('hex') }); return x?.id; });
+    P('repSend', (id, how) => RP()?.send(id, { how }));
+    P('repSendQueued', () => RP()?.sendQueued());
+    P('repCheck', () => RP()?.check(true));
+    P('repDup', id => RP()?.dup(id));
+    P('repComment', (id, n, t) => RP()?.comment(id, n, t));
+    P('repShot', id => RP()?.shotData(id));
+    P('repReport', id => RP()?.reportOf(id));
+    P('repHelp', on => { this.settings.set({ browser: { bugHelp: !!on } }); return !!on; });
     P('updateRollback', v => this.main.updateRollback?.(v));
     P('pickDir', async def => { const r = await dialog.showOpenDialog(this.win, { properties: ['openDirectory', 'createDirectory'], defaultPath: def || app.getPath('downloads') }); return r.canceled ? null : r.filePaths[0]; });
     P('languages', () => this.main.languages?.() || []);
@@ -1698,7 +1735,9 @@ class WebBrowser {
     ipcMain.handle('br:defaults', () => { const S = this.settings.get(); return { dir: S.dir, ytdl: S.ytdl, categorize: S.categorize, tempDir: S.tempDir || '', torrentSeq: !!S.torrent?.sequential, torrentSeed: S.torrent?.seed !== false }; });
     // 1.7.2 : « utiliser ce dossier pour les prochains téléchargements » (case sous le dossier) ; '' = retour aux dossiers des paramètres
     ipcMain.handle('br:tempDir', (_e, d) => { this.settings.set({ tempDir: typeof d === 'string' ? d.trim() : '' }); return this.settings.get().tempDir; });
-    ipcMain.handle('br:selectTab', (_e, wcId) => { try { const wc = webContents.fromId(wcId); if (wc && this.ext) this.ext.selectTab(wc); } catch {} });
+    // 1.7.2 : nouveau signalement (menu, Alt+Maj+I) : contexte de l'onglet pris avant d'ouvrir la page
+    ipcMain.handle('br:repNew', async () => { const R = this.main.reports; if (!R) return null; const h = await this.reportHere().catch(() => ({})); const x = await R.add({ kind: 'bug', section: 'other', report: require('./log').report({ Langue: this.settings.get().lang }), page: h.page || '', shot: h.shot || null, sig: require('crypto').randomBytes(6).toString('hex') }); this.openReports(x.id); return x.id; });
+    ipcMain.handle('br:selectTab', (_e, wcId) => { this.curWcId = wcId; try { const wc = webContents.fromId(wcId); if (wc && this.ext) this.ext.selectTab(wc); } catch {} });
     ipcMain.handle('br:extTabCreated', (_e, { reqId, wcId }) => { const r = this.extWaiters.get(reqId); if (r) { this.extWaiters.delete(reqId); r(wcId); } });
     ipcMain.handle('br:extList', () => this.extList());
     ipcMain.handle('br:extEnable', async (_e, id, on) => { await this.extSetEnabled(id, !!on); return this.extList(); });
@@ -1843,7 +1882,7 @@ class WebBrowser {
       const f = e.senderFrame; let host = docHost(f?.url);
       const B = this.B();
       const T = global.DRYAE_T || (s => s);
-      const keys = ['Télécharger cette vidéo', 'Masquer', 'Remplir avec mon profil', 'mon profil', '(sans identifiant)', '— mot de passe enregistré', 'Suggérer un mot de passe fort', 'Utiliser ce mot de passe', 'Carte enregistrée', 'Remplir avec la carte', 'Image dans l\'image', 'Masquer le bouton sur ce site', 'Placer le bouton à gauche', 'Placer le bouton à droite', 'Traduire', 'Copier', 'Écouter', 'Fermer', 'Traduction…', 'Traduit de {0}', 'Afficher l\'original', 'Masquer les traductions', 'Arrêter', 'Lecture des images…', '{0} bulle(s) traduite(s)', 'Aucun texte trouvé dans cette image', 'Cliquez sur un élément à masquer. Molette ou ↑ ↓ : agrandir / réduire. Échap : annuler.', 'Masquer cet élément', 'Annuler', 'Traduction impossible : {0}', 'Adresse', 'Cliquez à côté pour rallumer', 'Traducteur de scans', 'Texte d\'origine', 'Échap pour rallumer', 'Aucune vidéo sur cette page', 'Boucle activée', 'Boucle désactivée', 'Sans filtre', 'Opacité gardée : {0} %', 'Protection des yeux activée', 'Protection des yeux désactivée', 'Aucune image à traduire sur cette page', 'Afficher la traduction', 'Original / traduction', 'Comparer', 'Relire cette image', 'Copier le texte traduit', 'Retirer la traduction', 'Dessinez un rectangle autour du texte à traduire. Échap : annuler.', 'Traduire la zone', 'Compte enregistré', 'Garder cette image pour l\'améliorer', 'Enregistre l\'image dans un dossier de votre PC (rien n\'est envoyé)', 'Image gardée dans {0}', 'Image non disponible : relisez la page puis réessayez', 'Votre note sur ce passage…', 'Retirer le surlignage', 'Enregistrer', 'Mode présentation : maintenez Alt et bougez la souris pour montrer un passage. Échap pour quitter.', 'Texte lu', 'Traduction', 'Affiche le texte lu dans les bulles : sélectionnez un mot pour le corriger ou l\'ajouter au lexique', 'Sélectionnez un mot du texte lu : corriger, ajouter au lexique, ne jamais traduire', 'Ne jamais traduire', 'Corriger la bulle', 'Toujours traduire par', 'Ajouter au lexique', 'Retraduire', 'Mot d\'origine', 'C\'est la traduction : cliquez sur la bulle (ou « Texte lu ») pour sélectionner le texte d\'origine.', 'Voir le texte lu', 'Ne sera jamais traduit', 'Ajouté au lexique', 'Clic : original / traduction · clic droit : corriger', 'Ce mot ou ce nom ne sera plus jamais traduit', 'Ces images ne peuvent pas être recopiées (elles viennent d\'un autre site)', 'Couleurs', 'Enregistrement des pages…', 'Enregistré : {0} ({1} pages, dont {2} traduites)', 'Fermer le mode lecture (Échap)', 'IA : clé refusée, traduction habituelle', 'IA : limite gratuite du jour atteinte, traduction habituelle', 'IA : trop de pages d\'un coup, traduction habituelle pour cette page', 'IA indisponible pour cette page, traduction habituelle', 'Largeur', 'Lecture à voix haute', 'Lire à voix haute', 'Mode lecture', 'Mot ou nom à ne jamais traduire', 'Pas d\'article à afficher sur cette page', 'Pause', 'Plus lent', 'Plus rapide', 'Police', 'Rien à lire sur cette page', 'Texte plus grand', 'Texte plus petit', 'Traduction des images en cours : enregistrez quand la page est traduite', 'Traduction en cours (cela peut prendre quelques secondes)…', 'délai dépassé, image passée', '{0} image(s) impossibles à recopier', '« {0} » ne sera plus jamais traduit'];
+      const keys = ['Gardé dans Signalements (menu ☰) : vous pourrez l\'envoyer quand vous voudrez', 'Télécharger cette vidéo', 'Masquer', 'Remplir avec mon profil', 'mon profil', '(sans identifiant)', '— mot de passe enregistré', 'Suggérer un mot de passe fort', 'Utiliser ce mot de passe', 'Carte enregistrée', 'Remplir avec la carte', 'Image dans l\'image', 'Masquer le bouton sur ce site', 'Placer le bouton à gauche', 'Placer le bouton à droite', 'Traduire', 'Copier', 'Écouter', 'Fermer', 'Traduction…', 'Traduit de {0}', 'Afficher l\'original', 'Masquer les traductions', 'Arrêter', 'Lecture des images…', '{0} bulle(s) traduite(s)', 'Aucun texte trouvé dans cette image', 'Cliquez sur un élément à masquer. Molette ou ↑ ↓ : agrandir / réduire. Échap : annuler.', 'Masquer cet élément', 'Annuler', 'Traduction impossible : {0}', 'Adresse', 'Cliquez à côté pour rallumer', 'Traducteur de scans', 'Texte d\'origine', 'Échap pour rallumer', 'Aucune vidéo sur cette page', 'Boucle activée', 'Boucle désactivée', 'Sans filtre', 'Opacité gardée : {0} %', 'Protection des yeux activée', 'Protection des yeux désactivée', 'Aucune image à traduire sur cette page', 'Afficher la traduction', 'Original / traduction', 'Comparer', 'Relire cette image', 'Copier le texte traduit', 'Retirer la traduction', 'Dessinez un rectangle autour du texte à traduire. Échap : annuler.', 'Traduire la zone', 'Compte enregistré', 'Garder cette image pour l\'améliorer', 'Enregistre l\'image dans un dossier de votre PC (rien n\'est envoyé)', 'Image gardée dans {0}', 'Image non disponible : relisez la page puis réessayez', 'Votre note sur ce passage…', 'Retirer le surlignage', 'Enregistrer', 'Mode présentation : maintenez Alt et bougez la souris pour montrer un passage. Échap pour quitter.', 'Texte lu', 'Traduction', 'Affiche le texte lu dans les bulles : sélectionnez un mot pour le corriger ou l\'ajouter au lexique', 'Sélectionnez un mot du texte lu : corriger, ajouter au lexique, ne jamais traduire', 'Ne jamais traduire', 'Corriger la bulle', 'Toujours traduire par', 'Ajouter au lexique', 'Retraduire', 'Mot d\'origine', 'C\'est la traduction : cliquez sur la bulle (ou « Texte lu ») pour sélectionner le texte d\'origine.', 'Voir le texte lu', 'Ne sera jamais traduit', 'Ajouté au lexique', 'Clic : original / traduction · clic droit : corriger', 'Ce mot ou ce nom ne sera plus jamais traduit', 'Ces images ne peuvent pas être recopiées (elles viennent d\'un autre site)', 'Couleurs', 'Enregistrement des pages…', 'Enregistré : {0} ({1} pages, dont {2} traduites)', 'Fermer le mode lecture (Échap)', 'IA : clé refusée, traduction habituelle', 'IA : limite gratuite du jour atteinte, traduction habituelle', 'IA : trop de pages d\'un coup, traduction habituelle pour cette page', 'IA indisponible pour cette page, traduction habituelle', 'Largeur', 'Lecture à voix haute', 'Lire à voix haute', 'Mode lecture', 'Mot ou nom à ne jamais traduire', 'Pas d\'article à afficher sur cette page', 'Pause', 'Plus lent', 'Plus rapide', 'Police', 'Rien à lire sur cette page', 'Texte plus grand', 'Texte plus petit', 'Traduction des images en cours : enregistrez quand la page est traduite', 'Traduction en cours (cela peut prendre quelques secondes)…', 'délai dépassé, image passée', '{0} image(s) impossibles à recopier', '« {0} » ne sera plus jamais traduit'];
       const pip = B.pip || {};
       const isInt = pages.isPageUrl(f?.url) && !/^dryae:\/\/bd\//.test(f?.url || ''); // lecteur de BD : page « normale » (traducteur de scans)
       // 1.7.1 : lecteur PDF de DrYAE : lumières tamisées, protection des yeux et mode nuit seulement (fichiers de l'ordinateur, même sans connexion)
@@ -2013,7 +2052,7 @@ class WebBrowser {
       return M.unprotect(r, p.keep);
     });
     // 1.7.2 : « Signaler cette traduction » : signalement GitHub prérempli (texte lu et traduction seulement), envoyé par l'utilisateur
-    ipcMain.handle('scan:report', (_e, o) => { try { return !!require('./bugreport').translation(o || {}); } catch { return false; } });
+    ipcMain.handle('scan:report', async (_e, o) => { try { const r = await require('./bugreport').translation(o || {}); return r?.kept ? 'kept' : !!r; } catch { return false; } });
     // lexique : « mot d'origine » -> « traduction voulue » (noms des personnages, mots de la série)
     ipcMain.handle('scan:glossary', (_e, list) => {
       if (Array.isArray(list)) this.settings.set({ browser: { scan: { ...(this.B().scan || {}), glossary: list.filter(x => x && x.s && x.t && !SCAN_COMMON.test(String(x.s).trim())).slice(0, 500).map(x => ({ s: String(x.s).slice(0, 100), t: String(x.t).slice(0, 100), ...(x.n ? { n: true } : {}) })) } } });

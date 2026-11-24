@@ -984,6 +984,7 @@ document.addEventListener('keydown', async e => {
   if (ctrl && k === ',') { e.preventDefault(); return $('#setBtn').click(); }
   if (ctrl && e.shiftKey && /^Digit[2-8]$/.test(e.code)) { const m = { 2: 'icons-l', 3: 'icons-m', 4: 'icons-s', 5: 'list', 6: 'details', 8: 'content' }[e.code.slice(5)]; if (m) { e.preventDefault(); return setView(m); } }
   if (e.altKey && e.shiftKey && K === 'p') { e.preventDefault(); return togglePane(); }
+  if (e.altKey && e.shiftKey && K === 'i') { e.preventDefault(); return call('report'); }
   if (k === 'F5') { e.preventDefault(); return refreshView(); }
   if (k === 'F3') { e.preventDefault(); return $('#q').focus(); }
   if (typing || modal) return;
@@ -1164,10 +1165,8 @@ $('#updGo').onclick = () => call('upd:install');
 $('#updX').onclick = () => { updDismissed = true; $('#updBanner').classList.remove('on'); };
 $('#abFeedback').onclick = () => call('openFeedback');
 $('#lA11y').onclick = () => { closeM?.(); call('openPage', 'settings', 'a11y'); };
-$('#abReport').onclick = async () => {
-  const r = await askBox({ title: 'Signaler un problème', text: "DrYAE va créer un petit rapport sur ton Bureau (versions, Windows, dernières erreurs — sans mots de passe, sans historique, sans adresses complètes) et ouvrir la page des signalements sur GitHub. Décris ce qui s'est passé et joins le fichier. Rien n'est envoyé sans toi.", ok: 'Créer le rapport' });
-  if (r) { await call('report'); toast('Rapport créé sur le Bureau'); }
-};
+// 1.7.2 : « Signaler un problème… » ouvre Paramètres → Signalements (dans le navigateur)
+$('#abReport').onclick = () => call('report');
 $('#feedbackBtn').onclick = () => call('openFeedback');
 $('#abRepo').onclick = () => call('openRepo');
 $('#abDonate').onclick = () => call('openDonate');

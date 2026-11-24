@@ -6,7 +6,7 @@ const SECS = [
   ['startup', 'power', 'Au démarrage'], ['look', 'palette', 'Apparence'], ['a11y', 'eye', 'Accessibilité'], ['perf', 'power', 'Onglets et performances'], ['work', 'folder', 'Travail et études'], ['keys', 'kbd', 'Raccourcis clavier'], ['search', 'search', 'Moteur de recherche'], ['autofill', 'key', 'Saisie automatique et mots de passe'],
   ['privacy', 'shield', 'Confidentialité et sécurité'], ['downloads', 'dl', 'Téléchargements'], ['langs', 'lang', 'Langues'],
   ['-', '', 'Extensions intégrées'], ['adblock', 'shield', 'Bloqueur de publicités'], ['translate', 'translate', 'Traducteur'], ['scan', 'scan', 'Traducteur de scans'], ['lexique', 'scan', 'Lexique des scans'], ['lights', 'bulb', 'Lumières tamisées'], ['pip', 'pip', "Image dans l'image"],
-  ['-', '', ''], ['system', 'sys', 'Système'], ['reset', 'reload', 'Réinitialiser'], ['extensions', 'puzzle', 'Extensions et thèmes'], ['about', 'info', 'À propos de DrYAE'],
+  ['-', '', ''], ['system', 'sys', 'Système'], ['reports', 'bug', 'Signalements'], ['reset', 'reload', 'Réinitialiser'], ['extensions', 'puzzle', 'Extensions et thèmes'], ['about', 'info', 'À propos de DrYAE'],
 ];
 $('#nav').innerHTML = SECS.map(([id, i, l]) => id === '-' ? (l ? `<h5>${esc(TR(l))}</h5>` : '<hr>') : `<button data-s="${id}">${ic(i)}<span>${esc(TR(l))}</span></button>`).join('');
 $('#nav').onclick = e => { const b = e.target.closest('[data-s]'); if (!b) return; if (b.dataset.s === 'extensions') return D.call('openPage', 'extensions'); show(b.dataset.s); };
@@ -55,7 +55,7 @@ function draw() {
   const startPages = (b.startupPages || []);
   const AX = b.a11yRaw || {};
   const KMAP = Object.fromEntries((b.keyList || []).map(x => [x.id, x.c]));
-  const KEYS = [['newTab', 'Nouvel onglet', 'Ctrl+T'], ['newPrivate', 'Nouvel onglet privé', 'Ctrl+Maj+N'], ['closeTab', 'Fermer l\'onglet', 'Ctrl+W'], ['reopen', 'Rouvrir l\'onglet fermé', 'Ctrl+Maj+T'], ['tabSearch', 'Rechercher dans les onglets', 'Ctrl+Maj+A'], ['nextTab', 'Onglet suivant', 'Ctrl+Tab'], ['prevTab', 'Onglet précédent', 'Ctrl+Maj+Tab'], ['address', 'Aller à la barre d\'adresse', 'Ctrl+L'], ['find', 'Rechercher dans la page', 'Ctrl+F'], ['reload', 'Actualiser', 'F5'], ['back', 'Page précédente', 'Alt+←'], ['forward', 'Page suivante', 'Alt+→'], ['home', 'Accueil', 'Alt+Début'], ['bookmark', 'Ajouter aux favoris', 'Ctrl+D'], ['bookmarks', 'Gestionnaire de favoris', 'Ctrl+Maj+O'], ['bar', 'Barre de favoris', 'Ctrl+Maj+B'], ['history', 'Historique', 'Ctrl+H'], ['downloads', 'Téléchargements', 'Ctrl+J'], ['extensions', 'Extensions', 'Ctrl+Maj+X'], ['settings', 'Paramètres', ''], ['zoomIn', 'Zoom +', 'Ctrl++'], ['zoomOut', 'Zoom −', 'Ctrl+-'], ['zoomReset', 'Zoom 100 %', 'Ctrl+0'], ['fullscreen', 'Plein écran', 'F11'], ['print', 'Imprimer', 'Ctrl+P'], ['mute', 'Couper le son de l\'onglet', 'Ctrl+M'], ['reader', 'Mode lecture', 'F9'], ['speak', 'Lire la page à voix haute', 'F8'], ['translate', 'Traduire', 'Ctrl+Maj+E'], ['scanZone', 'Traduire une zone (scans)', 'Ctrl+Maj+S'], ['lights', 'Lumières tamisées', 'Ctrl+Maj+L'], ['side', 'Panneau latéral', ''], ['newWindow', 'Nouvelle fenêtre', 'Ctrl+N'], ['palette', 'Palette de commandes', 'Ctrl+K'], ['spaces', 'Espaces de travail', ''], ['cols', 'Collections', ''], ['cite', 'Citer cette page', ''], ['present', 'Mode présentation', ''], ['focus', 'Mode concentration', ''], ['shot', 'Capture de la page entière', ''], ['offline', 'Garder la page hors ligne', ''], ['qr', 'Code QR de la page', ''], ['tasks', 'Gestionnaire des tâches', 'Maj+Échap'], ['manager', 'Gestionnaire de téléchargements', '']];
+  const KEYS = [['newTab', 'Nouvel onglet', 'Ctrl+T'], ['newPrivate', 'Nouvel onglet privé', 'Ctrl+Maj+N'], ['closeTab', 'Fermer l\'onglet', 'Ctrl+W'], ['reopen', 'Rouvrir l\'onglet fermé', 'Ctrl+Maj+T'], ['tabSearch', 'Rechercher dans les onglets', 'Ctrl+Maj+A'], ['nextTab', 'Onglet suivant', 'Ctrl+Tab'], ['prevTab', 'Onglet précédent', 'Ctrl+Maj+Tab'], ['address', 'Aller à la barre d\'adresse', 'Ctrl+L'], ['find', 'Rechercher dans la page', 'Ctrl+F'], ['reload', 'Actualiser', 'F5'], ['back', 'Page précédente', 'Alt+←'], ['forward', 'Page suivante', 'Alt+→'], ['home', 'Accueil', 'Alt+Début'], ['bookmark', 'Ajouter aux favoris', 'Ctrl+D'], ['bookmarks', 'Gestionnaire de favoris', 'Ctrl+Maj+O'], ['bar', 'Barre de favoris', 'Ctrl+Maj+B'], ['history', 'Historique', 'Ctrl+H'], ['downloads', 'Téléchargements', 'Ctrl+J'], ['extensions', 'Extensions', 'Ctrl+Maj+X'], ['settings', 'Paramètres', ''], ['zoomIn', 'Zoom +', 'Ctrl++'], ['zoomOut', 'Zoom −', 'Ctrl+-'], ['zoomReset', 'Zoom 100 %', 'Ctrl+0'], ['fullscreen', 'Plein écran', 'F11'], ['print', 'Imprimer', 'Ctrl+P'], ['mute', 'Couper le son de l\'onglet', 'Ctrl+M'], ['reader', 'Mode lecture', 'F9'], ['speak', 'Lire la page à voix haute', 'F8'], ['translate', 'Traduire', 'Ctrl+Maj+E'], ['scanZone', 'Traduire une zone (scans)', 'Ctrl+Maj+S'], ['lights', 'Lumières tamisées', 'Ctrl+Maj+L'], ['side', 'Panneau latéral', ''], ['newWindow', 'Nouvelle fenêtre', 'Ctrl+N'], ['palette', 'Palette de commandes', 'Ctrl+K'], ['spaces', 'Espaces de travail', ''], ['cols', 'Collections', ''], ['cite', 'Citer cette page', ''], ['present', 'Mode présentation', ''], ['focus', 'Mode concentration', ''], ['shot', 'Capture de la page entière', ''], ['offline', 'Garder la page hors ligne', ''], ['qr', 'Code QR de la page', ''], ['tasks', 'Gestionnaire des tâches', 'Maj+Échap'], ['manager', 'Gestionnaire de téléchargements', ''], ['reports', 'Signaler un problème', 'Alt+Maj+I']];
   const KWDEF = [{ k: 'w', url: 'https://fr.wikipedia.org/w/index.php?search=%s' }, { k: 'yt', url: 'https://www.youtube.com/results?search_query=%s' }, { k: 'gh', url: 'https://github.com/search?q=%s' }];
   const R = b.root || {};
   const NET = () => [
@@ -72,6 +72,7 @@ function draw() {
     ['Taux de change', 'Seulement quand vous tapez une conversion de monnaie dans la barre d\'adresse (par exemple « 30 euros en FCFA ») : les taux du jour sont demandés au site public open.er-api.com, au plus deux fois par jour. Rien d\'autre n\'est envoyé.', ''],
     ['Ouverture du port des torrents', 'Seulement quand un torrent tourne (ou quand vous cliquez « Vérifier à nouveau ») : DrYAE demande à votre box, sur votre réseau local, d\'ouvrir le port des torrents (UPnP ou NAT-PMP), puis le referme en quittant. Rien ne sort de chez vous.', ''],
     ['Correcteur d\'orthographe', 'Sous Windows, DrYAE utilise le correcteur de Windows : rien n\'est envoyé ni téléchargé.', ''],
+    ['Signalements', 'Rien n\'est envoyé tout seul : c\'est vous qui validez, puis qui cliquez sur « Create » dans la page GitHub. Si vous avez envoyé des signalements, DrYAE demande une fois par jour à github.com (lecture publique, sans compte) s\'ils ont reçu une réponse.', ''],
   ];
   const hides = STATS.hides || {};
   const upd = ABOUT.update || {};
@@ -220,7 +221,7 @@ function draw() {
       ${row('Application torrent par défaut', 'Les liens magnet et les fichiers .torrent ouverts ailleurs (autre navigateur, Explorateur) s\'ouvrent dans DrYAE, avec sa fenêtre d\'ajout. Windows demande de confirmer : choisissez DrYAE pour « MAGNET » et « .torrent ».', `<label class="sw"><input type="checkbox" id="defTor"><i></i></label>`)}
       ${row('Ouvrir les images et les BD avec DrYAE', 'Photos (.jpg, .png, .webp…) et BD (.cbz, .cbr, .cb7) de l\'ordinateur : la visionneuse de DrYAE, avec les autres images du dossier, le zoom et les lumières tamisées. DrYAE est aussi proposé dans « Ouvrir avec ».', `<label class="sw"><input type="checkbox" id="defImg"><i></i></label>`)}
       <div class="prow" id="defFRow"><div class="tx"><b id="defFTxt">…</b></div><button class="btn sm" id="defFGo">${esc(TR('Choisir DrYAE dans Windows'))}</button></div>
-      ${row('Aider à améliorer DrYAE', 'Quand DrYAE rencontre un problème, il prépare un signalement sur GitHub (versions, Windows, dernières erreurs, sans mots de passe ni historique). Rien n\'est envoyé tout seul : vous le relisez et c\'est vous qui cliquez sur « Envoyer ».', sw('k_bugHelp', C.bugHelp === true, 'data-k="bugHelp"'))}
+      ${row('Aider à améliorer DrYAE', 'Les problèmes rencontrés sont gardés dans « Signalements », même sans internet. Rien n\'est envoyé tout seul : vous relisez, puis vous validez.', `<button class="btn sm" data-goto="reports">${esc(TR('Signalements'))}</button>`)}
       ${row('Mode d\'affichage des sites', '', sel('ua', [['desktop', 'Ordinateur'], ['mobile', 'Mobile']], b.ua))}
       ${row('Lecteur PDF de DrYAE', 'Ouvre les PDF avec des outils pour surligner, écrire, dessiner et signer, puis enregistrer le PDF modifié (bouton « Enregistrer » du lecteur).', swk('pdfViewer', b.pdfViewer !== false))}
       ${row('Détecter les sous-titres', 'Dans le panneau des fichiers détectés.', sw('subs', b.captureSubtitles))}
@@ -229,6 +230,7 @@ function draw() {
         <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:8px"><label class="hint" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="exHist"> ${esc(TR('Avec l\'historique'))}</label><label class="hint" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="exPw"> ${esc(TR('Avec les mots de passe'))}</label><input type="password" id="exPass" placeholder="${esc(TR('Mot de passe du fichier'))}" style="width:200px;display:none" autocomplete="new-password"></div>
         <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button class="btn sm" id="imOther">${ic('import')}${esc(TR('Importer depuis un autre navigateur…'))}</button></div>
         <div style="display:flex;gap:8px;margin-top:8px"><button class="btn sm primary" id="exGo">${ic('dl')}${esc(TR('Exporter…'))}</button><button class="btn sm" id="imGo">${ic('import')}${esc(TR('Importer…'))}</button></div></div>`) +
+    sec('reports', 'Signalements', `<div id="repBox"><div class="prow"><span class="hint">…</span></div></div>`, 'Les problèmes rencontrés par DrYAE et vos signalements, gardés sur ce PC (même sans internet). Rien ne part sans votre validation.') +
     sec('reset', 'Réinitialiser', `
       ${row('Rétablir les paramètres du navigateur par défaut', 'Les favoris, l\'historique, les mots de passe et les extensions sont conservés.', `<button class="btn sm danger" id="reset">${esc(TR('Réinitialiser'))}</button>`)}`) +
     sec('about', 'À propos de DrYAE', `
@@ -242,6 +244,7 @@ function draw() {
       <div class="prow"><div class="tx"><span>${esc(TR('Ne téléchargez que ce que vous avez le droit de copier.'))}</span></div></div>`);
   bind();
   lexDraw();
+  repLoad();
   search.oninput();
   // navigateur par défaut
   if ($('#defOn')) {
@@ -501,3 +504,119 @@ function lexDraw() {
     l[i] = g; await lexSave(l);
   };
 }
+
+// ---- 1.7.2 : Signalements (problèmes gardés sur ce PC, envoi validé par l'utilisateur, suivi sur GitHub) ----
+let REP = null, repOpen = '', repSel = new Set();
+const REP_ST = { draft: ['À envoyer', 'bad'], queued: ['En attente d\'internet', 'warn'], sent: ['Envoyé', ''], answered: ['Réponse reçue', 'ok'], fixed: ['Corrigé', 'ok'], closed: ['Fermé', ''] };
+const repDate = t => t ? new Date(t).toLocaleString(LOC(), { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+async function repLoad() {
+  REP = await call('repView').catch(() => null);
+  if (REP?.focus) { repOpen = REP.focus; setTimeout(() => { show('reports'); const el = document.querySelector(`[data-rid="${REP.focus}"]`); el?.scrollIntoView({ block: 'center' }); }, 120); }
+  repDraw();
+}
+D.on('reports', () => { clearTimeout(repLoad._t); repLoad._t = setTimeout(async () => { const f = document.activeElement; if (f && f.closest?.('#repBox') && /TEXTAREA|INPUT/.test(f.tagName) && f.type !== 'checkbox') return; repLoad(); }, 300); });
+function repItem(x) {
+  const [st, cls] = REP_ST[x.state] || ['', ''];
+  const sec = (REP.sections.find(s => s.id === x.section) || {}).name || '';
+  const open = repOpen === x.id;
+  let tag = `<span class="tag ${cls}">${esc(TR(st))}</span>`;
+  if (x.state === 'sent' && x.notFound) tag = `<span class="tag warn">${esc(TR('Pas encore trouvé sur GitHub'))}</span>`;
+  if (x.state === 'fixed' && x.fixedIn) tag = `<span class="tag ok">${esc(TRF('Corrigé dans la {0}', x.fixedIn))}</span>`;
+  const head = `<div class="prow click" data-rtog="${x.id}" style="gap:10px">
+    ${x.state === 'draft' || x.state === 'queued' ? `<input type="checkbox" data-rsel="${x.id}" ${repSel.has(x.id) ? 'checked' : ''} title="${esc(TR('Sélectionner'))}" onclick="event.stopPropagation()">` : ''}
+    <span style="color:${x.state === 'draft' && x.auto ? '#ef4444' : 'var(--muted)'}">${ic(x.kind === 'translation' ? 'translate' : x.kind === 'idea' ? 'bulb' : 'bug')}</span>
+    <div class="tx" style="flex:1;min-width:0"><b class="notr" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(x.title || TR('Nouveau signalement'))}</b>
+      <span>${esc(TR(sec))} · ${esc(repDate(x.at))}${x.count > 1 ? ' · ' + esc(TRF('arrivé {0} fois', x.count)) : ''}${x.issue ? ` · #${x.issue}` : ''} · <span class="notr">${esc(x.code)}</span></span></div>
+    ${x.unread ? `<span class="tag" style="background:var(--accent);color:#fff">${esc(TR('Nouvelle réponse'))}</span>` : ''}${tag}<span class="chev" style="font-size:16px;width:18px;text-align:center">${open ? '▴' : '▾'}</span></div>`;
+  if (!open) return `<div data-rid="${x.id}">${head}</div>`;
+  const edit = x.state === 'draft' || x.state === 'queued';
+  const ph = (REP.phrases[x.section] || []).map(p => `<button class="btn sm" data-rph="${esc(p)}" style="margin:2px">${esc(TR(p))}</button>`).join('');
+  const replies = (x.replies || []).map(r => `<div style="border-left:3px solid var(--accent);padding:6px 10px;margin:6px 0;background:var(--panel2);border-radius:6px"><b class="notr">${esc(r.who)}</b> <span class="hint">${esc(repDate(r.at))}</span><div class="notr" style="white-space:pre-wrap;margin-top:4px">${esc(r.body)}</div></div>`).join('');
+  return `<div data-rid="${x.id}" style="background:var(--panel2)">${head}<div style="padding:4px 18px 16px">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:6px 0">
+      <label class="hint">${esc(TR('Type'))} <select data-rk="kind" ${edit ? '' : 'disabled'}>${REP.kinds.map(k => `<option value="${k.id}" ${k.id === x.kind ? 'selected' : ''}>${esc(TR(k.name))}</option>`).join('')}</select></label>
+      <label class="hint">${esc(TR('Section'))} <select data-rk="section" ${edit ? '' : 'disabled'}>${REP.sections.map(k => `<option value="${k.id}" ${k.id === x.section ? 'selected' : ''}>${esc(TR(k.name))}</option>`).join('')}</select></label>
+      <span class="hint">${esc(TR('Déposé le'))} ${esc(repDate(x.at))}${x.sentAt ? ' · ' + esc(TR('envoyé le')) + ' ' + esc(repDate(x.sentAt)) : ''}</span></div>
+    <input type="text" data-rk="title" value="${esc(x.title || '')}" placeholder="${esc(TR('Titre court (par exemple : « Pièce jointe Gmail qui ne se télécharge pas »)'))}" style="width:100%;margin:4px 0" ${edit ? '' : 'disabled'}>
+    ${edit ? `<div class="hint" style="margin-top:6px">${esc(TR('Phrases prêtes : cliquez pour l\'ajouter, puis modifiez si besoin.'))}</div><div>${ph}</div>` : ''}
+    <textarea data-rk="msg" style="width:100%;min-height:90px;font:inherit;margin-top:6px" placeholder="${esc(TR('Que faisiez-vous ? Qu\'est-ce qui s\'est passé ?'))}" ${edit ? '' : 'disabled'}>${esc(x.msg || '')}</textarea>
+    ${x.page ? `<label class="cbx" style="padding:6px 0"><input type="checkbox" data-rk="pageOn" ${x.pageOn ? 'checked' : ''} ${edit ? '' : 'disabled'}><div><b>${esc(TR('Joindre l\'adresse de la page'))}</b><span class="notr" style="word-break:break-all">${esc(x.page)}</span></div></label>` : x.site ? `<div class="hint">${esc(TR('Site'))} : <span class="notr">${esc(x.site)}</span></div>` : ''}
+    ${x.shot ? `<label class="cbx" style="padding:6px 0"><input type="checkbox" data-rk="shotOn" ${x.shotOn ? 'checked' : ''} ${edit ? '' : 'disabled'}><div><b>${esc(TR('Joindre la capture de l\'écran'))}</b><span>${esc(TR('Regardez-la avant : elle peut montrer des informations privées. Elle est copiée au moment de l\'envoi : collez-la avec Ctrl+V dans la page GitHub.'))}</span><img data-rshot="${x.id}" alt="" style="max-width:100%;max-height:220px;margin-top:6px;border-radius:6px;border:1px solid var(--line)"></div></label>` : ''}
+    ${x.reportLines > 1 ? `<details data-rrep="${x.id}" style="margin:6px 0"><summary class="hint" style="cursor:pointer">${esc(TR('Rapport technique (voir ce qui sera envoyé)'))}</summary><div class="rrep mono notr" style="max-height:260px;overflow:auto;font-size:11px;background:var(--panel);padding:6px;border-radius:6px"></div></details>` : ''}
+    ${replies ? `<div style="margin-top:8px"><b>${esc(TR('Réponses'))}</b>${replies}</div>` : ''}
+    ${x.state === 'fixed' && x.fixedIn ? `<p class="hint">${esc(x.fixedHere ? TRF('Corrigé dans la {0} : vous l\'avez déjà.', x.fixedIn) : TRF('Corrigé dans la {0} : installez la mise à jour quand elle sera proposée.', x.fixedIn))}</p>` : ''}
+    ${x.state === 'queued' ? `<p class="hint">${esc(TR('Validé : il partira quand internet reviendra (DrYAE vous le proposera).'))}</p>` : ''}
+    ${x.notFound ? `<p class="hint">${esc(TR('DrYAE ne le trouve pas encore sur GitHub : l\'envoi n\'a peut-être pas été terminé. Rouvrez la page et cliquez sur « Create ».'))}</p>` : ''}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+      ${edit ? `<button class="btn sm primary" data-rsend="${x.id}">${ic('check')}${esc(TR('Valider et envoyer'))}</button>` : ''}
+      ${x.state === 'sent' && !x.issue ? `<button class="btn sm" data-rsend="${x.id}">${esc(TR('Rouvrir la page GitHub'))}</button>` : ''}
+      ${x.url ? `<button class="btn sm" data-rurl data-url="${esc(x.url)}">${esc(TR('Voir sur GitHub'))}</button>` : ''}
+      ${x.issue ? `<button class="btn sm" data-rcom="${x.id}">${esc(TR(x.replies?.length ? 'Répondre' : 'Ajouter un commentaire'))}</button>` : ''}
+      <button class="btn sm danger" data-rdel="${x.id}">${ic('trash')}${esc(TR('Supprimer'))}</button></div>
+  </div></div>`;
+}
+function repDraw() {
+  const box = $('#repBox'); if (!box) return;
+  if (!REP) { box.innerHTML = `<div class="prow"><span class="hint">${esc(TR('Signalements indisponibles.'))}</span></div>`; return; }
+  const L = REP.list, q = L.filter(x => x.state === 'queued').length, sel = [...repSel].filter(id => L.some(x => x.id === id && (x.state === 'draft' || x.state === 'queued')));
+  box.innerHTML = `
+    ${row('Garder les problèmes rencontrés', 'Quand DrYAE rencontre un problème (erreur, téléchargement qui échoue), il le range ici avec la date. Rien n\'est envoyé tout seul.', `<label class="sw"><input type="checkbox" id="repHelp" ${REP.help ? 'checked' : ''}><i></i></label>`)}
+    ${!REP.online ? `<div class="prow"><span>⚠️</span><div class="tx"><b>${esc(TR('Pas d\'internet'))}</b><span>${esc(TR('Vous pouvez quand même préparer et valider vos signalements : ils partiront quand la connexion reviendra, après votre clic.'))}</span></div></div>` : ''}
+    <div class="prow" style="flex-wrap:wrap;gap:8px">
+      <button class="btn sm primary" id="repNew">${ic('plus')}${esc(TR('Nouveau signalement'))}</button>
+      ${sel.length ? `<button class="btn sm" id="repSendSel">${esc(TRF('Valider et envoyer la sélection ({0})', sel.length))}</button>` : ''}
+      ${q && REP.online ? `<button class="btn sm" id="repSendQ">${esc(TRF('Envoyer ceux en attente ({0})', q))}</button>` : ''}
+      <span style="flex:1"></span>
+      <button class="btn sm" id="repChk" title="${esc(TR('Regarde sur GitHub si quelqu\'un a répondu'))}">${ic('reload')}${esc(TR('Vérifier les réponses'))}</button>
+      ${L.length ? `<button class="btn sm" id="repClr">${ic('trash')}${esc(TR('Tout effacer'))}</button>` : ''}</div>
+    ${REP.checkedAt ? `<div class="prow" style="padding-top:0"><span class="hint">${esc(TRF('Dernière vérification : {0}', repDate(REP.checkedAt)))}</span></div>` : ''}
+    ${L.length ? L.map(repItem).join('') : `<div class="prow"><span class="hint">${esc(TR('Aucun signalement pour le moment. Raccourci : Alt+Maj+I.'))}</span></div>`}
+    <div class="prow"><div class="tx"><span>${esc(TR('L\'envoi ouvre la page GitHub déjà remplie : vous la relisez et cliquez sur « Create » (compte GitHub gratuit). Le rapport ne contient ni mot de passe ni historique ; l\'adresse de la page et la capture ne sont jointes que si vous les cochez.'))}</span></div></div>`;
+  const it = id => L.find(x => x.id === id);
+  $('#repHelp').onchange = async e => { await call('repHelp', e.target.checked); REP.help = e.target.checked; };
+  $('#repNew').onclick = async () => { const id = await call('repNew', { title: '' }); repOpen = id; REP = await call('repView'); repDraw(); document.querySelector(`[data-rid="${id}"] [data-rk="msg"]`)?.focus(); };
+  $('#repChk').onclick = async () => { const b = $('#repChk'); b.disabled = true; const r = await call('repCheck').catch(e => ({ ok: false, error: e.message })); REP = await call('repView'); repDraw(); toast(r?.ok ? (r.n ? TRF('{0} changement(s) trouvé(s)', r.n) : 'Rien de nouveau') : 'Vérification impossible (pas d\'internet ?)'); };
+  if ($('#repClr')) $('#repClr').onclick = async () => { if (await confirmBox(TR('Effacer tous les signalements de ce PC ? (Ceux déjà sur GitHub y restent.)'), 'Tout effacer')) { await call('repClear'); repSel.clear(); REP = await call('repView'); repDraw(); } };
+  if ($('#repSendQ')) $('#repSendQ').onclick = async () => { await call('repSendQueued'); REP = await call('repView'); repDraw(); };
+  if ($('#repSendSel')) $('#repSendSel').onclick = async () => { for (const id of sel) await repSend(id, true); repSel.clear(); REP = await call('repView'); repDraw(); };
+  box.onclick = async e => {
+    const t = e.target;
+    if (t.closest('[data-rsel]')) { const id = t.closest('[data-rsel]').dataset.rsel; t.checked ? repSel.add(id) : repSel.delete(id); return repDraw(); }
+    const tg = t.closest('[data-rtog]'); if (tg) { const id = tg.dataset.rtog; repOpen = repOpen === id ? '' : id; const x = it(id); if (x?.unread && repOpen) { await call('repUpdate', id, { seen: true }); x.unread = false; } repDraw(); return; }
+    const ph = t.closest('[data-rph]'); if (ph) { const ta = ph.closest('[data-rid]').querySelector('[data-rk="msg"]'); ta.value = (ta.value.trim() ? ta.value.trim() + '\n' : '') + TR(ph.dataset.rph); repSave(ph.closest('[data-rid]').dataset.rid, { msg: ta.value }); if (!ph.closest('[data-rid]').querySelector('[data-rk="title"]').value) { const ti = ph.closest('[data-rid]').querySelector('[data-rk="title"]'); ti.value = TR(ph.dataset.rph).replace(/\.$/, ''); repSave(ph.closest('[data-rid]').dataset.rid, { title: ti.value }); } return; }
+    const sd = t.closest('[data-rsend]'); if (sd) return repSend(sd.dataset.rsend);
+    const dl = t.closest('[data-rdel]'); if (dl) { if (await confirmBox(TR('Supprimer ce signalement de ce PC ?'), 'Supprimer')) { await call('repRemove', dl.dataset.rdel); repSel.delete(dl.dataset.rdel); REP = await call('repView'); repDraw(); } return; }
+    const cm = t.closest('[data-rcom]'); if (cm) { const txt = await dialog({ title: 'Répondre sur GitHub', html: `<textarea id="rcTxt" style="width:100%;min-height:110px;font:inherit"></textarea><p class="hint">${esc(TR('La page GitHub s\'ouvre et votre texte est copié : collez-le avec Ctrl+V puis cliquez sur « Comment ».'))}</p>`, ok: 'Ouvrir GitHub', read: d => d.querySelector('#rcTxt').value }); if (txt !== null) await call('repComment', cm.dataset.rcom, 0, txt); return; }
+    const u = t.closest('[data-rurl]'); if (u) { e.stopPropagation(); return call('open', u.dataset.url); }
+  };
+  box.onchange = e => { const t = e.target, k = t.dataset.rk, r = t.closest('[data-rid]'); if (!k || !r) return; repSave(r.dataset.rid, { [k]: t.type === 'checkbox' ? t.checked : t.value }); if (k === 'section') { const x = it(r.dataset.rid); if (x) { x.section = t.value; repDraw(); } } };
+  box.oninput = e => { const t = e.target, k = t.dataset.rk, r = t.closest('[data-rid]'); if (!k || !r || t.type === 'checkbox' || t.tagName === 'SELECT') return; clearTimeout(t._t); t._t = setTimeout(() => repSave(r.dataset.rid, { [k]: t.value }), 400); };
+  // capture et rapport : chargés à l'ouverture
+  $$('[data-rshot]', box).forEach(async img => { img.src = await call('repShot', img.dataset.rshot).catch(() => ''); });
+  $$('details[data-rrep]', box).forEach(d => d.ontoggle = async () => {
+    if (!d.open) return; const id = d.dataset.rrep, rep = await call('repReport', id).catch(() => '');
+    const lines = String(rep).split(/\r?\n/);
+    d.querySelector('.rrep').innerHTML = lines.map((l, i) => `<div style="display:flex;gap:6px"><button class="icon-btn" data-rdrop="${i}" title="${esc(TR('Retirer cette ligne'))}" style="width:18px;height:18px;flex:none">${ic('x')}</button><span style="white-space:pre-wrap">${esc(l)}</span></div>`).join('');
+    d.querySelector('.rrep').onclick = async ev => { const b = ev.target.closest('[data-rdrop]'); if (!b) return; await call('repUpdate', id, { dropLines: [+b.dataset.rdrop] }); d.open = false; d.open = true; };
+  });
+}
+async function repSave(id, p) { const x = await call('repUpdate', id, p).catch(() => null); if (x) { const i = REP.list.findIndex(y => y.id === id); if (i >= 0) REP.list[i] = { ...REP.list[i], ...p }; } }
+async function repSend(id, quiet) {
+  const x = REP.list.find(y => y.id === id); if (!x) return;
+  // relire ce qui est tapé (au cas où la saisie n'est pas encore enregistrée)
+  const r = document.querySelector(`[data-rid="${id}"]`);
+  if (r) { const p = {}; $$('[data-rk]', r).forEach(f => { if (f.type !== 'checkbox' && f.tagName !== 'SELECT') p[f.dataset.rk] = f.value; }); if (Object.keys(p).length) await call('repUpdate', id, p); }
+  if (!quiet && !String((r?.querySelector('[data-rk="msg"]')?.value ?? x.msg) || '').trim()) { toast('Écrivez ce qui s\'est passé (ou choisissez une phrase prête) avant d\'envoyer'); r?.querySelector('[data-rk="msg"]')?.focus(); return; }
+  if (REP.online) {
+    const d = await call('repDup', id).catch(() => null);
+    if (d) {
+      const c = await dialog({ title: 'Déjà signalé ?', html: `<p>${esc(TRF('Le même problème est peut-être déjà signalé sur GitHub : « {0} » (#{1}).', d.title, d.number))}</p><p class="hint">${esc(TR('« Ajouter mon cas » ouvre ce signalement : votre message est copié, collez-le avec Ctrl+V.'))}</p>`, ok: 'Ajouter mon cas', cancel: 'Envoyer quand même' });
+      if (c) { await call('repComment', id, d.number, ''); REP = await call('repView'); return repDraw(); }
+    }
+  }
+  const res = await call('repSend', id).catch(() => null);
+  if (res?.queued) toast('Pas d\'internet : il partira quand la connexion reviendra');
+  else if (res?.ok && !quiet) toast(x.shotOn && x.shot ? 'Page GitHub ouverte : la capture est copiée, collez-la avec Ctrl+V puis cliquez sur « Create »' : 'Page GitHub ouverte : relisez puis cliquez sur « Create »');
+  REP = await call('repView'); repDraw();
+}
+document.addEventListener('click', e => { const g = e.target.closest('[data-goto]'); if (g) { e.preventDefault(); show(g.dataset.goto); } });

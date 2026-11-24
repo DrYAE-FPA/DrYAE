@@ -84,11 +84,12 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR
   ok('page « Extensions et thèmes » avec vue Thèmes', /Extensions et thèmes/.test(ext) && /Explorer les thèmes/.test(ext));
   // 5) signalements : modèle sans champ obligatoire, adresse pas trop longue, rapport copié
   const br = await app.evaluate(async ({ shell, clipboard }, root) => {
-    const urls = []; let clip = 0; shell.openExternal = async u => { urls.push(u); }; clipboard.writeText = t => { clip = String(t).length; };
-    const B = process.mainModule.require(root + '/src/main/bugreport.js');
+    let clip = 0; clipboard.writeText = t => { clip = Math.max(clip, String(t).length); };
+    const R = process.mainModule.require(root + '/src/main/reports.js').Reports.last; const urls = []; R.open = async u => { urls.push(u); };
     const long = Array.from({ length: 400 }, (_, i) => 'ligne ' + i + ' ' + 'x'.repeat(40)).join('\n');
-    B.open('Essai', 'je cliquais', long);
-    B.translation({ text: 'HELLO', tr: 'BONJOUR', from: 'en', to: 'fr' });
+    const a = await R.add({ kind: 'bug', title: 'Essai', msg: 'je cliquais', report: long, sig: 'h1' }); await R.send(a.id);
+    const B = process.mainModule.require(root + '/src/main/bugreport.js');
+    const t = await B.translation({ text: 'HELLO', tr: 'BONJOUR', from: 'en', to: 'fr' }); await R.send(t.id);
     return { u: urls, clip };
   }, ROOT);
   const u0 = new URL(br.u[0] || 'http://x'), u1 = new URL(br.u[1] || 'http://x');

@@ -40,13 +40,14 @@ async function ask(win) {
     type: 'question', buttons: [T('Oui, aider'), T('Non merci')], defaultId: 0, cancelId: 1, noLink: true,
     title: T('Aider à améliorer DrYAE ?'),
     message: T('Aider à améliorer DrYAE ?'),
-    detail: T('Quand DrYAE rencontre un problème, il peut préparer un signalement pour ses créateurs : versions, Windows et dernières erreurs, sans mots de passe, sans historique, sans adresses de pages. Rien n\'est envoyé tout seul : le signalement s\'ouvre sur GitHub, vous le relisez et c\'est vous qui cliquez sur « Envoyer ». Vous pourrez changer d\'avis dans Paramètres → Système.') + '\n\n' + T('Pour envoyer, il faut un compte GitHub (gratuit).'),
+    detail: T('Quand DrYAE rencontre un problème, il le garde dans « Signalements » (menu ☰), avec la date : versions, Windows et dernières erreurs, sans mots de passe ni historique. Rien n\'est envoyé tout seul : vous relisez, vous choisissez si vous joignez l\'adresse de la page et une capture, puis vous validez. Vous pourrez changer d\'avis dans Paramètres → Signalements.') + '\n\n' + T('Pour envoyer, il faut un compte GitHub (gratuit).'),
   };
   const r = await (win && !win.isDestroyed() ? dialog.showMessageBox(win, o) : dialog.showMessageBox(o)).catch(() => ({ response: 1 }));
   ctx.settings.set({ browser: { bugHelp: r.response === 0 } });
 }
 
-// une erreur notée dans le journal : proposer un signalement (une fois par erreur, au plus une fois toutes les 10 minutes)
+// une erreur notée dans le journal : elle est gardée dans Paramètres → Signalements (même hors connexion),
+// avec une capture et l'adresse de la page (l'utilisateur choisit avant l'envoi s'il les joint)
 function onError(where, msg) {
   if (!ctx || !on()) return;
   const m = String(msg || '');
@@ -55,26 +56,28 @@ function onError(where, msg) {
   if (where === 'page plantée' && !/crashed|oom|launch-failed|integrity/i.test(m)) return;
   if (where === 'processus' && !/crashed|oom|launch-failed/i.test(m)) return;
   const sig = crypto.createHash('sha1').update(String(where) + '|' + String(msg).split('\n')[0].replace(/\d+/g, '#')).digest('hex').slice(0, 12);
-  const sent = ctx.settings.get().browser?.bugSeen || [];
-  if (seen.has(sig) || sent.includes(sig) || Date.now() - shownAt < 10 * 60e3) return;
-  seen.add(sig); shownAt = Date.now();
-  setTimeout(async () => {
-    const r = await dialog.showMessageBox({
-      type: 'warning', buttons: [T('Préparer le signalement'), T('Plus tard'), T('Ne plus proposer')], defaultId: 0, cancelId: 1, noLink: true,
-      title: 'DrYAE', message: T('DrYAE a rencontré un problème'),
-      detail: T('Voulez-vous préparer un signalement ? Il s\'ouvrira sur GitHub : vous pourrez le relire, ajouter ce que vous faisiez, puis cliquer sur « Envoyer ». Rien ne part sans votre clic.') + '\n\n' + T('Pour envoyer, il faut un compte GitHub (gratuit). Le rapport est aussi copié : collez-le (Ctrl+V) si la page ne le montre pas.'),
-    }).catch(() => ({ response: 1 }));
-    if (r.response === 2) { ctx.settings.set({ browser: { bugHelp: false } }); return; }
-    if (r.response !== 0) return;
-    ctx.settings.set({ browser: { bugSeen: [...sent, sig].slice(-50) } });
-    open(`${where}: ${String(msg).split('\n')[0]}`.slice(0, 120));
-  }, 1500);
+  if (seen.has(sig)) { ctx.reports?.add({ sig, auto: true }); return; }
+  seen.add(sig);
+  setTimeout(() => detected({ sig, where, title: `${where}: ${String(msg).split('\n')[0]}`.slice(0, 120) }).catch(() => {}), 800);
+}
+// problème détecté (erreur, téléchargement échoué) : rangé dans la boîte, petite notification au plus toutes les 10 minutes
+async function detected(o) {
+  if (!ctx?.reports) return null;
+  const here = ctx.here ? await ctx.here().catch(() => ({})) : {};
+  const x = await ctx.reports.add({ kind: 'bug', auto: true, report: LOG.report(ctx.extra ? ctx.extra() : {}), page: here.page || '', shot: here.shot || null, ...o });
+  if (x && x.count === 1 && Date.now() - shownAt > 10 * 60e3) { shownAt = Date.now(); ctx.notice?.(T('DrYAE a rencontré un problème'), T('Il est gardé dans Signalements (menu ☰) : vous pourrez l\'envoyer quand vous voudrez.')); }
+  return x;
 }
 
-function open(title, what, text) {
+// « Signaler un problème… » : nouveau signalement dans Paramètres → Signalements
+async function open(title, what, text) {
+  if (ctx?.reports && ctx.openReports) {
+    const here = ctx.here ? await ctx.here().catch(() => ({})) : {};
+    const x = await ctx.reports.add({ kind: 'bug', title: title || '', msg: what || '', report: text || LOG.report(ctx.extra ? ctx.extra() : {}), page: here.page || '', shot: here.shot || null, sig: crypto.randomBytes(6).toString('hex') });
+    ctx.openReports(x.id);
+    return x.id;
+  }
   const rep = text || LOG.report(ctx?.extra ? ctx.extra() : {});
-  // 1.7.2 : modèle sans liste obligatoire (avant : « Où ? » à choisir, sinon GitHub refusait l'envoi) ;
-  // le rapport est aussi copié dans le presse-papiers (si la page GitHub le perd, Ctrl+V suffit)
   try { clipboard.writeText(rep); } catch {}
   const url = issueUrl('rapport.yml', '[Erreur] ' + LOG.clean(title || 'Problème'), {
     what: what || T('(Écrivez ici ce que vous faisiez quand le problème est arrivé.)'),
@@ -84,16 +87,18 @@ function open(title, what, text) {
   return url;
 }
 
-// « Signaler cette traduction » (bulle d'un scan) : texte lu, traduction, langues — jamais l'image ni l'adresse de la page
-function translation(o = {}) {
+// « Signaler cette traduction » (bulle d'un scan) : gardé dans Signalements (texte lu, traduction, langues — jamais l'image)
+async function translation(o = {}) {
   const t = s => LOG.clean(String(s || '')).slice(0, 1500);
-  const url = issueUrl('traduction.yml', `[Traduction] ${t(o.text).replace(/\s+/g, ' ').slice(0, 60)}`, {
-    what: `Mauvaise traduction / Wrong translation — Traducteur de scans (${o.from || '?'} → ${o.to || '?'})\n\nTexte lu / Text read :\n${t(o.text)}\n\nTraduction de DrYAE / DrYAE's translation :\n${t(o.tr)}\n\nTraduction attendue / Expected translation :\n${t(o.want) || '…'}`,
-    version: ctx?.version || '', windows: require('os').release(),
-  });
+  const what = `Mauvaise traduction / Wrong translation — Traducteur de scans (${o.from || '?'} → ${o.to || '?'})\n\nTexte lu / Text read :\n${t(o.text)}\n\nTraduction de DrYAE / DrYAE's translation :\n${t(o.tr)}\n\nTraduction attendue / Expected translation :\n${t(o.want) || '…'}`;
+  if (ctx?.reports) {
+    const x = await ctx.reports.add({ kind: 'translation', section: 'scans', title: t(o.text).replace(/\s+/g, ' ').slice(0, 60), msg: what, report: '', sig: crypto.createHash('sha1').update('tr|' + t(o.text) + '|' + t(o.tr)).digest('hex').slice(0, 12) });
+    return { kept: true, id: x.id };
+  }
+  const url = issueUrl('traduction.yml', `[Traduction] ${t(o.text).replace(/\s+/g, ' ').slice(0, 60)}`, { what, version: ctx?.version || '', windows: require('os').release() });
   shell.openExternal(url);
   return url;
 }
 
 function init(c) { ctx = c; LOG.onError = onError; }
-module.exports = { init, ask, onError, open, translation, issueUrl };
+module.exports = { init, ask, onError, open, translation, issueUrl, detected };
