@@ -55,12 +55,13 @@ function png(w, h, rgb) {
   const outFile = HOME + '/export.cbz';
   await app.evaluate(({ dialog }, f) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath: f }); }, outFile);
   await b.evaluate(() => pageCmd('scan-export', { fmt: 'cbz' }));
-  for (let i = 0; i < 40 && !fs.existsSync(outFile); i++) await wait(500); await wait(800);
+  // 1.7.2 : les pages pas encore traduites le sont pendant l'enregistrement (plus long)
+  for (let i = 0; i < 480 && !fs.existsSync(outFile); i++) await wait(500); await wait(800);
   let list = ''; try { list = execFileSync(z, ['l', outFile]).toString(); } catch {}
   ok('chapitre traduit enregistré en .cbz (toutes les pages)', (list.match(/\.jpg/g) || []).length === 13, list.split('\n').slice(-3).join(' '));
   await app.evaluate(({ dialog }, f) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath: f }); }, HOME + '/export.pdf');
   await b.evaluate(() => pageCmd('scan-export', { fmt: 'pdf' }));
-  for (let i = 0; i < 40 && !fs.existsSync(HOME + '/export.pdf'); i++) await wait(500); await wait(800);
+  for (let i = 0; i < 480 && !fs.existsSync(HOME + '/export.pdf'); i++) await wait(500); await wait(800);
   ok('chapitre traduit enregistré en PDF', fs.existsSync(HOME + '/export.pdf') && fs.readFileSync(HOME + '/export.pdf').slice(0, 4).toString() === '%PDF');
   // 1.7.1 : une page de PDF par page de BD (avant : une page blanche entre deux), et les pages originales
   { const t = fs.readFileSync(HOME + '/export.pdf').toString('latin1'); ok('PDF : une page par image, sans page blanche', /\/Count 13\b/.test(t), (t.match(/\/Count \d+/) || [])[0]); }
