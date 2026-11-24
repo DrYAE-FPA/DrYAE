@@ -705,6 +705,23 @@ function joinBroken(text) {
     if (!known(A) && w.length >= 8) { const c = correct1(w); if (c && c.c <= 1.25 && c.w.length >= 7) return likeCase(a + b, c.w); }
     return m;
   });
+  // 1.7.2 : tiret pas lu du tout, morceau seul suivi d'un mot avec une lettre en trop (« MANIPU ELATION ») ou d'une
+  // fin de mot (« EXCI TATION ») : recollés seulement si le morceau n'est pas un mot et que le mot recollé est long et connu
+  { // mot par mot (deux paires qui se suivent peuvent se chevaucher : « POWER MANIPU ELATION »)
+    const P = t.split(/(\s+)/);
+    for (let i = 0; i + 2 < P.length; i += 2) {
+      const a = P[i], b = P[i + 2]; if (!/^\p{L}{3,}$/u.test(a) || !/^\p{L}{3,}/u.test(b)) continue;
+      const bw = /^\p{L}+/u.exec(b)[0], A = a.toLowerCase(), Bw = bw.toLowerCase(), rest = b.slice(bw.length);
+      if (!/^[a-z]+$/.test(A + Bw) || known(A) || APOS.has(A) || SPECIAL[A]) continue;
+      let j = '';
+      if (known(A + Bw) && (A + Bw).length >= 8 && (!known(Bw) || rank(Bw) >= 4)) j = a + bw;
+      else if (Bw.length >= 5 && known(A + Bw.slice(1)) && (A + Bw).length >= 9) j = a + bw.slice(1);
+      if (j) { P.splice(i, 3, j + rest); i -= 2; }
+    }
+    t = P.join('');
+  }
+  // « SOME'MANA » : apostrophe lue entre deux mots (pas « DON'T », « IT'S », « I'LL »…) → espace
+  t = t.replace(/(\p{L}{3,})['’](\p{L}{3,})/gu, (m, a, b) => known((a + b).toLowerCase()) && !/^(s|t|re|ve|ll|d|m)$/i.test(b) ? a + b : (/^(s|t|re|ve|ll|d|m|em|clock|n)$/i.test(b) || !known(a.toLowerCase()) || !known(b.toLowerCase()) && !/^mana$/i.test(b)) ? m : a + ' ' + b);
   t = t.replace(/\bMANIA\b/g, 'MANA');
   // 1.7.2 : « MANG » (A final lu comme un G) : MANA ; « MANGA » n'est pas touché
   t = t.replace(/\bMANG\b(?!A)/g, 'MANA');
@@ -725,3 +742,38 @@ function leftoverEn(src, out, keepWords = []) {
   });
 }
 module.exports.leftoverEn = leftoverEn;
+
+// 1.7.2 : fin d'un mot lue à part, comme une petite zone séparée (« CORE EXCI SPIRAL » + « TATION » à côté, gros
+// lettrage sur un fond chargé) : le morceau est remis dans son mot quand le mot recollé est long et connu, et que les
+// deux zones se touchent presque. Retourne la liste des zones (sans le morceau rattaché).
+function joinGroups(groups) {
+  load();
+  const out = groups.slice(); const drop = new Set();
+  const frag = w => /^[a-z]{3,}$/.test(w) && (!known(w) || rank(w) >= 4);
+  for (let h = 0; h < out.length; h++) {
+    const H = out[h]; const u = String(H.text || '').trim();
+    if (!/^\p{L}{3,}[!?.…]*$/u.test(u)) continue;
+    const uw = u.match(/^\p{L}+/u)[0], U = uw.toLowerCase(); if (!frag(U)) continue;
+    const hh = H.y1 - H.y0;
+    for (let g = 0; g < out.length; g++) {
+      if (g === h || drop.has(g) || drop.has(h)) continue;
+      const G = out[g];
+      // les deux zones se touchent (écart de moins d'une hauteur de ligne)
+      const gap = Math.max(G.x0 - H.x1, H.x0 - G.x1, G.y0 - H.y1, H.y0 - G.y1, 0); if (gap > hh * 1.2) continue;
+      let done = false;
+      const t = String(G.text).replace(/\p{L}{3,}/gu, w => {
+        if (done) return w; const W = w.toLowerCase();
+        if (known(W) && rank(W) < 4) return w;
+        if (known(W + U) && (W + U).length >= 8) { done = true; return w + (w === w.toUpperCase() ? uw.toUpperCase() : uw.toLowerCase()); }
+        return w;
+      });
+      if (!done) continue;
+      out[g] = { ...G, text: t, x0: Math.min(G.x0, H.x0), y0: Math.min(G.y0, H.y0), x1: Math.max(G.x1, H.x1), y1: Math.max(G.y1, H.y1) };
+      drop.add(h); break;
+    }
+  }
+  const r = out.filter((_, i) => !drop.has(i));
+  for (const k of Object.keys(groups)) if (!/^\d+$/.test(k)) r[k] = groups[k];
+  return r;
+}
+module.exports.joinGroups = joinGroups;

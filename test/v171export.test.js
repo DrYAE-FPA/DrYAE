@@ -53,5 +53,19 @@ function png(w, h, rgb) {
   ok('lecture verticale (pages d\'un autre serveur) : toutes les pages', await go('/vertical', 'vert.cbz', { fmt: 'cbz', original: true }) === N);
   ok('chapitre d\'une seule page : la page, pas le logo du site', await go('/court', 'court.cbz', { fmt: 'cbz', original: true }) === 1);
   { let lst = ''; try { lst = execFileSync(z, ['l', '-slt', HOME + '/court.cbz']).toString(); } catch {} ok('la page enregistrée est bien la page du chapitre', /Size = \d+/.test(lst)); }
+  // 1.7.2 (signalement de l'utilisateur : « 34 pages, dont 10 traduites ») : en lecture page par page, les pages pas encore
+  // traduites à l'écran sont traduites au moment d'enregistrer
+  await app.evaluate(({ ipcMain }) => {
+    global.__scanCalls = 0; ipcMain.removeHandler('scan:image');
+    ipcMain.handle('scan:image', async (_e, o) => { global.__scanCalls++; return { blocks: [{ x0: 20, y0: 20, x1: 200, y1: 80, text: 'HELLO THERE', tr: 'BONJOUR', bubble: { x0: 10, y0: 10, x1: 210, y1: 90 }, bg: '#ffffff', caps: true, lh: 20 }], w: o.natural?.w || 300, to: 'fr', key: 'k' + global.__scanCalls }; });
+  });
+  await b.evaluate(u => { cur.wv.loadURL(u).catch(() => {}); }, 'http://site.test:' + port + '/chapitre'); await wait(3000);
+  await b.evaluate(() => pageCmd('scan-auto')); await wait(2500);
+  await app.evaluate(({ dialog }, f) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath: f }); }, HOME + '/trad.cbz');
+  await b.evaluate(() => pageCmd('scan-export', { fmt: 'cbz' }));
+  for (let i = 0; i < 80 && !fs.existsSync(HOME + '/trad.cbz'); i++) await wait(500); await wait(800);
+  const calls = await app.evaluate(() => global.__scanCalls);
+  let nt = 0; try { nt = (execFileSync(z, ['l', HOME + '/trad.cbz']).toString().match(/\.jpg/g) || []).length; } catch {}
+  ok('enregistrement traduit : les pages pas encore traduites à l\'écran le sont aussi (toutes les pages)', nt === N && calls >= N, { nt, calls });
   await Promise.race([app.close(), wait(5000)]); srv.close(); process.exit(0);
 })().catch(e => { console.log('ÉCHEC exception', e.message); process.exit(1); });

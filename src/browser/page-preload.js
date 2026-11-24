@@ -1076,8 +1076,8 @@ function pageFeatures() {
     status(pt('Enregistrement des pages…'));
     for (let entry of list) {
       k++; if (list.length > 3) status(ptf('Enregistrement des pages… {0}/{1}', k, list.length));
-      let img = entry instanceof HTMLImageElement ? entry : imgs.find(i => (i.currentSrc || i.src) === entry), url = null;
-      const it = img && scan?.items.get(img), w0 = img?.naturalWidth;
+      let img = entry instanceof HTMLImageElement ? entry : imgs.find(i => (i.currentSrc || i.src) === entry), url = null, fetched = null;
+      let it = img && scan?.items.get(img); const w0 = img?.naturalWidth;
       // image venue d'un autre serveur (souvent le cas des lecteurs en ligne) : elle ne peut pas être recopiée telle quelle
       // depuis la page → on la récupère comme le lecteur l'a fait (même session), puis on la recopie
       if (img && !sameOrigin(img.currentSrc || img.src)) entry = img.currentSrc || img.src, img = null;
@@ -1085,9 +1085,21 @@ function pageFeatures() {
         // page pas affichée : on la télécharge comme le lecteur l'aurait fait (même session, même page d'origine)
         try {
           const b = await ipcRenderer.invoke('scan:page', { src: entry, page: location.href });
-          if (!b) throw 0; url = URL.createObjectURL(new Blob([b]));
+          if (!b) throw 0; fetched = b; url = URL.createObjectURL(new Blob([b]));
           img = new Image(); img.src = url; await img.decode();
         } catch { if (url) URL.revokeObjectURL(url); blocked++; continue; }
+      }
+      // 1.7.2 (signalement de l'utilisateur : « 34 pages, dont 10 traduites ») : les pages pas encore traduites à l'écran
+      // (pas encore atteintes en lisant, ou chargées seulement pour l'enregistrement) sont traduites maintenant
+      if (!orig && !it?.blocks) {
+        status(ptf('Traduction des pages… {0}/{1}', k, list.length));
+        try {
+          const src0 = typeof entry === 'string' ? entry : (img.currentSrc || img.src || '');
+          let data = fetched; if (!data && !/^https?:/.test(src0)) data = await imgBytes(img);
+          const res = await Promise.race([ipcRenderer.invoke('scan:image', { src: data ? '' : (/^https?:/.test(src0) ? src0 : ''), data, page: location.href, veil: typeof veilInfo === 'function' ? veilInfo() : null, natural: { w: img.naturalWidth, h: img.naturalHeight } }),
+            new Promise((_, no) => setTimeout(() => no(new Error('délai')), 150000))]);
+          if (res?.blocks) it = { blocks: res.blocks, w: res.w, to: res.to, key: res.key };
+        } catch {}
       }
       // 1.7.2 : écriture identique à l'écran (mêmes zones, mêmes tailles, mêmes coupures) ; une image très haute (webtoon)
       // est coupée en plusieurs pages du fichier, entre deux bulles (au-delà de ~16 000 points, elle ne peut pas être recopiée)

@@ -15,7 +15,7 @@ Un traducteur de scans entièrement sur votre PC, plus rapide et plus juste : Dr
 - **Lexique pris en compte tout de suite** : un mot ajouté ou changé s'applique aussi aux pages déjà traduites.
 - **Plus de mots anglais oubliés** dans la traduction (« Au taux THIS », « YOUR sens ») : les petits mots courants (THIS, THAT, WHAT, YOUR…) sont toujours traduits, même s'ils avaient été ajoutés par erreur au lexique ou à « Ne jamais traduire ».
 - **« MANA »** n'est plus lu « MANIA » (« manie ») ni « MANG » dans le lettrage des BD.
-- **Mots coupés en fin de ligne ou écrits à la verticale** recollés même quand le tiret est mal lu (« SPIRI2 TUAL » → SPIRITUAL, « TENTA- CLE » → TENTACLE, « DETONA-TION » → DETONATION, « MANIPU= ELATION » → MANIPULATION).
+- **Mots coupés en fin de ligne ou écrits à la verticale** recollés même quand le tiret est mal lu (« SPIRI2 TUAL » → SPIRITUAL, « TENTA- CLE » → TENTACLE, « DETONA-TION » → DETONATION, « MANIPU= ELATION » ou « MANIPU ELATION » → MANIPULATION, « EXCI » + « TATION » lus à part → EXCITATION) ; « SOME'MANA » → SOME MANA.
 - **Mots anglais restés dans la traduction** (« THIS La forme est plus dure ») : DrYAE s'en aperçoit et retraduit la bulle autrement (phrase par phrase), puis garde la meilleure version.
 - « ILL END IT HERE » est lu « I'LL END IT HERE ».
 
@@ -60,6 +60,7 @@ Un traducteur de scans entièrement sur votre PC, plus rapide et plus juste : Dr
 
 **Navigateur**
 - **Au démarrage, la page d'accueil** : DrYAE n'ouvre plus vos anciens onglets après « Quitter ». Pour les retrouver, choisissez « Reprendre là où je m'étais arrêté » dans Paramètres → Au démarrage. Si vous l'aviez choisi vous-même, rien ne change. La taille et la place de la fenêtre sont toujours gardées.
+- **Enregistrer en .cbz ou PDF « la traduction »** : les pages pas encore traduites à l'écran (pas encore atteintes en lisant) sont traduites au moment d'enregistrer. Avant, seules les pages déjà lues étaient traduites (« 34 pages, dont 10 traduites »).
 - **Bouton « Télécharger cette vidéo » transparent** sur tous les sites ; il s'affiche en entier au survol.
 - **Pièces jointes de messagerie** (Gmail…) : le téléchargement ne démarrait pas sur les sites qui gardent beaucoup de cookies ; c'est corrigé. Et si DrYAE ne peut pas reprendre un téléchargement qui demande la session du site, le navigateur le termine lui-même, dans votre dossier de téléchargements.
 - **Réseaux sociaux (X / Twitter…)** : le bouton ne passe plus sous la barre du haut du site, et télécharge la vidéo de la publication (avant : l'adresse du fil d'actualité partait au téléchargement).
@@ -79,7 +80,7 @@ An image text translator that runs entirely on your PC, faster and more accurate
 - **Glossary applied right away**: a word added or changed also applies to pages already translated.
 - **No more English words left behind** in the translation: common little words (THIS, THAT, WHAT, YOUR…) are always translated, even if they had been added by mistake to the glossary or to "Never translate".
 - **"MANA"** is no longer read as "MANIA" or "MANG" in comic lettering.
-- **Words split at the end of a line or written vertically** are joined back even when the hyphen is misread ("SPIRI2 TUAL" → SPIRITUAL, "TENTA- CLE" → TENTACLE, "DETONA-TION" → DETONATION, "MANIPU= ELATION" → MANIPULATION).
+- **Words split at the end of a line or written vertically** are joined back even when the hyphen is misread ("SPIRI2 TUAL" → SPIRITUAL, "TENTA- CLE" → TENTACLE, "DETONA-TION" → DETONATION, "MANIPU= ELATION" or "MANIPU ELATION" → MANIPULATION, "EXCI" + "TATION" read apart → EXCITATION); "SOME'MANA" → SOME MANA.
 - **English words left in the translation** ("THIS La forme est plus dure"): DrYAE notices and translates the bubble again another way (sentence by sentence), then keeps the best version.
 - "ILL END IT HERE" is read as "I'LL END IT HERE".
 
@@ -124,6 +125,7 @@ An image text translator that runs entirely on your PC, faster and more accurate
 
 **Browser**
 - **The home page at startup**: DrYAE no longer reopens your old tabs after "Quit". To get them back, choose "Continue where I left off" in Settings → On startup. If you had chosen it yourself, nothing changes. The window's size and position are still remembered.
+- **Saving "the translation" as .cbz or PDF**: pages not yet translated on screen (not reached yet while reading) are translated when saving. Before, only pages already read were translated ("34 pages, 10 of them translated").
 - **Transparent "Download this video" button** on every site; it shows fully when you hover over it.
 - **Email attachments** (Gmail…): the download didn't start on sites that keep many cookies; this is fixed. And if DrYAE can't take over a download that needs the site's session, the browser finishes it itself, in your downloads folder.
 - **Social networks (X / Twitter…)**: the button no longer goes under the site's top bar, and it downloads the video of the post (before: the address of the news feed was sent to the download).
