@@ -14,8 +14,9 @@ Un traducteur de scans entièrement sur votre PC, plus rapide et plus juste : Dr
 - **Prénoms et mots de jeu gardés** : les noms des personnages déjà vus souvent dans la série ne sont plus traduits (Will, Hope, May…), ni les mots de jeu comme MANA, HP, XP ou PNJ.
 - **Lexique pris en compte tout de suite** : un mot ajouté ou changé s'applique aussi aux pages déjà traduites.
 - **Plus de mots anglais oubliés** dans la traduction (« Au taux THIS », « YOUR sens ») : les petits mots courants (THIS, THAT, WHAT, YOUR…) sont toujours traduits, même s'ils avaient été ajoutés par erreur au lexique ou à « Ne jamais traduire ».
-- **« MANA »** n'est plus lu « MANIA » (« manie ») dans le lettrage des BD.
-- **Mots coupés en fin de ligne** recollés même quand le tiret est mal lu (« SPIRI2 TUAL » → SPIRITUAL, « TENTA- CLE » → TENTACLE).
+- **« MANA »** n'est plus lu « MANIA » (« manie ») ni « MANG » dans le lettrage des BD.
+- **Mots coupés en fin de ligne ou écrits à la verticale** recollés même quand le tiret est mal lu (« SPIRI2 TUAL » → SPIRITUAL, « TENTA- CLE » → TENTACLE, « DETONA-TION » → DETONATION, « MANIPU= ELATION » → MANIPULATION).
+- **Mots anglais restés dans la traduction** (« THIS La forme est plus dure ») : DrYAE s'en aperçoit et retraduit la bulle autrement (phrase par phrase), puis garde la meilleure version.
 - « ILL END IT HERE » est lu « I'LL END IT HERE ».
 
 **Traducteur de scans — lecture des bulles**
@@ -77,8 +78,9 @@ An image text translator that runs entirely on your PC, faster and more accurate
 - **First names and game words kept**: names of characters already seen often in the series are no longer translated (Will, Hope, May…), nor game words such as MANA, HP, XP or NPC.
 - **Glossary applied right away**: a word added or changed also applies to pages already translated.
 - **No more English words left behind** in the translation: common little words (THIS, THAT, WHAT, YOUR…) are always translated, even if they had been added by mistake to the glossary or to "Never translate".
-- **"MANA"** is no longer read as "MANIA" in comic lettering.
-- **Words split at the end of a line** are joined back even when the hyphen is misread ("SPIRI2 TUAL" → SPIRITUAL, "TENTA- CLE" → TENTACLE).
+- **"MANA"** is no longer read as "MANIA" or "MANG" in comic lettering.
+- **Words split at the end of a line or written vertically** are joined back even when the hyphen is misread ("SPIRI2 TUAL" → SPIRITUAL, "TENTA- CLE" → TENTACLE, "DETONA-TION" → DETONATION, "MANIPU= ELATION" → MANIPULATION).
+- **English words left in the translation** ("THIS La forme est plus dure"): DrYAE notices and translates the bubble again another way (sentence by sentence), then keeps the best version.
 - "ILL END IT HERE" is read as "I'LL END IT HERE".
 
 **Image text translator — reading the bubbles**

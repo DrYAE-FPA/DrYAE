@@ -686,16 +686,42 @@ module.exports.outsideRule = outsideRule;
 // recollé quand les deux morceaux forment un mot connu ; et « MANA » (énergie magique) lu « MANIA » dans le lettrage des BD
 function joinBroken(text) {
   load();
-  let t = String(text).replace(/(\p{L}{2,})([2~=—–‐‑,-])\s+(\p{L}{2,})/gu, (m, a, sep, b) => {
-    let w = (a + b).toLowerCase();
+  // 1.7.2 (signalements de l'utilisateur) : aussi sans espace (« DETONA-TION », mot vertical coupé) et quand le
+  // tiret est lu « = » avec une lettre en trop au début de la suite (« MANIPU= ELATION » → MANIPULATION)
+  let t = String(text).replace(/(\p{L}{2,})([2~=—–‐‑,-])(\s*)(\p{L}{2,})/gu, (m, a, sep, sp, b) => {
+    const A = a.toLowerCase(), Bw = b.toLowerCase(), w = A + Bw;
+    if (!/^[a-z]+$/.test(w)) return m;
     // « SPIRIT, TUAL » : le tiret lu comme une lettre suivie d'une virgule
-    if (sep === ',' && !known(w) && /^[a-z]+$/.test(w) && known((a.slice(0, -1) + b).toLowerCase()) && !known(b.toLowerCase())) return a.slice(0, -1) + b;
-    if (sep === ',') return m;
-    if (!/^[a-z]+$/.test(w) || !known(w)) return m;
-    if (known(a.toLowerCase()) && known(b.toLowerCase()) && sep === '-') return m; // « WELL- DONE » : vrai tiret entre deux mots
-    return a + b;
+    if (sep === ',') return sp && !known(w) && known((a.slice(0, -1) + b).toLowerCase()) && !known(Bw) ? a.slice(0, -1) + b : m;
+    if (!sp && sep === '2') return m; // « MP2 », « B2B »
+    // « WH-WHAT », « I-I » : bégaiement, pas un mot coupé
+    if (Bw.startsWith(A) || A.length < 2) return m;
+    // « WELL-DONE », « SELF-ESTEEM » : vrai tiret entre deux mots connus
+    if (known(A) && known(Bw) && /[-‐‑]/.test(sep) && !(known(w) && w.length >= 8 && rank(w) <= Math.max(rank(A), rank(Bw)))) return m;
+    if (known(w)) return a + b;
+    // une lettre de trop lue au début de la suite (« = ELATION » pour « -LATION »)
+    if (Bw.length >= 4 && known(A + Bw.slice(1)) && (A + Bw).length >= 8 && !known(A)) return a + b.slice(1);
+    // une seule lettre mal lue dans le mot recollé
+    if (!known(A) && w.length >= 8) { const c = correct1(w); if (c && c.c <= 1.25 && c.w.length >= 7) return likeCase(a + b, c.w); }
+    return m;
   });
   t = t.replace(/\bMANIA\b/g, 'MANA');
+  // 1.7.2 : « MANG » (A final lu comme un G) : MANA ; « MANGA » n'est pas touché
+  t = t.replace(/\bMANG\b(?!A)/g, 'MANA');
   return t;
 }
 module.exports.joinBroken = joinBroken;
+
+// 1.7.2 (signalement de l'utilisateur) : mots anglais restés tels quels dans la traduction française
+// (« THIS FORM IS HARDER! » → « THIS La forme est plus dure ») : mots du texte anglais, connus en anglais, inconnus en
+// français, et qui ne sont pas des noms gardés exprès. Sert à refaire la traduction autrement (phrase par phrase).
+function leftoverEn(src, out, keepWords = []) {
+  load(); loadFr();
+  const S = new Set((String(src).match(/\p{L}+/gu) || []).map(w => w.toLowerCase()));
+  const K = new Set((keepWords || []).flatMap(k => String(k).toLowerCase().match(/\p{L}+/gu) || []));
+  return (String(out).match(/\p{L}{2,}/gu) || []).filter(w => {
+    const l = w.toLowerCase();
+    return S.has(l) && !K.has(l) && /^[a-z]+$/.test(l) && known(l) && rank(l) <= 3 && !frKnown(l) && !ROMAJI.test(l);
+  });
+}
+module.exports.leftoverEn = leftoverEn;

@@ -2241,6 +2241,32 @@ class WebBrowser {
         tr = await M.translate(mt(), to, 'auto', this.scanTr());
         if (!o.to && same(tr.from, to)) { to = second(to); tr = await M.translate(mt(), to, tr.from, this.scanTr()); }
       }
+      // 1.7.2 (signalement de l'utilisateur) : mot anglais resté tel quel dans la traduction française (« THIS FORM IS
+      // HARDER! » → « THIS La forme est plus dure ») : la bulle est retraduite phrase par phrase, et aussi en minuscules ;
+      // on garde la version où il reste le moins de mots anglais
+      if (String(to).split('-')[0] === 'fr' && (tr.from === 'en' || pageLang === 'en') && Array.isArray(tr.texts)) {
+        try {
+          const SF = require('./scan-fix');
+          const kw = i => [...never, ...learnedNames, ...(prot[i].keep || [])];
+          const left = (i, t) => SF.leftoverEn(groups[i].text, M.unprotect(t || '', prot[i].keep), kw(i)).length;
+          const bad = groups.map((g, i) => keep[i] ? 0 : left(i, tr.texts[i]));
+          const plan = [], pieces = [];
+          bad.forEach((n, i) => {
+            if (!n) return;
+            const m = M.forMT(prot[i].t, groups[i].caps, pageLang);
+            const ss = m.split(/(?<=[.!?…]+)\s+/).filter(x => x.trim());
+            plan.push({ i, from: pieces.length, n: ss.length }); pieces.push(...ss, m.toLowerCase());
+          });
+          if (plan.length) {
+            const r2 = await M.translate(pieces, to, tr.from || 'en', this.scanTr());
+            for (const p of plan) {
+              let best = tr.texts[p.i], bs = bad[p.i];
+              for (const c of [r2.texts.slice(p.from, p.from + p.n).join(' '), r2.texts[p.from + p.n]]) { if (!c) continue; const k = left(p.i, c); if (k < bs) { best = c; bs = k; } }
+              tr.texts[p.i] = best;
+            }
+          }
+        } catch {}
+      }
       const res = { blocks: groups.map((g, i) => ({ x0: g.x0, y0: g.y0, x1: g.x1, y1: g.y1, text: g.text, tr: keep[i] ? g.text : ai === 'ok' ? (tr.texts[i] || '') : M.unprotect(tr.texts[i] || '', prot[i].keep), vertical: g.vertical, bg: g.bg || '', bubble: g.bubble || null, caps: !!g.caps, lh: g.lh || 0, n: g.n || 1, ...(Array.isArray(g.boxes) && g.boxes.length > 1 ? { boxes: g.boxes } : {}), ...(table[i] ? { skip: true } : {}), ...(g.prose ? { prose: true } : {}) })), w, captured: scale === 0, from: tr.from, to, needModel, model: usedModel, ai, aiWhy };
       // 1.7.2 : « Tutoyer dans les scans » (activé par défaut) : vers le français, « vous » devient « tu » quand l'anglais parle à une seule personne
       if (String(to).split('-')[0] === 'fr' && S.tutoie !== false) { try { const TU = require('./tutoie'); res.blocks.forEach(b => { if (b.tr && b.tr !== b.text) b.tr = TU.toTu(b.tr, b.text); }); } catch {} }
