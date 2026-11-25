@@ -559,10 +559,20 @@ function menu(x, y, entries, wide, back) {
     const rp = e.rep && CFG.reports ? CFG.reports : null, rb = rp && (rp.pending ? `<span class="mbadge" title="${esc(T('Problèmes pas encore envoyés'))}">${rp.pending}</span>` : rp.answers ? `<span class="mbadge ans" title="${esc(T('Nouvelle réponse'))}">${rp.answers}</span>` : '');
     return `<button data-i="${i}" role="menuitem" class="${e.hl ? 'mhl' : ''} ${rp && rp.pending ? 'mrep' : ''}" ${e.disabled ? 'disabled' : ''}>${lead}<span class="ml">${esc(e.label)}</span>${rb || ''}${e.key ? `<kbd>${esc(T(e.key))}</kbd>` : ''}${e.sub ? `<span class="mar">${ic('fwd')}</span>` : ''}</button>`;
   }).join('');
+  // 1.7.2 : le menu ne sort jamais de la fenêtre : s'il est plus haut que la place disponible (petit écran), il se
+  // déroule à la molette, aux flèches ↑ ↓ du clavier ou avec les petites flèches en haut et en bas ; sur un grand écran
+  // il s'affiche en entier comme avant
+  m.insertAdjacentHTML('afterbegin', `<div class="mscr up" data-scr="-1" aria-hidden="true">${ic('up')}</div>`);
+  m.insertAdjacentHTML('beforeend', `<div class="mscr dn" data-scr="1" aria-hidden="true">${ic('down')}</div>`);
+  m.style.maxHeight = ''; m.style.top = '0px'; m.scrollTop = 0;
   m.classList.add('on');
-  const r = m.getBoundingClientRect();
+  const r = m.getBoundingClientRect(), H = innerHeight - 16, full = r.height;
+  let top = Math.max(8, Math.min(y, innerHeight - full - 8));
+  if (full > innerHeight - top - 8) { top = Math.max(8, Math.min(y, innerHeight - 8 - Math.min(full, Math.max(240, innerHeight - y - 8)))); }
   m.style.left = Math.max(8, Math.min(x, innerWidth - r.width - 8)) + 'px';
-  m.style.top = Math.max(8, Math.min(y, innerHeight - r.height - 8)) + 'px';
+  m.style.top = top + 'px';
+  m.style.maxHeight = Math.min(full, H, innerHeight - top - 8) + 'px';
+  menuScr();
   m.onclick = ev => {
     if (ev.target.closest('[data-back]')) return menu(x, y, back.entries, wide);
     const z = ev.target.closest('[data-z]');
@@ -579,9 +589,27 @@ function menu(x, y, entries, wide, back) {
     else if (ev.key === 'ArrowRight' && b && list[+b.dataset.i]?.sub) { b.click(); ev.preventDefault(); }
     else if (ev.key === 'ArrowLeft' && back) { m.querySelector('[data-back]')?.click(); ev.preventDefault(); }
   };
-  if (!m._arrows) { m._arrows = true; window.A11Y?.arrows(m, 'button:not([disabled])'); }
-  if (opener && (opener.id === 'bMenu' || back || menu.byKey)) setTimeout(() => m.querySelector('[data-i]:not([disabled])')?.focus(), 0);
+  if (!m._arrows) {
+    m._arrows = true; window.A11Y?.arrows(m, 'button:not([disabled])');
+    m.addEventListener('scroll', menuScr, { passive: true });
+    // la souris et le clavier vont ensemble : l'entrée sous la souris devient l'entrée choisie (↑ ↓ repartent d'elle)
+    m.addEventListener('mouseover', ev => { const b = ev.target.closest('button:not([disabled])'); if (b && document.activeElement !== b) b.focus({ preventScroll: true }); });
+    // petites flèches : la souris posée dessus fait défiler, un clic avance d'un cran
+    let st = null; const stop = () => { clearInterval(st); st = null; };
+    m.addEventListener('mouseover', ev => { const a = ev.target.closest('[data-scr]'); if (!a) return; stop(); st = setInterval(() => { m.scrollTop += 6 * +a.dataset.scr; }, 16); });
+    m.addEventListener('mouseout', ev => { if (ev.target.closest('[data-scr]')) stop(); });
+    m.addEventListener('mousedown', ev => { const a = ev.target.closest('[data-scr]'); if (a) { ev.preventDefault(); m.scrollTop += 80 * +a.dataset.scr; } });
+  }
+  // le menu reçoit le clavier dès qu'il s'ouvre (même ouvert à la souris)
+  setTimeout(() => m.querySelector('[data-i]:not([disabled])')?.focus({ preventScroll: true }), 0);
 }
+function menuScr() {
+  const m = $('#menu'), more = m.scrollHeight - m.clientHeight > 2;
+  m.classList.toggle('scr', more);
+  m.querySelector('.mscr.up')?.classList.toggle('on', more && m.scrollTop > 2);
+  m.querySelector('.mscr.dn')?.classList.toggle('on', more && m.scrollTop < m.scrollHeight - m.clientHeight - 2);
+}
+addEventListener('resize', () => { if ($('#menu').classList.contains('on')) $('#menu').classList.remove('on'); });
 document.addEventListener('mousedown', e => { if (!e.target.closest('#menu')) $('#menu').classList.remove('on'); });
 
 // ---------- panneaux ----------
