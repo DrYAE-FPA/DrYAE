@@ -415,6 +415,8 @@ class WebBrowser {
     else this.onDownload(o);
   }
   ua() { return this.B().ua === 'mobile' ? UA_MOBILE : UA_DESKTOP; }
+  // 1.7.2 : images d'une publication « photos » de TikTok (fenêtre cachée, session du navigateur DrYAE)
+  tiktokPhotos(url) { return require('./tiktok-photos').inspect(url, { session: session.fromPartition(PART), ua: UA_DESKTOP, BrowserWindow }); }
 
   // ---------- bloqueur de pubs ----------
   async loadBlocker() {
@@ -1642,7 +1644,12 @@ class WebBrowser {
       ytCache.set(k, { t: Date.now(), p }); if (ytCache.size > 40) ytCache.delete(ytCache.keys().next().value);
       return p;
     };
-    ipcMain.handle('br:ytInspect', (_e, url, page) => inspect(url, page));
+    ipcMain.handle('br:ytInspect', (_e, url, page) => {
+      // 1.7.2 : diaporama TikTok : ouvert dans la fenêtre d'ajout du gestionnaire, où l'on coche les images
+      const TP = require('./tiktok-photos'), tp = [page, url].find(u => typeof u === 'string' && TP.isTikTokPhoto(u));
+      if (tp) { this.onDownload({ url: tp, kind: 'ytdl', page: tp }); return { ok: false, error: 'Publication de photos : choisis les images dans la fenêtre de DrYAE qui vient de s\'ouvrir.' }; }
+      return inspect(url, page);
+    });
     // 1.7.1 : aussi la vidéo trouvée dans la page (avec la page comme origine), comme le fera la fenêtre
     ipcMain.handle('br:ytPrefetch', (_e, url, page) => { if (typeof url === 'string' && /^https?:/.test(url)) inspect(url, typeof page === 'string' && /^https?:/.test(page) ? page : undefined).catch(() => {}); });
     ipcMain.handle('br:ytQuick', (_e, o) => {

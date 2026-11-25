@@ -157,6 +157,13 @@
   <div id="aYt" style="display:none;margin-top:10px">
     <div class="row" style="align-items:flex-start;gap:12px"><img id="aYtThumb" alt="" style="width:132px;height:74px;object-fit:cover;border-radius:8px;background:var(--panel2);display:none"><div style="flex:1;min-width:0"><b id="aYtTitle" style="display:block;word-break:break-word"></b><div class="hint" id="aYtMeta"></div></div></div>
     <div id="aYtList" style="display:none;max-height:200px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:4px;margin-top:8px"></div>
+    <div id="aPh" style="display:none;margin-top:8px">
+      <div class="row" style="justify-content:space-between"><label class="check" style="margin:0"><input type="checkbox" id="aPhAll" checked> Tout cocher</label><span class="hint" id="aPhN"></span></div>
+      <div id="aPhGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px;max-height:260px;overflow:auto;margin-top:6px"></div>
+      <label class="check" id="aPhMusicBox" style="margin-top:8px"><input type="checkbox" id="aPhMusic"> Télécharger aussi le son (fichier à part)</label>
+      <p class="hint">Ne télécharge que des images que tu as le droit de copier.</p>
+    </div>
+    <div id="aYtFmt">
     <label>Format</label>
     <div class="seg" id="aYtSeg"><button type="button" data-v="video"><b>Vidéo MP4</b><span>image + son</span></button><button type="button" data-v="mp3"><b>Audio MP3</b><span>musique, partout</span></button><button type="button" data-v="m4a"><b>Audio M4A</b><span>sans perte, rapide</span></button></div>
     <select id="aYtMode" style="display:none"><option value="video">Vidéo MP4</option><option value="mp3">Audio MP3</option><option value="m4a">Audio M4A</option></select>
@@ -165,6 +172,7 @@
       <div id="aYtBBox" style="display:none"><label>Qualité audio</label><select id="aYtB"><option value="320">320 kb/s</option><option value="256">256 kb/s</option><option value="192">192 kb/s</option><option value="128">128 kb/s</option></select></div>
     </div>
     <p class="hint">Ne télécharge que des vidéos que tu as le droit de copier (tes vidéos, contenus libres ou autorisés).</p>
+    </div>
   </div>
   <div id="aHls" style="display:none"><label>Qualité de la vidéo</label><div class="variants" id="aVariants"></div></div>
   <div class="grid2">

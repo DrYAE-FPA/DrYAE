@@ -577,7 +577,7 @@ $('#aUrls').addEventListener('input', () => { clearTimeout(inspT); inspT = setTi
 let ytInfo = null, ytFor = '';
 const ONLINE = /(^|\.)(youtube\.com|youtu\.be|youtube-nocookie\.com|vimeo\.com|dailymotion\.com|dai\.ly|facebook\.com|fb\.watch|instagram\.com|tiktok\.com|twitter\.com|x\.com|twitch\.tv|soundcloud\.com|bilibili\.com|reddit\.com|v\.redd\.it|rumble\.com|odysee\.com|bandcamp\.com|mixcloud\.com|streamable\.com|vk\.com|ok\.ru|archive\.org|ted\.com|arte\.tv|france\.tv)$/i;
 const isOnline = u => { try { return ONLINE.test(new URL(u).hostname); } catch { return false; } };
-function ytReset() { ytInfo = null; ytFor = ''; $('#aYt').style.display = 'none'; $('#aConnBox').style.display = ''; }
+function ytReset() { ytInfo = null; ytFor = ''; $('#aYt').style.display = 'none'; $('#aConnBox').style.display = ''; $('#aPh').style.display = 'none'; $('#aYtFmt').style.display = ''; }
 $('#aYtSeg').onclick = e => { const b = e.target.closest('[data-v]'); if (!b) return; $('#aYtMode').value = b.dataset.v; ytModeUi(); };
 function ytModeUi() {
   const m = $('#aYtMode').value;
@@ -589,7 +589,7 @@ $('#aYtMode').onchange = ytModeUi;
 async function inspectYt(u) {
   ytFor = u; ytInfo = null;
   $('#aYt').style.display = ''; $('#aConnBox').style.display = 'none'; $('#aHls').style.display = 'none';
-  $('#aYtTitle').textContent = 'Analyse de la vidéo…'; $('#aYtMeta').textContent = ''; $('#aYtThumb').style.display = 'none'; $('#aYtList').style.display = 'none';
+  $('#aYtTitle').textContent = 'Analyse de la vidéo…'; $('#aYtMeta').textContent = ''; $('#aYtThumb').style.display = 'none'; $('#aYtList').style.display = 'none'; $('#aPh').style.display = 'none'; $('#aYtFmt').style.display = '';
   const Y = S.ytdl || {};
   $('#aYtMode').value = Y.mode === 'audio' ? (Y.audioFormat || 'mp3') : 'video';
   $('#aYtB').value = Y.audioBitrate || '320';
@@ -599,6 +599,19 @@ async function inspectYt(u) {
     const r = await call('ytdl:inspect', u, headersFromForm());
     if (ytFor !== u) return;
     ytInfo = r;
+    if (r.photos) {
+      // 1.7.2 : diaporama TikTok : les images, chacune à cocher ; le son à part si on veut
+      $('#aYtTitle').textContent = r.title;
+      $('#aYtMeta').textContent = [r.uploader && '@' + r.uploader, `${r.images.length} image(s)`, 'TikTok'].filter(Boolean).join(' · ');
+      $('#aYtFmt').style.display = 'none'; $('#aPh').style.display = '';
+      $('#aPhGrid').innerHTML = r.images.map((im, i) => `<label style="position:relative;display:block;cursor:pointer;border-radius:8px;overflow:hidden;background:var(--panel2);aspect-ratio:3/4"><img src="${esc(im.url)}" alt="" loading="lazy" referrerpolicy="no-referrer" style="width:100%;height:100%;object-fit:cover"><input type="checkbox" data-ph="${i}" checked style="position:absolute;top:6px;left:6px;width:18px;height:18px"><span style="position:absolute;bottom:4px;right:6px;font-size:11px;color:#fff;text-shadow:0 0 3px #000">${i + 1}</span></label>`).join('');
+      const cnt = () => { const n = $$('#aPhGrid [data-ph]').filter(x => x.checked).length; $('#aPhN').textContent = `${n} / ${r.images.length} image(s)`; };
+      $$('#aPhGrid [data-ph]').forEach(x => (x.onchange = cnt)); cnt();
+      $('#aPhAll').checked = true; $('#aPhAll').onchange = ev => { $$('#aPhGrid [data-ph]').forEach(x => (x.checked = ev.target.checked)); cnt(); };
+      $('#aPhMusic').checked = false; $('#aPhMusicBox').style.display = r.music ? '' : 'none';
+      if (!$('#aName').value) $('#aName').placeholder = r.title.slice(0, 80);
+      return;
+    }
     if (r.playlist) {
       $('#aYtTitle').textContent = r.title;
       $('#aYtMeta').textContent = `Playlist · ${r.count} vidéo(s)`;
@@ -691,6 +704,20 @@ $('#aTmp').onchange = aTmpSet;
 $('#aDir').addEventListener('change', () => { if ($('#aTmp').checked && $('#aDir').value.trim()) aTmpSet(); });
 async function submitAdd(startNow, dupAction) {
   const urls = $('#aUrls').value.split(/\s+/).filter(Boolean);
+  if (ytFor && urls.length === 1 && urls[0] === ytFor && ytInfo?.photos) {
+    const pick = $$('#aPhGrid [data-ph]').filter(x => x.checked).map(x => +x.dataset.ph);
+    const music = $('#aPhMusic').checked && ytInfo.music;
+    if (!pick.length && !music) return toast('Coche au moins une image');
+    const base = ($('#aName').value.trim() || ytInfo.title || 'TikTok').replace(/[\\/:*?"<>|\r\n]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80) || 'TikTok';
+    const ext = u => (/\.webp(\?|~|$)|format=webp/i.test(u) ? 'webp' : /\.png(\?|$)/i.test(u) ? 'png' : 'jpg');
+    const list = pick.map(i => ytInfo.images[i].url), names = pick.map(i => `${base} - image ${i + 1}.${ext(ytInfo.images[i].url)}`);
+    if (music) { list.push(ytInfo.music); names.push(`${base} - son.${/\.m4a(\?|$)/i.test(ytInfo.music) ? 'm4a' : 'mp3'}`); }
+    const r = await safe(() => call('add', { urls: list, names, dir: $('#aDir').value.trim(), connections: 4, startNow, schedule: $('#aSchedule').checked,
+      headers: { ...headersFromForm(), Referer: 'https://www.tiktok.com/' }, page: ytInfo.webpage || urls[0], pageTitle: ytInfo.title, speedLimit: +$('#aSpeed').value || 0, dupAction }));
+    if (!r) return;
+    r.filter(x => x && !x.duplicate).forEach(d => items.set(d.id, d)); closeM(); render();
+    return toast(`${pick.length} image(s)${music ? ' + le son' : ''} ajoutée(s)`);
+  }
   if (ytFor && urls.length === 1 && urls[0] === ytFor) {
     const m = $('#aYtMode').value;
     let entries = null;

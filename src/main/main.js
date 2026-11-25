@@ -429,13 +429,21 @@ H('add', async (o) => {
     const isHls = o.kind === 'hls' || /\.m3u8(\?|$)/i.test(url);
     const v = manager.add({
       type: isHls ? 'hls' : 'http', url, dir: o.dir, connections: o.connections, startNow: o.startNow !== false, schedule: !!o.schedule,
-      name: urls.length === 1 ? o.name : null, headers: o.headers || {}, pageUrl: o.page || '', pageTitle: o.pageTitle || (browser && browser.pageTitle ? browser.pageTitle(o.page) : ''), speedLimit: o.speedLimit || 0, quality: o.quality || null, allowPage: !!o.allowPage, dupAction: o.dupAction,
+      name: (o.names && o.names[urls.indexOf(url)]) || (urls.length === 1 ? o.name : null), headers: o.headers || {}, pageUrl: o.page || '', pageTitle: o.pageTitle || (browser && browser.pageTitle ? browser.pageTitle(o.page) : ''), speedLimit: o.speedLimit || 0, quality: o.quality || null, allowPage: !!o.allowPage, dupAction: o.dupAction,
     });
     out.push(v);
   }
   return out;
 });
-H('ytdl:inspect', async (url, headers) => manager.ytdl.inspect(url, headers, await browser.cookieFile(url)));
+H('ytdl:inspect', async (url, headers) => {
+  // 1.7.2 : diaporama TikTok (images + son) : liste des images, chacune téléchargeable seule
+  const TP = require('./tiktok-photos');
+  if (browser && (TP.isTikTokPhoto(url) || TP.isTikTokShort(url))) {
+    try { const r = await browser.tiktokPhotos(url); if (r.photos) return r; if (r.webpage) url = r.webpage; }
+    catch (e) { if (TP.isTikTokPhoto(url)) throw e; }
+  }
+  return manager.ytdl.inspect(url, headers, await browser.cookieFile(url));
+});
 H('ytdl:update', () => manager.ytdl.update());
 H('ytdl:version', () => manager.ytdl.version());
 H('isOnlineVideo', url => isOnlineVideo(url));
