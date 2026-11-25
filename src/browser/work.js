@@ -284,6 +284,8 @@ function commands() {
     { label: T('Espaces de travail'), icon: 'spaces', fn: () => window.TABSX?.toggleSide('ws') },
     // 1.7.2 : retirés du menu ⋮, toujours là avec Ctrl+K
     { label: T('Rechercher dans les onglets…'), icon: 'search', key: 'Ctrl+Maj+A', fn: () => window.TABSX?.tabSearch() },
+    web && { label: T(cur?.reader ? 'Quitter le mode lecture' : 'Mode lecture'), icon: 'file', key: 'F9', fn: () => readerMode() },
+    web && { label: T('Lire la page à voix haute'), icon: 'sound', key: 'F8', fn: () => readAloud() },
     { label: T('Panneau latéral'), icon: 'list', fn: () => window.TABSX?.toggleSide() },
     { label: T('Collections'), icon: 'col', fn: () => window.TABSX?.toggleSide('col') },
     { label: T('Ouvrir une BD ou un manga…'), icon: 'book', fn: () => B.call('br:openComic', 'file') },

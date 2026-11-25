@@ -313,14 +313,12 @@ async function energyTick() {
   // pages en arrière-plan : 30 images par seconde au plus ; animations de DrYAE réduites
   B.call('br:frameRate', tabs.filter(t => t.wcId).map(t => t.wcId), on ? 30 : 60);
   document.documentElement.classList.toggle('a-rm', on || !!CFG.a11y?.rm);
-  $('#bLeaf').style.display = on ? '' : 'none';
 }
 setInterval(energyTick, 30000); setTimeout(energyTick, 3000);
 
 // ---------------------------------------------------------------- contrôle des médias
 async function mediaTick() {
   const playing = tabs.filter(t => { try { return t.wv && t.wv.isCurrentlyAudible(); } catch { return false; } });
-  $('#bMedia').style.display = playing.length ? '' : 'none';
   tabs.forEach(t => t.el.classList.toggle('audible', playing.includes(t)));
 }
 setInterval(mediaTick, 1500);
@@ -615,7 +613,6 @@ $('#ntPanel').addEventListener('change', async e => {
 function applyVertical() { document.body.classList.toggle('vtabs', !!XS().vertical); }
 
 // ---------------------------------------------------------------- boutons, raccourcis, menus
-$('#bMedia').onclick = e => mediaPop(e.currentTarget);
 $('#bSide').onclick = () => toggleSide();
 $('#bQr').onclick = () => showQrPop();
 async function showQrPop() {

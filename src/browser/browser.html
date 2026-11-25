@@ -224,7 +224,7 @@ browser-action-list::part(action):hover{background:var(--panel2)}
 .tgin{width:110px;height:20px;font:600 12px "Segoe UI";border:0;border-radius:5px;padding:0 4px}
 .tab.ingrp{box-shadow:inset 0 -3px 0 var(--gc)}.tab.gcol{display:none}
 .tab.sleep img,.tab.sleep .fav{opacity:.45;outline:1px dashed var(--dim);outline-offset:1px}
-.tab.audible .t::after{content:" 🔊";font-size:10px}
+.tab .snd{all:unset;display:none;place-items:center;flex:none;width:18px;height:18px;border-radius:5px;color:var(--text);cursor:pointer}.tab .snd svg{width:14px;height:14px}.tab.audible .snd,.tab.muted .snd{display:grid}.tab .snd:hover,.tab .snd:focus-visible{background:var(--accent-soft);color:var(--accent)}.tab.muted .snd{color:var(--muted)}
 .tab.split{box-shadow:inset 0 3px 0 var(--accent)}
 .splitbar{position:absolute;top:0;bottom:0;width:6px;cursor:col-resize;background:var(--line2);z-index:5}.splitmenu{position:absolute;top:8px;left:-9px;width:24px;height:24px;border-radius:12px;border:1px solid var(--line2);background:var(--panel);color:var(--fg);display:grid;place-items:center;cursor:pointer;padding:0}.splitmenu svg{width:14px;height:14px}.splitmenu:hover,.splitmenu:focus-visible{background:var(--accent);color:#fff}.splitbar:hover,.splitbar:focus{background:var(--accent)}
 webview.sideon{outline:2px solid var(--accent-line);outline-offset:-2px}
@@ -360,6 +360,7 @@ body.vtabs .tab{max-width:none;flex:none;border-radius:8px;border:1px solid var(
   <symbol id="i-more" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></symbol>
   <symbol id="i-sort" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4"/></symbol>
   <symbol id="i-film" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16M3 8h4M3 12h4M3 16h4M17 8h4M17 12h4M17 16h4"/></symbol>
+  <symbol id="i-sound-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9v6h4l5 4V5L8 9zM16 9l6 6M22 9l-6 6"/></symbol>
   <symbol id="i-music" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></symbol>
   <symbol id="i-translate" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 5h9M8.5 3v2M6 5c.6 3 2.6 5.6 5 7M11 5c-.8 3.6-3.2 6.8-7 8.5"/><path d="M13 20l4-9 4 9M14.5 17h5"/></symbol>
   <symbol id="i-scan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8V5a1 1 0 011-1h3M16 4h3a1 1 0 011 1v3M20 16v3a1 1 0 01-1 1h-3M8 20H5a1 1 0 01-1-1v-3"/><path d="M8 10.5c0-1.4 1.8-2.5 4-2.5s4 1.1 4 2.5-1.8 2.5-4 2.5l-2 2v-2.2c-1.2-.4-2-1.3-2-2.3z"/></symbol>
@@ -410,8 +411,6 @@ body.vtabs .tab{max-width:none;flex:none;border-radius:8px;border:1px solid var(
   <span id="tbItems" style="display:contents"><button class="tb shield adv" id="bShield" data-key="mod:adblock" title="Bloqueur de publicités"><svg><use href="#i-shield"/></svg><span class="n" id="shieldN"></span></button><button class="tb dl" id="bDrYAE" data-key="dl:found" title="Fichiers détectés sur cette page"><svg><use href="#i-dl"/></svg><span class="n" id="dlN"></span></button><button class="tb nd" id="bNd" data-key="dl:browser" title="Téléchargements du navigateur"><svg><use href="#i-dl"/></svg><i class="ring"></i><span class="n" id="ndN"></span></button></span>
   <button class="tb adv" id="bExt" title="Extensions"><svg><use href="#i-ext"/></svg></button>
   <button class="tb upd" id="bUpd" title="Mise à jour de DrYAE disponible"><svg><use href="#i-upd"/></svg><i class="dot"></i></button>
-  <button class="tb" id="bMedia" title="Lecture en cours (sons et vidéos des onglets)" style="display:none"><svg><use href="#i-music"/></svg></button>
-  <button class="tb" id="bLeaf" title="Économiseur d'énergie actif (sur batterie)" style="display:none"><svg><use href="#i-power"/></svg></button>
   <button class="tb adv" id="bSide" title="Panneau latéral : favoris, historique, hors ligne, notes, traducteur"><svg><use href="#i-list"/></svg></button>
   <button class="tb" id="bMenu" title="Menu"><svg><use href="#i-menu"/></svg></button>
 </div>

@@ -91,9 +91,10 @@ function newTab(url = '', opts = {}) {
   const el = document.createElement('div');
   el.className = 'tab' + (tab.incognito ? ' priv' : '') + (tab.container ? ' ctn' : '');
   if (tab.container) el.style.setProperty('--ctn', (window.WORK?.ctnColor?.(tab.container)) || '#3b82f6');
-  el.innerHTML = `<span class="fav">${tab.incognito ? '🕶' : '•'}</span><span class="t"></span><button class="x" title="Fermer (Ctrl+W)">${ic('x')}</button>`;
+  // 1.7.2 : haut-parleur sur l'onglet qui fait du son : un clic coupe (ou remet) le son sans aller sur la page
+  el.innerHTML = `<span class="fav">${tab.incognito ? '🕶' : '•'}</span><button class="snd" title="${esc(T('Couper le son de l\'onglet'))}" aria-label="${esc(T('Couper le son de l\'onglet'))}"><svg><use href="#i-sound"/></svg></button><span class="t"></span><button class="x" title="Fermer (Ctrl+W)">${ic('x')}</button>`;
   el.onmousedown = e => { if (e.button === 1) { e.preventDefault(); closeTab(tab); } };
-  el.onclick = e => { if (e.target.closest('.x')) closeTab(tab); else select(tab); };
+  el.onclick = e => { if (e.target.closest('.x')) closeTab(tab); else if (e.target.closest('.snd')) toggleMute(tab); else select(tab); };
   $('#tabs').insertBefore(el, $('#newTab'));
   // 1.7.1 : glisser un onglet à la souris (réordonner, autre fenêtre, nouvelle fenêtre) — voir tabDown plus bas
   el.addEventListener('pointerdown', e => tabDown(e, tab));
@@ -197,7 +198,7 @@ let dragTab = null;
 // Seul onglet de la fenêtre : la fenêtre entière suit la souris.
 let TD = null, tdNoClick = 0;
 function tabDown(e, tab) {
-  if (e.button !== 0 || e.target.closest('.x')) return;
+  if (e.button !== 0 || e.target.closest('.x,.snd')) return;
   TD = { tab, x0: e.clientX, y0: e.clientY, id: e.pointerId, on: false, out: false, sx: e.screenX, sy: e.screenY, dx: e.screenX, dy: e.screenY, t: 0 };
   // la souris reste à l'onglet dès qu'on appuie (sinon un geste rapide vers la page se perd dans la page)
   try { tab.el.setPointerCapture(e.pointerId); } catch {}
@@ -458,8 +459,6 @@ function mainMenu() {
     { label: 'Imprimer…', icon: 'print', key: 'Ctrl+P', fn: () => cur?.wcId && B.call('br:print', cur.wcId), disabled: !cur?.wcId },
     modOn('translate') && { label: cur?.tr && cur.tr.state !== 'restored' ? "Afficher l'original" : 'Traduire la page', icon: 'translate', key: 'Ctrl+Maj+E', fn: () => pageCmd('translate-page'), disabled: !web },
     { label: 'Rechercher dans la page…', icon: 'search', key: 'Ctrl+F', fn: () => openFind() },
-    { label: cur?.reader ? 'Quitter le mode lecture' : 'Mode lecture', icon: 'file', key: 'F9', fn: () => readerMode(), disabled: !web },
-    { label: 'Lire la page à voix haute', icon: 'sound', key: 'F8', fn: () => readAloud(), disabled: !web },
     { label: 'Enregistrer sous…', icon: 'save', key: 'Ctrl+S', fn: savePage, disabled: !cur?.wcId },
     { label: 'Outils supplémentaires', icon: 'tools', adv: true, sub: () => [
       // 1.7.2 : mode téléphone rangé ici (menu principal raccourci) ; l'icône de la barre d'adresse reste quand il est actif
@@ -489,8 +488,9 @@ function mainMenu() {
       { label: 'Outils de développement', icon: 'code', key: 'F12', fn: () => cur?.wcId && B.call('br:devtools', cur.wcId) },
     ] },
     '-',
-    { label: 'Signalements', icon: 'bug', key: 'Alt+Maj+I', rep: true, fn: () => openReports() },
-    { label: 'Aide', icon: 'help', sub: () => [
+    // 1.7.2 : menu plus court (écrans de 13 pouces) : Aide et Signalements réunis
+    { label: 'Aide et signalements', icon: 'help', rep: true, sub: () => [
+      { label: 'Signalements', icon: 'bug', key: 'Alt+Maj+I', rep: true, fn: () => openReports() },
       { label: "Mode d'emploi", icon: 'help', key: 'F1', fn: () => openPage('guide') },
       { label: 'Raccourcis clavier', icon: 'kbd', fn: showShortcuts },
       { label: 'Donner mon avis', icon: 'star', fn: () => B.call('br:feedback') },
@@ -789,7 +789,18 @@ function showShortcuts() {
 $('#kbModal').addEventListener('click', e => { if (e.target.id === 'kbModal' || e.target.closest('[data-close]')) $('#kbModal').classList.remove('on'); });
 const closedTabs = [];
 function reopenClosed() { const u = closedTabs.pop(); if (u) { newTab(u.url, { incognito: u.incognito }); B.call('br:closed', closedTabs.filter(c => !c.incognito)); } }
-async function toggleMute() { if (!cur?.wcId) return; cur.muted = await B.call('br:mute', cur.wcId); toast(cur.muted ? 'Son de l\'onglet coupé' : 'Son de l\'onglet réactivé'); updTab(cur); }
+async function toggleMute(t = cur) {
+  if (!t || !t.wcId || t instanceof Event) t = cur; if (!t?.wcId) return;
+  t.muted = await B.call('br:mute', t.wcId);
+  if (t === cur) toast(t.muted ? 'Son de l\'onglet coupé' : 'Son de l\'onglet réactivé');
+  updMute(t); updTab(t);
+}
+function updMute(t) {
+  t.el.classList.toggle('muted', !!t.muted);
+  const b = t.el.querySelector('.snd'); if (!b) return;
+  const l = T(t.muted ? 'Réactiver le son de l\'onglet' : 'Couper le son de l\'onglet');
+  b.title = l; b.setAttribute('aria-label', l); b.querySelector('use').setAttribute('href', t.muted ? '#i-sound-off' : '#i-sound');
+}
 async function savePage() { if (cur?.wcId && await B.call('br:savePage', cur.wcId)) toast('Page enregistrée'); }
 function viewSource() { if (/^https?:/.test(cur?.url || '')) newTab('view-source:' + cur.url); }
 function cycleFocus(dir) {

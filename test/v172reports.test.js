@@ -35,8 +35,8 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
   const saved = JSON.parse(fs.readFileSync(UD + '/reports.json', 'utf8'));
   ok('boîte enregistrée sur le disque (reports.json)', saved.list && saved.list.length === 1);
   await wait(600);
-  const dot = await UI(() => { menu(0, 0, mainMenu()); const b = [...document.querySelectorAll('#menu button')].find(x => /Signalements/.test(x.textContent)); const r = { dot: document.getElementById('bMenu').classList.contains('repdot'), item: !!b, badge: b?.querySelector('.mbadge')?.textContent || '', kbd: b?.querySelector('kbd')?.textContent || '' }; document.getElementById('menu').classList.remove('on'); return r; });
-  ok('menu : « Signalements » avec pastille rouge et Alt+Maj+I ; point rouge sur le bouton du menu', dot.item && dot.badge === '1' && dot.dot && /Alt\+Maj\+I/.test(dot.kbd), dot);
+  const dot = await UI(() => { menu(0, 0, mainMenu()); const b = [...document.querySelectorAll('#menu button')].find(x => /Aide et signalements/.test(x.textContent)); const sub = mainMenu().find(e => e && e.label === 'Aide et signalements')?.sub?.().find(e => e && e.label === 'Signalements'); const r = { dot: document.getElementById('bMenu').classList.contains('repdot'), item: !!b, badge: b?.querySelector('.mbadge')?.textContent || '', kbd: sub?.key || '' }; document.getElementById('menu').classList.remove('on'); return r; });
+  ok('menu : « Aide et signalements » avec pastille rouge, « Signalements » (Alt+Maj+I) dedans ; point rouge sur le bouton du menu', dot.item && dot.badge === '1' && dot.dot && /Alt\+Maj\+I/.test(dot.kbd), dot);
 
   // 2) Alt+Maj+I : nouveau signalement, la page Paramètres → Signalements s'ouvre dessus
   await UI(() => onKey('I', false, true, true));
