@@ -120,7 +120,10 @@ jobs:
           # copie sans numéro de version : le lien …/releases/latest/download/DrYAE-Setup.exe télécharge toujours la dernière version
           cp "dist/installer/DrYAE-Setup-$V.exe" "dist/installer/DrYAE-Setup.exe"
           FILES=("dist/installer/DrYAE-Setup-$V.exe" "dist/installer/DrYAE-Setup-$V.exe.blockmap" "dist/installer/latest.yml" "dist/installer/DrYAE-$V-portable.zip" "dist/installer/DrYAE-Setup.exe")
-          if gh release view "$TAG" >/dev/null 2>&1; then gh release upload "$TAG" "${FILES[@]}" --clobber && gh release edit "$TAG" --notes-file "$NOTES"
-          else gh release create "$TAG" "${FILES[@]}" --title "DrYAE $V" --notes-file "$NOTES" --target "$GITHUB_SHA" --latest; fi
+          # GitHub répond parfois « HTTP 500 / 502 » : jusqu'à 5 essais, et la publication échoue vraiment si rien ne passe
+          pub() { if gh release view "$TAG" >/dev/null 2>&1; then gh release upload "$TAG" "${FILES[@]}" --clobber && gh release edit "$TAG" --notes-file "$NOTES"
+            else gh release create "$TAG" "${FILES[@]}" --title "DrYAE $V" --notes-file "$NOTES" --target "$GITHUB_SHA" --latest; fi; }
+          ok=0; for i in 1 2 3 4 5; do if pub; then ok=1; break; fi; echo "essai $i raté, nouvel essai dans 20 s"; sleep 20; done
+          [ "$ok" = 1 ] || { echo "publication impossible"; exit 1; }
           # textes des versions précédentes : chaque version publiée reprend son texte de docs/notes/
           for f in docs/notes/*.md; do t="v$(basename "$f" .md)"; [ "$t" = "$TAG" ] && continue; gh release view "$t" >/dev/null 2>&1 && gh release edit "$t" --notes-file "$f" || true; done
